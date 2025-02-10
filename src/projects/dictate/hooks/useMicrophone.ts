@@ -157,6 +157,3 @@ export const useMicrophone = ({ onTranscription, onError }: UseMicrophoneProps) 
     isRecording: isRecordingRef.current
   }
 }
-
-
-// TODO:

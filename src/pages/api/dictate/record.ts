@@ -105,16 +105,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.log('Raw WebSocket message received');
           try {
             const msg = JSON.parse(message.toString());
-            console.log('Parsed WebSocket message:', JSON.stringify(msg, null, 2));
+            console.log('🎯 SERVER SENDING MESSAGE:', JSON.stringify(msg, null, 2));
             
             // Only send non-empty transcripts to client
             if (msg.message_type === 'PartialTranscript' && msg.text) {
               console.log('Sending transcript to client:', msg.text);
               if (!res.writableEnded) {
                 res.write(`data: ${JSON.stringify(msg)}\n\n`);
-                console.log('Successfully sent SSE message');
+                console.log('✅ SSE message sent successfully');
               } else {
-                console.log('Response ended, cannot send SSE');
+                console.log('❌ Cannot send SSE: Response ended');
               }
             }
           } catch (error) {
