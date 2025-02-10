@@ -157,9 +157,3 @@ export const useMicrophone = ({ onTranscription, onError }: UseMicrophoneProps) 
     isRecording: isRecordingRef.current
   }
 }
-// TODO:
-// - Add a debounce to the transcription to prevent spamming the server
-// - Add a timeout to the transcription to prevent it from going on forever
-// - Add a way to cancel the transcription
-// - Add a way to pause the transcription
-// - Add a way to resume the transcription
