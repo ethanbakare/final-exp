@@ -1,0 +1,21 @@
+
+
+// src/projects/dictate/tsconfig.json
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "*": ["types/*"],
+      "@/*": ["./src/*"],
+      "@dictate/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "types/**/*.d.ts",
+    "src/projects/*/pages/**/*"
+  ]
+}

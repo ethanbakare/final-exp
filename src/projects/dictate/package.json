@@ -1,0 +1,26 @@
+{
+  "name": "@master-exp/dictate",
+  "version": "1.0.0",
+  "description": "Reading practice and dictation project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "reading",
+    "dictation",
+    "speech-to-text"
+  ],
+  "author": "ethan",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.14",
+    "node-record-lpcm16": "^1.0.1",
+    "ws": "^8.18.0"
+  }
+}
