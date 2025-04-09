@@ -1,0 +1,12 @@
+{
+  "name": "@master-exp/reading-practice",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "openai": "^4.84.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.14"
+  }
+}

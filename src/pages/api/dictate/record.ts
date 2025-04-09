@@ -14,12 +14,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Handle GET requests for EventSource
   if (req.method === 'GET' && req.query.stream === 'true') {
     console.log('Setting up SSE connection');
-    // Set up SSE
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive'
     });
+    
+    // TEST: Send immediate test message
+    res.write(`data: ${JSON.stringify({ type: "TEST", message: "If you see this, SSE is working" })}\n\n`);
+    console.log('Sent test SSE message');
     
     // Send initial connection message
     res.write(`data: ${JSON.stringify({ status: 'connected' })}\n\n`);
@@ -35,7 +38,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   switch (action) {
     case 'start': {
       console.log('Starting new recording session');
-      // If already recording, stop first
       if (recordingInstance || wsInstance) {
         try {
           if (recordingInstance) {
@@ -56,7 +58,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           throw new Error('AssemblyAI API Key is missing');
         }
 
-        // Set up SSE headers
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
@@ -66,7 +67,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('API Key available:', !!process.env.ASSEMBLYAI_API_KEY);
         console.log('API Key length:', process.env.ASSEMBLYAI_API_KEY?.length);
 
-        // Initialize WebSocket with explicit API key
         wsInstance = new WebSocket('wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000', {
           headers: {
             Authorization: process.env.ASSEMBLYAI_API_KEY
@@ -105,16 +105,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.log('Raw WebSocket message received');
           try {
             const msg = JSON.parse(message.toString());
-            console.log('🎯 SERVER SENDING MESSAGE:', JSON.stringify(msg, null, 2));
+            console.log('Parsed WebSocket message:', JSON.stringify(msg, null, 2));
             
-            // Only send non-empty transcripts to client
             if (msg.message_type === 'PartialTranscript' && msg.text) {
               console.log('Sending transcript to client:', msg.text);
               if (!res.writableEnded) {
                 res.write(`data: ${JSON.stringify(msg)}\n\n`);
-                console.log('✅ SSE message sent successfully');
+                console.log('Successfully sent SSE message');
               } else {
-                console.log('❌ Cannot send SSE: Response ended');
+                console.log('Response ended, cannot send SSE');
               }
             }
           } catch (error) {
@@ -130,7 +129,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.log('WebSocket closed:', code, reason?.toString());
         });
 
-        // Handle client disconnect
         req.on('close', () => {
           console.log('Client disconnected, cleaning up');
           if (recordingInstance) {

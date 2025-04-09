@@ -18,7 +18,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@dictate/*": ["./src/projects/dictate/*"]
+      "@dictate/*": ["./src/projects/dictate/*"],
+      "@reading-practice/*": ["./src/projects/reading-practice/*"]
     }
   },
   "include": [
@@ -26,7 +27,8 @@
     "**/*.ts",
     "**/*.tsx",
     "src/**/*.ts",
-    "src/**/*.tsx"
+    "src/**/*.tsx",
+    "src/types/**/*.d.ts"
   ],
   "exclude": ["node_modules"]
 }

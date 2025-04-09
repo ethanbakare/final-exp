@@ -92,7 +92,7 @@ const TestPage = () => {
           border: '1px solid #ddd',
           borderRadius: '3px'
         }}>
-          {currentTranscript || 'No transcription yet...'}
+          {currentTranscript || 'No trans yet...'}
         </p>
       </div>
 

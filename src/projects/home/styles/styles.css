@@ -1,0 +1,75 @@
+/* Color Variables */
+:root {
+  /* Dark colors */
+  --DarkPrimary: #1e1e1e;
+  --DarkSecondary: #212121;
+  
+  /* White with different opacities */
+  --WhiteOpacity70: rgba(255, 255, 255, 0.7);
+  --WhiteOpacity75: rgba(255, 255, 255, 0.75);
+  --WhiteOpacity05: rgba(255, 255, 255, 0.05);
+  
+  /* Accent green with different opacities */
+  --AccentGreen: #22D817;
+  --AccentGreenOpacity25: rgba(34, 216, 23, 0.25);
+}
+
+/* Typography Styles */
+/* Frank Ruhl Libre font styles */
+.FrankRuhlLibre64 {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 64px;
+  font-weight: 400; /* Regular */
+  letter-spacing: -2px;
+  line-height: 93.8%;
+}
+
+.FrankRuhlLibre48 {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 48px;
+  font-weight: 400; /* Regular */
+  letter-spacing: -2px;
+  line-height: 93.8%;
+}
+
+/* Inter font styles */
+.InterRegular28 {
+  font-family: 'Inter', sans-serif;
+  font-size: 28px;
+  font-weight: 400; /* Regular */
+  letter-spacing: -1px;
+  line-height: 143.8%;
+}
+
+.InterMedium28 {
+  font-family: 'Inter', sans-serif;
+  font-size: 28px;
+  font-weight: 500; /* Medium */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular24 {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular20 {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular16 {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+

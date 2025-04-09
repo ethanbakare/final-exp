@@ -9,7 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "framer-motion": "^12.6.2",
+    "lucide-react": "^0.486.0",
     "next": "latest",
+    "openai": "^4.0.0",
     "react": "latest",
     "react-dom": "latest"
   },
@@ -17,14 +20,17 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "typescript": "latest",
+    "@types/styled-jsx": "^2.2.9",
+    "autoprefixer": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
-    "tailwindcss": "latest",
     "postcss": "latest",
-    "autoprefixer": "latest"
+    "tailwindcss": "latest",
+    "typescript": "latest"
   },
   "workspaces": [
-    "src/projects/dictate"
+    "src/projects/dictate",
+    "src/projects/reading-practice",
+    "src/projects/receipt-scanner"
   ]
 }

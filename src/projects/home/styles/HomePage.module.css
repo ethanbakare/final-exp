@@ -1,0 +1,242 @@
+/* Container styles */
+.container {
+
+  /* Include CSS variables locally in the container */
+  /* Dark colors */
+  --DarkPrimary: #1e1e1e;
+  --DarkSecondary: #212121;
+  
+  /* White with different opacities */
+  --WhiteOpacity: #ffffff;
+  --WhiteOpacity70: rgba(255, 255, 255, 0.7);
+  --WhiteOpacity75: rgba(255, 255, 255, 0.75);
+  --WhiteOpacity50: rgba(255, 255, 255, 0.5);
+  --WhiteOpacity30: rgba(255, 255, 255, 0.3);
+  --WhiteOpacity20: rgba(255, 255, 255, 0.2);
+  --WhiteOpacity10: rgba(255, 255, 255, 0.1);
+  --WhiteOpacity05: rgba(255, 255, 255, 0.05);
+  --WhiteOpacity01: rgba(255, 255, 255, 0.10);
+  
+  /* Accent green with different opacities */
+  --AccentGreen: #22D817;
+  --AccentGreenOpacity25: rgba(34, 216, 23, 0.25);
+}
+
+/* Simplify to just set background color */
+.darkBackground {
+  background-color: #1E1E1E;
+}
+
+/* Typography Styles as classes */
+.FrankRuhlLibre64 {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 64px;
+  font-weight: 400; /* Regular */
+  letter-spacing: -2px;
+  line-height: 93.8%;
+}
+
+.FrankRuhlLibre48 {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 48px;
+  font-weight: 400; /* Regular */
+  letter-spacing: -2px;
+  line-height: 93.8%;
+}
+
+.FrankRuhlLibre32 {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 32px;
+  font-weight: 400; /* Regular */
+  letter-spacing: -2px;
+  line-height: 93.8%;
+}
+
+.FrankRuhlLibre24 {
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 24px;
+  font-weight: 400; /* Regular */
+  letter-spacing: -2px;
+  line-height: 93.8%;
+}
+
+.InterRegular28 {
+  font-family: 'Inter', sans-serif;
+  font-size: 28px;
+  font-weight: 400; /* Regular */
+  letter-spacing: -1px;
+  line-height: 143.8%;
+}
+
+.InterMedium28 {
+  font-family: 'Inter', sans-serif;
+  font-size: 28px;
+  font-weight: 500; /* Medium */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular24 {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular24_H1 {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular20 {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular20_H1 {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular18 {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular16 {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular14 {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular12 {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+/* Breakpoint scaffolding for future use */
+/* Extra large devices (large desktops) */
+@media (max-width: 1440px) {
+  /* Add styles for this breakpoint when needed */
+}
+
+/* Large devices (desktops) */
+@media (max-width: 1200px) {
+  /* Add styles for this breakpoint when needed */
+}
+
+/* Medium devices (tablets) */
+@media (max-width: 992px) {
+  /* Add styles for this breakpoint when needed */
+}
+
+/* Small devices (landscape phones) */
+@media (max-width: 768px) {
+  /* Add styles for this breakpoint when needed */
+}
+
+/* Extra small devices (portrait phones) */
+@media (max-width: 576px) {
+  /* Typography Styles as classes */
+  .FrankRuhlLibre64 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 48px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -2px;
+    line-height: 120%;
+  }
+  
+  .FrankRuhlLibre48 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 32px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -2px;
+    line-height: 93.8%;
+  }
+
+  .InterRegular24_H1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular28 {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -1px;
+    line-height: 143.8%;
+  }
+  
+  .InterMedium28 {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 500; /* Medium */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
+  .InterRegular24 {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
+  .InterRegular20_H1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: 26px;
+  }
+
+  .InterRegular18 {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
+  .InterRegular16 {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+}
+
+/* Custom breakpoint for very small devices */
+@media (max-width: 320px) {
+  /* Add styles for this breakpoint when needed */
+} 

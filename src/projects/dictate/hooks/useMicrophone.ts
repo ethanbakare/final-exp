@@ -1,5 +1,5 @@
+//src/projects/dictate/hooks/useMicrophone.ts
 import { useRef, useCallback, useEffect } from 'react'
-
 interface UseMicrophoneProps {
   onTranscription: (text: string) => void
   onError?: (error: Error) => void
@@ -80,17 +80,21 @@ export const useMicrophone = ({ onTranscription, onError }: UseMicrophoneProps) 
       console.log('Recording started successfully')
       
       if (eventSourceRef.current) {
-        // Set up message handler
         eventSourceRef.current.onmessage = (event) => {
-          console.log('📨 SSE Message Received:', {
-            type: event.type,
-            data: event.data,
-            lastEventId: event.lastEventId
-          })
+          // TEST: Log all SSE messages
+          console.log('💡 Raw SSE message received:', event.data)
+          
           try {
             const data = JSON.parse(event.data)
-            console.log('Parsed message data:', data)
+            console.log('💡 Parsed SSE data:', data)
             
+            // TEST: Handle test message
+            if (data.type === 'TEST') {
+              console.log('💡 TEST MESSAGE RECEIVED:', data.message)
+              onTranscription('TEST: ' + data.message)
+              return
+            }
+    
             if (data.message_type === 'PartialTranscript' && data.text) {
               console.log('Processing transcription:', data.text)
               onTranscription(data.text)
@@ -100,11 +104,12 @@ export const useMicrophone = ({ onTranscription, onError }: UseMicrophoneProps) 
             onError?.(new Error('Failed to parse transcription'))
           }
         }
-
-        isRecordingRef.current = true
       }
 
-    } catch (error) {
+      isRecordingRef.current = true
+    } 
+    
+    catch (error) {
       console.error('Error in startRecording:', error)
       if (eventSourceRef.current) {
         eventSourceRef.current.close()

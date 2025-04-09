@@ -1,0 +1,213 @@
+import React from 'react';
+import styles from '../styles/HomePage.module.css';
+
+interface HeroBannerProps {
+  // No props needed for now, but we could add them if needed later
+}
+
+const HeroBanner: React.FC<HeroBannerProps> = () => {
+  return (
+    <div className="hero_banner">
+      <div className="main_holder">
+        {/* Badge component - "Day X / 90" indicator */}
+        <div className="badge_component">
+          <div className="badge_frame">
+            <span className={`${styles.InterRegular14} badge_text`}>Day 9 / 90</span>
+          </div>
+        </div>
+        
+        {/* Hero text content - Title and subtitle */}
+        <div className="hero_component">
+          <h1 className={`${styles.FrankRuhlLibre64} hero_title`}>90 days; Zero to AI designer</h1>
+          <p className={`${styles.InterRegular24_H1} hero_subtitle`}>
+            Building functional design prototypes to explore AI-human interaction
+          </p>
+        </div>
+      </div>
+      
+      {/* Hero action buttons */}
+      <div className="buttons">
+        <button className="button_left">
+          <span className={`${styles.InterRegular18} btn_left_text`}>How it works</span>
+        </button>
+        <button className="button_right">
+          <span className={`${styles.InterRegular18} btn_right_text`}>Vote on next build </span>
+        </button>
+      </div>
+
+      {/* ----------------------------------------
+          COMPONENT STYLES - Hero section styles
+          ---------------------------------------- */}
+      <style jsx>{`
+        /* Hero banner container */
+        .hero_banner {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          padding: 0px 0px 0px;
+          gap: 88px;
+          width: 100%;
+          height: 100vh;
+          min-height: 809px;
+          margin: 0 auto;
+        }
+
+        /* Main content holder */
+        .main_holder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 0px;
+          gap: 64px;
+          width: 100%;
+          max-width: 1020px;
+          height: auto;
+        }
+
+        /* Badge component - "Day X / 90" */
+        .badge_component {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 8px 8px;
+        }
+
+        .badge_frame {
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 4px 12px;
+          gap: 10px;
+          background: var(--AccentGreenOpacity25);
+          border-radius: 32px;
+        }
+
+        /* Hero content - Title and subtitle */
+        .hero_component {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 0px 16px 5px;
+          gap: 28px;
+          width: 100%;
+          max-width: 1020px;
+          height: auto;
+        }
+
+        h1 {
+          text-align: center;
+          color: var(--WhiteOpacity);
+          width: 100%;
+          max-width: 1020px;
+          height: auto;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+
+        p {
+          text-align: center;
+          color: var(--WhiteOpacity70);
+          width: 100%;
+          max-width: 632px;
+          height: auto;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+
+        /* Hero buttons */
+        .buttons {
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          gap: 32px;
+          max-width: 442px;
+          height: auto;
+        }
+
+        .button_left, 
+        .button_right {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 8px 16px;
+          gap: 10px;
+          width: 100%;
+          max-width: 233px;
+          border-radius: 32px;
+          height: auto;
+          border: 1.6px solid var(--WhiteOpacity70);
+          cursor: pointer;
+          white-space: nowrap;
+          box-sizing: border-box;
+        }
+
+        .button_left {
+          background: transparent;
+        }
+
+        .button_right {
+          background: var(--WhiteOpacity);
+        }
+
+        /* Text style classes */
+        .badge_text {
+          color: var(--AccentGreen);
+        }
+        
+        .hero_title {
+          color: var(--WhiteOpacity);
+        }
+        
+        .hero_subtitle {
+          color: var(--WhiteOpacity70);
+        }
+        
+        .btn_left_text {
+          color: var(--WhiteOpacity70);
+        }
+        
+        .btn_right_text {
+          color: var(--DarkPrimary);
+        }
+
+        /* Media queries for responsive design */
+        @media (max-width: 768px) {
+          .buttons {
+            flex-direction: column;
+            align-items: center;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .hero_banner {
+            min-height: auto;
+            height: auto;
+            padding: 56px 0px 96px;
+            gap: 56px;
+          }
+          
+          .hero_component {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0px 16px 5px;
+            gap: 24px;
+          }
+
+          .main_holder {
+            gap: 30px;
+          }
+
+          .buttons {
+            gap: 16px;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default HeroBanner; 

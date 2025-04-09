@@ -1,0 +1,252 @@
+DisplayCountry,CurrencyCode,DisplayCountry_CurrencyCode,DisplayCurrencySymbol,SymbolPosition,Country,CurrencySymbol
+Afghanistan,AFN,Afghanistan (AFN),؋,0,Afghanistan,؋
+Albania,ALL,Albania (ALL),Lek,1,Albania,Lek
+Algeria,DZD,Algeria (DZD),د.ج,0,Algeria,د.ج
+American Samoa,USD,American Samoa (USD),$,0,American Samoa,$
+Andorra,EUR,Andorra (EUR),€,1,Andorra,€
+Angola,AOA,Angola (AOA),Kz,0,Angola,Kz
+Anguilla,XCD,Anguilla (XCD),$,0,Anguilla,$
+Antigua & Barbuda,XCD,Antigua & Barbuda (XCD),$,0,Antigua and Barbuda,$
+Argentina,ARS,Argentina (ARS),$,0,Argentina,$
+Armenia,AMD,Armenia (AMD),Դ,1,Armenia,Դ
+Aruba,AWG,Aruba (AWG),ƒ,0,Aruba,ƒ
+Australia,AUD,Australia (AUD),$,0,Australia,$
+Austria,EUR,Austria (EUR),€,1,Austria,€
+Azerbaijan,AZN,Azerbaijan (AZN),₼,1,Azerbaijan,₼
+Bahamas,BSD,Bahamas (BSD),$,0,Bahamas,$
+Bahrain,BHD,Bahrain (BHD),ب.د,0,Bahrain,ب.د
+Bangladesh,BDT,Bangladesh (BDT),৳,0,Bangladesh,৳
+Barbados,BBD,Barbados (BBD),$,0,Barbados,$
+Belarus,BYN,Belarus (BYN),p.,1,Belarus,p.
+Belgium,EUR,Belgium (EUR),€,1,Belgium,€
+Belize,BZD,Belize (BZD),$,0,Belize,$
+Benin,XOF,Benin (XOF),Fr,1,Benin,Franc
+Bermuda,BMD,Bermuda (BMD),$,0,Bermuda,$
+Bhutan,BTN,Bhutan (BTN),Nu.,0,Bhutan,Nu.
+Bolivia,BOB,Bolivia (BOB),Bs.,0,Bolivia,Bs.
+Bolivia,BOV,Bolivia (BOV),BOV,1,Bolivia,Mvdol
+Bonaire,BES,Bonaire (BES),$,0,Bonaire,$
+Bosnia & Herz.,BAM,Bosnia & Herz. (BAM),КМ,1,Bosnia and Herzegovina,КМ
+Botswana,BWP,Botswana (BWP),P,0,Botswana,P
+Bouvet Island,NOK,Bouvet Island (NOK),kr,1,Bouvet Island,kr
+Brazil,BRL,Brazil (BRL),R$,0,Brazil,R$
+British Indian Ocean T.,USD,British Indian Ocean T. (USD),$,0,British Indian Ocean Territory,$
+Brunei Darussalam,BND,Brunei Darussalam (BND),$,0,Brunei Darussalam,$
+Bulgaria,BGN,Bulgaria (BGN),лв,1,Bulgaria,лв
+Burkina Faso,XOF,Burkina Faso (XOF),Fr,1,Burkina Faso,Franc
+Burundi,BIF,Burundi (BIF),₣,1,Burundi,₣
+Cape Verde,CVE,Cape Verde (CVE),$,0,Cape Verde,$
+Cambodia,KHR,Cambodia (KHR),៛,0,Cambodia,៛
+Cameroon,XAF,Cameroon (XAF),Fr,1,Cameroon,CFA Franc BEAC
+Canada,CAD,Canada (CAD),$,0,Canada,$
+Cayman Islands,KYD,Cayman Islands (KYD),$,0,Cayman Islands,$
+Central African Rep.,XAF,Central African Rep. (XAF),₣,1,Central African Republic,₣
+Chad,XAF,Chad (XAF),Fr,1,Chad,CFA Franc BEAC
+Chile,CLP,Chile (CLP),$,0,Chile,$
+China,CNY,China (CNY),¥,0,China,¥
+Christmas Island,AUD,Christmas Island (AUD),$,0,Christmas Island,$
+Cocos Islands,AUD,Cocos Islands (AUD),$,0,Cocos (Keeling) Islands,$
+Colombia,COP,Colombia (COP),$,0,Colombia,$
+Comoros,KMF,Comoros (KMF),FC,1,Comoros,FC
+DR Congo,CDF,DR Congo (CDF),₣,1,Democratic Republic of the Congo,₣
+Cook Islands,NZD,Cook Islands (NZD),$,0,Cook Islands,$
+Costa Rica,CRC,Costa Rica (CRC),₡,0,Costa Rica,₡
+Croatia,HRK,Croatia (HRK),Kn,1,Croatia,Kn
+Cuba,CUP,Cuba (CUP),₱,0,Cuba,₱
+Curaçao,ANG,Curaçao (ANG),ƒ,0,Curaçao,ƒ
+Cyprus,EUR,Cyprus (EUR),€,1,Cyprus,€
+Czech Republic,CZK,Czech Republic (CZK),Kč,1,Czech Republic,Kč
+Ivory Coast,XOF,Ivory Coast (XOF),Fr,1,Ivory Coast,Franc
+Denmark,DKK,Denmark (DKK),kr.,1,Denmark,kr.
+Djibouti,DJF,Djibouti (DJF),₣,1,Djibouti,₣
+Dominica,XCD,Dominica (XCD),$,0,Dominica,$
+Dominican Republic,DOP,Dominican Republic (DOP),$,0,Dominican Republic,$
+Ecuador,USD,Ecuador (USD),$,0,Ecuador,$
+Egypt,EGP,Egypt (EGP),£,0,Egypt,£
+El Salvador,USD,El Salvador (USD),$,0,El Salvador,$
+Equatorial Guinea,XAF,Equatorial Guinea (XAF),Fr,1,Equatorial Guinea,FCFA
+Eritrea,ERN,Eritrea (ERN),Nfk,0,Eritrea,Nfk
+Estonia,EUR,Estonia (EUR),€,1,Estonia,€
+Ethiopia,ETB,Ethiopia (ETB),Br,0,Ethiopia,Br
+Falkland Islands,FKP,Falkland Islands (FKP),£,0,Falkland Islands,£
+Faroe Islands,DKK,Faroe Islands (DKK),kr.,1,Faroe Islands,kr.
+Fiji,FJD,Fiji (FJD),$,0,Fiji,$
+Finland,EUR,Finland (EUR),€,1,Finland,€
+France,EUR,France (EUR),€,1,France,€
+French Guiana,EUR,French Guiana (EUR),€,1,French Guiana,€
+French Polynesia,XPF,French Polynesia (XPF),₣,1,French Polynesia,₣
+French Southern Territories,EUR,French Southern Territories (EUR),€,1,French Southern Territories,€
+Gabon,XAF,Gabon (XAF),Fr,1,Gabon,FCFA
+Gambia,GMD,Gambia (GMD),D,0,Gambia,D
+Georgia,GEL,Georgia (GEL),ლ,1,Georgia,ლ
+Germany,EUR,Germany (EUR),€,1,Germany,€
+Ghana,GHS,Ghana (GHS),₵,0,Ghana,₵
+Gibraltar,GIP,Gibraltar (GIP),£,0,Gibraltar,£
+Greece,EUR,Greece (EUR),€,1,Greece,€
+Greenland,DKK,Greenland (DKK),kr.,1,Greenland,kr.
+Grenada,XCD,Grenada (XCD),$,0,Grenada,$
+Guadeloupe,EUR,Guadeloupe (EUR),€,1,Guadeloupe,€
+Guam,USD,Guam (USD),$,0,Guam,$
+Guatemala,GTQ,Guatemala (GTQ),Q,0,Guatemala,Q
+Guernsey,GBP,Guernsey (GBP),£,0,Guernsey,£
+Guinea,GNF,Guinea (GNF),₣,1,Guinea,₣
+Guinea-Bissau,XOF,Guinea-Bissau (XOF),Fr,1,Guinea-Bissau,Franc
+Guyana,GYD,Guyana (GYD),$,0,Guyana,$
+Haiti,HTG,Haiti (HTG),G,0,Haiti,G
+Haiti,USD,Haiti (USD),$,0,Haiti,$
+Heard & McDonald Is.,AUD,Heard & McDonald Is. (AUD),$,0,Heard and McDonald Islands,$
+Holy See,EUR,Holy See (EUR),€,1,Holy See,€
+Honduras,HNL,Honduras (HNL),L,0,Honduras,L
+Hong Kong,HKD,Hong Kong (HKD),$,0,Hong Kong,$
+Hungary,HUF,Hungary (HUF),Ft,1,Hungary,Ft
+Iceland,ISK,Iceland (ISK),Kr,1,Iceland,Kr
+India,INR,India (INR),₹,0,India,₹
+Indonesia,IDR,Indonesia (IDR),Rp,0,Indonesia,Rp
+Iran,IRR,Iran (IRR),﷼,0,Iran,﷼
+Iraq,IQD,Iraq (IQD),ع.د,0,Iraq,ع.د
+Ireland,EUR,Ireland (EUR),€,0,Ireland,€
+Isle of Man,GBP,Isle of Man (GBP),£,0,Isle of Man,£
+Israel,ILS,Israel (ILS),₪,0,Israel,₪
+Italy,EUR,Italy (EUR),€,1,Italy,€
+Jamaica,JMD,Jamaica (JMD),$,0,Jamaica,$
+Japan,JPY,Japan (JPY),¥,0,Japan,¥
+Jersey,GBP,Jersey (GBP),£,0,Jersey,£
+Jordan,JOD,Jordan (JOD),د.ا,0,Jordan,د.ا
+Kazakhstan,KZT,Kazakhstan (KZT),〒,1,Kazakhstan,〒
+Kenya,KES,Kenya (KES),Sh,0,Kenya,Sh
+Kiribati,AUD,Kiribati (AUD),$,0,Kiribati,$
+North Korea,KPW,North Korea (KPW),₩,1,North Korea,₩
+South Korea,KRW,South Korea (KRW),₩,1,South Korea,₩
+Kuwait,KWD,Kuwait (KWD),د.ك,0,Kuwait,د.ك
+Kyrgyzstan,KGS,Kyrgyzstan (KGS),лв,1,Kyrgyzstan,лв
+Laos,LAK,Laos (LAK),₭,0,Laos,₭
+Latvia,EUR,Latvia (EUR),€,1,Latvia,€
+Lebanon,LBP,Lebanon (LBP),ل.ل,0,Lebanon,ل.ل
+Lesotho,LSL,Lesotho (LSL),L,0,Lesotho,L
+Lesotho,ZAR,Lesotho (ZAR),R,0,Lesotho,R
+Liberia,LRD,Liberia (LRD),$,0,Liberia,$
+Libya,LYD,Libya (LYD),ل.د,0,Libya,ل.د
+Liechtenstein,CHF,Liechtenstein (CHF),₣,0,Liechtenstein,₣
+Lithuania,EUR,Lithuania (EUR),€,1,Lithuania,€
+Luxembourg,EUR,Luxembourg (EUR),€,1,Luxembourg,€
+Macao,MOP,Macao (MOP),P,0,Macao,P
+Madagascar,MGA,Madagascar (MGA),MK,1,Madagascar,MK
+Malawi,MWK,Malawi (MWK),MK,0,Malawi,MK
+Malaysia,MYR,Malaysia (MYR),RM,0,Malaysia,RM
+Maldives,MVR,Maldives (MVR),ރ,0,Maldives,ރ
+Mali,XOF,Mali (XOF),Fr,1,Mali,Franc
+Malta,EUR,Malta (EUR),€,1,Malta,€
+Marshall Islands,USD,Marshall Islands (USD),$,0,Marshall Islands,$
+Martinique,EUR,Martinique (EUR),€,1,Martinique,€
+Mauritania,MRU,Mauritania (MRU),UM,1,Mauritania,UM
+Mauritius,MUR,Mauritius (MUR),₨,0,Mauritius,₨
+Mayotte,EUR,Mayotte (EUR),€,1,Mayotte,€
+Mexico,MXN,Mexico (MXN),$,0,Mexico,$
+Mexico,MXV,Mexico (MXV),$,0,Mexico,$
+Micronesia,USD,Micronesia (USD),$,0,Micronesia,$
+Moldova,MDL,Moldova (MDL),L,1,Moldova,L
+Monaco,EUR,Monaco (EUR),€,1,Monaco,€
+Mongolia,MNT,Mongolia (MNT),₮,1,Mongolia,₮
+Montenegro,EUR,Montenegro (EUR),€,1,Montenegro,€
+Montserrat,XCD,Montserrat (XCD),$,0,Montserrat,$
+Morocco,MAD,Morocco (MAD),د.م.,0,Morocco,د.م.
+Mozambique,MZN,Mozambique (MZN),MTn,0,Mozambique,MTn
+Myanmar,MMK,Myanmar (MMK),K,0,Myanmar,K
+Namibia,NAD,Namibia (NAD),$,0,Namibia,$
+Namibia,ZAR,Namibia (ZAR),R,0,Namibia,R
+Nauru,AUD,Nauru (AUD),$,0,Nauru,$
+Nepal,NPR,Nepal (NPR),₨,0,Nepal,₨
+Netherlands,EUR,Netherlands (EUR),€,1,Netherlands,€
+New Caledonia,XPF,New Caledonia (XPF),₣,1,New Caledonia,₣
+New Zealand,NZD,New Zealand (NZD),$,0,New Zealand,$
+Nicaragua,NIO,Nicaragua (NIO),C$,0,Nicaragua,C$
+Niger,XOF,Niger (XOF),Fr,1,Niger,Franc
+Nigeria,NGN,Nigeria (NGN),₦,0,Nigeria,₦
+Niue,NZD,Niue (NZD),$,0,Niue,$
+Norfolk Island,AUD,Norfolk Island (AUD),$,0,Norfolk Island,$
+Northern Mariana Islands,USD,Northern Mariana Islands (USD),$,0,Northern Mariana Islands,$
+Norway,NOK,Norway (NOK),kr,1,Norway,kr
+Oman,OMR,Oman (OMR),﷼,0,Oman,﷼
+Pakistan,PKR,Pakistan (PKR),₨,0,Pakistan,₨
+Palau,USD,Palau (USD),$,0,Palau,$
+Panama,PAB,Panama (PAB),B/.,0,Panama,B/.
+Panama,USD,Panama (USD),$,0,Panama,$
+Papua New Guinea,PGK,Papua New Guinea (PGK),K,0,Papua New Guinea,K
+Paraguay,PYG,Paraguay (PYG),₲,0,Paraguay,₲
+Peru,PEN,Peru (PEN),S/.,0,Peru,S/.
+Philippines,PHP,Philippines (PHP),₱,0,Philippines,₱
+Pitcairn Islands,NZD,Pitcairn Islands (NZD),$,0,Pitcairn Islands,$
+Poland,PLN,Poland (PLN),zł,1,Poland,zł
+Portugal,EUR,Portugal (EUR),€,1,Portugal,€
+Puerto Rico,USD,Puerto Rico (USD),$,0,Puerto Rico,$
+Qatar,QAR,Qatar (QAR),ر.ق,0,Qatar,ر.ق
+North Macedonia,MKD,North Macedonia (MKD),ден,1,North Macedonia,ден
+Romania,RON,Romania (RON),L,1,Romania,L
+Russia,RUB,Russia (RUB),₽,1,Russia,₽
+Rwanda,RWF,Rwanda (RWF),₣,1,Rwanda,₣
+Réunion,EUR,Réunion (EUR),€,1,Réunion,€
+St Barthélemy,EUR,St Barthélemy (EUR),€,1,Saint Barthélemy,€
+Saint Helena,SHP,Saint Helena (SHP),£,0,Saint Helena,£
+Saint Kitts and Nevis,XCD,Saint Kitts and Nevis (XCD),$,0,Saint Kitts and Nevis,$
+Saint Lucia,XCD,Saint Lucia (XCD),$,0,Saint Lucia,$
+Saint Martin,EUR,Saint Martin (EUR),€,1,Saint Martin,€
+St Pierre & Miquelon,EUR,St Pierre & Miquelon (EUR),€,1,Saint Pierre and Miquelon,€
+St Vincent & Grenadines,XCD,St Vincent & Grenadines (XCD),$,0,Saint Vincent and the Grenadines,$
+Samoa,WST,Samoa (WST),$,0,Samoa,$
+San Marino,EUR,San Marino (EUR),€,1,San Marino,€
+Sao Tome and Principe,STN,Sao Tome and Principe (STN),Db,0,Sao Tome and Principe,Db
+Saudi Arabia,SAR,Saudi Arabia (SAR),ر.س,0,Saudi Arabia,ر.س
+Senegal,XOF,Senegal (XOF),Fr,1,Senegal,Franc
+Serbia,RSD,Serbia (RSD),din,1,Serbia,din
+Seychelles,SCR,Seychelles (SCR),Rs,0,Seychelles,Rs
+Sierra Leone,SLL,Sierra Leone (SLL),Le,0,Sierra Leone,Le
+Singapore,SGD,Singapore (SGD),$,0,Singapore,$
+Sint Maarten,ANG,Sint Maarten (ANG),ƒ,0,Sint Maarten,ƒ
+Slovakia,EUR,Slovakia (EUR),€,1,Slovakia,€
+Slovenia,EUR,Slovenia (EUR),€,1,Slovenia,€
+Solomon Islands,SBD,Solomon Islands (SBD),$,0,Solomon Islands,$
+Somalia,SOS,Somalia (SOS),Sh,0,Somalia,Sh
+South Africa,ZAR,South Africa (ZAR),R,0,South Africa,R
+South Sudan,SSP,South Sudan (SSP),SS£,0,South Sudan,SS£
+Spain,EUR,Spain (EUR),€,1,Spain,€
+Sri Lanka,LKR,Sri Lanka (LKR),Rs,0,Sri Lanka,Rs
+Sudan,SDG,Sudan (SDG),£,0,Sudan,£
+Suriname,SRD,Suriname (SRD),$,0,Suriname,$
+Svalbard,NOK,Svalbard (NOK),kr,1,Svalbard and Jan Mayen,kr
+Swaziland (Eswatini),SZL,Swaziland (Eswatini) (SZL),L,0,Swaziland (Eswatini),L
+Sweden,SEK,Sweden (SEK),kr,1,Sweden,kr
+Switzerland,CHF,Switzerland (CHF),₣,0,Switzerland,₣
+Syria,SYP,Syria (SYP),£,0,Syria,£
+Taiwan,TWD,Taiwan (TWD),NT$,0,Taiwan,NT$
+Tajikistan,TJS,Tajikistan (TJS),ЅМ,1,Tajikistan,ЅМ
+Tanzania,TZS,Tanzania (TZS),Sh,0,Tanzania,Sh
+Thailand,THB,Thailand (THB),฿,0,Thailand,฿
+Timor-Leste,USD,Timor-Leste (USD),$,0,Timor-Leste,$
+Togo,XOF,Togo (XOF),Fr,1,Togo,Franc
+Tokelau,NZD,Tokelau (NZD),$,0,Tokelau,$
+Tonga,TOP,Tonga (TOP),T$,0,Tonga,T$
+Trinidad and Tobago,TTD,Trinidad and Tobago (TTD),$,0,Trinidad and Tobago,$
+Tunisia,TND,Tunisia (TND),د.ت,0,Tunisia,د.ت
+Turkey,TRY,Turkey (TRY),TL,0,Turkey,TL
+Turkmenistan,TMT,Turkmenistan (TMT),m,1,Turkmenistan,m
+Turks & Caicos Islands,USD,Turks & Caicos Islands (USD),$,0,Turks and Caicos Islands,$
+Tuvalu,AUD,Tuvalu (AUD),$,0,Tuvalu,$
+Uganda,UGX,Uganda (UGX),Sh,0,Uganda,Sh
+Ukraine,UAH,Ukraine (UAH),₴,1,Ukraine,₴
+United Arab Emirates,AED,United Arab Emirates (AED),د.م.,0,United Arab Emirates,د.م.
+United Kingdom,GBP,United Kingdom (GBP),£,0,United Kingdom,£
+US Minor Outlying Is.,USD,US Minor Outlying Is. (USD),$,0,United States Minor Outlying Islands,$
+United States,USD,United States (USD),$,0,United States of America,$
+Uruguay,UYU,Uruguay (UYU),$,0,Uruguay,$
+Uzbekistan,UZS,Uzbekistan (UZS),лв,1,Uzbekistan,лв
+Vanuatu,VUV,Vanuatu (VUV),Vt,0,Vanuatu,Vt
+Venezuela,VEF,Venezuela (VEF),Bs.,0,Venezuela,Bs.
+Vietnam,VND,Vietnam (VND),₫,1,Vietnam,₫
+British Virgin Islands,USD,British Virgin Islands (USD),$,0,British Virgin Islands,$
+US Virgin Islands,USD,US Virgin Islands (USD),$,0,US Virgin Islands,$
+Wallis and Futuna,XPF,Wallis and Futuna (XPF),Fr,1,Wallis and Futuna,Franc
+Western Sahara,MAD,Western Sahara (MAD),د.م.,0,Western Sahara,د.م.
+Yemen,YER,Yemen (YER),﷼,0,Yemen,﷼
+Zambia,ZMW,Zambia (ZMW),ZK,0,Zambia,ZK
+Zimbabwe,ZWL,Zimbabwe (ZWL),$,0,Zimbabwe,$
+Åland Islands,EUR,Åland Islands (EUR),€,1,Åland Islands,€
