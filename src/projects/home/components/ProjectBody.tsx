@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styles from '../styles/HomePage.module.css';
 import { motion } from 'framer-motion';
+import { useCurrentProject, useProjectItems } from '@/hooks/useProjects';
 
 interface ProjectBodyProps {
   // No props needed for now, but we could add them if needed later
@@ -18,62 +19,26 @@ interface Project {
 }
 
 const ProjectBody: React.FC<ProjectBodyProps> = () => {
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: 'mood-tracker',
-      title: 'Mood tracker app',
-      description: 'OCR and voice logging system it can morph into knowledge for chat like querying what you discussed before or just',
-      days: 14,
-      votes: 38,
-      focus: 'Reducing Friction',
-      timestamp: null
-    },
-    {
-      id: 'receipt-scanner',
-      title: 'Receipt Scanner',
-      description: 'OCR and AI-powered receipt scanner to extract structured data including store information, items, prices, and totals',
-      days: 10,
-      votes: 26,
-      focus: 'Data Extraction',
-      timestamp: null
-    }
-  ]);
-
-  const handleVote = (id: string) => {
-    /*
-    // Rate limiting
-    const lastVoteTime = localStorage.getItem('lastVoteTime');
-    const now = new Date().getTime();
-    
-    if (lastVoteTime && (now - parseInt(lastVoteTime)) < 2000) {
-      // User is voting too quickly (less than 2 seconds between votes)
-      alert('Please wait before voting again');
-      return;
-    }
-    
-    // Record vote time
-    localStorage.setItem('lastVoteTime', now.toString());
-    */
-    
-    // Get current timestamp
-    const timestamp = new Date().toISOString();
-    
-    // Update projects state
-    setProjects(prevProjects => {
-      // First, create a new array with the updated vote count
-      const updatedProjects = prevProjects.map(project => 
-        project.id === id 
-          ? { ...project, votes: project.votes + 1, timestamp } 
-          : project
-      );
-      
-      // Then sort by votes (highest first)
-      return updatedProjects.sort((a, b) => b.votes - a.votes);
-    });
-    
-    // In a real implementation, we would also make an API call to record the vote:
-    // saveVoteToDatabase(id, timestamp);
-  };
+  const { currentProject, loading: currentLoading, error: currentError } = useCurrentProject();
+  const { 
+    projects, 
+    loading: projectsLoading, 
+    error: projectsError, 
+    handleVote, 
+    remainingVotes,
+    hasReachedVoteLimit 
+  } = useProjectItems();
+  
+  const isLoading = currentLoading || projectsLoading;
+  const hasError = currentError || projectsError;
+  
+  if (isLoading) {
+    return <div className="loading-state">Loading...</div>;
+  }
+  
+  if (hasError) {
+    return <div className="error-state">Error loading content: {currentError || projectsError}</div>;
+  }
 
   return (
     <div className="project_body">
@@ -101,8 +66,8 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
               ---------------------------------------- */}
           <div className="day_header">
             <div className="day_header_text">
-              <h3 className={`${styles.InterRegular28}`}>Expense Tracker</h3>
-              <p className={`${styles.InterRegular20}`}>OCR and voice logging system</p>
+              <h3 className={`${styles.InterRegular28}`}>{currentProject?.title || 'Loading...'}</h3>
+              <p className={`${styles.InterRegular20}`}>{currentProject?.subtitle || ''}</p>
             </div>
             <div className="day_badge">
               <div className="calendar_icon">
@@ -117,7 +82,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
                   </defs>
                 </svg>
               </div>
-              <span className={`${styles.InterRegular14}`}>7 days left</span>
+              <span className={`${styles.InterRegular14}`}>{currentProject?.daysLeft || 0} days left</span>
             </div>
           </div>
           
@@ -128,7 +93,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           <div className="day_body">
             <div className="day_body_text">
               <p className={`${styles.InterRegular20_H1}`}>
-                Can effortless multi-modal capture (visual, voice, and manual) overcome the habit barrier in personal finance tracking?
+                {currentProject?.description || ''}
               </p>
             </div>
             <div className="day_button_container">
@@ -155,7 +120,9 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
                   </clipPath>
                 </defs>
               </svg>
-              <span className={`${styles.InterRegular14}`}>Focus: Reducing Friction</span>
+              <span className={`${styles.InterRegular14}`}>
+                {currentProject?.focusBadge?.title || 'Reducing Friction'}
+              </span>
             </div>
           </div>
         </div>
@@ -170,6 +137,30 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
         <h2 className={`${styles.FrankRuhlLibre48} list_section_title`}>What's next?</h2>
       </div>
 
+      {/* Vote Limit Indicator - Moved here */}
+      {remainingVotes < 20 && (
+        <div className="vote_limit_indicator">
+          <p className={`${styles.InterRegular14}`}>
+            {remainingVotes > 0 
+              ? `You have ${remainingVotes} votes remaining today` 
+              : 'You have reached your daily vote limit'}
+          </p>
+          
+          {/* Reset votes button - only in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <button 
+              onClick={() => {
+                localStorage.removeItem('voteHistory');
+                window.location.reload();
+              }}
+              className="reset_votes_button"
+            >
+              Reset Votes
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Wrapper to handle overall list layout */}
       <div className="project_list_wrapper">
         {projects.map((project, index) => (
@@ -178,6 +169,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
             key={project.id}
             className="project_item_motion_wrapper" 
             transition={{ duration: 0.5, type: "spring", stiffness: 70 }}
+            style={{ width: '100%', maxWidth: '856px' }}
           >
 
             {/* ----------------------------------------
@@ -210,6 +202,11 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
                     <button 
                       className={index === 0 ? "vote_button" : "secondary_vote_button"}
                       onClick={() => handleVote(project.id)}
+                      disabled={hasReachedVoteLimit()}
+                      style={{ 
+                        opacity: hasReachedVoteLimit() ? 0.5 : 1,
+                        cursor: hasReachedVoteLimit() ? 'not-allowed' : 'pointer'
+                      }}
                     >
                       <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg" className="vote_thumb_icon">
                         <g clipPath="url(#clip0_459_1823)">
@@ -266,7 +263,9 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
                       </clipPath>
                     </defs>
                   </svg>
-                  <span className={`${styles.InterRegular14}`}>Focus: {project.focus}</span>
+                  <span className={`${styles.InterRegular14}`}>
+                    {project.focusBadge?.title || 'Category'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -545,7 +544,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           height: auto;
         }
         
-        .list_card {
+        .list_card, .secondary_list_card {
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
@@ -713,19 +712,19 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           height: auto;
         }
         
-        .secondary_list_card {
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          padding: 30px 70px 20px 40px;
-          gap: 40px;
-          width: 100%;
-          max-width: 856px;
-          height: auto;
-          border: 1.6px solid rgba(255, 255, 255, 0.1);
-          border-radius: 16px;
-        }
+        // .secondary_list_card {
+        //   box-sizing: border-box;
+        //   display: flex;
+        //   flex-direction: column;
+        //   align-items: flex-start;
+        //   padding: 30px 70px 20px 40px;
+        //   gap: 40px;
+        //   width: 100%;
+        //   max-width: 856px;
+        //   height: auto;
+        //   border: 1.6px solid rgba(255, 255, 255, 0.1);
+        //   border-radius: 16px;
+        // }
         
         /* ----------------------------------------
            Secondary list main section styles - Grid layout
@@ -1044,7 +1043,59 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
             padding: 0px;
           }
         }
+
+        /* Vote limit indicator styles */
+        .vote_limit_indicator {
+          width: 100%;
+          max-width: 1160px;
+          padding: 0 20px 20px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        
+        .vote_limit_indicator p {
+          color: var(--AccentGreen);
+          background-color: rgba(34, 216, 23, 0.1);
+          padding: 8px 16px;
+          border-radius: 8px;
+          display: inline-block;
+        }
+        
+        .reset_votes_button {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: var(--WhiteOpacity75);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          padding: 8px 16px;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+        
+        .reset_votes_button:hover {
+          background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Add styles for disabled vote buttons */
+        .vote_button:disabled,
+        .secondary_vote_button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
       `}</style>
+
+      <button 
+        onClick={() => {
+          localStorage.removeItem('voteHistory');
+          window.location.reload();
+        }}
+        style={{padding: '8px', margin: '10px'}}
+      >
+        Reset Votes (Testing Only)
+      </button>
     </div>
   );
 };

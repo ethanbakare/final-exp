@@ -9,12 +9,17 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@portabletext/react": "^3.2.1",
+    "@sanity/image-url": "^1.1.0",
+    "@sanity/vision": "^3.83.0",
     "framer-motion": "^12.6.2",
     "lucide-react": "^0.486.0",
     "next": "latest",
+    "next-sanity": "^9.9.9",
     "openai": "^4.0.0",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "sanity": "^3.83.0"
   },
   "devDependencies": {
     "@types/node": "latest",
