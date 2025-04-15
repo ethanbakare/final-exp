@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Receipt, ReceiptUploadResponse } from '../types/receipt';
+import { Receipt } from '../types/receipt';
 
 // API endpoint for the receipt scanner
 const API_URL = 'http://localhost:8000/api/receipts/process';

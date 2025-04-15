@@ -9,6 +9,42 @@ export const useMicrophone = ({ onTranscription, onError }: UseMicrophoneProps) 
   const eventSourceRef = useRef<EventSource | null>(null)
   const isRecordingRef = useRef(false)
 
+  const stopRecording = useCallback(async () => {
+    console.log('Stopping recording')
+    try {
+      if (!isRecordingRef.current) {
+        console.log('Not recording, nothing to stop')
+        return
+      }
+
+      if (eventSourceRef.current) {
+        console.log('Closing EventSource')
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+
+      const response = await fetch('/api/dictate/record', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'stop' })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to stop recording: ${response.statusText}`)
+      }
+
+      console.log('Recording stopped successfully')
+
+    } catch (error) {
+      console.error('Error in stopRecording:', error)
+      onError?.(error instanceof Error ? error : new Error('Failed to stop recording'))
+    } finally {
+      isRecordingRef.current = false
+    }
+  }, [onError])
+
   useEffect(() => {
     return () => {
       console.log('Cleanup: closing EventSource')
@@ -17,7 +53,7 @@ export const useMicrophone = ({ onTranscription, onError }: UseMicrophoneProps) 
         stopRecording()
       }
     }
-  }, [])
+  }, [stopRecording])
 
   const startRecording = useCallback(async () => {
     console.log('🎯 StartRecording Called')
@@ -119,42 +155,6 @@ export const useMicrophone = ({ onTranscription, onError }: UseMicrophoneProps) 
       onError?.(error instanceof Error ? error : new Error('Failed to start recording'))
     }
   }, [onTranscription, onError])
-
-  const stopRecording = useCallback(async () => {
-    console.log('Stopping recording')
-    try {
-      if (!isRecordingRef.current) {
-        console.log('Not recording, nothing to stop')
-        return
-      }
-
-      if (eventSourceRef.current) {
-        console.log('Closing EventSource')
-        eventSourceRef.current.close()
-        eventSourceRef.current = null
-      }
-
-      const response = await fetch('/api/dictate/record', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'stop' })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to stop recording: ${response.statusText}`)
-      }
-
-      console.log('Recording stopped successfully')
-
-    } catch (error) {
-      console.error('Error in stopRecording:', error)
-      onError?.(error instanceof Error ? error : new Error('Failed to stop recording'))
-    } finally {
-      isRecordingRef.current = false
-    }
-  }, [onError])
 
   return {
     startRecording,

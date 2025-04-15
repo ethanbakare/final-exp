@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export function useAudioCapture(onAudioData: (data: Blob) => void) {
   const [isRecording, setIsRecording] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
 
   useEffect(() => {
     let chunks: Blob[] = []
@@ -24,6 +25,7 @@ export function useAudioCapture(onAudioData: (data: Blob) => void) {
         }
 
         setMediaRecorder(recorder)
+        mediaRecorderRef.current = recorder
         setError(null)
       } catch (err) {
         setError('Error accessing microphone')
@@ -34,8 +36,8 @@ export function useAudioCapture(onAudioData: (data: Blob) => void) {
     setupMediaRecorder()
 
     return () => {
-      if (mediaRecorder?.state === 'recording') {
-        mediaRecorder.stop()
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.stop()
       }
     }
   }, [onAudioData])

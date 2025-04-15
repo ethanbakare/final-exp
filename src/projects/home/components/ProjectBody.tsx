@@ -4,29 +4,13 @@ import { motion } from 'framer-motion';
 import { useCurrentProject, useProjectItems } from '@/hooks/useProjects';
 import ProjectDetailModal from './ProjectDetailModal';
 
-interface ProjectBodyProps {
-  // No props needed for now, but we could add them if needed later
-}
-
-// Define a proper type for our projects
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  days: number;
-  votes: number;
-  focus: string;
-  timestamp: string | null; // Allow both string and null
-}
-
-const ProjectBody: React.FC<ProjectBodyProps> = () => {
+const ProjectBody: React.FC = () => {
   const { currentProject, loading: currentLoading, error: currentError } = useCurrentProject();
   const { 
     projects, 
     loading: projectsLoading, 
     error: projectsError, 
-    handleVote, 
-    remainingVotes,
+    handleVote,
     hasReachedVoteLimit 
   } = useProjectItems();
   

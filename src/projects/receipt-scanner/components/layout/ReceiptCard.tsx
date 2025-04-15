@@ -31,7 +31,6 @@ const ReceiptCard: React.FC<ReceiptCardProps> = ({
   const [savings, setSavings] = useState("10.00");
   const [tax, setTax] = useState("2.00");
   const [total, setTotal] = useState("240.36");
-  const [hasError, setHasError] = useState(true);
 
   const handleInputChange = (field: string, value: string) => {
     if (onValueChange) {

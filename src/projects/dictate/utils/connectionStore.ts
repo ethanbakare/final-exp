@@ -1,6 +1,5 @@
 // src/projects/dictate/utils/connectionStore.ts
 import { NextApiResponse } from 'next';
-import WebSocket from 'ws';
 
 type SSEConnection = {
   res: NextApiResponse;

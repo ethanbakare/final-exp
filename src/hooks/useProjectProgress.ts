@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { ProjectProgress, ProjectProgressWithStats, TaskWithStatus } from '@/types/projectProgress'
+import { ProjectProgress, ProjectProgressWithStats } from '@/types/projectProgress'
 
 export function useProjectProgress() {
   const [data, setData] = useState<ProjectProgressWithStats | null>(null)

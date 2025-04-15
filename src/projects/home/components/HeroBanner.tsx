@@ -1,11 +1,7 @@
 import React from 'react';
 import styles from '../styles/HomePage.module.css';
 
-interface HeroBannerProps {
-  // No props needed for now, but we could add them if needed later
-}
-
-const HeroBanner: React.FC<HeroBannerProps> = () => {
+const HeroBanner: React.FC = () => {
   // Custom smooth scroll function with easeInOutCubic easing
   const scrollToElement = (elementId: string) => {
     const targetElement = document.getElementById(elementId);

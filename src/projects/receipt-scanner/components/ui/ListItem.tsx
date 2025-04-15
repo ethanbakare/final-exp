@@ -188,13 +188,13 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
       const current = isToday(date);
       
       // Create container style based on state
-      let containerStyle = {...baseContainerStyle};
+      const containerStyle = {...baseContainerStyle};
       if (selected) {
         containerStyle.backgroundColor = '#0F172A'; // SecondaryH2 for selected day
       }
       
       // Create number style based on state
-      let numberStyle = {...baseNumberStyle};
+      const numberStyle = {...baseNumberStyle};
       if (selected) {
         numberStyle.color = '#FFFFFF'; // White for selected day
         numberStyle.fontWeight = 600;

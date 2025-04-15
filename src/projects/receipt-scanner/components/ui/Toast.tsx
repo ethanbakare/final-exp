@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 export type ToastType = 'success' | 'warning' | 'error' | 'file';
 
@@ -33,6 +33,11 @@ const Toast: React.FC<ToastProps> = ({
 }) => {
   const [visible, setVisible] = useState(true);
 
+  const handleClose = useCallback(() => {
+    setVisible(false);
+    if (onClose) onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (autoClose) {
       const timer = setTimeout(() => {
@@ -41,12 +46,7 @@ const Toast: React.FC<ToastProps> = ({
       
       return () => clearTimeout(timer);
     }
-  }, [autoClose, autoCloseTime]);
-
-  const handleClose = () => {
-    setVisible(false);
-    if (onClose) onClose();
-  };
+  }, [autoClose, autoCloseTime, handleClose]);
 
   if (!visible) return null;
 

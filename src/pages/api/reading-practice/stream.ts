@@ -8,9 +8,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+// Define server interface
+interface ServerWithWebsocket {
+  ws: WebSocketServer;
+}
+
 // Add type for Next.js extended socket
 interface ExtendedSocket extends Socket {
-  server: any;
+  server: ServerWithWebsocket;
 }
 
 // Store WebSocket server instance

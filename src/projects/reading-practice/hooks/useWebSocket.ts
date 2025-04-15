@@ -35,7 +35,10 @@ export function useWebSocket(url: string) {
     }
   }, [url])
 
-  const sendMessage = useCallback((data: any) => {
+  // Define a type for the message data
+  type WebSocketMessage = Record<string, unknown>;
+
+  const sendMessage = useCallback((data: WebSocketMessage) => {
     if (socket?.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(data))
     }

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react"
-import type { WordTrackingState } from "../types"
 
 export function useWordTracking(socket: WebSocket | null, passage: string[]) {
   const [highlightedWords, setHighlightedWords] = useState<number[]>([])
@@ -16,7 +15,7 @@ export function useWordTracking(socket: WebSocket | null, passage: string[]) {
     }
 
     // Connection error
-    socket.onerror = (event) => {
+    socket.onerror = () => {
       setError('WebSocket connection error')
       setIsConnected(false)
     }
@@ -44,7 +43,7 @@ export function useWordTracking(socket: WebSocket | null, passage: string[]) {
         ).filter((index: number) => index !== -1)
 
         setHighlightedWords(matchedIndexes)
-      } catch (error) {
+      } catch {
         setError('Error processing message')
       }
     }

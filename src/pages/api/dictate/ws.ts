@@ -1,7 +1,9 @@
 // src/pages/api/dictate/ws.ts
-import { NextApiRequest } from 'next';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { WebSocket, WebSocketServer } from 'ws';
 import * as recorder from 'node-record-lpcm16';
+import { Socket } from 'net';
+import { IncomingMessage } from 'http';
 
 const wsServer = new WebSocketServer({ noServer: true });
 const clients = new Set<WebSocket>();
@@ -96,11 +98,26 @@ function stopRecording() {
   cleanup();
 }
 
-export default function handler(req: NextApiRequest, res: any) {
-  if (!res.socket.server.ws) {
-    res.socket.server.ws = wsServer;
+// Add this interface to properly type the NextApiResponse socket
+interface SocketWithServer extends Socket {
+  server: {
+    ws?: WebSocketServer;
+    on: (event: string, callback: (request: IncomingMessage, socket: Socket, head: Buffer) => void) => void;
+  };
+}
 
-    res.socket.server.on('upgrade', (request: any, socket: any, head: any) => {
+interface NextApiResponseWithSocket extends NextApiResponse {
+  socket: SocketWithServer;
+}
+
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Proper type casting
+  const response = res as NextApiResponseWithSocket;
+  
+  if (!response.socket.server.ws) {
+    response.socket.server.ws = wsServer;
+
+    response.socket.server.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
       wsServer.handleUpgrade(request, socket, head, (ws) => {
         wsServer.emit('connection', ws, request);
       });
