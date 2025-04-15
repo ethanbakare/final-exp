@@ -21,4 +21,17 @@ export const projectItemByIdQuery = `*[_type == "projectItem" && id == $id][0] {
     title,
     color
   }
+}`
+
+export const projectProgressQuery = `*[_type == "projectProgress"][0] {
+  _id,
+  title,
+  "modalImage": modalImage.asset->{
+    _ref,
+    url
+  },
+  tasks[] {
+    title,
+    subtasks
+  }
 }` 

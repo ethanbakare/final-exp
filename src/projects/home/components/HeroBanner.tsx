@@ -6,6 +6,45 @@ interface HeroBannerProps {
 }
 
 const HeroBanner: React.FC<HeroBannerProps> = () => {
+  // Custom smooth scroll function with easeInOutCubic easing
+  const scrollToElement = (elementId: string) => {
+    const targetElement = document.getElementById(elementId);
+    if (!targetElement) return;
+    
+    const startPosition = window.pageYOffset;
+    const targetPosition = targetElement.getBoundingClientRect().top + startPosition;
+    const distance = targetPosition - startPosition;
+    const duration = 1000; // Duration in ms (1 second)
+    let startTime: number | null = null;
+    
+    // Easing function for smooth acceleration and deceleration
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 
+        ? 4 * t * t * t 
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+    
+    const animateScroll = (currentTime: number) => {
+      if (startTime === null) startTime = currentTime;
+      const timeElapsed = currentTime - startTime;
+      const progress = Math.min(timeElapsed / duration, 1);
+      const easeProgress = easeInOutCubic(progress);
+      
+      window.scrollTo(0, startPosition + distance * easeProgress);
+      
+      if (timeElapsed < duration) {
+        requestAnimationFrame(animateScroll);
+      }
+    };
+    
+    requestAnimationFrame(animateScroll);
+  };
+
+  // Function to handle scrolling to the "What's next?" section
+  const scrollToWhatsNext = () => {
+    scrollToElement('whats-next');
+  };
+
   return (
     <div className="hero_banner">
       <div className="main_holder">
@@ -30,7 +69,7 @@ const HeroBanner: React.FC<HeroBannerProps> = () => {
         <button className="button_left">
           <span className={`${styles.InterRegular18} btn_left_text`}>How it works</span>
         </button>
-        <button className="button_right">
+        <button className="button_right" onClick={scrollToWhatsNext}>
           <span className={`${styles.InterRegular18} btn_right_text`}>Vote on next build </span>
         </button>
       </div>
@@ -138,7 +177,7 @@ const HeroBanner: React.FC<HeroBannerProps> = () => {
           max-width: 233px;
           border-radius: 32px;
           height: auto;
-          border: 1.6px solid var(--WhiteOpacity70);
+          border: 2px solid var(--WhiteOpacity10);
           cursor: pointer;
           white-space: nowrap;
           box-sizing: border-box;

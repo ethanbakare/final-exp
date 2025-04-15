@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from '../styles/HomePage.module.css';
 import { motion } from 'framer-motion';
 import { useCurrentProject, useProjectItems } from '@/hooks/useProjects';
+import ProjectDetailModal from './ProjectDetailModal';
 
 interface ProjectBodyProps {
   // No props needed for now, but we could add them if needed later
@@ -28,6 +29,8 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
     remainingVotes,
     hasReachedVoteLimit 
   } = useProjectItems();
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const isLoading = currentLoading || projectsLoading;
   const hasError = currentError || projectsError;
@@ -97,7 +100,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
               </p>
             </div>
             <div className="day_button_container">
-              <button className="day_button">
+              <button className="day_button" onClick={() => setIsModalOpen(true)}>
                 <span className={`${styles.InterRegular18}`}>View Progress</span>
                 <div className="plus_icon"></div>
               </button>
@@ -133,11 +136,19 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           LIST SECTION TITLE - What's Next Header
           ----------------------------------------
           ---------------------------------------- */}
-      <div className="list_section_container">
-        <h2 className={`${styles.FrankRuhlLibre48} list_section_title`}>What's next?</h2>
+      <div id="whats-next" className="list_section_container">
+        <h2 className={`${styles.FrankRuhlLibre48} list_section_title`}>Pick what I build next</h2>
+        <p className={`${styles.InterRegular28} list_section_subtitle`}>Top goes first. The rest follow by votes.</p>
       </div>
 
-      {/* Vote Limit Indicator - Moved here */}
+      {/* ************************************************
+      *******************************************************
+      ** VOTE LIMIT INDICATOR - CURRENTLY HIDDEN
+      ** Displays remaining votes for the day and a reset button in dev mode
+      ** Uncomment this section if you want to re-enable the vote limit feature
+      *******************************************************
+      ************************************************ */}
+      {/* 
       {remainingVotes < 20 && (
         <div className="vote_limit_indicator">
           <p className={`${styles.InterRegular14}`}>
@@ -146,7 +157,6 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
               : 'You have reached your daily vote limit'}
           </p>
           
-          {/* Reset votes button - only in development */}
           {process.env.NODE_ENV === 'development' && (
             <button 
               onClick={() => {
@@ -160,6 +170,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           )}
         </div>
       )}
+      */}
 
       {/* Wrapper to handle overall list layout */}
       <div className="project_list_wrapper">
@@ -192,7 +203,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
                       LIST HEADER TEXT STYLES
                       ---------------------------------------- */}
                   <div className={index === 0 ? "list_header_text" : "secondary_list_header_text"}>
-                    <h3 className={`${styles.InterRegular28}`}>{project.title}</h3>
+                    <h3 className={`${styles.InterRegular24_H1}`}>{project.title}</h3>
                   </div>
 
                   {/* ----------------------------------------
@@ -308,13 +319,17 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           color: var(--WhiteOpacity);
         }
 
-
         .list_section_container {
           width: 100%;
           max-width: 1160px;
           padding: 132px 20px 52px 20px;
         }
         
+        .list_section_subtitle {
+          color: var(--WhiteOpacity70);
+          margin: 24px 0 0 0;
+          text-align: left;
+        }
 
         /* ==========================================
            CURRENT PROJECT CARD STYLES
@@ -566,9 +581,9 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           display: grid;
           grid-template-areas: 
             "title buttons" 
-            "body body";
+            "body ." ;
           grid-template-columns: 1fr auto;
-          gap: 24px 10px;
+          gap: 0px 10px;
           width: 100%;
           padding: 0px 0px 10px;
         }
@@ -600,6 +615,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           color: var(--WhiteOpacity70);
           margin: 0;
           text-align: left;
+          max-width: calc(100% - 60px); /* Prevent text from getting too close to where button would be */
         }
         
         /* You don't need the list_header anymore since we're using grid areas */
@@ -654,6 +670,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           align-items: center;
           padding: 4px 8px;
           gap: 8px;
+          height: 24px;
           background: rgba(255, 255, 255, 0.08);
           border-radius: 6px;
           opacity: 0.7;
@@ -691,9 +708,9 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
         }
         
         /* Fix text color */
-        .list_header_text h3 {
+        .list_header_text h3, .secondary_list_header_text h3 {
           color: var(--WhiteOpacity);
-          margin: 0;
+          margin: 0 0 8px 0;
           width: 100%;
         }
 
@@ -734,9 +751,9 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           display: grid;
           grid-template-areas: 
             "title buttons" 
-            "body body";
+            "body ." ;
           grid-template-columns: 1fr auto;
-          gap: 24px 10px;
+          gap: 0px 10px;
           width: 100%;
           padding: 0px 0px 10px;
         }
@@ -769,6 +786,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           margin: 0;
           text-align: left;
           padding: 0px;
+          max-width: calc(100% - 60px); /* Prevent text from getting too close to where button would be */
         }
         
         /* Secondary list header works with grid areas */
@@ -785,7 +803,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           flex-direction: row;
           justify-content: center;
           align-items: center;
-          padding: 10px 16px; 
+          padding: 8px 16px; 
           gap: 10px; /* Adjust gap if needed */
           height: 40px;
           border: 1px solid var(--WhiteOpacity70); 
@@ -810,7 +828,6 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           display: flex;
           flex-direction: row;
           align-items: center;
-          justify-content: flex-start;
           padding: 8px 0px;
           gap: 16px;
           width: 100%;
@@ -829,7 +846,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           padding: 4px 8px;
           gap: 8px;
           background: rgba(255, 255, 255, 0.08);
-          height: 25px;
+          height: 24px;
           border-radius: 6px;
           opacity: 0.7;
         }
@@ -864,13 +881,8 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           text-align: center;
         }
         
-        /* Fix text color */
-        .secondary_list_header_text h3 {
-          color: var(--WhiteOpacity);
-          margin: 0;
-          width: 100%;
-        }
-
+  
+ 
         /* ==========================================
            PROJECT LIST WRAPPER
            ========================================== */
@@ -907,6 +919,11 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
 
           .list_section_container {
             padding: 132px 0px 52px 0px;
+          }
+
+          .list_section_subtitle {
+          margin: 20px 0 0 0;
+          text-align: left;
           }
           
           /* ----------------------------------------
@@ -949,7 +966,14 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
             max-width: 100%;
             gap: 24px;
           }
-          
+     
+          /* Fix text color */
+          .list_header_text h3, .secondary_list_header_text h3 {
+            color: var(--WhiteOpacity);
+            margin: 0 0 0px 0;
+            width: 100%;
+          }
+
            /* ----------------------------------------
              Mobile styles for list main
              ---------------------------------------- */
@@ -957,10 +981,10 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           .list_main {
             grid-template-areas: 
               "title"
-              "body"
-              "buttons";
+              "buttons"
+              "body";
             grid-template-columns: 1fr;
-            gap: 16px;
+            gap: 24px;
             padding: 0px 0px 5px;
           }
           
@@ -970,6 +994,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           
           .list_body_text {
             padding: 0px;
+            max-width: 100%; /* Allow full width on mobile */
           }
 
           /* ----------------------------------------
@@ -988,10 +1013,10 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           .secondary_list_main {
             grid-template-areas: 
               "title"
-              "body"
-              "buttons";
+              "buttons"
+              "body";
             grid-template-columns: 1fr;
-            gap: 16px;
+            gap: 24px;
             padding: 0px 0px 5px;
           }
           
@@ -1001,6 +1026,7 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
           
           .secondary_list_body_text {
             padding: 0px;
+            max-width: 100%; /* Allow full width on mobile */
           }
 
           /* Ensure wrapper has correct padding on mobile */
@@ -1087,6 +1113,14 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
         }
       `}</style>
 
+      {/* ************************************************
+      *******************************************************
+      ** TESTING BUTTON - CURRENTLY HIDDEN
+      ** This button resets the vote history in localStorage 
+      ** Only for development and testing purposes
+      *******************************************************
+      ************************************************ */}
+      {/* 
       <button 
         onClick={() => {
           localStorage.removeItem('voteHistory');
@@ -1096,6 +1130,13 @@ const ProjectBody: React.FC<ProjectBodyProps> = () => {
       >
         Reset Votes (Testing Only)
       </button>
+      */}
+      
+      {isModalOpen && (
+        <ProjectDetailModal
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

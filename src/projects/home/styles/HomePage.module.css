@@ -11,15 +11,19 @@
   --WhiteOpacity70: rgba(255, 255, 255, 0.7);
   --WhiteOpacity75: rgba(255, 255, 255, 0.75);
   --WhiteOpacity50: rgba(255, 255, 255, 0.5);
+  --WhiteOpacity40: rgba(255, 255, 255, 0.4);
   --WhiteOpacity30: rgba(255, 255, 255, 0.3);
   --WhiteOpacity20: rgba(255, 255, 255, 0.2);
   --WhiteOpacity10: rgba(255, 255, 255, 0.1);
   --WhiteOpacity05: rgba(255, 255, 255, 0.05);
+  --WhiteOpacity02: rgba(255, 255, 255, 0.02);
   --WhiteOpacity01: rgba(255, 255, 255, 0.10);
   
   /* Accent green with different opacities */
   --AccentGreen: #22D817;
+  --AccentGreenOpacity60: rgba(34, 216, 23, 0.6);
   --AccentGreenOpacity25: rgba(34, 216, 23, 0.25);
+  --AccentGreenOpacity10: rgba(34, 216, 23, 0.1);
 }
 
 /* Simplify to just set background color */
@@ -72,6 +76,14 @@
   font-family: 'Inter', sans-serif;
   font-size: 28px;
   font-weight: 500; /* Medium */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular26 {
+  font-family: 'Inter', sans-serif;
+  font-size: 26px;
+  font-weight: 400; /* Regular */
   letter-spacing: 0;
   line-height: normal;
 }
@@ -173,7 +185,7 @@
   
   .FrankRuhlLibre48 {
     font-family: 'Frank Ruhl Libre', serif;
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 400; /* Regular */
     letter-spacing: -2px;
     line-height: 93.8%;
