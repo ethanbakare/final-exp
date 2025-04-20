@@ -52,13 +52,13 @@ const HowItWorks_Body: React.FC = () => {
           ---------------------------------------- */}
       <div className="quote_section">
         <div className="quote_container">
-          <h3 className={`${styles.InterRegular24} quote_headertext`}>Why I'm Doing This.</h3>
+          <h3 className={`${styles.InterRegular24} quote_headertext`}>Why I&apos;m Doing This.</h3>
           
           <div className="quote_body">
             <p className={`${styles.InterRegular20_H1} quote_bodytext`}>
-                The traditional route says: apply, wait, hope. 
-                I say: build, ship, and share instead. 
-                This sprint is a public test of whether consistent output — not credentials — can break into AI design.
+            The traditional route says: apply, wait, hope. 
+            I say: build, ship, and share instead. 
+            This sprint is a public test of whether consistent output — not credentials — can break into AI design.
             </p>
             <div className="quote_bar"></div>
           </div>

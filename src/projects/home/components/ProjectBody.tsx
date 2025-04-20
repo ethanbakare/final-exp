@@ -35,9 +35,6 @@ const FocusBadgeTooltip = ({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
   
-  // Get the color values based on the provided color name
-  const colors = getBadgeColors(colorName);
-  
   // Handle component mount state for client-side rendering
   useEffect(() => {
     setIsMounted(true);
