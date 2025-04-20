@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ProjectProgress, ProjectProgressWithStats } from '@/types/projectProgress'
 
-export function useProjectProgress() {
+export function useProjectProgress(projectProgressId?: string | null) {
   const [data, setData] = useState<ProjectProgressWithStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +52,13 @@ export function useProjectProgress() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/project-progress')
+      
+      // Construct the API URL based on whether we have a projectProgressId
+      const url = projectProgressId 
+        ? `/api/project-progress?id=${encodeURIComponent(projectProgressId)}`
+        : '/api/project-progress'
+      
+      const response = await fetch(url)
       
       if (!response.ok) {
         throw new Error('Failed to fetch project progress')
@@ -67,7 +73,7 @@ export function useProjectProgress() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [projectProgressId])
   
   useEffect(() => {
     fetchData()

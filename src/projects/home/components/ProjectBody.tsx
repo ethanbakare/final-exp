@@ -1,8 +1,250 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import styles from '../styles/HomePage.module.css';
 import { motion } from 'framer-motion';
-import { useCurrentProject, useProjectItems } from '@/hooks/useProjects';
+import { useCurrentProject, useProjectItems, FOCUS_BADGE_COLORS } from '@/hooks/useProjects';
 import ProjectDetailModal from './ProjectDetailModal';
+
+// Helper function to get the color values for a badge
+const getBadgeColors = (colorName: string | undefined) => {
+  const defaultColor = 'green';
+  const color = colorName && FOCUS_BADGE_COLORS[colorName as keyof typeof FOCUS_BADGE_COLORS] 
+    ? colorName as keyof typeof FOCUS_BADGE_COLORS 
+    : defaultColor;
+  return FOCUS_BADGE_COLORS[color];
+};
+
+// Tooltip component for focus badges using portals for reliable positioning
+const FocusBadgeTooltip = ({ 
+  children, 
+  colorName,
+  tooltipText
+}: { 
+  children: React.ReactNode,
+  colorName?: string,
+  tooltipText?: string
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ 
+    top: 0, 
+    left: 0,
+    bottom: 0
+  });
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Get the color values based on the provided color name
+  const colors = getBadgeColors(colorName);
+  
+  // Handle component mount state for client-side rendering
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+  
+  const handleMouseEnter = () => {
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    
+    // Set a brief delay before showing the tooltip
+    timerRef.current = setTimeout(() => {
+      setShowTooltip(true);
+      updateTooltipPosition();
+    }, 200); // 200ms delay
+  };
+  
+  const handleMouseLeave = () => {
+    // Clear the timer if mouse leaves before tooltip is shown
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setShowTooltip(false);
+  };
+  
+  // Handle tap/click for mobile devices
+  const handleTap = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent document click from immediately closing tooltip
+    
+    if (showTooltip) {
+      setShowTooltip(false);
+    } else {
+      setShowTooltip(true);
+      // We need to calculate position after setting state
+      setTimeout(updateTooltipPosition, 0);
+    }
+  };
+  
+  // Update tooltip position based on badge position
+  const updateTooltipPosition = () => {
+    if (!triggerRef.current) return;
+    
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const tooltipWidth = 281; // Width of tooltip
+    
+    // Use bottom-up positioning - position tooltip ABOVE the badge
+    // We don't need to estimate height since we're positioning from the bottom up
+    let left = triggerRect.left + (triggerRect.width / 2) - (tooltipWidth / 2);
+    
+    // Apply boundary corrections to keep tooltip within viewport
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight
+    };
+    
+    // Ensure tooltip doesn't go off right edge
+    if (left + tooltipWidth > viewport.width - 10) {
+      left = viewport.width - tooltipWidth - 10;
+    }
+    
+    // Ensure tooltip doesn't go off left edge
+    if (left < 10) {
+      left = 10;
+    }
+    
+    // Position from the bottom of the trigger element
+    // The space between badge top and tooltip bottom is fixed
+    const bottom = window.innerHeight - triggerRect.top + 12; // 12px spacing
+    
+    // Use bottom positioning which doesn't depend on tooltip height
+    setTooltipPosition({ 
+      bottom: bottom,
+      left: left,
+      top: 0 // We're using bottom positioning, but include top for type compatibility
+    });
+  };
+  
+  // Handle clicks outside to close tooltip
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
+        setShowTooltip(false);
+      }
+    };
+    
+    // Only add the event listener if tooltip is showing
+    if (showTooltip) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showTooltip]);
+  
+  // Recalculate position on window resize
+  useEffect(() => {
+    if (!showTooltip) return;
+    
+    const handleResize = () => {
+      updateTooltipPosition();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleResize, true);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleResize, true);
+    };
+  }, [showTooltip]);
+  
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+  
+  return (
+    <>
+      <div 
+        ref={triggerRef}
+        className="focus-badge-tooltip-container"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleTap}
+        role="button"
+        tabIndex={0}
+        aria-expanded={showTooltip}
+      >
+        {children}
+      </div>
+      
+      {/* Portal for tooltip to avoid positioning constraints */}
+      {isMounted && showTooltip && ReactDOM.createPortal(
+        <div 
+          ref={tooltipRef}
+          className="portal-tooltip"
+          role="tooltip"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            bottom: `${tooltipPosition.bottom}px`,
+            left: `${tooltipPosition.left}px`,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '281px',
+            height: 'auto',
+            minHeight: '38px',
+            padding: '4px 8px',
+            background: 'rgba(16, 16, 16, 0.95)',
+            boxShadow: '0px 4px 10.7px rgba(0, 0, 0, 0.1)',
+            borderRadius: '6px',
+            zIndex: 9999,
+            opacity: 0,
+            transformOrigin: 'center bottom',
+            animation: 'tooltipFadeIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+          }}
+        >
+          <p style={{
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            fontStyle: 'normal',
+            fontWeight: 400,
+            fontSize: window.innerWidth <= 768 ? '14px' : '13.6px',
+            lineHeight: '1.4',
+            textAlign: 'center',
+            color: '#FFFFFF',
+            margin: '0',
+            padding: '0',
+            width: window.innerWidth <= 768 ? '240px' : '265px',
+            whiteSpace: 'normal'
+          }}>
+            {tooltipText || getBadgeColors(colorName).description}
+          </p>
+        </div>,
+        document.body
+      )}
+      
+      <style jsx global>{`
+        @keyframes tooltipFadeIn {
+          from {
+            opacity: 0;
+            transform: scaleY(0.7) translateY(30%);
+          }
+          to {
+            opacity: 1;
+            transform: scaleY(1) translateY(0);
+          }
+        }
+        
+        .focus-badge-tooltip-container {
+          position: relative;
+          display: inline-flex;
+          cursor: pointer;
+          outline: none;
+        }
+      `}</style>
+    </>
+  );
+};
 
 const ProjectBody: React.FC = () => {
   const { currentProject, loading: currentLoading, error: currentError } = useCurrentProject();
@@ -54,7 +296,7 @@ const ProjectBody: React.FC = () => {
           <div className="day_header">
             <div className="day_header_text">
               <h3 className={`${styles.InterRegular28}`}>{currentProject?.title || 'Loading...'}</h3>
-              <p className={`${styles.InterRegular20}`}>{currentProject?.subtitle || ''}</p>
+              <p className={`${styles.InterRegular20_H1}`}>{currentProject?.subtitle || ''}</p>
             </div>
             <div className="day_badge">
               <div className="calendar_icon">
@@ -85,7 +327,7 @@ const ProjectBody: React.FC = () => {
             </div>
             <div className="day_button_container">
               <button className="day_button" onClick={() => setIsModalOpen(true)}>
-                <span className={`${styles.InterRegular18}`}>View Progress</span>
+                <span className={`${styles.InterRegular17}`}>View Progress</span>
                 <div className="plus_icon"></div>
               </button>
             </div>
@@ -96,21 +338,29 @@ const ProjectBody: React.FC = () => {
               Shows the project's primary focus
               ---------------------------------------- */}
           <div className="day_footer">
-            <div className="day_footer_badge">
-              <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g clipPath="url(#clip0_1183_327)">
-                  <path d="M7.33331 5.16683H8.66665V6.50016H7.33331V5.16683ZM7.99998 11.8335C8.36665 11.8335 8.66665 11.5335 8.66665 11.1668V8.50016C8.66665 8.1335 8.36665 7.8335 7.99998 7.8335C7.63331 7.8335 7.33331 8.1335 7.33331 8.50016V11.1668C7.33331 11.5335 7.63331 11.8335 7.99998 11.8335ZM7.99998 1.8335C4.31998 1.8335 1.33331 4.82016 1.33331 8.50016C1.33331 12.1802 4.31998 15.1668 7.99998 15.1668C11.68 15.1668 14.6666 12.1802 14.6666 8.50016C14.6666 4.82016 11.68 1.8335 7.99998 1.8335ZM7.99998 13.8335C5.05998 13.8335 2.66665 11.4402 2.66665 8.50016C2.66665 5.56016 5.05998 3.16683 7.99998 3.16683C10.94 3.16683 13.3333 5.56016 13.3333 8.50016C13.3333 11.4402 10.94 13.8335 7.99998 13.8335Z" fill="#22D817" fillOpacity="0.75"/>
-                </g>
-                <defs>
-                  <clipPath id="clip0_1183_327">
-                    <rect width="16" height="16" fill="white" transform="translate(0 0.5)"/>
-                  </clipPath>
-                </defs>
-              </svg>
-              <span className={`${styles.InterRegular14}`}>
-                {currentProject?.focusBadge?.title || 'Reducing Friction'}
-              </span>
-            </div>
+            <FocusBadgeTooltip colorName={currentProject?.focusBadge?.color} tooltipText={currentProject?.focusBadge?.tooltipText}>
+              <div className="day_footer_badge" style={{ 
+                backgroundColor: getBadgeColors(currentProject?.focusBadge?.color).background 
+              }}>
+                <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g clipPath="url(#clip0_1183_327)">
+                    <path d="M7.33331 5.16683H8.66665V6.50016H7.33331V5.16683ZM7.99998 11.8335C8.36665 11.8335 8.66665 11.5335 8.66665 11.1668V8.50016C8.66665 8.1335 8.36665 7.8335 7.99998 7.8335C7.63331 7.8335 7.33331 8.1335 7.33331 8.50016V11.1668C7.33331 11.5335 7.63331 11.8335 7.99998 11.8335ZM7.99998 1.8335C4.31998 1.8335 1.33331 4.82016 1.33331 8.50016C1.33331 12.1802 4.31998 15.1668 7.99998 15.1668C11.68 15.1668 14.6666 12.1802 14.6666 8.50016C14.6666 4.82016 11.68 1.8335 7.99998 1.8335ZM7.99998 13.8335C5.05998 13.8335 2.66665 11.4402 2.66665 8.50016C2.66665 5.56016 5.05998 3.16683 7.99998 3.16683C10.94 3.16683 13.3333 5.56016 13.3333 8.50016C13.3333 11.4402 10.94 13.8335 7.99998 13.8335Z" 
+                    fill={getBadgeColors(currentProject?.focusBadge?.color).iconBackground}
+                    />
+                  </g>
+                  <defs>
+                    <clipPath id="clip0_1183_327">
+                      <rect width="16" height="16" fill="white" transform="translate(0 0.5)"/>
+                    </clipPath>
+                  </defs>
+                </svg>
+                <span className={`${styles.InterRegular14}`} style={{ 
+                  color: getBadgeColors(currentProject?.focusBadge?.color).text 
+                }}>
+                  {currentProject?.focusBadge?.title || 'Reducing Friction'}
+                </span>
+              </div>
+            </FocusBadgeTooltip>
           </div>
         </div>
       </div>
@@ -122,7 +372,7 @@ const ProjectBody: React.FC = () => {
           ---------------------------------------- */}
       <div id="whats-next" className="list_section_container">
         <h2 className={`${styles.FrankRuhlLibre48} list_section_title`}>Pick what I build next</h2>
-        <p className={`${styles.InterRegular28} list_section_subtitle`}>Top goes first. The rest follow by votes.</p>
+        <p className={`${styles.InterRegular26} list_section_subtitle`}>Top goes first. The rest follow by votes.</p>
       </div>
 
       {/* ************************************************
@@ -247,21 +497,29 @@ const ProjectBody: React.FC = () => {
                 {/* ----------------------------------------
                     LIST FOOTER BADGE STYLES
                     ---------------------------------------- */}
-                <div className={index === 0 ? "list_footer_badge" : "secondary_list_footer_badge"}>
-                  <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <g clipPath="url(#clip0_1183_327)">
-                      <path d="M7.33331 5.16683H8.66665V6.50016H7.33331V5.16683ZM7.99998 11.8335C8.36665 11.8335 8.66665 11.5335 8.66665 11.1668V8.50016C8.66665 8.1335 8.36665 7.8335 7.99998 7.8335C7.63331 7.8335 7.33331 8.1335 7.33331 8.50016V11.1668C7.33331 11.5335 7.63331 11.8335 7.99998 11.8335ZM7.99998 1.8335C4.31998 1.8335 1.33331 4.82016 1.33331 8.50016C1.33331 12.1802 4.31998 15.1668 7.99998 15.1668C11.68 15.1668 14.6666 12.1802 14.6666 8.50016C14.6666 4.82016 11.68 1.8335 7.99998 1.8335ZM7.99998 13.8335C5.05998 13.8335 2.66665 11.4402 2.66665 8.50016C2.66665 5.56016 5.05998 3.16683 7.99998 3.16683C10.94 3.16683 13.3333 5.56016 13.3333 8.50016C13.3333 11.4402 10.94 13.8335 7.99998 13.8335Z" fill="#22D817" fillOpacity="0.75"/>
-                    </g>
-                    <defs>
-                      <clipPath id="clip0_1183_327">
-                        <rect width="16" height="16" fill="white" transform="translate(0 0.5)"/>
-                      </clipPath>
-                    </defs>
-                  </svg>
-                  <span className={`${styles.InterRegular14}`}>
-                    {project.focusBadge?.title || 'Category'}
-                  </span>
-                </div>
+                <FocusBadgeTooltip colorName={project.focusBadge?.color} tooltipText={project.focusBadge?.tooltipText}>
+                  <div className={index === 0 ? "list_footer_badge" : "secondary_list_footer_badge"} style={{ 
+                    backgroundColor: getBadgeColors(project.focusBadge?.color).background 
+                  }}>
+                    <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <g clipPath="url(#clip0_1183_327)">
+                        <path d="M7.33331 5.16683H8.66665V6.50016H7.33331V5.16683ZM7.99998 11.8335C8.36665 11.8335 8.66665 11.5335 8.66665 11.1668V8.50016C8.66665 8.1335 8.36665 7.8335 7.99998 7.8335C7.63331 7.8335 7.33331 8.1335 7.33331 8.50016V11.1668C7.33331 11.5335 7.63331 11.8335 7.99998 11.8335ZM7.99998 1.8335C4.31998 1.8335 1.33331 4.82016 1.33331 8.50016C1.33331 12.1802 4.31998 15.1668 7.99998 15.1668C11.68 15.1668 14.6666 12.1802 14.6666 8.50016C14.6666 4.82016 11.68 1.8335 7.99998 1.8335ZM7.99998 13.8335C5.05998 13.8335 2.66665 11.4402 2.66665 8.50016C2.66665 5.56016 5.05998 3.16683 7.99998 3.16683C10.94 3.16683 13.3333 5.56016 13.3333 8.50016C13.3333 11.4402 10.94 13.8335 7.99998 13.8335Z" 
+                        fill={getBadgeColors(project.focusBadge?.color).iconBackground}
+                        />
+                      </g>
+                      <defs>
+                        <clipPath id="clip0_1183_327">
+                          <rect width="16" height="16" fill="white" transform="translate(0 0.5)"/>
+                        </clipPath>
+                      </defs>
+                    </svg>
+                    <span className={`${styles.InterRegular14}`} style={{ 
+                      color: getBadgeColors(project.focusBadge?.color).text 
+                    }}>
+                      {project.focusBadge?.title || 'Category'}
+                    </span>
+                  </div>
+                </FocusBadgeTooltip>
               </div>
             </div>
           </motion.div>
@@ -334,10 +592,10 @@ const ProjectBody: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 30px 60px 30px 40px;
+          padding: 30px 50px 30px 30px;
           gap: 32px;
           width: 100%;
-          max-width: 856px;
+          max-width: 816px;
           height: auto;
           background: rgba(255, 255, 255, 0.05);
           border-radius: 16px;
@@ -417,13 +675,14 @@ const ProjectBody: React.FC = () => {
           align-items: flex-start;
           padding: 0px;
           width: 100%;
+          // border: 1px solid red;
         }
         
         .day_body_text {
           display: flex;
           flex-direction: row;
           align-items: flex-start;
-          padding: 0px 0px 32px;
+          padding: 0px 0px 24px;
           gap: 25px;
           width: 100%;
         }
@@ -498,9 +757,10 @@ const ProjectBody: React.FC = () => {
           flex-direction: row;
           justify-content: flex-start;
           align-items: center;
-          padding: 8px 0px;
+          padding: 8px 0px 0px 0px;
           gap: 10px;
           width: 100%;
+          // border: 1px solid red;
         }
         
         .day_footer_badge {
@@ -509,8 +769,6 @@ const ProjectBody: React.FC = () => {
           align-items: center;
           padding: 4px 8px;
           gap: 4px;
-          background-color:  rgba(34, 216, 23, 0.1);
-          // border: 1px solid var(--AccentGreen);
           border-radius: 8px;
           opacity: 0.6;
         }
@@ -520,7 +778,6 @@ const ProjectBody: React.FC = () => {
         }
         
         .day_footer_badge span {
-          color: var(--AccentGreen);
           text-align: center;
           vertical-align: middle;
         }
@@ -678,16 +935,13 @@ const ProjectBody: React.FC = () => {
           align-items: center;
           padding: 4px 8px;
           gap: 4px;
-          background-color: rgba(34, 216, 23, 0.1);
           border: none;
-          border-line: 1px solid var(--AccentGreen);
           height: 25px;
           border-radius: 6px;
           opacity: 0.6;
         }
         
         .list_footer_badge span {
-          color: var(--AccentGreen);
           text-align: center;
         }
         
@@ -713,19 +967,7 @@ const ProjectBody: React.FC = () => {
           height: auto;
         }
         
-        // .secondary_list_card {
-        //   box-sizing: border-box;
-        //   display: flex;
-        //   flex-direction: column;
-        //   align-items: flex-start;
-        //   padding: 30px 70px 20px 40px;
-        //   gap: 40px;
-        //   width: 100%;
-        //   max-width: 856px;
-        //   height: auto;
-        //   border: 1.6px solid rgba(255, 255, 255, 0.1);
-        //   border-radius: 16px;
-        // }
+
         
         /* ----------------------------------------
            Secondary list main section styles - Grid layout
@@ -817,11 +1059,6 @@ const ProjectBody: React.FC = () => {
           width: 100%;
         }
         
-        {/* ----------------------------------------
-            Secondary list footer badge styles
-            ---------------------------------------- */}  
-
-        
         .secondary_footer_day_badge {
           display: flex;
           flex-direction: row;
@@ -853,7 +1090,6 @@ const ProjectBody: React.FC = () => {
           align-items: center;
           padding: 4px 8px;
           gap: 4px;
-          background-color: rgba(34, 216, 23, 0.1);
           border: none;
           height: 25px;
           border-radius: 6px;
@@ -861,7 +1097,6 @@ const ProjectBody: React.FC = () => {
         }
         
         .secondary_list_footer_badge span {
-          color: var(--AccentGreen);
           text-align: center;
         }
         
@@ -1119,6 +1354,7 @@ const ProjectBody: React.FC = () => {
       {isModalOpen && (
         <ProjectDetailModal
           onClose={() => setIsModalOpen(false)}
+          projectProgressId={currentProject?.projectProgressId}
         />
       )}
     </div>

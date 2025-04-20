@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate:current-project": "node scripts/migrate-current-project.js"
   },
   "dependencies": {
     "@portabletext/react": "^3.2.1",
@@ -19,7 +20,9 @@
     "openai": "^4.0.0",
     "react": "latest",
     "react-dom": "latest",
-    "sanity": "^3.83.0"
+    "sanity": "^3.83.0",
+    "dotenv": "^16.4.5",
+    "@sanity/client": "^6.12.3"
   },
   "devDependencies": {
     "@types/node": "latest",
@@ -31,7 +34,8 @@
     "eslint-config-next": "latest",
     "postcss": "latest",
     "tailwindcss": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "ts-node": "^10.9.2"
   },
   "workspaces": [
     "src/projects/dictate",

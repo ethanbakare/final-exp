@@ -41,6 +41,11 @@ const HeroBanner: React.FC = () => {
     scrollToElement('whats-next');
   };
 
+  // Function to handle scrolling to the "How it works" section
+  const scrollToHowItWorks = () => {
+    scrollToElement('how-it-works');
+  };
+
   return (
     <div className="hero_banner">
       <div className="main_holder">
@@ -62,7 +67,7 @@ const HeroBanner: React.FC = () => {
       
       {/* Hero action buttons */}
       <div className="buttons">
-        <button className="button_left">
+        <button className="button_left" onClick={scrollToHowItWorks}>
           <span className={`${styles.InterRegular18} btn_left_text`}>How it works</span>
         </button>
         <button className="button_right" onClick={scrollToWhatsNext}>

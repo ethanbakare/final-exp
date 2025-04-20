@@ -9,12 +9,13 @@ import { useProjectProgress } from '@/hooks/useProjectProgress';
 // Props definition for the ProjectDetailModal component
 interface ProjectDetailModalProps {
   onClose: () => void; // Function to call when the modal should be closed
+  projectProgressId?: string; // Optional ID of the project progress to display
 }
 
 // ----------------------------------------
 // COMPONENT DEFINITION
 // ----------------------------------------
-const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose }) => {
+const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose, projectProgressId }) => {
   
   // ----------------------------------------
   // REFS
@@ -33,8 +34,8 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose }) => {
   // ----------------------------------------
   // DATA FETCHING
   // ----------------------------------------
-  // Fetch project progress data from Sanity
-  const { data: projectProgress, loading, error } = useProjectProgress();
+  // Fetch project progress data from Sanity using the provided ID
+  const { data: projectProgress, loading, error } = useProjectProgress(projectProgressId);
   
   // ----------------------------------------
   // EVENT HANDLERS

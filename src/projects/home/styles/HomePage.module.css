@@ -1,10 +1,17 @@
+
+/* Simplify to just set background color */
+.darkBackground {
+  background-color: #1a1a1a;
+}
+
+
 /* Container styles */
 .container {
 
   /* Include CSS variables locally in the container */
   /* Dark colors */
-  --DarkPrimary: #1e1e1e;
-  --DarkSecondary: #212121;
+  --DarkPrimary: #1a1a1a;
+  --DarkSecondary: #1f1f1f;
   
   /* White with different opacities */
   --WhiteOpacity: #ffffff;
@@ -16,6 +23,7 @@
   --WhiteOpacity20: rgba(255, 255, 255, 0.2);
   --WhiteOpacity10: rgba(255, 255, 255, 0.1);
   --WhiteOpacity05: rgba(255, 255, 255, 0.05);
+  --WhiteOpacity03: rgba(255, 255, 255, 0.03);
   --WhiteOpacity02: rgba(255, 255, 255, 0.02);
   --WhiteOpacity01: rgba(255, 255, 255, 0.10);
   
@@ -26,10 +34,7 @@
   --AccentGreenOpacity10: rgba(34, 216, 23, 0.1);
 }
 
-/* Simplify to just set background color */
-.darkBackground {
-  background-color: #1E1E1E;
-}
+
 
 /* Typography Styles as classes */
 .FrankRuhlLibre64 {
@@ -84,7 +89,7 @@
   font-family: 'Inter', sans-serif;
   font-size: 26px;
   font-weight: 400; /* Regular */
-  letter-spacing: 0;
+  letter-spacing: -1px;
   line-height: normal;
 }
 
@@ -123,6 +128,22 @@
 .InterRegular18 {
   font-family: 'Inter', sans-serif;
   font-size: 18px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular18_H1 {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 400; /* Regular */
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular17 {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
   font-weight: 400; /* Regular */
   letter-spacing: 0;
   line-height: normal;
@@ -206,6 +227,14 @@
     letter-spacing: -1px;
     line-height: 143.8%;
   }
+
+  .InterRegular26 {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -1px;
+    line-height: 143.8%;
+  }
   
   .InterMedium28 {
     font-family: 'Inter', sans-serif;
@@ -231,9 +260,25 @@
     line-height: 26px;
   }
 
+  .InterRegular17 {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
   .InterRegular18 {
     font-family: 'Inter', sans-serif;
     font-size: 16px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
+  .InterRegular18_H1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
     font-weight: 400; /* Regular */
     letter-spacing: 0;
     line-height: normal;

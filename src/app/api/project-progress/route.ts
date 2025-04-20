@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server'
 import { readOnlyClient } from '@/sanity/lib/client'
-import { projectProgressQuery } from '@/sanity/lib/queries'
+import { projectProgressQuery, projectProgressByIdQuery } from '@/sanity/lib/queries'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const data = await readOnlyClient.fetch(projectProgressQuery)
+    // Check if an ID was provided in the URL query parameters
+    const { searchParams } = new URL(request.url)
+    const projectProgressId = searchParams.get('id')
+    
+    let data;
+    
+    if (projectProgressId) {
+      // If ID provided, fetch the specific project progress
+      data = await readOnlyClient.fetch(projectProgressByIdQuery, { id: projectProgressId })
+    } else {
+      // For backward compatibility, fetch the default project progress
+      data = await readOnlyClient.fetch(projectProgressQuery)
+    }
     
     if (!data) {
       return NextResponse.json(

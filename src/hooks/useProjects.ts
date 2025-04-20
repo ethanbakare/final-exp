@@ -1,5 +1,33 @@
 import { useState, useEffect, useRef } from 'react'
 
+// Color mappings for focus badges
+export const FOCUS_BADGE_COLORS = {
+  green: {
+    text: '#4ADE80',
+    background: 'rgba(34, 197, 94, 0.1)',
+    iconBackground: 'rgba(74, 222, 128, 0.75)',
+    description: 'Focuses on ways AI can reduce friction in existing interfaces.'
+  },
+  orange: {
+    text: '#FBBF24',
+    background: 'rgba(245, 158, 11, 0.1)',
+    iconBackground: 'rgba(251, 191, 36, 0.75)',
+    description: 'Explores the boundaries of what AI can do in different contexts.'
+  },
+  blue: {
+    text: '#3B82F6',
+    background: 'rgba(37, 99, 235, 0.1)',
+    iconBackground: 'rgba(59, 130, 246, 0.75)',
+    description: 'Creates more transparent interactions between users and AI systems.'
+  },
+  purple: {
+    text: '#AA94FF',
+    background: 'rgba(139, 92, 246, 0.1)',
+    iconBackground: 'rgba(170, 148, 255, 0.75)',
+    description: 'Adds moments of delight and surprise in AI-powered experiences.'
+  }
+}
+
 // Types for our data
 interface CurrentProject {
   _id: string;
@@ -9,10 +37,12 @@ interface CurrentProject {
   startDate?: string;
   duration?: number;
   daysLeft?: number;
+  projectProgressId?: string; // ID of the associated ProjectProgress
   focusBadge?: {
     _id: string;
     title: string;
     color?: string;
+    tooltipText?: string;
   };
 }
 
@@ -27,6 +57,7 @@ interface ProjectItem {
     _id: string;
     title: string;
     color?: string;
+    tooltipText?: string;
   };
   timestamp?: string;
   createdAt?: string;

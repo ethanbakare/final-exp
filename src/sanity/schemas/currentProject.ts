@@ -38,6 +38,32 @@ export default defineType({
       title: 'Focus Badge (E)',
       type: 'reference',
       to: [{type: 'focusBadge'}]
+    }),
+    defineField({
+      name: 'isLive',
+      title: 'Is Live',
+      type: 'boolean',
+      description: 'Only one project can be live at a time. Only the live project appears on the site.',
+      initialValue: false
+    }),
+    defineField({
+      name: 'projectProgress',
+      title: 'Project Progress',
+      type: 'reference',
+      to: [{type: 'projectProgress'}],
+      description: 'The associated progress details for this project'
     })
-  ]
+  ],
+  preview: {
+    select: {
+      title: 'title',
+      isLive: 'isLive'
+    },
+    prepare({ title, isLive }) {
+      return {
+        title,
+        subtitle: isLive ? '🟢 LIVE' : '⚪ NOT LIVE'
+      }
+    }
+  }
 }) 

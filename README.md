@@ -325,3 +325,22 @@ Cursor IDE provides enhanced capabilities for working with this monorepo:
 ## 📜 License
 
 [MIT License](LICENSE)
+
+### Vercel Deployment Considerations
+
+When deploying to Vercel, certain adjustments to the standard project structure may be necessary:
+
+1. **Linting Configuration**: 
+   - Ensure all imports are properly used to avoid deployment failures
+   - Set build command to `next build` to enable linting during builds
+
+2. **Project Structure Adjustments**:
+   - Some projects like Receipt Scanner may require slight structural deviations to ensure proper deployment
+   - Test deployments thoroughly after structural changes
+
+### Project-Specific Implementation Notes
+
+#### Receipt Scanner
+The Receipt Scanner project follows a slightly modified structure to ensure compatibility with Vercel deployment:
+- Custom API integration pattern
+- Optimized type definitions for backend communication

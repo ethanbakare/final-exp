@@ -12,6 +12,13 @@ export default defineType({
       validation: Rule => Rule.required()
     }),
     defineField({
+      name: 'tooltipText',
+      title: 'Tooltip Text',
+      description: 'Text displayed when hovering over the badge',
+      type: 'text',
+      validation: Rule => Rule.required()
+    }),
+    defineField({
       name: 'color',
       title: 'Badge Color',
       type: 'string',

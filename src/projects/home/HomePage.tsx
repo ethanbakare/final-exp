@@ -3,6 +3,7 @@ import { Inter, Frank_Ruhl_Libre } from 'next/font/google';
 import styles from './styles/HomePage.module.css';
 import HeroBanner from './components/HeroBanner';
 import ProjectBody from './components/ProjectBody';
+import HowItWorks_Body from './components/HowItWorks_Body';
 
 // ----------------------------------------
 // FONT CONFIGURATIONS
@@ -30,6 +31,9 @@ const HomePage: React.FC = () => {
       
       {/* Project Body Component */}
       <ProjectBody />
+      
+      {/* How It Works Component */}
+      <HowItWorks_Body />
 
       {/* ----------------------------------------
           GLOBAL STYLES - Applied to the entire page
