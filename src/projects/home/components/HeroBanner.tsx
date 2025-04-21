@@ -1,7 +1,26 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from '../styles/HomePage.module.css';
+import { useSectionLoading } from '@/hooks/useSectionLoading';
 
 const HeroBanner: React.FC = () => {
+  // Track when assets are loaded
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+  
+  // Mark component as loaded when rendered and assets are loaded
+  // This ensures the loading screen accounts for this component
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { isLoaded } = useSectionLoading('HeroBanner', [assetsLoaded]);
+  
+  // Simulate asset loading (fonts, images, etc.)
+  useEffect(() => {
+    // Track when component is mounted and visible
+    const timer = setTimeout(() => {
+      setAssetsLoaded(true);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   // Custom smooth scroll function with easeInOutCubic easing
   const scrollToElement = (elementId: string) => {
     const targetElement = document.getElementById(elementId);

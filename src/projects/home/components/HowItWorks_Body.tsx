@@ -1,7 +1,12 @@
 import React from 'react';
 import styles from '../styles/HomePage.module.css';
+import { useSectionLoading } from '@/hooks/useSectionLoading';
 
 const HowItWorks_Body: React.FC = () => {
+  // Integrate with loading context
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { isLoaded } = useSectionLoading('HowItWorks_Body', [true]);
+  
   return (
     <div id="how-it-works" className="howitworks_body">
       {/* ----------------------------------------
@@ -37,7 +42,7 @@ const HowItWorks_Body: React.FC = () => {
           <div className="rules_body">
             <div className="rules_bodytext">
               <p className={`${styles.InterRegular20_H1} rule_item`}>One working project completed every week</p>
-              <p className={`${styles.InterRegular20_H1} rule_item`}>Daily progress update on Twitter</p>
+              <p className={`${styles.InterRegular20_H1} rule_item`}>Daily progress update on <a href="https://x.com/etbakare" target="_blank" rel="noopener noreferrer" className="twitter-link">Twitter</a></p>
               <p className={`${styles.InterRegular20_H1} rule_item`}>2-minute video walkthrough every Sunday</p>
               <p className={`${styles.InterRegular20_H1} rule_item`}>Every missed project = £1000 to charity</p>
             </div>
@@ -207,7 +212,7 @@ const HowItWorks_Body: React.FC = () => {
           align-items: center;
           padding: 0px;
           gap: 20px;
-          width: 790px;
+          width: 800px;
           max-width: 856px;
           border-radius: 0px 16px 16px 0px;
         }
@@ -243,11 +248,22 @@ const HowItWorks_Body: React.FC = () => {
           gap: 10px;
           width: 72px;
         //   border-radius: 10px;
-          border-bottom: 3px solid var(--WhiteOpacity05);
+          border-bottom: 3px solid var(--AccentGreenOpacity60);
         }
         
         .nowrap {
           white-space: nowrap;
+        }
+        
+        .twitter-link {
+          color: var(--WhiteOpacity);
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          transition: opacity 0.2s ease;
+        }
+        
+        .twitter-link:hover {
+          opacity: 0.8;
         }
         
         /* Responsive styles */

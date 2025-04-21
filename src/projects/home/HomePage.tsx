@@ -1,9 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Inter, Frank_Ruhl_Libre } from 'next/font/google';
 import styles from './styles/HomePage.module.css';
 import HeroBanner from './components/HeroBanner';
 import ProjectBody from './components/ProjectBody';
 import HowItWorks_Body from './components/HowItWorks_Body';
+import Goal_Body from './components/Goal_Body';
+import LoadingScreen from './components/LoadingScreen';
+import dynamic from 'next/dynamic';
+import { useLoading } from '@/contexts/LoadingContext';
+
+// Dynamically import the ProjectDetailModal for preloading after initial load
+const ProjectDetailModal = dynamic(
+  () => import('./components/ProjectDetailModal'),
+  { ssr: false, loading: () => null }
+);
 
 // ----------------------------------------
 // FONT CONFIGURATIONS
@@ -24,8 +34,36 @@ const frankRuhlLibre = Frank_Ruhl_Libre({
 });
 
 const HomePage: React.FC = () => {
+  const { isLoading } = useLoading();
+
+  // Preload ProjectDetailModal after initial page load completes
+  useEffect(() => {
+    if (!isLoading) {
+      // Start preloading the modal when page is fully loaded
+      const preloadModal = async () => {
+        try {
+          // This preloads the component without rendering it
+          await import('./components/ProjectDetailModal');
+          console.log('ProjectDetailModal preloaded successfully');
+        } catch (error) {
+          console.error('Error preloading ProjectDetailModal:', error);
+        }
+      };
+      
+      // Delay preloading slightly to prioritize rendering the main content first
+      const timer = setTimeout(() => {
+        preloadModal();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
   return (
     <div className={`${inter.variable} ${frankRuhlLibre.variable} full-page ${styles.darkBackground} ${styles.container}`}>
+      {/* Loading Screen that overlays the page while content loads */}
+      <LoadingScreen />
+      
       {/* Hero Banner Component */}
       <HeroBanner />
       
@@ -34,6 +72,12 @@ const HomePage: React.FC = () => {
       
       {/* How It Works Component */}
       <HowItWorks_Body />
+      
+      {/* Goal Component */}
+      <Goal_Body />
+      
+      {/* Hidden modal for preloading */}
+      {!isLoading && <div style={{ display: 'none' }}><ProjectDetailModal onClose={() => {}} /></div>}
 
       {/* ----------------------------------------
           GLOBAL STYLES - Applied to the entire page

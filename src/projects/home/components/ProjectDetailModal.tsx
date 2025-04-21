@@ -757,7 +757,7 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose, projec
           left: 4px;
           top: 4px;
           background: #FFFFFF; // Solid white inner dot
-          border-radius: 50%;
+          border-radius: 100%;
         }
         
         // Styles for the 'In Progress' status

@@ -4,6 +4,7 @@ import styles from '../styles/HomePage.module.css';
 import { motion } from 'framer-motion';
 import { useCurrentProject, useProjectItems, FOCUS_BADGE_COLORS } from '@/hooks/useProjects';
 import ProjectDetailModal from './ProjectDetailModal';
+import { useSectionLoading } from '@/hooks/useSectionLoading';
 
 // Helper function to get the color values for a badge
 const getBadgeColors = (colorName: string | undefined) => {
@@ -255,12 +256,13 @@ const ProjectBody: React.FC = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  const isLoading = currentLoading || projectsLoading;
-  const hasError = currentError || projectsError;
+  // Integrate with loading context
+  const dataLoaded = !currentLoading && !projectsLoading;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { isLoaded } = useSectionLoading('ProjectBody', [dataLoaded]);
   
-  if (isLoading) {
-    return <div className="loading-state">Loading...</div>;
-  }
+  // Handle errors but don't display loading state (handled by LoadingScreen)
+  const hasError = currentError || projectsError;
   
   if (hasError) {
     return <div className="error-state">Error loading content: {currentError || projectsError}</div>;

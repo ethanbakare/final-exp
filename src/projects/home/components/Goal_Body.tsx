@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from '../styles/HomePage.module.css';
+import { useSectionLoading } from '@/hooks/useSectionLoading';
 
 const Goal_Body: React.FC = () => {
   // State to track which goal is expanded
   const [expandedGoal, setExpandedGoal] = useState<number | null>(null);
+
+  // Integrate with loading context
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { isLoaded } = useSectionLoading('Goal_Body', [true]);
 
   // Toggle function for expanding/collapsing goals
   const toggleGoal = (goalIndex: number) => {
