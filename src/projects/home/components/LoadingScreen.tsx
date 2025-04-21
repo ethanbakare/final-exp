@@ -256,9 +256,13 @@ const LoadingScreen: React.FC = () => {
       aria-valuemax={100}
     >
       <div className="loading-main">
-        <div className="animated-text-container">
-          <p className={`${styles.InterRegular20} animated-text`}>
-            Not waiting for permission.
+        <div className="hero-header">
+          <div className="Day_Counter">
+            <p className="day-counter-text">Day 9 / 90</p>
+          </div>
+          
+          <p className={`${styles.InterMedium24_H1} animated-text`}>
+            AI Design Prototype Challenge
           </p>
         </div>
         
@@ -270,7 +274,7 @@ const LoadingScreen: React.FC = () => {
           </div>
           
           <p className={`${styles.InterRegular16} percentage`}>
-            Loading website {displayProgress}%
+            90-day challenge loading {displayProgress}%
           </p>
         </div>
       </div>
@@ -307,10 +311,45 @@ const LoadingScreen: React.FC = () => {
           max-width: 1020px;
         }
         
-        .animated-text-container {
-          width: 100%;
+        /* Hero header container */
+        .hero-header {
           display: flex;
+          flex-direction: column;
           justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 20px;
+          width: 383px;
+          height: 85px;
+        }
+        
+        /* Day Counter pill */
+        .Day_Counter {
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 4px 8px;
+          gap: 10px;
+          width: 88px;
+          height: 27px;
+          background: rgba(42, 255, 31, 0.1);
+          border-radius: 16px;
+        }
+        
+        .day-counter-text {
+          width: 72px;
+          height: 17px;
+          font-family: 'Inter';
+          font-style: normal;
+          font-weight: 400;
+          font-size: 14px;
+          line-height: 17px;
+          text-align: center;
+          letter-spacing: 0.02em;
+          color: #22D817;
+          opacity: 0.7;
+          margin: 0;
         }
         
         .animated-text {
@@ -319,8 +358,8 @@ const LoadingScreen: React.FC = () => {
           height: 40px;
           text-align: center;
           letter-spacing: -0.01em;
-          color: rgba(255, 255, 255, 0.8);
-          animation: pulse 2s infinite ease-in-out;
+          color: rgba(255, 255, 255, 1);
+        //  animation: pulse 2s infinite ease-in-out;
         }
         
         @keyframes pulse {
@@ -347,12 +386,12 @@ const LoadingScreen: React.FC = () => {
         
         .progress-container {
           width: 100%;
-          max-width: 600px;
+          max-width: 300px;
         }
         
         .progress-bar {
           width: 100%;
-          height: 12px;
+          height: 8px;
           background: rgba(255, 255, 255, 0.1);
           position: relative;
           overflow: hidden;
@@ -360,7 +399,7 @@ const LoadingScreen: React.FC = () => {
         }
         
         .white-bar {
-          height: 12px;
+          height: 8px;
           background: #FFFFFF;
           transition: width 0.3s linear;
         }
@@ -389,6 +428,10 @@ const LoadingScreen: React.FC = () => {
             padding: 0;
           }
           
+          .loading-main {
+            gap: 40px;
+          }
+
           .hero-component {
             width: 90%;
             max-width: 350px;
