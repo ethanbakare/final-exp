@@ -79,10 +79,9 @@ const HowItWorks_Body: React.FC = () => {
           padding: 72px 0px 30px;
           gap: 10px;
           width: 100%;
-          max-width: 1440px;
+          margin: 0 auto;
           background: var(--DarkSecondary);
           backdrop-filter: blur(45px);
-          align-self: stretch;
         }
         
         .section_container {

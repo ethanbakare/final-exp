@@ -3,9 +3,12 @@ import { Inter, Frank_Ruhl_Libre } from 'next/font/google';
 import styles from './styles/HomePage.module.css';
 import HeroBanner from './components/HeroBanner';
 import ProjectBody from './components/ProjectBody';
+import CompletedBuildBody from './components/CompletedBuildBody';
 import HowItWorks_Body from './components/HowItWorks_Body';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Goal_Body from './components/Goal_Body';
 import LoadingScreen from './components/LoadingScreen';
+import MainNavBar from './components/MainNavBar';
 import dynamic from 'next/dynamic';
 import { useLoading } from '@/contexts/LoadingContext';
 
@@ -61,6 +64,9 @@ const HomePage: React.FC = () => {
 
   return (
     <div className={`${inter.variable} ${frankRuhlLibre.variable} full-page ${styles.darkBackground} ${styles.container}`}>
+      {/* Main Navigation Bar */}
+      <MainNavBar />
+      
       {/* Loading Screen that overlays the page while content loads */}
       <LoadingScreen />
       
@@ -70,11 +76,14 @@ const HomePage: React.FC = () => {
       {/* Project Body Component */}
       <ProjectBody />
       
+      {/* Completed Build Component */}
+      <CompletedBuildBody />
+      
       {/* How It Works Component */}
       <HowItWorks_Body />
       
-      {/* Goal Component */}
-      <Goal_Body />
+      {/* Goal Component - temporarily hidden */}
+      {/* <Goal_Body /> */}
       
       {/* Hidden modal for preloading */}
       {!isLoading && <div style={{ display: 'none' }}><ProjectDetailModal onClose={() => {}} /></div>}

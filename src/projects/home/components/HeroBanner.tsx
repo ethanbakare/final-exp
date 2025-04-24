@@ -77,9 +77,9 @@ const HeroBanner: React.FC = () => {
         
         {/* Hero text content - Title and subtitle */}
         <div className="hero_component">
-          <h1 className={`${styles.FrankRuhlLibre64} hero_title`}>90 days; Zero to AI designer</h1>
+          <h1 className={`${styles.FrankRuhlLibre64} hero_title`}>Building 10 AI tools in 90 days</h1>
           <p className={`${styles.InterRegular24_H1} hero_subtitle`}>
-            Building functional design prototypes to explore AI-human interaction
+          Follow the challenge. Try the demos. Vote on what gets made next
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 
 // Define the sections we want to track
-export type SectionName = 'HeroBanner' | 'ProjectBody' | 'HowItWorks_Body' | 'Goal_Body';
+export type SectionName = 'MainNavBar' | 'HeroBanner' | 'ProjectBody' | 'CompletedBuildBody' | 'HowItWorks_Body' | 'Goal_Body';
 
 // Record of which sections are loaded
 export type SectionsLoadedState = Partial<Record<SectionName, boolean>>;
@@ -60,10 +60,12 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({
   
   // Track all sections we need to load
   const allSections: SectionName[] = useMemo(() => [
+    'MainNavBar',
     'HeroBanner', 
-    'ProjectBody', 
-    'HowItWorks_Body', 
-    'Goal_Body'
+    'ProjectBody',
+    'CompletedBuildBody', 
+    'HowItWorks_Body'
+    // 'Goal_Body' - temporarily removed
   ], []);
   
   // Memoized function to handle section loading updates

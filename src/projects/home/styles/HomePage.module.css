@@ -15,6 +15,7 @@
   
   /* White with different opacities */
   --WhiteOpacity: #ffffff;
+  --WhiteOpacity80: rgba(255, 255, 255, 0.8);
   --WhiteOpacity70: rgba(255, 255, 255, 0.7);
   --WhiteOpacity75: rgba(255, 255, 255, 0.75);
   --WhiteOpacity50: rgba(255, 255, 255, 0.5);
@@ -270,7 +271,7 @@
 
   .InterRegular20_H1 {
     font-family: 'Inter', sans-serif;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 400; /* Regular */
     letter-spacing: 0;
     line-height: 26px;

@@ -264,10 +264,9 @@ const Goal_Body: React.FC = () => {
           padding: 72px 0px 36px;
           gap: 10px;
           width: 100%;
-          max-width: 1440px;
+          margin: 0 auto;
           background: var(--DarkSecondary);
           backdrop-filter: blur(45px);
-          align-self: stretch;
         }
         
         /* Section container for header and body text */

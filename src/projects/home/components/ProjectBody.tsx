@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useCurrentProject, useProjectItems, FOCUS_BADGE_COLORS } from '@/hooks/useProjects';
 import ProjectDetailModal from './ProjectDetailModal';
 import { useSectionLoading } from '@/hooks/useSectionLoading';
+import { useProjectProgress } from '@/hooks/useProjectProgress';
 
 // Helper function to get the color values for a badge
 const getBadgeColors = (colorName: string | undefined) => {
@@ -254,18 +255,25 @@ const ProjectBody: React.FC = () => {
     hasReachedVoteLimit 
   } = useProjectItems();
   
+  // Add useProjectProgress hook to fetch progress data
+  const { 
+    data: projectProgress, 
+    loading: progressLoading, 
+    error: progressError 
+  } = useProjectProgress(currentProject?.projectProgressId);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Integrate with loading context
-  const dataLoaded = !currentLoading && !projectsLoading;
+  const dataLoaded = !currentLoading && !projectsLoading && !progressLoading;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isLoaded } = useSectionLoading('ProjectBody', [dataLoaded]);
   
   // Handle errors but don't display loading state (handled by LoadingScreen)
-  const hasError = currentError || projectsError;
+  const hasError = currentError || projectsError || progressError;
   
   if (hasError) {
-    return <div className="error-state">Error loading content: {currentError || projectsError}</div>;
+    return <div className="error-state">Error loading content: {currentError || projectsError || progressError}</div>;
   }
 
   return (
@@ -276,7 +284,8 @@ const ProjectBody: React.FC = () => {
           ----------------------------------------
           ---------------------------------------- */}
       <div className="section_container">
-        <h2 className={`${styles.FrankRuhlLibre48} section_title`}>Current Project</h2>
+        <h2 className={`${styles.FrankRuhlLibre48} section_title`}>This week&apos;s build</h2>
+        <p className={`${styles.InterRegular26} section_subtitle`}>Week 1 of 13</p>
       </div>
       
       {/* ----------------------------------------
@@ -323,10 +332,32 @@ const ProjectBody: React.FC = () => {
               <p className={`${styles.InterRegular20_H1}`}>
                 {currentProject?.description || ''}
               </p>
+              
+              {/* Modal Linear Progress component */}
+              {projectProgress && (
+                <div className="modal_linear_progress">
+                  {/* Progress Text: Shows percentage and task counts */}
+                  <div className="molin_progress_text">
+                    {/* <div className={`${styles.InterRegular16} progress_percentage`}>Progress {projectProgress.progressPercentage}%</div> */}
+                    <div className={`${styles.InterRegular16} tasks_count`}>{projectProgress.completedTaskCount} of {projectProgress.totalTaskCount} tasks done</div>
+                  </div>
+                  {/* Progress Bar Visual */}
+                  <div className="molin_progress_bar">
+                    {/* Filled portion of the bar, width based on percentage */}
+                    <div 
+                      className="green_bar" 
+                      style={{ 
+                        width: `${projectProgress.progressPercentage}%`,
+                        borderRadius: projectProgress.progressPercentage === 100 ? '32px' : '32px 0px 0px 32px'
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="day_button_container">
               <button className="day_button" onClick={() => setIsModalOpen(true)}>
-                <span className={`${styles.InterRegular17}`}>View Progress</span>
+                <span className={`${styles.InterRegular17}`}>View Details</span>
                 <div className="plus_icon"></div>
               </button>
             </div>
@@ -370,8 +401,9 @@ const ProjectBody: React.FC = () => {
           ----------------------------------------
           ---------------------------------------- */}
       <div id="whats-next" className="list_section_container">
-        <h2 className={`${styles.FrankRuhlLibre48} list_section_title`}>Pick what I build next</h2>
-        <p className={`${styles.InterRegular26} list_section_subtitle`}>Top goes first. The rest follow by votes.</p>
+        <h2 className={`${styles.FrankRuhlLibre48} list_section_title`}>Next week&apos;s build</h2>
+        <p className={`${styles.InterRegular26} list_section_subtitle`}>Choose what gets built next.
+        Top-voted idea locked in by Sunday </p>
       </div>
 
       {/* ************************************************
@@ -557,7 +589,16 @@ const ProjectBody: React.FC = () => {
         
         /* Section title */
         .section_title, .list_section_title {
+          width: 100%;
+          text-align: left;
           color: var(--WhiteOpacity);
+          margin: 0;
+        }
+
+        .section_subtitle {
+          color: var(--WhiteOpacity70);
+          margin: 24px 0 0 0;
+          text-align: left;
         }
 
         .list_section_container {
@@ -632,7 +673,7 @@ const ProjectBody: React.FC = () => {
         
         .day_header_text p {
           width: 100%;
-          color: var(--WhiteOpacity70);
+          color: var(--WhiteOpacity);
           margin: 0;
           text-align: left;
         }
@@ -677,15 +718,72 @@ const ProjectBody: React.FC = () => {
           // border: 1px solid red;
         }
         
+        /* Day body text container */
         .day_body_text {
           display: flex;
-          flex-direction: row;
+          flex-direction: column;
           align-items: flex-start;
           padding: 0px 0px 24px;
           gap: 25px;
           width: 100%;
         }
         
+        /* Modal Linear Progress styles */
+        .modal_linear_progress {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          padding: 10px 0px;
+          width: 100%;
+          max-width: 640px;
+          gap: 8px;
+        }
+        
+        /* Progress text container (holds percentage and count) */
+        .molin_progress_text {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+          width: 100%;
+          height: 39px;
+        }
+        
+        /* Progress percentage text */
+        .progress_percentage {
+          text-align: left;
+          color: var(--WhiteOpacity70);
+        }
+        
+        /* Tasks count text */
+        .tasks_count {
+          color: var(--WhiteOpacity70);
+          text-align: right;
+        }
+        
+        /* Progress bar container */
+        .molin_progress_bar {
+          display: flex;
+          flex-direction: row;
+          align-items: flex-start;
+          padding: 0px;
+          width: 100%;
+          height: 8px;
+          background: var(--WhiteOpacity10);
+          border-radius: 12px;
+        }
+        
+        /* Filled portion of the progress bar */
+        .green_bar {
+          height: 8px;
+          background: var(--AccentGreenOpacity60);
+          border-radius: 32px 0px 0px 32px;
+          transition: width 0.5s ease;
+        }
+        
+        /* Day body question text */
         .day_body_text p {
           width: 100%;
           color: var(--WhiteOpacity70);
@@ -754,7 +852,7 @@ const ProjectBody: React.FC = () => {
         .day_footer {
           display: flex;
           flex-direction: row;
-          justify-content: flex-start;
+          justify-content: flex-end;
           align-items: center;
           padding: 8px 0px 0px 0px;
           gap: 10px;
@@ -785,9 +883,9 @@ const ProjectBody: React.FC = () => {
 
 
         /* ==========================================
-           LIST CONTAINER STYLES
+           LIST CONTAINER STYLES - Common for all list containers
            ========================================== */
-        .list_container {
+        .list_container, .secondary_list_container {
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -799,12 +897,13 @@ const ProjectBody: React.FC = () => {
           height: auto;
         }
         
+        /* Common card styles for both primary and secondary cards */
         .list_card, .secondary_list_card {
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 30px 70px 20px 40px;
+          padding: 30px 50px 20px 30px;
           gap: 40px;
           width: 100%;
           max-width: 856px;
@@ -814,9 +913,9 @@ const ProjectBody: React.FC = () => {
         }
         
         /* ----------------------------------------
-           List main section styles - Grid layout
+           List main section styles - Common grid layout
            ---------------------------------------- */
-        .list_main {
+        .list_main, .secondary_list_main {
           box-sizing: border-box;
           display: grid;
           grid-template-areas: 
@@ -828,28 +927,34 @@ const ProjectBody: React.FC = () => {
           padding: 0px 0px 10px;
         }
         
-        /* Assign grid areas to the elements */
-        .list_header_text {
+        /* Common header text styles */
+        .list_header_text, .secondary_list_header_text {
           grid-area: title;
           display: flex;
-          // border: 1px solid red;
           flex-direction: column;
           align-items: flex-start;
           padding: 0px;
           gap: 5px;
+          width: 100%;
         }
         
-        .list_header_buttons {
+        /* Secondary-specific header style */
+        .secondary_list_header_text {
+          justify-content: center;
+        }
+        
+        /* Common header buttons styles */
+        .list_header_buttons, .secondary_list_header_buttons {
           grid-area: buttons;
           display: flex;
           flex-direction: row;
-          // border: 1px solid blue;
           align-items: flex-start;
           padding: 0px;
           gap: 10px;
         }
         
-        .list_body_text {
+        /* Common body text styles */
+        .list_body_text, .secondary_list_body_text {
           grid-area: body;
           width: 100%;
           color: var(--WhiteOpacity70);
@@ -858,13 +963,18 @@ const ProjectBody: React.FC = () => {
           max-width: calc(100% - 60px); /* Prevent text from getting too close to where button would be */
         }
         
-        /* You don't need the list_header anymore since we're using grid areas */
-        .list_header {
+        /* Secondary-specific body text style */
+        .secondary_list_body_text {
+          padding: 0px;
+        }
+        
+        /* Headers with grid areas */
+        .list_header, .secondary_list_header {
           display: contents; /* This makes the container "disappear" but keeps its children in the DOM */
         }
         
         /* ----------------------------------------
-           Vote counter and button styles
+           Vote counter and button styles - Primary
            ---------------------------------------- */
         .vote_button {
           box-sizing: border-box;
@@ -881,7 +991,7 @@ const ProjectBody: React.FC = () => {
           cursor: pointer;
         }
         
-        /* This now styles the vote COUNT */
+        /* Primary vote button text */
         .vote_button span {
           color: var(--DarkSecondary); 
         }
@@ -890,137 +1000,8 @@ const ProjectBody: React.FC = () => {
           fill: var(--DarkSecondary); 
         }
 
-
         /* ----------------------------------------
-           List footer styles with badges
-           ---------------------------------------- */
-        .list_footer {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          padding: 8px 0px;
-          gap: 16px;
-          width: 100%;
-        }
-        
-        .footer_day_badge {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 4px 8px;
-          gap: 8px;
-          height: 24px;
-          background: rgba(255, 255, 255, 0.08);
-          border-radius: 6px;
-          opacity: 0.7;
-        }
-        
-        .footer_day_badge svg {
-          vertical-align: middle;
-        }
-        
-        .footer_day_badge span {
-          color: var(--WhiteOpacity75);
-          white-space: nowrap;
-          text-align: center;
-          vertical-align: middle;
-        }
-        
-        .list_footer_badge {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 4px 8px;
-          gap: 4px;
-          border: none;
-          height: 25px;
-          border-radius: 6px;
-          opacity: 0.6;
-        }
-        
-        .list_footer_badge span {
-          text-align: center;
-        }
-        
-        /* Fix text color */
-        .list_header_text h3, .secondary_list_header_text h3 {
-          color: var(--WhiteOpacity);
-          margin: 0 0 8px 0;
-          width: 100%;
-        }
-
-        /* ==========================================
-           SECONDARY LIST CONTAINER STYLES
-           ========================================== */
-        .secondary_list_container {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: flex-start;
-          padding: 20px 10px;
-          gap: 25px;
-          width: 100%;
-          max-width: 1160px;
-          height: auto;
-        }
-        
-
-        
-        /* ----------------------------------------
-           Secondary list main section styles - Grid layout
-           ---------------------------------------- */
-        .secondary_list_main {
-          box-sizing: border-box;
-          display: grid;
-          grid-template-areas: 
-            "title buttons" 
-            "body ." ;
-          grid-template-columns: 1fr auto;
-          gap: 0px 10px;
-          width: 100%;
-          padding: 0px 0px 10px;
-        }
-        
-        /* Assign grid areas to the elements */
-        .secondary_list_header_text {
-          grid-area: title;
-          display: flex;
-          // border: 1px solid red;
-          justify-content: center;
-          flex-direction: column;
-          align-items: flex-start;
-          padding: 0px;
-          gap: 5px;
-        }
-        
-        .secondary_list_header_buttons {
-          grid-area: buttons;
-          display: flex;
-          flex-direction: row;
-          align-items: flex-start;
-          padding: 0px;
-          gap: 10px;
-        }
-        
-        .secondary_list_body_text {
-          grid-area: body;
-          width: 100%;
-          color: var(--WhiteOpacity70);
-          margin: 0;
-          text-align: left;
-          padding: 0px;
-          max-width: calc(100% - 60px); /* Prevent text from getting too close to where button would be */
-        }
-        
-        /* Secondary list header works with grid areas */
-        .secondary_list_header {
-          display: contents; /* This makes the container "disappear" but keeps its children in the DOM */
-        }
-        
-        /* ----------------------------------------
-           Secondary vote counter and button styles
+           Secondary vote button styles
            ---------------------------------------- */
         .secondary_vote_button {
           box-sizing: border-box;
@@ -1029,7 +1010,7 @@ const ProjectBody: React.FC = () => {
           justify-content: center;
           align-items: center;
           padding: 8px 16px; 
-          gap: 10px; /* Adjust gap if needed */
+          gap: 10px;
           height: 40px;
           border: 1px solid var(--WhiteOpacity70); 
           border-radius: 32px;
@@ -1037,7 +1018,7 @@ const ProjectBody: React.FC = () => {
           cursor: pointer;
         }
         
-        /* This now styles the vote COUNT */
+        /* Secondary vote button text */
         .secondary_vote_button span {
           color: var(--WhiteOpacity70);
         }
@@ -1045,11 +1026,11 @@ const ProjectBody: React.FC = () => {
         .secondary_vote_button .vote_thumb_icon path {
           fill: var(--WhiteOpacity70);
         }
-        
+
         /* ----------------------------------------
-           Secondary list footer styles with badges
+           List footer styles - Common
            ---------------------------------------- */
-        .secondary_list_footer {
+        .list_footer, .secondary_list_footer {
           display: flex;
           flex-direction: row;
           align-items: center;
@@ -1058,31 +1039,33 @@ const ProjectBody: React.FC = () => {
           width: 100%;
         }
         
-        .secondary_footer_day_badge {
+        /* Common day badge styles */
+        .footer_day_badge, .secondary_footer_day_badge {
           display: flex;
           flex-direction: row;
           justify-content: center;
           align-items: center;
           padding: 4px 8px;
           gap: 8px;
-          background: rgba(255, 255, 255, 0.08);
           height: 24px;
+          background: rgba(255, 255, 255, 0.08);
           border-radius: 6px;
           opacity: 0.7;
         }
         
-        .secondary_footer_day_badge svg {
+        .footer_day_badge svg, .secondary_footer_day_badge svg {
           vertical-align: middle;
         }
         
-        .secondary_footer_day_badge span {
+        .footer_day_badge span, .secondary_footer_day_badge span {
           color: var(--WhiteOpacity75);
           white-space: nowrap;
           text-align: center;
           vertical-align: middle;
         }
         
-        .secondary_list_footer_badge {
+        /* Common footer badge styles */
+        .list_footer_badge, .secondary_list_footer_badge {
           display: flex;
           flex-direction: row;
           justify-content: center;
@@ -1095,33 +1078,36 @@ const ProjectBody: React.FC = () => {
           opacity: 0.6;
         }
         
-        .secondary_list_footer_badge span {
+        .list_footer_badge span, .secondary_list_footer_badge span {
           text-align: center;
         }
         
-  
- 
+        /* Common heading text color */
+        .list_header_text h3, .secondary_list_header_text h3 {
+          color: var(--WhiteOpacity);
+          margin: 0 0 8px 0;
+          width: 100%;
+        }
+        
         /* ==========================================
-           PROJECT LIST WRAPPER
+           PROJECT LIST WRAPPER - Controls alignment and spacing
            ========================================== */
         .project_list_wrapper {
           display: flex;
           flex-direction: column;
-          align-items: flex-start;
-          padding: 20px 10px; /* Replicates padding from list_container */
-          gap: 25px;          /* Replicates gap from list_container */
+          align-items: flex-start;  /* Left align cards */
+          padding: 20px 10px;
+          gap: 25px;  /* Controls vertical spacing between cards */
           width: 100%;
-          max-width: 1160px; /* Replicates max-width from list_container */
+          max-width: 1160px;
         }
 
         /* Style for the motion div itself */
         .project_item_motion_wrapper {
-          width: 100%; /* Ensure it takes full width within the wrapper */
+          width: 100%;
           max-width: 856px; /* Match max-width of the cards for alignment */
-          /* Margin bottom could be added here if not using gap on parent */
-          /* margin-bottom: 25px; */
         }
-
+        
         /* ==========================================
            MOBILE STYLES - Responsive adjustments
            ========================================== */
@@ -1135,13 +1121,14 @@ const ProjectBody: React.FC = () => {
             padding: 52px 0px;
           }
 
-          .list_section_container {
-            padding: 132px 0px 52px 0px;
+          .section_subtitle, 
+          .list_section_subtitle {
+            margin: 20px 0 0 0;
+            text-align: left;
           }
 
-          .list_section_subtitle {
-          margin: 20px 0 0 0;
-          text-align: left;
+          .list_section_container {
+            padding: 132px 0px 52px 0px;
           }
           
           /* ----------------------------------------
@@ -1173,13 +1160,13 @@ const ProjectBody: React.FC = () => {
           }
 
           /* ----------------------------------------
-             Mobile styles for list card
+             Mobile styles for list cards - Common
              ---------------------------------------- */
-          .list_container {
+          .list_container, .secondary_list_container {
             padding: 20px 0px;
           }
           
-          .list_card {
+          .list_card, .secondary_list_card {
             padding: 20px;
             max-width: 100%;
             gap: 24px;
@@ -1192,57 +1179,24 @@ const ProjectBody: React.FC = () => {
             width: 100%;
           }
 
-           /* ----------------------------------------
-             Mobile styles for list main
-             ---------------------------------------- */
-
-          .list_main {
-            grid-template-areas: 
-              "title"
-              "buttons"
-              "body";
-            grid-template-columns: 1fr;
-            gap: 24px;
-            padding: 0px 0px 5px;
-          }
-          
-          .list_header_text {
-            width: 100%;
-          }
-          
-          .list_body_text {
-            padding: 0px;
-            max-width: 100%; /* Allow full width on mobile */
-          }
-
           /* ----------------------------------------
-             Mobile styles for secondary list card
+             Mobile styles for list main - Common
              ---------------------------------------- */
-          .secondary_list_container {
-            padding: 20px 0px;
-          }
-          
-          .secondary_list_card {
-            padding: 20px;
-            max-width: 100%;
-            gap: 24px;
-          }
-          
-          .secondary_list_main {
+          .list_main, .secondary_list_main {
             grid-template-areas: 
               "title"
-              "buttons"
-              "body";
+              "body"
+              "buttons";
             grid-template-columns: 1fr;
-            gap: 24px;
+            gap: 16px;
             padding: 0px 0px 5px;
           }
           
-          .secondary_list_header_text {
+          .list_header_text, .secondary_list_header_text {
             width: 100%;
           }
           
-          .secondary_list_body_text {
+          .list_body_text, .secondary_list_body_text {
             padding: 0px;
             max-width: 100%; /* Allow full width on mobile */
           }
@@ -1258,33 +1212,22 @@ const ProjectBody: React.FC = () => {
             max-width: 100%;
           }
 
-          /* Keep mobile styles for list_card and secondary_list_card */
-          .list_card,
-          .secondary_list_card {
-            padding: 20px;
+          /* Mobile styles for modal linear progress */
+          .modal_linear_progress {
             max-width: 100%;
-            gap: 24px;
+            padding: 15px 0px 5px;
           }
           
-          .list_main,
-          .secondary_list_main {
-            grid-template-areas: 
-              "title"
-              "body"
-              "buttons";
-            grid-template-columns: 1fr;
-            gap: 16px;
-            padding: 0px 0px 5px;
+          .molin_progress_text {
+            height: auto;
+            flex-wrap: wrap;
+            gap: 5px;
           }
           
-          .list_header_text,
-          .secondary_list_header_text {
-            width: 100%;
-          }
-          
-          .list_body_text,
-          .secondary_list_body_text {
-            padding: 0px;
+          .progress_percentage,
+          .tasks_count {
+            font-size: 14px;
+            line-height: 20px;
           }
         }
 
