@@ -4,9 +4,9 @@ import styles from './styles/HomePage.module.css';
 import HeroBanner from './components/HeroBanner';
 import ProjectBody from './components/ProjectBody';
 import CompletedBuildBody from './components/CompletedBuildBody';
-import HowItWorks_Body from './components/HowItWorks_Body';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import Goal_Body from './components/Goal_Body';
+// import HowItWorks_Body from './components/HowItWorks_Body';
+import RulesAboutBody from './components/RulesAboutBody';
+// import Goal_Body from './components/Goal_Body';
 import LoadingScreen from './components/LoadingScreen';
 import MainNavBar from './components/MainNavBar';
 import dynamic from 'next/dynamic';
@@ -80,7 +80,10 @@ const HomePage: React.FC = () => {
       <CompletedBuildBody />
       
       {/* How It Works Component */}
-      <HowItWorks_Body />
+      {/* <HowItWorks_Body /> */}
+      
+      {/* Rules About Component */}
+      <RulesAboutBody />
       
       {/* Goal Component - temporarily hidden */}
       {/* <Goal_Body /> */}

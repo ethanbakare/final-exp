@@ -292,8 +292,8 @@ const LoadingScreen: React.FC = () => {
           justify-content: center;
           align-items: center;
           padding: 0;
-          background: var(--DarkPrimary);
-          backdrop-filter: blur(45px);
+          background: rgba(10, 10, 10, 1);
+          backdrop-filter: blur(10px);
           z-index: 9999;
           transform: translateY(0);
           transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);

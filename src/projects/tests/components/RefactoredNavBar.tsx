@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from '../styles/HomePage.module.css';
+import styles from '@/projects/home/styles/HomePage.module.css';
 import { useSectionLoading } from '@/hooks/useSectionLoading';
 import Image from 'next/image';
 
@@ -93,7 +93,7 @@ MenuItem.displayName = "MenuItem";
 // ----------------------------------------
 // MAIN NAVBAR COMPONENT
 // ----------------------------------------
-const MainNavBar: React.FC = () => {
+const RefactoredNavBar: React.FC = () => {
   // ----------------------------------------
   // STATE MANAGEMENT
   // ----------------------------------------
@@ -123,10 +123,9 @@ const MainNavBar: React.FC = () => {
       // Get all main sections to determine which one is in view
       const sections = {
         home: document.getElementById('home')?.offsetTop || 0,
-        thisWeek: document.getElementById('this-week')?.offsetTop || 0,
-        pickNext: document.getElementById('whats-next')?.offsetTop || 0,
-        tryDemos: document.getElementById('completed-projects')?.offsetTop || 0,
-        rules: document.getElementById('rules')?.offsetTop || 0,
+        projects: document.getElementById('projects')?.offsetTop || 0,
+        completed: document.getElementById('completed-projects')?.offsetTop || 0,
+        how: document.getElementById('how-it-works')?.offsetTop || 0,
         about: document.getElementById('about')?.offsetTop || 0
       };
       
@@ -135,16 +134,14 @@ const MainNavBar: React.FC = () => {
       const scrollPosition = window.scrollY + buffer;
       
       // Determine active section based on scroll position
-      if (scrollPosition < sections.thisWeek) {
+      if (scrollPosition < sections.projects) {
         setActiveSection('home');
-      } else if (scrollPosition < sections.pickNext) {
-        setActiveSection('thisWeek');
-      } else if (scrollPosition < sections.tryDemos) {
-        setActiveSection('pickNext');
-      } else if (scrollPosition < sections.rules) {
-        setActiveSection('tryDemos');
+      } else if (scrollPosition < sections.completed) {
+        setActiveSection('projects');
+      } else if (scrollPosition < sections.how) {
+        setActiveSection('completed');
       } else if (scrollPosition < sections.about) {
-        setActiveSection('rules');
+        setActiveSection('how');
       } else {
         setActiveSection('about');
       }
@@ -158,14 +155,9 @@ const MainNavBar: React.FC = () => {
       if (heroSection) heroSection.id = 'home';
     }
     
-    if (!document.getElementById('this-week')) {
-      const thisWeekSection = document.querySelector('.project_body');
-      if (thisWeekSection) thisWeekSection.id = 'this-week';
-    }
-    
-    if (!document.getElementById('whats-next')) {
-      const nextBuildSection = document.querySelector('.project_body .list_section_container');
-      if (nextBuildSection) nextBuildSection.id = 'whats-next';
+    if (!document.getElementById('projects')) {
+      const projectSection = document.querySelector('.project_body');
+      if (projectSection) projectSection.id = 'projects';
     }
     
     if (!document.getElementById('completed-projects')) {
@@ -173,14 +165,9 @@ const MainNavBar: React.FC = () => {
       if (completedSection) completedSection.id = 'completed-projects';
     }
     
-    if (!document.getElementById('rules')) {
-      const rulesSection = document.querySelector('.rulesabout_body .experiment_container');
-      if (rulesSection) rulesSection.id = 'rules';
-    }
-    
-    if (!document.getElementById('about')) {
-      const aboutSection = document.querySelector('.rulesabout_body .about_container');
-      if (aboutSection) aboutSection.id = 'about';
+    if (!document.getElementById('how-it-works')) {
+      const howSection = document.querySelector('.howitworks_body');
+      if (howSection) howSection.id = 'how-it-works';
     }
     
     return () => {
@@ -342,39 +329,32 @@ const MainNavBar: React.FC = () => {
                 Home
               </MenuItem>
               <MenuItem 
-                href="#this-week" 
-                active={activeSection === 'thisWeek'} 
-                onClick={(e) => scrollToSection(e, 'this-week')}
+                href="#projects" 
+                active={activeSection === 'projects'} 
+                onClick={(e) => scrollToSection(e, 'projects')}
               >
-                This Week
-              </MenuItem>
-              <MenuItem 
-                href="#whats-next" 
-                active={activeSection === 'pickNext'} 
-                onClick={(e) => scrollToSection(e, 'whats-next')}
-              >
-                Pick Next Build
+                Projects
               </MenuItem>
               <MenuItem 
                 href="#completed-projects" 
-                active={activeSection === 'tryDemos'} 
+                active={activeSection === 'completed'} 
                 onClick={(e) => scrollToSection(e, 'completed-projects')}
               >
-                Try Demos
+                Rules
               </MenuItem>
               <MenuItem 
-                href="#rules" 
-                active={activeSection === 'rules'} 
-                onClick={(e) => scrollToSection(e, 'rules')}
+                href="#how-it-works" 
+                active={activeSection === 'how'} 
+                onClick={(e) => scrollToSection(e, 'how-it-works')}
               >
-                Rules
+                About
               </MenuItem>
               <MenuItem 
                 href="#about" 
                 active={activeSection === 'about'} 
                 onClick={(e) => scrollToSection(e, 'about')}
               >
-                About
+                More
               </MenuItem>
             </nav>
           </div>
@@ -419,39 +399,32 @@ const MainNavBar: React.FC = () => {
                 Home
               </MenuItem>
               <MenuItem 
-                href="#this-week" 
-                active={activeSection === 'thisWeek'} 
-                onClick={(e) => handleMobileMenuItemClick(e, 'this-week')}
+                href="#projects" 
+                active={activeSection === 'projects'} 
+                onClick={(e) => handleMobileMenuItemClick(e, 'projects')}
               >
-                This Week
-              </MenuItem>
-              <MenuItem 
-                href="#whats-next" 
-                active={activeSection === 'pickNext'} 
-                onClick={(e) => handleMobileMenuItemClick(e, 'whats-next')}
-              >
-                Pick Next Build
+                Projects
               </MenuItem>
               <MenuItem 
                 href="#completed-projects" 
-                active={activeSection === 'tryDemos'} 
+                active={activeSection === 'completed'} 
                 onClick={(e) => handleMobileMenuItemClick(e, 'completed-projects')}
               >
-                Try Demos
+                Rules
               </MenuItem>
               <MenuItem 
-                href="#rules" 
-                active={activeSection === 'rules'} 
-                onClick={(e) => handleMobileMenuItemClick(e, 'rules')}
+                href="#how-it-works" 
+                active={activeSection === 'how'} 
+                onClick={(e) => handleMobileMenuItemClick(e, 'how-it-works')}
               >
-                Rules
+                About
               </MenuItem>
               <MenuItem 
                 href="#about" 
                 active={activeSection === 'about'} 
                 onClick={(e) => handleMobileMenuItemClick(e, 'about')}
               >
-                About
+                More
               </MenuItem>
             </nav>
           </div>
@@ -558,7 +531,6 @@ const MainNavBar: React.FC = () => {
           background-color: rgba(255, 255, 255, 0.05);
           padding: 4px 12px;
           height: 38px;
-          color: var(--WhiteOpacity);
           text-decoration: none;
           transition: background-color 0.2s ease;
           cursor: pointer;
@@ -722,4 +694,4 @@ const MainNavBar: React.FC = () => {
   );
 };
 
-export default MainNavBar; 
+export default RefactoredNavBar; 

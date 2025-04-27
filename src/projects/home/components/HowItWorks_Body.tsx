@@ -1,11 +1,10 @@
 import React from 'react';
 import styles from '../styles/HomePage.module.css';
-import { useSectionLoading } from '@/hooks/useSectionLoading';
+// import { useSectionLoading } from '@/hooks/useSectionLoading';
 
 const HowItWorks_Body: React.FC = () => {
   // Integrate with loading context
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { isLoaded } = useSectionLoading('HowItWorks_Body', [true]);
+  // const { isLoaded } = useSectionLoading('HowItWorks_Body', [true]);
   
   return (
     <div id="how-it-works" className="howitworks_body">

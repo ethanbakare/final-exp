@@ -68,16 +68,17 @@ const HeroBanner: React.FC = () => {
   return (
     <div className="hero_banner">
       <div className="main_holder">
-        {/* Badge component - "Day X / 90" indicator */}
-        <div className="badge_component">
-          <div className="badge_frame">
-            <span className={`${styles.InterRegular14} badge_text`}>Day 9 / 90</span>
-          </div>
-        </div>
-        
         {/* Hero text content - Title and subtitle */}
         <div className="hero_component">
-          <h1 className={`${styles.FrankRuhlLibre64} hero_title`}>Building 10 AI tools in 90 days</h1>
+          <div className="title_badge_wrapper">
+            <h1 className={`${styles.FrankRuhlLibre64} hero_title`}>Building 10 AI tools in 90 days</h1>
+            {/* Badge component - "Day X / 90" indicator */}
+            <div className="badge_component">
+              <div className="badge_frame">
+                <span className={`${styles.InterRegular14} badge_text`}>£1,000 penalty per missed deadline</span>
+              </div>
+            </div>
+          </div>
           <p className={`${styles.InterRegular24_H1} hero_subtitle`}>
           Follow the challenge. Try the demos. Vote on what gets made next
           </p>
@@ -105,7 +106,7 @@ const HeroBanner: React.FC = () => {
           justify-content: center;
           align-items: center;
           padding: 0px 0px 0px;
-          gap: 88px;
+          gap: 52px;
           width: 100%;
           height: 100vh;
           min-height: 809px;
@@ -122,6 +123,16 @@ const HeroBanner: React.FC = () => {
           width: 100%;
           max-width: 1020px;
           height: auto;
+        }
+
+        /* Title and badge wrapper */
+        .title_badge_wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 24px;
+          width: 100%;
+          margin-bottom: 32px;
         }
 
         /* Badge component - "Day X / 90" */
@@ -159,6 +170,7 @@ const HeroBanner: React.FC = () => {
           text-align: center;
           color: var(--WhiteOpacity);
           width: 100%;
+
           max-width: 1020px;
           height: auto;
           word-wrap: break-word;
@@ -244,8 +256,12 @@ const HeroBanner: React.FC = () => {
           .hero_banner {
             min-height: auto;
             height: auto;
-            padding: 56px 0px 96px;
+            padding: 120px 0px 96px;
             gap: 56px;
+          }
+
+          .title_badge_wrapper {
+            gap: 8px;
           }
           
           .hero_component {
