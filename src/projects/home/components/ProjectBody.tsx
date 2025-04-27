@@ -285,7 +285,7 @@ const ProjectBody: React.FC = () => {
           ---------------------------------------- */}
       <div className="section_container">
         <h2 className={`${styles.FrankRuhlLibre48} section_title`}>This week&apos;s build</h2>
-        <p className={`${styles.InterRegular26} section_subtitle`}>Week 1 of 13</p>
+        <p className={`${styles.InterRegular26} section_subtitle`}>Work in progress - 1 week</p>
       </div>
       
       {/* ----------------------------------------
@@ -362,7 +362,7 @@ const ProjectBody: React.FC = () => {
             </div>
             <div className="day_button_container">
               <button className="day_button" onClick={() => setIsModalOpen(true)}>
-                <span className={`${styles.InterRegular17}`}>View Details</span>
+                <span className={`${styles.InterRegular17}`}>Task List</span>
                 <div className="plus_icon"></div>
               </button>
             </div>
@@ -760,8 +760,9 @@ const ProjectBody: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 0px 0px 24px;
-          gap: 25px;
+          padding: 0px 0px 36px;
+          gap: 4px;
+          // border: 1px solid red;
           width: 100%;
         }
         
@@ -771,9 +772,10 @@ const ProjectBody: React.FC = () => {
           flex-direction: column;
           align-items: flex-start;
           padding: 10px 0px;
+          // border: 1px solid red;
           width: 100%;
           max-width: 640px;
-          gap: 8px;
+          gap: 2px;
         }
         
         /* Progress text container (holds percentage and count) */
@@ -1252,6 +1254,7 @@ const ProjectBody: React.FC = () => {
           /* Mobile styles for modal linear progress */
           .modal_linear_progress {
             max-width: 100%;
+            gap: 8px;
             padding: 15px 0px 5px;
           }
           

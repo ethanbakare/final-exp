@@ -123,9 +123,9 @@ const MainNavBar: React.FC = () => {
       // Get all main sections to determine which one is in view
       const sections = {
         home: document.getElementById('home')?.offsetTop || 0,
+        tryDemos: document.getElementById('completed-projects')?.offsetTop || 0,
         thisWeek: document.getElementById('this-week')?.offsetTop || 0,
         pickNext: document.getElementById('whats-next')?.offsetTop || 0,
-        tryDemos: document.getElementById('completed-projects')?.offsetTop || 0,
         rules: document.getElementById('rules')?.offsetTop || 0,
         about: document.getElementById('about')?.offsetTop || 0
       };
@@ -135,14 +135,14 @@ const MainNavBar: React.FC = () => {
       const scrollPosition = window.scrollY + buffer;
       
       // Determine active section based on scroll position
-      if (scrollPosition < sections.thisWeek) {
+      if (scrollPosition < sections.tryDemos) {
         setActiveSection('home');
+      } else if (scrollPosition < sections.thisWeek) {
+        setActiveSection('tryDemos');
       } else if (scrollPosition < sections.pickNext) {
         setActiveSection('thisWeek');
-      } else if (scrollPosition < sections.tryDemos) {
-        setActiveSection('pickNext');
       } else if (scrollPosition < sections.rules) {
-        setActiveSection('tryDemos');
+        setActiveSection('pickNext');
       } else if (scrollPosition < sections.about) {
         setActiveSection('rules');
       } else {
@@ -158,6 +158,11 @@ const MainNavBar: React.FC = () => {
       if (heroSection) heroSection.id = 'home';
     }
     
+    if (!document.getElementById('completed-projects')) {
+      const completedSection = document.querySelector('.completed_build_body');
+      if (completedSection) completedSection.id = 'completed-projects';
+    }
+
     if (!document.getElementById('this-week')) {
       const thisWeekSection = document.querySelector('.project_body');
       if (thisWeekSection) thisWeekSection.id = 'this-week';
@@ -166,11 +171,6 @@ const MainNavBar: React.FC = () => {
     if (!document.getElementById('whats-next')) {
       const nextBuildSection = document.querySelector('.project_body .list_section_container');
       if (nextBuildSection) nextBuildSection.id = 'whats-next';
-    }
-    
-    if (!document.getElementById('completed-projects')) {
-      const completedSection = document.querySelector('.completed_build_body');
-      if (completedSection) completedSection.id = 'completed-projects';
     }
     
     if (!document.getElementById('rules')) {
@@ -342,6 +342,13 @@ const MainNavBar: React.FC = () => {
                 Home
               </MenuItem>
               <MenuItem 
+                href="#completed-projects" 
+                active={activeSection === 'tryDemos'} 
+                onClick={(e) => scrollToSection(e, 'completed-projects')}
+              >
+                Try Demos
+              </MenuItem>
+              <MenuItem 
                 href="#this-week" 
                 active={activeSection === 'thisWeek'} 
                 onClick={(e) => scrollToSection(e, 'this-week')}
@@ -354,13 +361,6 @@ const MainNavBar: React.FC = () => {
                 onClick={(e) => scrollToSection(e, 'whats-next')}
               >
                 Pick Next Build
-              </MenuItem>
-              <MenuItem 
-                href="#completed-projects" 
-                active={activeSection === 'tryDemos'} 
-                onClick={(e) => scrollToSection(e, 'completed-projects')}
-              >
-                Try Demos
               </MenuItem>
               <MenuItem 
                 href="#rules" 
@@ -419,6 +419,13 @@ const MainNavBar: React.FC = () => {
                 Home
               </MenuItem>
               <MenuItem 
+                href="#completed-projects" 
+                active={activeSection === 'tryDemos'} 
+                onClick={(e) => handleMobileMenuItemClick(e, 'completed-projects')}
+              >
+                Try Demos
+              </MenuItem>
+              <MenuItem 
                 href="#this-week" 
                 active={activeSection === 'thisWeek'} 
                 onClick={(e) => handleMobileMenuItemClick(e, 'this-week')}
@@ -431,13 +438,6 @@ const MainNavBar: React.FC = () => {
                 onClick={(e) => handleMobileMenuItemClick(e, 'whats-next')}
               >
                 Pick Next Build
-              </MenuItem>
-              <MenuItem 
-                href="#completed-projects" 
-                active={activeSection === 'tryDemos'} 
-                onClick={(e) => handleMobileMenuItemClick(e, 'completed-projects')}
-              >
-                Try Demos
               </MenuItem>
               <MenuItem 
                 href="#rules" 

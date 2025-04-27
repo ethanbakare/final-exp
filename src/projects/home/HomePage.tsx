@@ -73,11 +73,11 @@ const HomePage: React.FC = () => {
       {/* Hero Banner Component */}
       <HeroBanner />
       
+      {/* Completed Build Component (moved to second position) */}
+      <CompletedBuildBody />
+      
       {/* Project Body Component */}
       <ProjectBody />
-      
-      {/* Completed Build Component */}
-      <CompletedBuildBody />
       
       {/* How It Works Component */}
       {/* <HowItWorks_Body /> */}
