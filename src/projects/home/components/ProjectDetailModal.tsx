@@ -26,8 +26,8 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose, projec
   // ----------------------------------------
   // STATE MANAGEMENT
   // ----------------------------------------
-  // State to track which task containers are expanded (by their index)
-  const [expandedTasks, setExpandedTasks] = useState<number[]>([]); // All tasks closed by default
+  // State to track which task containers are expanded (by their ID instead of index for stability after sorting)
+  const [expandedTaskIds, setExpandedTaskIds] = useState<string[]>([]); // All tasks closed by default
   // State to track if initial height has been set
   const [heightFixed, setHeightFixed] = useState(false);
   
@@ -40,14 +40,14 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose, projec
   // ----------------------------------------
   // EVENT HANDLERS
   // ----------------------------------------
-  // Toggle task expansion state based on its index - only one task can be expanded at a time
-  const toggleTaskExpansion = (taskIndex: number) => {
-    setExpandedTasks(prev => 
+  // Toggle task expansion state based on its ID - only one task can be expanded at a time
+  const toggleTaskExpansion = (taskId: string) => {
+    setExpandedTaskIds(prev => 
       // If this task is already expanded, close it
-      prev.includes(taskIndex)
+      prev.includes(taskId)
         ? []
         // Otherwise, expand only this task (close all others)
-        : [taskIndex]
+        : [taskId]
     );
   };
   
@@ -217,13 +217,26 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose, projec
               Displays expandable task sections
               ---------------------------------------- */}
           <div className="modal_list">
-            {/* Map through the tasks array to render each task container */}
-            {projectProgress.tasks.map((task, taskIndex) => (
+            {/* Sort tasks to ensure "inProgress" tasks appear at the top */}
+            {projectProgress.tasks
+              .slice() // Create a copy to avoid mutating the original array
+              .sort((a, b) => {
+                // "inProgress" tasks come first
+                if (a.status === 'inProgress' && b.status !== 'inProgress') {
+                  return -1;
+                }
+                // Keep original order for other combinations
+                if (a.status !== 'inProgress' && b.status === 'inProgress') {
+                  return 1;
+                }
+                return 0; // Keep original order for same status
+              })
+              .map((task, taskIndex) => (
               // Task Container: Holds a single task and its subtasks
               <div 
                 key={taskIndex} // Unique key for React list rendering
                 // Dynamically set class based on expansion state for styling/animation
-                className={`modal_list_task_container ${expandedTasks.includes(taskIndex) ? 'open' : 'closed'}`}
+                className={`modal_list_task_container ${expandedTaskIds.includes(task.title) ? 'open' : 'closed'}`}
               >
                 {/* Task Header Area: Clickable area to toggle expansion */}
                 <div className="modal_list_task">
@@ -234,12 +247,12 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose, projec
                     {/* Dropdown/Toggle Icon: Click triggers expansion toggle */}
                     <div 
                       className="modal_list_dropdown" 
-                      onClick={() => toggleTaskExpansion(taskIndex)}
+                      onClick={() => toggleTaskExpansion(task.title)}
                     >
                       {/* Dropdown Icon SVG */}
                       <svg width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <g clipPath="url(#clip0_1523_960)">
-                          <path d="M18.5 13H13.5V18C13.5 18.55 13.05 19 12.5 19C11.95 19 11.5 18.55 11.5 18V13H6.5C5.95 13 5.5 12.55 5.5 12C5.5 11.45 5.95 11 6.5 11H11.5V6C11.5 5.45 11.95 5 12.5 5C13.05 5 13.5 5.45 13.5 6V11H18.5C19.05 11 19.5 11.45 19.5 12C19.5 12.55 19.05 13 18.5 13Z" fill="white" fillOpacity="0.7"/>
+                          <path d="M18.5 13H13.5V18C13.5 18.55 13.05 19 12.5 19C11.95 19 11.5 18.55 11.5 18V13H6.5C5.95 13 5.5 12.55 5.5 12C5.5 11.45 5.95 11 6.5 11H11.5V6C11.5 5.45 11.95 5 12.5 5C13.05 5 13.5 5.45 13.5 6V11H18.5C19.05 11 19.5 11.45 19.5 12C19.5 12.55 19.05 13 18.5 13Z" fill="white" fillOpacity="1"/>
                         </g>
                         <defs>
                           <clipPath id="clip0_1523_960">
@@ -298,7 +311,7 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose, projec
                     SUBTASK LIST SECTION
                     Conditionally rendered only when the task is expanded
                     ---------------------------------------- */}
-                {expandedTasks.includes(taskIndex) && (
+                {expandedTaskIds.includes(task.title) && (
                   // Subtask List Container
                   <div className="modal_list_subtask">
                     {/* Map through the subtasks array for the current task */}
@@ -315,8 +328,8 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ onClose, projec
                             {/* Checkmark Icon SVG */}
                             <svg width="25" height="24" viewBox="0 0 25 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <g clipPath="url(#clip0_2067_468)">
-                                <path fillRule="evenodd" clipRule="evenodd" d="M2.5 12C2.5 6.4875 6.9875 2 12.5 2C18.0125 2 22.5 6.4875 22.5 12C22.5 17.5125 18.0125 22 12.5 22C6.9875 22 2.5 17.5125 2.5 12ZM10.5 14.1701L16.38 8.29006C16.77 7.90006 17.41 7.90006 17.8 8.29006C18.19 8.68006 18.19 9.31006 17.8 9.70006L11.21 16.2901C10.82 16.6801 10.19 16.6801 9.79998 16.2901L7.20998 13.7001C6.81998 13.3101 6.81998 12.6801 7.20998 12.2901C7.59998 11.9001 8.22998 11.9001 8.61998 12.2901L10.5 14.1701Z" fill="white" fillOpacity="0.2"/>
-                                <path d="M16.38 8.29006L10.5 14.1701L8.61998 12.2901C8.22998 11.9001 7.59998 11.9001 7.20998 12.2901C6.81998 12.6801 6.81998 13.3101 7.20998 13.7001L9.79998 16.2901C10.19 16.6801 10.82 16.6801 11.21 16.2901L17.8 9.70006C18.19 9.31006 18.19 8.68006 17.8 8.29006C17.41 7.90006 16.77 7.90006 16.38 8.29006Z" fill="white"/>
+                                <path fillRule="evenodd" clipRule="evenodd" d="M2.5 12C2.5 6.4875 6.9875 2 12.5 2C18.0125 2 22.5 6.4875 22.5 12C22.5 17.5125 18.0125 22 12.5 22C6.9875 22 2.5 17.5125 2.5 12ZM10.5 14.1701L16.38 8.29006C16.77 7.90006 17.41 7.90006 17.8 8.29006C18.19 8.68006 18.19 9.31006 17.8 9.70006L11.21 16.2901C10.82 16.6801 10.19 16.6801 9.79998 16.2901L7.20998 13.7001C6.81998 13.3101 6.81998 12.6801 7.20998 12.2901C7.59998 11.9001 8.22998 11.9001 8.61998 12.2901L10.5 14.1701Z" fill="#22D817" fillOpacity="0.3"/>
+                                <path d="M16.38 8.29006L10.5 14.1701L8.61998 12.2901C8.22998 11.9001 7.59998 11.9001 7.20998 12.2901C6.81998 12.6801 6.81998 13.3101 7.20998 13.7001L9.79998 16.2901C10.19 16.6801 10.82 16.6801 11.21 16.2901L17.8 9.70006C18.19 9.31006 18.19 8.68006 17.8 8.29006C17.41 7.90006 16.77 7.90006 16.38 8.29006Z" fill="#22D817"/>
                               </g>
                               <defs>
                                 <clipPath id="clip0_2067_468">

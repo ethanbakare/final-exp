@@ -258,7 +258,7 @@ const LoadingScreen: React.FC = () => {
       <div className="loading-main">
         <div className="hero-header">
           <div className="Day_Counter">
-            <p className="day-counter-text">Day 9 / 90</p>
+            <p className="day-counter-text">Day 1 / 90</p>
           </div>
           
           <p className={`${styles.InterMedium24_H1} animated-text`}>

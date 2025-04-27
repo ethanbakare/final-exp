@@ -306,20 +306,25 @@ const ProjectBody: React.FC = () => {
               <h3 className={`${styles.InterRegular28}`}>{currentProject?.title || 'Loading...'}</h3>
               <p className={`${styles.InterRegular20_H1}`}>{currentProject?.subtitle || ''}</p>
             </div>
-            <div className="day_badge">
-              <div className="calendar_icon">
-                <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <g clipPath="url(#clip0_859_159)">
-                    <path d="M13.3333 2.50002H12.6666V1.83335C12.6666 1.46669 12.3666 1.16669 11.9999 1.16669C11.6333 1.16669 11.3333 1.46669 11.3333 1.83335V2.50002H4.66659V1.83335C4.66659 1.46669 4.36659 1.16669 3.99992 1.16669C3.63325 1.16669 3.33325 1.46669 3.33325 1.83335V2.50002H2.66659C1.93325 2.50002 1.33325 3.10002 1.33325 3.83335V14.5C1.33325 15.2334 1.93325 15.8334 2.66659 15.8334H13.3333C14.0666 15.8334 14.6666 15.2334 14.6666 14.5V3.83335C14.6666 3.10002 14.0666 2.50002 13.3333 2.50002ZM12.6666 14.5H3.33325C2.96659 14.5 2.66659 14.2 2.66659 13.8334V5.83335H13.3333V13.8334C13.3333 14.2 13.0333 14.5 12.6666 14.5Z" fill="white" fillOpacity="0.75"/>
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_859_159">
-                      <rect width="16" height="16" fill="white" transform="translate(0 0.5)"/>
-                    </clipPath>
-                  </defs>
-                </svg>
+            <div className="date_and_time_badge">
+              <div className="date_badge">
+                <span className={`${styles.InterRegular14}`}>{currentProject?.dateRange || 'TBD'}</span>
               </div>
-              <span className={`${styles.InterRegular14}`}>{currentProject?.daysLeft || 0} days left</span>
+              <div className="day_badge">
+                <div className="time_icon">
+                  <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g clipPath="url(#clip0_2985_2040)">
+                    <path d="M7.99301 1.83331C4.31301 1.83331 1.33301 4.81998 1.33301 8.49998C1.33301 12.18 4.31301 15.1666 7.99301 15.1666C11.6797 15.1666 14.6663 12.18 14.6663 8.49998C14.6663 4.81998 11.6797 1.83331 7.99301 1.83331ZM7.99967 13.8333C5.05301 13.8333 2.66634 11.4466 2.66634 8.49998C2.66634 5.55331 5.05301 3.16665 7.99967 3.16665C10.9463 3.16665 13.333 5.55331 13.333 8.49998C13.333 11.4466 10.9463 13.8333 7.99967 13.8333ZM7.85301 5.16665H7.81301C7.54634 5.16665 7.33301 5.37998 7.33301 5.64665V8.79331C7.33301 9.02665 7.45301 9.24665 7.65967 9.36665L10.4263 11.0266C10.653 11.16 10.9463 11.0933 11.0797 10.8666C11.2197 10.64 11.1463 10.34 10.913 10.2066L8.33301 8.67331V5.64665C8.33301 5.37998 8.11967 5.16665 7.85301 5.16665V5.16665Z" fill="white" fill-opacity="0.75"/>
+                    </g>
+                    <defs>
+                    <clipPath id="clip0_2985_2040">
+                    <rect width="16" height="16" fill="white" transform="translate(0 0.5)"/>
+                    </clipPath>
+                    </defs>
+                  </svg>
+                </div>
+                <span className={`${styles.InterRegular14}`}>{currentProject?.daysLeft || 0} days left</span>
+              </div>
             </div>
           </div>
           
@@ -678,6 +683,39 @@ const ProjectBody: React.FC = () => {
           text-align: left;
         }
         
+        .date_and_time_badge {
+          display: flex;
+          flex-direction: row;
+          align-items: flex-start;
+          padding: 0px;
+          gap: 12px;
+          width: auto;
+          height: auto;
+        }
+        
+        .date_badge {
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 4px 8px 4px 8px;
+          gap: 10px;
+          width: auto;
+          height: auto;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: 6px;
+          /* Transparent background as required */
+          background: transparent;
+        }
+        
+        .date_badge span {
+          color: var(--WhiteOpacity75);
+          white-space: nowrap;
+          text-align: center;
+          letter-spacing: -0.01em;
+          vertical-align: middle;
+        }
+        
         .day_badge {
           display: flex;
           flex-direction: row;
@@ -689,8 +727,7 @@ const ProjectBody: React.FC = () => {
           border-radius: 6px;
         }
         
-        .calendar_icon {
-          // position: relative;
+        .time_icon {
           width: 16px;
           height: 16px;
           display: inline-flex;

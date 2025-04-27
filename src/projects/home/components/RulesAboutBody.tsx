@@ -58,7 +58,7 @@ const RulesAboutBody: React.FC = () => {
                 Most of what I build starts with a question I couldn&apos;t ignore.
               </p>
               <p className={`${styles.InterRegular16} about_text_paragraph`}>
-                If you&apos;re building long-term and want someone who burns for the work — let&apos;s talk.
+                If you&apos;re building long-term and want someone who burns for the work — <a href="mailto:iamethanbakare@gmail.com" className="twitter-link">let&apos;s talk</a>.
               </p>
             </div>
           </div>
@@ -71,7 +71,7 @@ const RulesAboutBody: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 74px 0px 30px;
+          padding: 74px 0px 200px;
           gap: 10px;
           width: 100%;
           margin: 0 auto;

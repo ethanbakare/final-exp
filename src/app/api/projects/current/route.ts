@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { readOnlyClient } from '@/sanity/lib/client'
 import { currentProjectQuery } from '@/sanity/lib/queries'
-import { calculateDaysLeft } from '@/lib/dateUtils'
+import { calculateDaysLeft, formatDateRange } from '@/lib/dateUtils'
 
 export async function GET() {
   try {
@@ -19,9 +19,15 @@ export async function GET() {
       ? calculateDaysLeft(project.startDate, project.duration)
       : null
     
+    // Format the date range for display
+    const dateRange = project.startDate && project.duration
+      ? formatDateRange(project.startDate, project.duration)
+      : null
+    
     return NextResponse.json({
       ...project,
-      daysLeft
+      daysLeft,
+      dateRange
     })
   } catch (error) {
     console.error('Error fetching current project:', error)

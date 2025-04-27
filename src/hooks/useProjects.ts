@@ -37,6 +37,7 @@ interface CurrentProject {
   startDate?: string;
   duration?: number;
   daysLeft?: number;
+  dateRange?: string; // Date range formatted as "Month Day-Day"
   projectProgressId?: string; // ID of the associated ProjectProgress
   focusBadge?: {
     _id: string;
