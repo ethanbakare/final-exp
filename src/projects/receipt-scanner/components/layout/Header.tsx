@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import styles from '../../styles/Components.module.css';
 
 interface HeaderProps {
   initialActiveTab?: 'scan' | 'speak';
@@ -19,7 +20,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <div className="header-container">
+    <div className={`header-container ${styles.container}`}>
       <div className={`tab scan-receipt-tab ${activeTab === 'scan' ? 'active' : 'inactive'}`} 
            onClick={() => handleTabClick('scan')}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="receipt-icon">
@@ -36,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({
             </clipPath>
           </defs>
         </svg>
-        <span className="tab-text">Scan receipt</span>
+        <span className={`tab-text ${styles.headerH1Medium}`}>Scan receipt</span>
       </div>
       
       <div className={`tab speak-type-tab ${activeTab === 'speak' ? 'active' : 'inactive'}`}
@@ -51,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({
             </clipPath>
           </defs>
         </svg>
-        <span className="tab-text">Speak or Type</span>
+        <span className={`tab-text ${styles.headerH1Medium}`}>Speak or Type</span>
       </div>
 
       <style jsx>{`
@@ -86,16 +87,16 @@ const Header: React.FC<HeaderProps> = ({
         }
 
         .scan-receipt-tab.active {
-          border-bottom: 1.5px solid #FB7232;
+          border-bottom: 1.5px solid var(--orangeElectric);
         }
 
         .speak-type-tab.active {
-          border-bottom: 1.5px solid #FB7232;
+          border-bottom: 1.5px solid var(--orangeElectric);
         }
 
         .tab.inactive {
           opacity: 0.4;
-          border-bottom: 1.5px solid #5E5E5E;
+          border-bottom: 1.5px solid var(--darkGrey50);
         }
 
         .tab :global(svg) {
@@ -107,11 +108,6 @@ const Header: React.FC<HeaderProps> = ({
         }
 
         .tab-text {
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 500;
-          font-size: 16px;
-          line-height: 143.75%;
           text-align: center;
           color: rgba(46, 41, 28, 0.8);
           flex: none;

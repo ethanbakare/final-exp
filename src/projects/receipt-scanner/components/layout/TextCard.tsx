@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import styles from '../../styles/Components.module.css';
 
 interface TextCardProps {
   onTextChange?: (text: string) => void;
@@ -22,12 +23,12 @@ const TextCard: React.FC<TextCardProps> = ({
   };
   
   return (
-    <div className={`card ${className}`}>
+    <div className={`card ${styles.container} ${className}`}>
       <textarea
         value={text}
         onChange={handleTextChange}
         placeholder={placeholder}
-        className="textarea"
+        className={`textarea ${styles.bodyH1}`}
       />
 
       <style jsx>{`
@@ -53,16 +54,13 @@ const TextCard: React.FC<TextCardProps> = ({
           border: 1.2px solid rgba(94, 94, 94, 0.2);
           background-color: transparent;
           padding: 20px;
-          font-size: 16px;
-          line-height: 1.5;
-          font-family: 'Inter';
-          color: #5E5E5E;
+          color: var(--primaryH1);
           transition: border-color 0.2s, box-shadow 0.2s;
           caret-color:rgb(81, 50, 40);
         }
 
         .textarea::placeholder {
-          color: rgba(94, 94, 94, 0.3);
+          color: var(--darkGrey30);
         }
 
         .textarea:focus {

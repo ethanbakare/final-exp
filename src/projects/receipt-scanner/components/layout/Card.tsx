@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import styles from '../../styles/Components.module.css';
 
 interface CardProps {
   onFileSelect?: (file: File) => void;
@@ -35,7 +36,7 @@ const Card: React.FC<CardProps> = ({ onFileSelect, className = '' }) => {
   };
   
   return (
-    <div className={`card ${className}`}>
+    <div className={`card ${styles.container} ${className}`}>
       <label 
         className={`outline-box ${isDragOver ? 'drag-over' : ''}`}
         onDragOver={handleDragOver}
@@ -61,8 +62,8 @@ const Card: React.FC<CardProps> = ({ onFileSelect, className = '' }) => {
         </svg>
         
         <div className="text-container">
-          <div className="primary-text">Click to select receipt</div>
-          <div className="secondary-text">JPG, JPEG, PNG or BMP</div>
+          <div className={`primary-text ${styles.bodyH1}`}>Click to select receipt</div>
+          <div className={`secondary-text ${styles.bodyH1}`}>JPG, JPEG, PNG or BMP</div>
         </div>
       </label>
 
@@ -114,26 +115,16 @@ const Card: React.FC<CardProps> = ({ onFileSelect, className = '' }) => {
         }
         
         .primary-text {
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 400;
-          font-size: 16px;
-          line-height: 143.75%;
           text-align: center;
           letter-spacing: -0.01em;
-          color: #5E5E5E;
+          color: var(--darkGrey80);
           opacity: 0.82;
         }
         
         .secondary-text {
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 400;
-          font-size: 16px;
-          line-height: 143.75%;
           text-align: center;
           letter-spacing: -0.01em;
-          color: rgba(94, 94, 94, 0.5);
+          color: var(--darkGrey50);
           opacity: 0.82;
         }
       `}</style>
