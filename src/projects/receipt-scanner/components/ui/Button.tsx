@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from '../../styles/Components.module.css';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'disabled';
 
@@ -85,12 +86,12 @@ const Button: React.FC<ButtonProps> = ({
   return (
     <>
       <button 
-        className={`${buttonClass} ${className}`}
+        className={`${buttonClass} ${styles.container} ${className}`}
         onClick={onClick}
         disabled={disabled}
       >
         {type === 'icon' ? (icon || defaultIcon) : (
-          <span className="ButtonH1_Regular">{children}</span>
+          <span className={`ButtonH1_Regular ${styles.buttonH1Regular}`}>{children}</span>
         )}
       </button>
       
@@ -124,39 +125,39 @@ const Button: React.FC<ButtonProps> = ({
 
         /* Primary Button (active_icon0) */
         .icon-button-primary {
-          background: #FB7232; /* OrangeElectric */
+          background: var(--orangeElectric);
         }
 
         .icon-button-primary :global(svg) {
-          color: rgba(255, 255, 255, 0.9); /* BaseWhite_90 */
+          color: var(--baseWhite_90);
         }
 
         /* Secondary Button (active_icon1) */
         .icon-button-secondary {
-          background: rgba(255, 255, 255, 0.9); /* BaseWhite_90 */
+          background: var(--baseWhite_90);
         }
 
         .icon-button-secondary :global(svg) {
-          color: #FB7232; /* OrangeElectric */
+          color: var(--orangeElectric);
         }
 
         /* Tertiary Button (active_icon2) */
         .icon-button-tertiary {
-          background: rgba(255, 255, 255, 0.9); /* BaseWhite_90 */
+          background: var(--baseWhite_90);
         }
 
         .icon-button-tertiary :global(svg) {
-          color: rgba(94, 94, 94, 0.8); /* DarkGrey80 */
+          color: var(--darkGrey80);
         }
 
         /* Disabled Button (dormant_icon) */
         .icon-button-disabled {
-          background: #F8F6F0; /* BeigeBackground */
+          background: var(--beigeBackground);
           cursor: not-allowed;
         }
 
         .icon-button-disabled :global(svg) {
-          color: rgba(94, 94, 94, 0.3); /* DarkGrey30 */
+          color: var(--darkGrey30);
         }
 
         /* Hover and Focus States */
@@ -167,12 +168,12 @@ const Button: React.FC<ButtonProps> = ({
 
         .icon-button-secondary:hover:not(:disabled),
         .icon-button-tertiary:hover:not(:disabled) {
-          background: #FFFFFF; /* Full white on hover */
+          background: var(--baseWhite);
         }
 
         .icon-button-secondary:focus:not(:disabled),
         .icon-button-tertiary:focus:not(:disabled) {
-          outline: 1px solid rgba(94, 94, 94, 0.2); /* DarkGrey20 */
+          outline: 1px solid var(--darkGrey20);
         }
 
         /* Text Button Styles - New styles based on your specifications */
@@ -195,39 +196,39 @@ const Button: React.FC<ButtonProps> = ({
 
         /* Primary Text Button (active0) */
         .text-button-primary {
-          background: #FB7232; /* OrangeElectric */
+          background: var(--orangeElectric);
         }
 
         .text-button-primary :global(span) {
-          color: rgba(255, 255, 255, 0.9); /* BaseWhite_90 */
+          color: var(--baseWhite_90);
         }
 
         /* Secondary Text Button (active1) */
         .text-button-secondary {
-          background: rgba(255, 255, 255, 0.9); /* BaseWhite_90 */
+          background: var(--baseWhite_90);
         }
 
         .text-button-secondary :global(span) {
-          color: #FB7232; /* OrangeElectric */
+          color: var(--orangeElectric);
         }
 
         /* Tertiary Text Button (active2) */
         .text-button-tertiary {
-          background: rgba(255, 255, 255, 0.9); /* BaseWhite_90 */
+          background: var(--baseWhite_90);
         }
 
         .text-button-tertiary :global(span) {
-          color: rgba(94, 94, 94, 0.8); /* DarkGrey80 */
+          color: var(--darkGrey80);
         }
 
         /* Disabled Text Button (dormant) */
         .text-button-disabled {
-          background: #F8F6F0; /* BeigeBackground */
+          background: var(--beigeBackground);
           cursor: not-allowed;
         }
 
         .text-button-disabled :global(span) {
-          color: rgba(94, 94, 94, 0.3); /* DarkGrey30 */
+          color: var(--darkGrey30);
         }
 
         /* Hover and Focus States for Text Buttons */
@@ -238,12 +239,12 @@ const Button: React.FC<ButtonProps> = ({
 
         .text-button-secondary:hover:not(:disabled),
         .text-button-tertiary:hover:not(:disabled) {
-          background: #FFFFFF; /* Full white on hover */
+          background: var(--baseWhite);
         }
 
         .text-button-secondary:focus:not(:disabled),
         .text-button-tertiary:focus:not(:disabled) {
-          outline: 1px solid rgba(94, 94, 94, 0.2); /* DarkGrey20 */
+          outline: 1px solid var(--darkGrey20);
         }
       `}</style>
     </>

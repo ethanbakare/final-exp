@@ -1,0 +1,523 @@
+/* CardContent.module.css */
+
+/* Main container */
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px 10px;
+  gap: 10px;
+  width: 580px;
+  height: 270px;
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+/* Card list */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0px;
+  width: 560px;
+  height: 224px;
+  min-height: 200px;
+  max-height: 292px;
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+  overflow-y: auto;
+}
+
+/* Individual item row */
+.contentRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0px 4px;
+  gap: 114px;
+  width: 560px;
+  border-bottom: 1px solid var(--secondaryH2_03);
+  height: 68px;
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+/* Quantity and Item container */
+.qtyItem {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 0px 0px;
+  gap: 8px;
+  width: 276px;
+  height: 32px;
+  flex: none;
+  order: 0;
+  flex-grow: 1;
+}
+
+/* Quantity frame */
+.qtyFrame {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0px 2px;
+  width: 25px;
+  height: 13px;
+  background: rgba(15, 23, 42, 0.1);
+  border-radius: 2px;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+/* Item name frame */
+.itemFrame {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0px 8px;
+  gap: 10px;
+  width: 158px;
+  height: 24px;
+  border-radius: 4px;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+  outline: none;
+  transition: background-color 0.2s;
+  cursor: text;
+}
+
+/* Shared hover styles for all editable elements */
+.itemFrame.hovered, 
+.priceFrame.hovered,
+.discountFrame.hovered,
+.subtotalPriceFrame.hovered,
+.savingPriceFrame.hovered,
+.taxPriceFrame.hovered {
+  background: var(--secondaryH2_03);
+}
+
+/* Shared focus styles for all editable elements */
+.priceFrame.focused,
+.discountFrame.focused,
+.subtotalPriceFrame.focused,
+.savingPriceFrame.focused,
+.taxPriceFrame.focused,
+.itemFrame.focused {
+  border-radius: 4px;
+  border: 1px solid var(--darkGrey50);
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35);
+  background-color: transparent;
+}
+
+/* Mobile interaction states */
+.mobileFocused {
+  background-color: rgba(15, 23, 42, 0.08);
+  border-radius: 4px;
+}
+
+.mobileEditing {
+  border-radius: 4px;
+  border: 1px solid var(--darkGrey50);
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35);
+}
+
+/* Values container for price and discount */
+.values {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 8px 0px 12px;
+  width: 276px;
+  height: 68px;
+  flex: none;
+  order: 1;
+  flex-grow: 1;
+}
+
+/* Shared styles for all editable price frames */
+.priceFrame,
+.discountFrame,
+.subtotalPriceFrame,
+.savingPriceFrame,
+.taxPriceFrame {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0px 8px;
+  width: 140px;
+  max-width: 140px;
+  height: 24px;
+  border-radius: 4px;
+  flex: none;
+  align-self: stretch;
+  flex-grow: 0;
+  transition: background-color 0.2s;
+  cursor: text;
+}
+
+/* Common text styles for all price elements */
+.priceFrame span, 
+.discountFrame span, 
+.subtotalPriceFrame span, 
+.savingPriceFrame span, 
+.taxPriceFrame span {
+  margin-right: 0px;
+  outline: none;
+}
+
+/* Secondary text color styling */
+.savingsMinus, 
+.savingsCurrency, 
+.savingsValue, 
+.taxCurrency, 
+.taxValue {
+  color: var(--secondaryH4_20);
+}
+
+/* Discount text styling */
+.discountMinus, 
+.discountCurrency, 
+.discountValue, 
+.discountFrame span {
+  color: var(--secondaryH3_50);
+}
+
+/* Item text with text overflow handling */
+.itemFrameText {
+  width: 100%;
+  display: inline-block;
+  outline: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Add focused state similar to ListItem.tsx */
+.itemFrame.focused .itemFrameText {
+  text-overflow: clip;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.itemFrame.focused .itemFrameText::-webkit-scrollbar {
+  display: none;
+}
+
+/* Explicit value element styles for JavaScript targeting */
+.priceValue,
+.discountValue,
+.subtotalValue,
+.savingsValue,
+.taxValue {
+  display: flex;
+  align-items: center;
+  outline: none;
+}
+
+/* Currency and value text styling - shared properties */
+.priceCurrency, 
+.discountMinus, 
+.discountCurrency, 
+.subtotalCurrency, 
+.savingsMinus, 
+.savingsCurrency, 
+.taxCurrency, 
+.totalCurrency, 
+.totalValue {
+  display: flex;
+  align-items: center;
+}
+
+/* Final row with calculations */
+.contentFinalRow {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0px 4px;
+  gap: 114px;
+  width: 560px;
+  height: 88px;
+  background: var(--baseWhite);
+  flex: none;
+  order: 2;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+/* Fixed calculations container */
+.fixedCalculations {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12px 0px 4px;
+  width: 276px;
+  height: 88px;
+  flex: none;
+  order: 0;
+  flex-grow: 1;
+}
+
+/* Shared styles for calculation item frames */
+.subItemFrame, 
+.savingsItemFrame, 
+.taxItemFrame {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0px;
+  gap: 10px;
+  height: 24px;
+  border-radius: 3px;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+.subItemFrame {
+  width: 55px;
+  color: var(--secondaryH2);
+}
+
+.savingsItemFrame {
+  width: 52px;
+  color: var(--secondaryH4_20);
+}
+
+.taxItemFrame {
+  width: 73px;
+  color: var(--secondaryH4_20);
+}
+
+/* Order for calculation values */
+.subtotalPriceFrame {
+  order: 0;
+}
+
+.savingPriceFrame {
+  order: 1;
+}
+
+.taxPriceFrame {
+  order: 2;
+}
+
+/* Card total styles */
+.cardTotal {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 4px;
+  width: 560px;
+  height: 36px;
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+/* Total label */
+.totalFrame {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0px;
+  gap: 10px;
+  margin: 0 auto;
+  width: 39px;
+  height: 32px;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+/* Status and total price container */
+.msFrame {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0px;
+  gap: 5px;
+  margin: 0 auto;
+  width: 200px;
+  max-width: 200px;
+  height: 32px;
+  flex: none;
+  order: 1;
+  flex-grow: 1;
+}
+
+/* Status icon container */
+.errorFrame {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0px;
+  width: 48px;
+  height: 24px;
+  border-radius: 4px;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+/* Total price */
+.totalPriceFrame {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0px 8px;
+  width: 83px;
+  height: 32px;
+  border-radius: 4px;
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+}
+
+.totalPriceFrame span:first-child {
+  margin-right: 2px;
+}
+
+/* Quantity text styling */
+.qtyFrameText,  
+.qtyFrameMultiplier {
+  display: flex;
+  align-items: center;
+  color: var(--secondaryH2_40);
+}
+
+/* Debug logs styling */
+.debugLogs {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  width: 300px;
+  max-height: 200px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #0f0;
+  border-radius: 5px;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 12px;
+  z-index: 9999;
+  overflow-y: auto;
+}
+
+.logHeader {
+  font-weight: bold;
+  border-bottom: 1px solid #0f0;
+  margin-bottom: 5px;
+  padding-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1;
+  padding-top: 5px;
+}
+
+.copyLogsBtn {
+  background-color: rgba(0, 255, 0, 0.2);
+  color: #0f0;
+  border: 1px solid #0f0;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: monospace;
+  transition: background-color 0.2s;
+}
+
+.copyLogsBtn:hover {
+  background-color: rgba(0, 255, 0, 0.3);
+}
+
+.logEntry {
+  margin: 3px 0;
+  word-break: break-word;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .cardContent {
+    width: 100%;
+    padding: 0px 8px;
+  }
+  
+  .cardList, 
+  .cardTotal, 
+  .contentRow, 
+  .contentFinalRow {
+    width: 100%;
+  }
+  
+  .contentRow, 
+  .contentFinalRow {
+    gap: 30px;
+  }
+  
+  .qtyItem, 
+  .values, 
+  .fixedCalculations {
+    width: 45%;
+  }
+}
+
+@media (max-width: 480px) {
+  .cardContent {
+    padding: 0px 6px;
+  }
+  
+  .contentRow, 
+  .contentFinalRow {
+    gap: 10px;
+  }
+  
+  .qtyItem, 
+  .values, 
+  .fixedCalculations {
+    width: 48%;
+  }
+  
+  .msFrame {
+    width: 150px;
+  }
+}
+
+/* Media query to disable hover styles on touch devices */
+@media (hover: none) {
+  .itemFrame.hovered,  
+  .priceFrame.hovered, 
+  .discountFrame.hovered,
+  .subtotalPriceFrame.hovered, 
+  .savingPriceFrame.hovered, 
+  .taxPriceFrame.hovered {
+    background: transparent !important;
+  }
+} 

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CURRENCY_DATA, CurrencyItem } from '../../constants/currency-data';
 import DatePickerCalendar from './DatePickerCalendar';
+import CardContent from './CardContent';
 import styles from '../../styles/Components.module.css';
 
 /* ----------------------------------------
@@ -24,6 +25,14 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
   /* ----------------------------------------
      STATE MANAGEMENT - Component State
      ---------------------------------------- */
+  // UI logs for debugging
+  const [uiLogs, setUiLogs] = useState<string[]>([]);
+  
+  // Helper function to add logs
+  const addLog = (message: string) => {
+    setUiLogs(prev => [...prev.slice(-9), message]); // Keep last 10 logs
+  };
+     
   // State for the editable title
   const [receiptTitle, setReceiptTitle] = useState("Today's Receipt");
   const [isTitleFocused, setIsTitleFocused] = useState(false);
@@ -34,6 +43,10 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
   
   // State for the currency selector
   const [selectedCurrencyIdentifier, setSelectedCurrencyIdentifier] = useState("United States (USD)");
+  // Store the full currency object
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyItem>(
+    CURRENCY_DATA.find(c => c.DisplayCountry_CurrencyCode === "United States (USD)") || CURRENCY_DATA[0]
+  );
   const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
   const [currencySearchTerm, setCurrencySearchTerm] = useState("");
   
@@ -50,6 +63,7 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
   const datePickerRef = useRef<HTMLDivElement>(null);
   const currencySelectRef = useRef<HTMLDivElement>(null);
   const currencyDropdownRef = useRef<HTMLDivElement>(null);
+  const titleContentRef = useRef<HTMLDivElement>(null);
 
   /* ----------------------------------------
      EFFECT HOOKS - Dropdown Positioning
@@ -130,6 +144,12 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
     }
   }, [isCurrencyDropdownOpen]);
 
+  useEffect(() => {
+    if (titleContentRef.current) {
+      titleContentRef.current.spellcheck = isTitleFocused;
+    }
+  }, [isTitleFocused]);
+
   /* ----------------------------------------
      DATA PROCESSING - Currency Filtering
      ---------------------------------------- */
@@ -162,13 +182,61 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
      ---------------------------------------- */
   // Toggle date picker dropdown
   const handleToggleDatePicker = () => {
+    addLog(`Toggle date picker: ${!isDatePickerOpen}`);
     setIsDatePickerOpen(!isDatePickerOpen);
   };
   
   // Handle date selection
   const handleDateSelect = (date: Date) => {
-            setSelectedDate(date);
-            setIsDatePickerOpen(false);
+    addLog(`Date selected: ${date.toLocaleDateString()}`);
+    setSelectedDate(date);
+    setIsDatePickerOpen(false);
+  };
+
+  const handleCardInteractions = (e: React.MouseEvent) => {
+    // Get the actual target element
+    const target = e.target as HTMLElement;
+    
+    // Convert className to string safely if it's not already
+    const classNameStr = typeof target.className === 'string' 
+      ? target.className 
+      : String(target.className);
+    
+    // Check for class names using indexOf instead of includes for better compatibility
+    if ((classNameStr.indexOf('card') >= 0 && classNameStr.indexOf('editable') === -1) || 
+        classNameStr.indexOf('card-header') >= 0 || 
+        classNameStr.indexOf('store-with-date') >= 0) {
+      
+      // Prevent the default behavior which might trigger focus
+      e.preventDefault();
+      
+      // If the editable title is currently focused, blur it
+      if (titleContentRef.current && isTitleFocused) {
+        addLog(`Card interaction blurring title`);
+        titleContentRef.current.blur();
+      }
+      
+      // Stop event propagation to prevent any other handlers from firing
+      e.stopPropagation();
+    }
+    
+    // Also handle currency dropdown when clicking on card
+    if (isCurrencyDropdownOpen) {
+      const currencyTarget = e.target as Node;
+      if (currencySelectRef.current && !currencySelectRef.current.contains(currencyTarget)) {
+        addLog(`Card interaction closing currency dropdown`);
+        setIsCurrencyDropdownOpen(false);
+      }
+    }
+    
+    // Handle date picker calendar when clicking on card
+    if (isDatePickerOpen) {
+      const datePickerTarget = e.target as Node;
+      if (datePickerRef.current && !datePickerRef.current.contains(datePickerTarget)) {
+        addLog(`Card interaction closing date picker`);
+        setIsDatePickerOpen(false);
+      }
+    }
   };
 
   /* ----------------------------------------
@@ -177,7 +245,10 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
      ----------------------------------------
      ---------------------------------------- */
   return (
-    <div className={`card ${styles.container} ${className}`}>
+    <div 
+      className={`card ${styles.container} ${className}`}
+      onMouseDown={handleCardInteractions}
+    >
       {/* ----------------------------------------
           CARD HEADER - Title, date, and currency
           ---------------------------------------- */}
@@ -187,13 +258,40 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
           <div 
             ref={titleRef}
             className={`store-name ${isTitleFocused ? 'focused' : ''}`}
-            onClick={() => setIsTitleFocused(true)}
           >
             <div 
-              className={`editable-title ${styles.headerH1Medium}`}
+              className={`editable-title ${styles.headerH1Semibold}`}
               contentEditable={true}
               suppressContentEditableWarning={true}
-              onBlur={(e) => setReceiptTitle(e.currentTarget.textContent || "Today's Receipt")}
+              spellCheck={isTitleFocused}
+              ref={titleContentRef}
+              style={{ cursor: 'text' }}
+              onFocus={() => {
+                addLog(`Title focused`);
+                setIsTitleFocused(true);
+              }}
+              onBlur={(e) => {
+                addLog(`Title blur`);
+                setReceiptTitle(e.currentTarget.textContent || "Today's Receipt");
+                setIsTitleFocused(false);
+                e.currentTarget.scrollLeft = 0;
+              }}
+              onInput={(e) => {
+                // Automatically scroll to the end when typing
+                const el = e.currentTarget;
+                el.scrollLeft = el.scrollWidth;
+              }}
+              onKeyDown={(e) => {
+                // Exit edit mode when Enter or Escape is pressed
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                  addLog(`Title keydown: ${e.key} - preventing default`);
+                  e.preventDefault(); // Prevent new line for Enter key
+                  addLog(`Title keydown: ${e.key} - setting focused to false`);
+                  setIsTitleFocused(false); // Update React state to remove focused UI
+                  addLog(`Title keydown: ${e.key} - blurring element`);
+                  e.currentTarget.blur(); // Unfocus the element (triggers onBlur)
+                }
+              }}
             >
               {receiptTitle}
             </div>
@@ -219,15 +317,12 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
         <div 
           ref={currencySelectRef}
           className="currency-select-combobox"
-          onClick={() => setIsCurrencyDropdownOpen(!isCurrencyDropdownOpen)}
+          onClick={() => {
+            addLog(`Currency selector clicked: ${!isCurrencyDropdownOpen}`);
+            setIsCurrencyDropdownOpen(!isCurrencyDropdownOpen);
+          }}
         >
-          <div className="currency-display" style={{ 
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-            fontSize: '16px', 
-            fontWeight: 600, 
-            lineHeight: '32px',
-            color: 'rgba(94, 94, 94, 0.5)' 
-          }}>
+          <div className={`currency-display ${styles.headerH1Semibold}`}>
             {selectedCurrencyIdentifier.split("(")[1].replace(")", "")}
           </div>
           <svg className="dropdown-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -272,7 +367,9 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
                       className={`currency-item ${selectedCurrencyIdentifier === currency.DisplayCountry_CurrencyCode ? 'selected' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
+                        addLog(`Currency selected: ${currency.DisplayCountry_CurrencyCode}`);
                         setSelectedCurrencyIdentifier(currency.DisplayCountry_CurrencyCode);
+                        setSelectedCurrency(currency); // Update the selected currency object
                         setIsCurrencyDropdownOpen(false);
                       }}
                     >
@@ -289,7 +386,86 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
         </div>
       </div>
 
-      {/* Card content will be implemented in next phase */}
+      {/* ----------------------------------------
+          CARD CONTENT - Items list and totals
+          ---------------------------------------- */}
+      <CardContent currency={selectedCurrency} />
+      
+      {/* Debug logs display */}
+      {uiLogs.length > 0 && (
+        <div className="debug-logs listitem-logs">
+          <div className="log-header">
+            ListItem Logs
+            <button 
+              className="copy-logs-btn"
+              onClick={() => {
+                const logsText = uiLogs.join('\n');
+                
+                // Try to use the Clipboard API with fallback for older browsers
+                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                  // Modern browsers with Clipboard API
+                  navigator.clipboard.writeText(logsText)
+                    .then(() => {
+                      const btn = document.querySelector('.debug-logs.listitem-logs .copy-logs-btn') as HTMLButtonElement;
+                      if (btn) {
+                        const originalText = btn.textContent;
+                        btn.textContent = 'Copied!';
+                        setTimeout(() => {
+                          btn.textContent = originalText;
+                        }, 1000);
+                      }
+                      addLog('Logs copied to clipboard');
+                    })
+                    .catch(err => {
+                      console.error('Failed to copy logs: ', err);
+                      addLog(`Failed to copy logs: ${err.message}`);
+                    });
+                } else {
+                  // Fallback for older browsers
+                  try {
+                    // Create a temporary textarea element
+                    const textArea = document.createElement('textarea');
+                    textArea.value = logsText;
+                    textArea.style.position = 'fixed';  // Avoid scrolling to bottom
+                    textArea.style.opacity = '0';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    // Execute the copy command
+                    const successful = document.execCommand('copy');
+                    
+                    // Remove the temporary element
+                    document.body.removeChild(textArea);
+                    
+                    if (successful) {
+                      const btn = document.querySelector('.debug-logs.listitem-logs .copy-logs-btn') as HTMLButtonElement;
+                      if (btn) {
+                        const originalText = btn.textContent;
+                        btn.textContent = 'Copied!';
+                        setTimeout(() => {
+                          btn.textContent = originalText;
+                        }, 1000);
+                      }
+                      addLog('Logs copied to clipboard (fallback method)');
+                    } else {
+                      addLog('Failed to copy logs (fallback method failed)');
+                    }
+                  } catch (err) {
+                    console.error('Failed to copy logs with fallback: ', err);
+                    addLog('Failed to copy logs: fallback method failed');
+                  }
+                }
+              }}
+            >
+              Copy Logs
+            </button>
+          </div>
+          {uiLogs.map((log, index) => (
+            <div key={index} className="log-entry">{log}</div>
+          ))}
+        </div>
+      )}
 
       {/* ----------------------------------------
           ----------------------------------------
@@ -307,11 +483,13 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
           padding: 15px 10px 24px;
           gap: 20px;
           position: relative;
-          width: 600px;
+          width: 100%;
+          max-width: 600px;
           height: auto;
           min-height: 350px;
           background: var(--baseWhite);
           border-radius: 10px;
+          transition: width 0.3s ease;
         }
         
         /* ==========================================
@@ -323,9 +501,10 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
           justify-content: space-between;
           align-items: center;
           padding: 2px 10px 2px 6px;
-          width: 580px;
-          
+          width: 100%;
+          max-width: 580px;
           height: 36px;
+          transition: padding 0.3s ease;
         }
         
         /* ==========================================
@@ -337,8 +516,8 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
           align-items: center;
           padding: 0px;
           gap: 17px;
-
-          width: 289px;
+          width: auto;
+          flex-grow: 1;
           height: 32px;
         }
         
@@ -352,23 +531,11 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
           align-items: center;
           padding: 0px 8px;
           gap: 10px;
-          width: 139px;
-          height: 32px;
-          position: relative;
-        }
-        
-        .store-name {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px 8px;
-          gap: 10px;
           max-width: 144px;
           width: 100%; /* Allow shrinking with parent */
           height: 32px;
           position: relative;
-          transition: background-color 0.2s, box-shadow 0.2s, border 0.2s;
+          transition: background-color 0.2s, box-shadow 0.2s, border 0.2s, max-width 0.3s ease;
         }
 
         .store-name:not(.focused):hover {
@@ -397,6 +564,19 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
           margin: 0;
         }
         
+        /* Add styling for focused state - removes ellipsis and allows scrolling */
+        .store-name.focused .editable-title {
+          text-overflow: clip;
+          overflow-x: auto;
+          /* Ensures cursor is visible at the end of text while typing */
+          scrollbar-width: none; /* Firefox */
+        }
+        
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .store-name.focused .editable-title::-webkit-scrollbar {
+          display: none;
+        }
+        
         /* ==========================================
            CURRENCY SELECTOR STYLES - Right side of header
            ========================================== */
@@ -415,7 +595,7 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
         }
 
         .currency-select-combobox:hover {
-          background-color: var(--darkGrey10); /* DarkGrey10 */
+          background-color: var(--darkGrey05); /* DarkGrey05 */
         }
 
         .currency-select-combobox:focus-within {
@@ -426,11 +606,6 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
         .currency-display {
           width: 34px;
           height: 32px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 600;
-          font-size: 16px;
-          line-height: 32px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -470,7 +645,7 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
           border: 1px solid var(--darkGrey10);
           border-radius: 4px;
           font-size: 13.6px;
-          color: #525252;
+          color: var(--primaryH1);
           transition: border-color 0.2s, box-shadow 0.2s;
         }
         
@@ -491,7 +666,7 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
           cursor: pointer;
           font-size: 13.6px;
           border-radius: 4px;
-          color: #525252;
+          color: var(--primaryH1);
         }
         
         .currency-item:hover {
@@ -501,7 +676,7 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
         .currency-item.selected {
           background-color: var(--darkGrey08);
           font-weight: 600;
-          color: #525252;
+          color: var(--primaryH1);
         }
         
         .currency-item:first-child {
@@ -514,6 +689,107 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
           padding: 8px;
           text-align: center;
           color: var(--darkGrey50);
+        }
+        
+        /* Debug logs */
+        .debug-logs.listitem-logs {
+          position: fixed;
+          bottom: 10px;
+          right: 10px; /* Position on the right side */
+          width: 300px;
+          max-height: 200px;
+          background-color: rgba(0, 0, 0, 0.8);
+          color: #0ff; /* Different color from CardContent logs */
+          border-radius: 5px;
+          padding: 10px;
+          font-family: monospace;
+          font-size: 12px;
+          z-index: 9999;
+          overflow-y: auto;
+        }
+
+        .log-header {
+          font-weight: bold;
+          border-bottom: 1px solid #0ff;
+          margin-bottom: 5px;
+          padding-bottom: 5px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          position: sticky;
+          top: 0;
+          background-color: rgba(0, 0, 0, 0.8);
+          z-index: 1;
+          padding-top: 5px;
+        }
+
+        .copy-logs-btn {
+          background-color: rgba(0, 255, 255, 0.2);
+          color: #0ff;
+          border: 1px solid #0ff;
+          border-radius: 3px;
+          padding: 2px 6px;
+          font-size: 10px;
+          cursor: pointer;
+          font-family: monospace;
+          transition: background-color 0.2s;
+        }
+
+        .copy-logs-btn:hover {
+          background-color: rgba(0, 255, 255, 0.3);
+        }
+
+        .log-entry {
+          margin: 3px 0;
+          word-break: break-word;
+        }
+
+        /* ==========================================
+           RESPONSIVE STYLES - For various screen sizes
+           ========================================== */
+        @media (max-width: 768px) {
+          .card {
+            padding: 15px 8px 20px;
+          }
+          
+          .card-header {
+            padding: 2px 8px 2px 4px;
+          }
+          
+          .store-with-date {
+            gap: 12px;
+            width: 100%;
+            justify-content: space-between;
+          }
+          
+          .store-name {
+            max-width: 160px;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .card {
+            padding: 12px 6px 16px;
+            min-height: 320px;
+          }
+          
+          .card-header {
+            padding: 2px 6px 2px 4px;
+          }
+          
+          .store-with-date {
+            gap: 8px;
+            width: 100%;
+          }
+          
+          .store-name {
+            max-width: calc(100% - 145px);
+            flex-grow: 1;
+          }
+          
+          .currency-select-combobox {
+            display: none; /* Hide currency selector on mobile */
+          }
         }
       `}</style>
     </div>

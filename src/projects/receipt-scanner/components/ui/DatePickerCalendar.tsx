@@ -481,7 +481,7 @@ const DatePickerCalendar: React.FC<DatePickerCalendarProps> = ({
         className="date-select-calendar"
         onClick={onToggleCalendar}
       >
-        <div className="date-display">
+        <div className={`date-display ${styles.headerH1Semibold}`}>
           {formatDate(selectedDate)}
         </div>
         <svg className="dropdown-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -625,16 +625,11 @@ const DatePickerCalendar: React.FC<DatePickerCalendarProps> = ({
 
         .date-display {
           height: 32px;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          font-style: normal;
-          font-weight: 600;
-          font-size: 16px;
-          line-height: 32px;
           display: flex;
           align-items: center;
           justify-content: center;
           white-space: nowrap;
-          color: #525252;
+          color: var(--primaryH1);
         }
         
         .dropdown-icon {
@@ -689,11 +684,11 @@ const DatePickerCalendar: React.FC<DatePickerCalendarProps> = ({
         }
         
         .month-nav-button:hover {
-          background-color: rgba(15, 23, 42, 0.05);
+          background-color: var(--darkGrey05);
         }
         
         .month-nav-button:active {
-          background-color: rgba(15, 23, 42, 0.1);
+          background-color: var(--darkGrey10);
         }
         
         .calendar-month-label {

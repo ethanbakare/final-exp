@@ -80,6 +80,8 @@
   --baseWhite_90: rgba(255, 255, 255, 0.9);
   --secondaryH3_50: rgba(15, 23, 42, 0.5);
   --secondaryH2_40: rgba(15, 23, 42, 0.4);
+  --secondaryH2_03: rgba(15, 23, 42, 0.03);
+  --secondaryH2_01: rgba(15, 23, 42, 0.01);
   --primaryH1: #525252;
   --beigeBackground: #F8F6F0;
   --maroonRed: #882C2C;
