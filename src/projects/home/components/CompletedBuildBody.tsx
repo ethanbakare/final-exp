@@ -40,7 +40,7 @@ const CompletedBuildBody: React.FC = () => {
           <div className="completed_body">
             <div className="completed_body_text">
               <p className={`${styles.InterRegular20_H1}`}>
-                First prototype drops on Sunday, 27th April.
+                First prototype drops on Sunday, 11th May.
               </p>
               <p className={`${styles.InterRegular20_H1}`}>
                 Check back to explore the builds.
