@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Header from '@/projects/receipt-scanner/components/layout/Header';
 import Card from '@/projects/receipt-scanner/components/layout/Card';
 import TextCard from '@/projects/receipt-scanner/components/layout/TextCard';
+import Navbar from '@/projects/receipt-scanner/components/layout/Navbar';
 
 const LayoutComponentsShowcase: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'scan' | 'speak'>('speak');
@@ -45,8 +46,8 @@ const LayoutComponentsShowcase: React.FC = () => {
       </section>
       
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4 text-gray-700">Card</h2>
-        <div className="flex flex-col items-center">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-700">Card with Navbar</h2>
+        <div className="flex flex-col items-center w-full">
           <Card onFileSelect={handleFileSelect} />
           
           {selectedFile && (
@@ -58,10 +59,18 @@ const LayoutComponentsShowcase: React.FC = () => {
             </div>
           )}
           
+          <div className="mt-4 w-full flex justify-center">
+            <Navbar selectedFile={selectedFile} />
+          </div>
+          
           <div className="mt-6 max-w-lg text-center">
             <p className="text-sm text-gray-500">
               This card component allows users to upload receipt images by clicking or dragging and dropping files.
               It accepts JPG, JPEG, PNG, and BMP formats as specified in the design.
+            </p>
+            <p className="text-sm text-gray-500 mt-2">
+              The navbar below the card changes state based on the current workflow stage. 
+              The navbar component manages its own state transitions internally.
             </p>
           </div>
         </div>
@@ -86,6 +95,24 @@ const LayoutComponentsShowcase: React.FC = () => {
               This text card component allows users to type directly inside it. 
               The border becomes thicker and darker when focused, and the placeholder text is centered
               until the user begins typing.
+            </p>
+          </div>
+        </div>
+      </section>
+      
+      <section className="mb-12">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-700">Navbar States Showcase</h2>
+        <div className="flex flex-col items-center gap-6 w-full">
+          <div className="w-full flex justify-center">
+            <h3 className="text-lg font-medium mb-2">Navbar Component</h3>
+          </div>
+          <div className="w-full flex justify-center">
+            <Navbar />
+          </div>
+          <div className="mt-4 text-center max-w-lg mx-auto">
+            <p className="text-sm text-gray-500">
+              The navbar manages its own internal state and transitions between four different states.
+              Click the buttons to see how it changes states and updates its UI accordingly.
             </p>
           </div>
         </div>

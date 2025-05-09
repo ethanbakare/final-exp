@@ -30,6 +30,7 @@
   align-self: stretch;
   flex-grow: 0;
   overflow-y: auto;
+  position: relative;
 }
 
 /* Individual item row */
@@ -41,7 +42,7 @@
   padding: 0px 4px;
   gap: 114px;
   width: 560px;
-  border-bottom: 1px solid var(--secondaryH2_03);
+  border-bottom: 1px solid var(--secondaryH2_05);
   height: 68px;
   flex: none;
   order: 0;
@@ -72,11 +73,122 @@
   padding: 0px 2px;
   width: 25px;
   height: 13px;
-  background: rgba(15, 23, 42, 0.1);
+  background: var(--secondaryH2_04);
   border-radius: 2px;
   flex: none;
   order: 0;
   flex-grow: 0;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.qtyFrame:hover {
+  background: var(--secondaryH4_20);
+}
+
+.qtyFrameText, 
+.qtyFrameMultiplier {
+  color: var(--secondaryH2_40);
+  user-select: none;
+}
+
+/* Quantity Dropdown Styling */
+.quantityDropdown {
+  position: absolute;
+  z-index: 1000;
+  background: var(--baseWhite);
+  border-radius: 8px;
+  border: 1px solid var(--darkGrey05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  min-width: 60px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.quantityList {
+  display: flex;
+  flex-direction: column;
+  max-height: 284px; /* 300px - 16px padding */
+  overflow-y: auto;
+}
+
+.quantityItem {
+  padding: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 20px;
+  border-radius: 4px;
+  color: var(--primaryH1);
+  text-align: center;
+  transition: background-color 0.15s ease;
+}
+
+.quantityItem:hover {
+  background-color: var(--darkGrey05);
+}
+
+.quantityItem.selected {
+  background-color: var(--darkGrey08);
+  font-weight: 600;
+  color: var(--secondaryH2);
+}
+
+/* Mobile Quantity Selector */
+.mobileQuantityOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--darkGrey50);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobileQuantityContainer {
+  background-color: var(--baseWhite);
+  border-radius: 8px;
+  width: 80%;
+  max-width: 300px;
+  padding: 16px;
+}
+
+.mobileQuantityHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  color: var(--primaryH1);
+}
+
+.mobileQuantityHeader span {
+  font-weight: 600;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--primaryH1);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.closeButton:hover {
+  background-color: var(--darkGrey05);
+}
+
+.mobileQuantityInput {
+  width: 100%;
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid var(--darkGrey20);
+  border-radius: 4px;
+  color: var(--primaryH1);
 }
 
 /* Item name frame */
@@ -243,6 +355,25 @@
   align-items: center;
 }
 
+/* Scrollbar styling for quantity dropdown */
+.quantityList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.quantityList::-webkit-scrollbar-track {
+  background: var(--darkGrey05);
+  border-radius: 3px;
+}
+
+.quantityList::-webkit-scrollbar-thumb {
+  background: var(--darkGrey20);
+  border-radius: 3px;
+}
+
+.quantityList::-webkit-scrollbar-thumb:hover {
+  background: var(--darkGrey30);
+}
+
 /* Final row with calculations */
 .contentFinalRow {
   display: flex;
@@ -273,6 +404,22 @@
   order: 0;
   flex-grow: 1;
 }
+
+
+
+/* Final values container for calculations (subtotal, savings, tax) */
+.finalValues {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 12px 0px 12px;
+  width: 276px;
+  height: 88px;
+  flex: none;
+  order: 1;
+  flex-grow: 1;
+}
+
 
 /* Shared styles for calculation item frames */
 .subItemFrame, 
@@ -342,7 +489,6 @@
   align-items: center;
   padding: 0px;
   gap: 10px;
-  margin: 0 auto;
   width: 39px;
   height: 32px;
   flex: none;
@@ -357,9 +503,8 @@
   justify-content: flex-end;
   align-items: center;
   padding: 0px;
-  gap: 5px;
-  margin: 0 auto;
-  width: 200px;
+  gap: 0px;
+  width: 100%;
   max-width: 200px;
   height: 32px;
   flex: none;
@@ -486,6 +631,26 @@
   .values, 
   .fixedCalculations {
     width: 45%;
+  }
+  
+  .quantityDropdown {
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+  
+  .quantityItem {
+    padding: 12px 8px;
+    font-size: 16px;
+    line-height: 24px;
+    margin-bottom: 4px;
+  }
+  
+  /* Improve finger touch targets */
+  .qtyFrame {
+    min-width: 30px;
+    min-height: 20px;
+    padding: 4px;
   }
 }
 

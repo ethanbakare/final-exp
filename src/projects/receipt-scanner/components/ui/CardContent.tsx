@@ -1,8 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import compStyles from '../../styles/Components.module.css';
 import styles from '../../styles/CardContent.module.css';
 import { CurrencyItem } from '../../constants/currency-data';
-
+import { 
+  defaultCurrency,
+  generateQuantityOptions
+} from './CardContentUtils';
+import {
+  ActiveElement,
+  useDebugLogs,
+  useEditableFields,
+  useHoverStates,
+  useMobileInteraction,
+  useNumericFields,
+  useClipboard,
+  useQuantityDropdown
+} from './CardContentHooks';
 
 /* ----------------------------------------
    ----------------------------------------
@@ -22,259 +35,99 @@ interface CardContentProps {
    ---------------------------------------- */
 const CardContent: React.FC<CardContentProps> = ({ currency }) => {
   /* ----------------------------------------
-     STATE MANAGEMENT - Component State
+     USE HOOKS - Component State Management
      ---------------------------------------- */
-  // Use default USD currency if none provided
-  const defaultCurrency = {
-    DisplayCountry: "United States",
-    CurrencyCode: "USD",
-    DisplayCountry_CurrencyCode: "United States (USD)",
-    DisplayCurrencySymbol: "$",
-    SymbolPosition: 0,
-    Country: "United States of America",
-    CurrencySymbol: "$"
-  };
-  
   // Ensure we always have a valid currency object
   const currentCurrency = currency || defaultCurrency;
 
-  // Track which elements have hover state
-  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
-  const [hoveredElement, setHoveredElement] = useState<string | null>(null);
-  const [hoveredSubtotal, setHoveredSubtotal] = useState<boolean>(false);
-  const [hoveredSavings, setHoveredSavings] = useState<boolean>(false);
-  const [hoveredTax, setHoveredTax] = useState<boolean>(false);
+  // Debug logs
+  const { uiLogs, addLog, logsContainerRef } = useDebugLogs();
   
-  // UI logs for debugging
-  const [uiLogs, setUiLogs] = useState<string[]>([]);
+  // Card container reference for outside click detection
+  const cardRef = useRef<HTMLDivElement>(null);
   
-  // Helper function to add logs
-  const addLog = (message: string) => {
-    const timestamp = new Date().toISOString().substring(11, 23); // HH:MM:SS.mmm
-    setUiLogs(prev => [...prev.slice(-9), `[${timestamp}] ${message}`]); // Keep last 10 logs
-  };
+  // Editable field states
+  const { 
+    activeElement, 
+    setActiveElement,
+    preEditElement,
+    setPreEditElement,
+    isEditable,
+    focusElement
+  } = useEditableFields();
   
-  // Define active element type for tracking focused/editing states
-  interface ActiveElement {
-    type: 'item' | 'price' | 'discount' | 'subtotal' | 'savings' | 'tax' | null;
-    id: number | null; // For row-specific elements like items, prices, discounts
-  }
+  // Hover states
+  const {
+    hoveredRow,
+    setHoveredRow,
+    hoveredElement,
+    setHoveredElement,
+    hoveredSubtotal,
+    setHoveredSubtotal,
+    hoveredSavings,
+    setHoveredSavings,
+    hoveredTax,
+    setHoveredTax
+  } = useHoverStates();
   
-  // Mobile interaction phases
-  type InteractionPhase = 'idle' | 'focused' | 'editing';
+  // Mobile interaction
+  const {
+    isMobile,
+    mobileInteractionPhase,
+    setMobileInteractionPhase,
+    handleMobileInteraction
+  } = useMobileInteraction();
   
-  // Add a mobile interaction state
-  const [mobileInteractionPhase, setMobileInteractionPhase] = useState<{
-    element: ActiveElement;
-    phase: InteractionPhase;
-  }>({
-    element: { type: null, id: null },
-    phase: 'idle' // 'idle', 'focused', 'editing'
-  });
+  // Numeric fields and calculations
+  const {
+    items,
+    subtotal,
+    savings,
+    tax,
+    total,
+    isValid,
+    handleItemNameChange,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    handlePriceChange, // Reserved for backend integration
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    handleDiscountChange, // Reserved for backend integration
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    handleSubtotalChange, // Reserved for backend integration
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    handleSavingsChange, // Reserved for backend integration
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    handleTaxChange, // Reserved for backend integration
+    handleQuantityChange,
+    handleNumericInput,
+    handleNumericBlur
+  } = useNumericFields(addLog);
   
-  // Single state to track the currently active editable element
-  const [activeElement, setActiveElement] = useState<ActiveElement>({
-    type: null,
-    id: null
-  });
+  // Clipboard functionality
+  const { copyLogs } = useClipboard(addLog);
   
-  // Track when elements are hovered for pre-emptive contentEditable
-  const [preEditElement, setPreEditElement] = useState<ActiveElement>({
-    type: null,
-    id: null
-  });
-
-  // Add this helper function to determine if a field is editable 
-  const isEditable = (type: ActiveElement['type'], id: number | null) => {
-    // Check if element is either active (clicked) or pre-active (hovered)
-    return (
-      (activeElement.type === type && activeElement.id === id) || 
-      (preEditElement.type === type && preEditElement.id === id)
-    );
-  };
-
-  // Focus manager function to handle the sequence of operations
-  const focusElement = (
-    type: ActiveElement['type'], 
-    id: number | null, 
-    className: string, // Changed from textSelector to className
-    wasClickOnText: boolean
-  ) => {
-    addLog(`Focus manager: focusing ${type} with id=${id}, direct text click: ${wasClickOnText}`);
-    
-    // First set the active element state - this will make the element contentEditable in the next render
-    setActiveElement({ type, id });
-    
-    // Clear pre-edit state
-    setPreEditElement({ type: null, id: null });
-    
-    // Use setTimeout to give React time to update the DOM with the new contentEditable state
-    setTimeout(() => {
-      // Find the container element using data attributes
-      const container = document.querySelector(
-        id !== null 
-          ? `[data-type="${type}"][data-id="${id}"]` 
-          : `[data-type="${type}"]`
-      );
-      
-      if (!container) {
-        addLog(`Focus manager: couldn't find container for ${type} with id=${id}`);
-        return;
-      }
-      
-      // CRITICAL: Find element by className with CSS modules
-      const elements = container.getElementsByClassName(className);
-      const textElement = elements.length > 0 ? elements[0] as HTMLElement : null;
-      
-      if (!textElement) {
-        addLog(`Focus manager: couldn't find text element with class ${className}`);
-        return;
-      }
-      
-      // Focus the text element
-      textElement.focus();
-      
-      // Only position cursor at the end if the click was NOT directly on the text
-      if (!wasClickOnText) {
-        // Position cursor at end of text
-        const selection = window.getSelection();
-        const range = document.createRange();
-        
-        // Select the text node contents
-        range.selectNodeContents(textElement);
-        range.collapse(false); // false = collapse to end of range
-        
-        // Apply the selection
-        if (selection) {
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
-        
-        addLog(`Focus manager: moved cursor to end of text`);
-      } else {
-        addLog(`Focus manager: kept cursor at natural click position`);
-      }
-      
-      addLog(`Focus manager: focused ${type} with id=${id} ✓`);
-    }, 0);
-  };
-
-  // Add this utility to detect mobile devices
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
-        || window.innerWidth < 768;
-      setIsMobile(isMobileDevice);
-      addLog(`Device detected: ${isMobileDevice ? 'Mobile' : 'Desktop'}`);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-  
-  // Sample item data - in a real app, this would come from props
-  const [items, setItems] = useState([
-    { 
-      id: 1, 
-      name: "Wireless Headphones", 
-      quantity: 1, 
-      price: 14.99, 
-      discount: 3.00 
-    },
-    { 
-      id: 2, 
-      name: "Notebook Set", 
-      quantity: 5, 
-      price: 150.00, 
-      discount: 3.00 
-    }
-  ]);
-  
-  // Totals data
-  const [subtotal, setSubtotal] = useState(12.00);
-  const [savings, setSavings] = useState(10.00);
-  const [tax, setTax] = useState(2.00);
-  
-  // Calculated total
-  const total = subtotal - savings + tax;
-  
-  // Status (check or error) - in a real app would be determined by validation
-  const [isValid] = useState(true);
+  // Quantity dropdown functionality
+  const {
+    activeQuantityId,
+    setActiveQuantityId,
+    quantityDropdownRef,
+    quantityContainerRef,
+    dropdownPosition
+  } = useQuantityDropdown(addLog);
 
   /* ----------------------------------------
      EVENT HANDLERS - Component Interactions
      ---------------------------------------- */
-  // Handle editing of item names
-  const handleItemNameChange = (id: number, value: string) => {
-    addLog(`Item name change: id=${id}, value=${value}`);
-    setItems(items.map(item => 
-      item.id === id ? { ...item, name: value } : item
-    ));
-  };
-  
-  // Handle editing of prices
-  const handlePriceChange = (id: number, value: string) => {
-    addLog(`Price change: id=${id}, value=${value}`);
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
-      setItems(items.map(item => 
-        item.id === id ? { ...item, price: numValue } : item
-      ));
-    }
-  };
-  
-  // Handle editing of subtotal
-  const handleSubtotalChange = (value: string) => {
-    addLog(`Subtotal change: value=${value}`);
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
-      setSubtotal(numValue);
-    }
-  };
-  
-  // Handle editing of savings
-  const handleSavingsChange = (value: string) => {
-    addLog(`Savings change: value=${value}`);
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
-      setSavings(numValue);
-    }
-  };
-  
-  // Handle editing of tax
-  const handleTaxChange = (value: string) => {
-    addLog(`Tax change: value=${value}`);
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
-      setTax(numValue);
-    }
-  };
-
-  // Handle editing of discounts
-  const handleDiscountChange = (id: number, value: string) => {
-    addLog(`Discount change: id=${id}, value=${value}`);
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
-      setItems(items.map(item => 
-        item.id === id ? { ...item, discount: numValue } : item
-      ));
-    }
-  };
-
   // Update the handleContainerClick function
   const handleContainerClick = (
     e: React.MouseEvent,
     type: ActiveElement['type'],
     id: number | null,
-    className: string // Changed from textSelector to className
+    className: string
   ) => {
     // Get coordinates and element information
     const container = e.currentTarget;
     
-    // CRITICAL: Use getElementsByClassName instead of querySelector with CSS modules
+    // Use getElementsByClassName instead of querySelector with CSS modules
     const elements = container.getElementsByClassName(className);
     const textElement = elements.length > 0 ? elements[0] as HTMLElement : null;
     
@@ -295,20 +148,19 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
     e.stopPropagation();
     
     if (isMobile) {
-      const currentPhase = mobileInteractionPhase.phase;
-      const isCurrentElement = 
-        mobileInteractionPhase.element.type === type && 
-        mobileInteractionPhase.element.id === id;
-                               
-      if (currentPhase === 'idle' || !isCurrentElement) {
+      // Handle mobile two-tap pattern
+      const shouldActivateEditing = handleMobileInteraction(
+        type, 
+        id, 
+        textElement, 
+        wasClickOnText, 
+        addLog
+      );
+      
+      if (!shouldActivateEditing) {
         // First tap - just focus
-        addLog(`Mobile first tap: Setting focus phase for ${type} with id=${id}`);
         setActiveElement({ type, id });
         setPreEditElement({ type, id });
-        setMobileInteractionPhase({ 
-          element: { type, id }, 
-          phase: 'focused' 
-        });
         
         // Blur any currently focused element first
         if (document.activeElement instanceof HTMLElement) {
@@ -318,37 +170,8 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
         return;
       }
       
-      if (currentPhase === 'focused' && isCurrentElement) {
-        // Second tap - activate editing
-        addLog(`Mobile second tap: Activating edit phase for ${type} with id=${id}`);
-        setMobileInteractionPhase({ 
-          element: { type, id }, 
-          phase: 'editing' 
-        });
-        
-        // Force contentEditable to be true for text element
-        if (textElement) {
-          if (textElement instanceof HTMLElement) {
-            textElement.contentEditable = 'true';
-            textElement.focus();
-            
-            // Position cursor based on where clicked
-            if (!wasClickOnText) {
-              // Position at end if clicked outside text
-              const range = document.createRange();
-              range.selectNodeContents(textElement);
-              range.collapse(false);
-              const selection = window.getSelection();
-              if (selection) {
-                selection.removeAllRanges();
-                selection.addRange(range);
-              }
-            }
-          }
-        }
-        
+      // Second tap - already handled by handleMobileInteraction
         return;
-      }
     }
     
     // If there is an active element that's different from this one, blur it first
@@ -363,7 +186,163 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
     }
     
     // Use the focus manager to focus this element, passing whether click was on text
-    focusElement(type, id, className, wasClickOnText);
+    focusElement(type, id, className, wasClickOnText, addLog);
+  };
+
+  // Handle toggle of quantity dropdown
+  const handleQuantityClick = (e: React.MouseEvent, itemId: number) => {
+    e.stopPropagation();
+    
+    if (activeQuantityId === itemId) {
+      addLog(`Closing quantity dropdown for item ${itemId}`);
+      setActiveQuantityId(null);
+    } else {
+      addLog(`Opening quantity dropdown for item ${itemId}`);
+      
+      // Close any active element
+      if (activeElement.type !== null) {
+        addLog(`Blurring active element before opening quantity dropdown`);
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        setActiveElement({ type: null, id: null });
+        setPreEditElement({ type: null, id: null });
+      }
+      
+      setActiveQuantityId(itemId);
+    }
+  };
+
+  // Specific blur handler for item name
+  const handleItemNameBlur = (e: React.FocusEvent<HTMLSpanElement>, id: number) => {
+    addLog(`Item frame blur: id=${id}`);
+    handleItemNameChange(id, e.currentTarget.textContent || items.find(item => item.id === id)?.name || '');
+    setActiveElement({ type: null, id: null });
+    setPreEditElement({ type: null, id: null });
+    
+    // Reset mobile interaction state on blur
+    if (isMobile) {
+      setMobileInteractionPhase({
+        element: { type: null, id: null },
+        phase: 'idle'
+      });
+    }
+    
+    e.currentTarget.scrollLeft = 0; // Reset scroll position on blur
+  };
+
+  // Item name key event handler
+  const handleItemKeyDown = (e: React.KeyboardEvent<HTMLSpanElement>) => {
+    addLog(`Item keydown: key=${e.key}`);
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      addLog(`Item - preventing default for: ${e.key}`);
+      e.preventDefault();
+      addLog(`Item - blurring after: ${e.key}`);
+      e.currentTarget.blur();
+    }
+  };
+  
+  // Handle numeric fields blur
+  const handleNumericFieldBlur = (
+    e: React.FocusEvent<HTMLSpanElement>,
+    fieldType: 'price' | 'discount' | 'subtotal' | 'savings' | 'tax',
+    itemId?: number
+  ) => {
+    handleNumericBlur(
+      e, 
+      fieldType, 
+      currentCurrency, 
+      itemId, 
+      setActiveElement, 
+      setPreEditElement, 
+      setMobileInteractionPhase, 
+      isMobile
+    );
+  };
+  
+  // Numeric field key event handler
+  const handleNumericKeyDown = (
+    e: React.KeyboardEvent<HTMLSpanElement>,
+    fieldType: string
+  ) => {
+    addLog(`${fieldType} keydown: key=${e.key}`);
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      addLog(`${fieldType} - preventing default for: ${e.key}`);
+      e.preventDefault();
+      addLog(`${fieldType} - blurring after: ${e.key}`);
+      e.currentTarget.blur();
+    }
+  };
+
+  // Handle clicks outside editable elements on mobile
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const handleDocumentClick = (e: MouseEvent) => {
+      // If there's no focused element in mobile interaction state, no need to do anything
+      if (mobileInteractionPhase.phase === 'idle') return;
+
+      // Check if click was inside the card container
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+        addLog(`Mobile outside click: Resetting mobile interaction state`);
+        
+        // Reset mobile interaction state
+        setMobileInteractionPhase({
+          element: { type: null, id: null },
+          phase: 'idle'
+        });
+        
+        // Reset other states as well
+        setActiveElement({ type: null, id: null });
+        setPreEditElement({ type: null, id: null });
+      }
+    };
+
+    document.addEventListener('mousedown', handleDocumentClick);
+    return () => {
+      document.removeEventListener('mousedown', handleDocumentClick);
+    };
+  }, [isMobile, mobileInteractionPhase.phase, addLog, setMobileInteractionPhase, 
+      setActiveElement, setPreEditElement]);
+
+  // Handle click on empty areas within the card
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (!isMobile || mobileInteractionPhase.phase === 'idle') return;
+    
+    // Check if the click target has data-type attribute (interactive element)
+    const target = e.target as HTMLElement;
+    const isInteractiveElement = 
+      target.hasAttribute('data-type') || 
+      target.closest('[data-type]') !== null;
+    
+    // If click is not on an interactive element, reset mobile state
+    if (!isInteractiveElement) {
+      addLog(`Mobile click on non-interactive area: Resetting mobile interaction state`);
+      
+      // Reset mobile interaction state
+      setMobileInteractionPhase({
+        element: { type: null, id: null },
+        phase: 'idle'
+      });
+      
+      // Reset other states as well
+      setActiveElement({ type: null, id: null });
+      setPreEditElement({ type: null, id: null });
+      
+      // Directly remove mobileFocused classes for immediate visual feedback
+      try {
+        const mobileFocusedElements = document.querySelectorAll('[class*="mobileFocused"]');
+        mobileFocusedElements.forEach(element => {
+          const currentClasses = element.className;
+          element.className = currentClasses
+            .split(' ')
+            .filter(className => !className.includes('mobileFocused'))
+            .join(' ');
+        });
+      } catch (error) {
+        addLog(`Error manually removing classes: ${error}`);
+      }
+    }
   };
 
   /* ----------------------------------------
@@ -371,234 +350,8 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
      COMPONENT RENDER - Main JSX Structure
      ----------------------------------------
      ---------------------------------------- */
-  // Add a ref for the logs container 
-  const logsContainerRef = useRef<HTMLDivElement>(null);
-
-  // Add an effect to auto-scroll logs to bottom whenever logs change
-  useEffect(() => {
-    if (logsContainerRef.current) {
-      logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
-    }
-  }, [uiLogs]);
-
-  // Add a cleanup function to fix DOM structure after editing
-  const restoreDOMIntegrity = (
-    container: HTMLElement,
-    className: string,
-    value: string
-  ) => {
-    // Find if the element still exists
-    const elements = container.getElementsByClassName(className);
-    
-    if (elements.length === 0) {
-      // If not, the DOM structure is broken - recreate it
-      addLog(`Restoring DOM structure for ${className}`);
-      
-      // Clear container
-      while (container.firstChild) {
-        container.removeChild(container.firstChild);
-      }
-      
-      // Determine field type to handle currency position correctly
-      const fieldType = container.getAttribute('data-type') || '';
-      
-      // Recreate the elements based on currency position and field type
-      if (fieldType === 'price' || fieldType === 'discount' || 
-          fieldType === 'subtotal' || fieldType === 'savings' || 
-          fieldType === 'tax') {
-        
-        // Add minus sign for discount and savings frames
-        if ((fieldType === 'discount' || fieldType === 'savings')) {
-          const minusElement = document.createElement('span');
-          minusElement.className = fieldType === 'discount' ? 
-            `${styles.discountMinus} ${compStyles.bodyReceiptH2}` : 
-            `${styles.savingsMinus} ${compStyles.bodyReceiptH1}`;
-          minusElement.textContent = '-';
-          container.appendChild(minusElement);
-        }
-        
-        // Create currency symbol and value elements based on position
-        if (currentCurrency.SymbolPosition === 0) {
-          // Symbol before value
-          const symbolElement = document.createElement('span');
-          symbolElement.className = `${styles[`${fieldType}Currency`]} ${
-            fieldType === 'discount' ? compStyles.bodyReceiptH2 : compStyles.bodyReceiptH1
-          }`;
-          symbolElement.textContent = currentCurrency.DisplayCurrencySymbol;
-          container.appendChild(symbolElement);
-          
-          const valueElement = document.createElement('span');
-          valueElement.className = className;
-          valueElement.textContent = value;
-          container.appendChild(valueElement);
-        } else {
-          // Value before symbol
-          const valueElement = document.createElement('span');
-          valueElement.className = className;
-          valueElement.textContent = value;
-          container.appendChild(valueElement);
-          
-          const symbolElement = document.createElement('span');
-          symbolElement.className = `${styles[`${fieldType}Currency`]} ${
-            fieldType === 'discount' ? compStyles.bodyReceiptH2 : compStyles.bodyReceiptH1
-          }`;
-          symbolElement.textContent = currentCurrency.DisplayCurrencySymbol;
-          container.appendChild(symbolElement);
-        }
-        
-        // Return the value element (which is what we'll want to focus)
-        return container.getElementsByClassName(className)[0] as HTMLElement;
-      } else {
-        // For non-currency elements, just create a simple element
-        const newElement = document.createElement('span');
-        newElement.className = className;
-        newElement.textContent = value;
-        container.appendChild(newElement);
-        return newElement;
-      }
-    } else {
-      // Element exists, just update content
-      const element = elements[0] as HTMLElement;
-      element.textContent = value;
-      return element;
-    }
-  };
-
-  // Modify handleNumericBlur to use this restoration
-  const handleNumericBlur = (
-    e: React.FocusEvent<HTMLSpanElement>,
-    fieldType: 'price' | 'discount' | 'subtotal' | 'savings' | 'tax',
-    itemId?: number
-  ) => {
-    // Log the blur event
-    const logPrefix = itemId !== undefined ? `${fieldType} value blur: id=${itemId}` : `${fieldType} value blur`;
-    addLog(logPrefix);
-    
-    // Get input value
-    const inputValue = e.currentTarget.textContent || '';
-    addLog(`Original input: "${inputValue}"`);
-    
-    // Parse the input
-    const numValue = parseFloat(inputValue);
-    
-    // Find container element (parent of the input field)
-    const container = e.currentTarget.parentElement;
-    
-    if (!container) {
-      addLog('Error: Could not find container element');
-      return;
-    }
-    
-    // Determine original value and update handler based on field type
-    let originalValue: number;
-    let updater: (value: string) => void;
-    
-    if (fieldType === 'price' && itemId !== undefined) {
-      const item = items.find(i => i.id === itemId);
-      originalValue = item?.price || 0;
-      updater = (val) => handlePriceChange(itemId, val);
-    } else if (fieldType === 'discount' && itemId !== undefined) {
-      const item = items.find(i => i.id === itemId);
-      originalValue = item?.discount || 0;
-      updater = (val) => handleDiscountChange(itemId, val);
-    } else if (fieldType === 'subtotal') {
-      originalValue = subtotal;
-      updater = handleSubtotalChange;
-    } else if (fieldType === 'savings') {
-      originalValue = savings;
-      updater = handleSavingsChange;
-    } else if (fieldType === 'tax') {
-      originalValue = tax;
-      updater = handleTaxChange;
-    } else {
-      // Fallback (shouldn't happen)
-      originalValue = 0;
-      updater = () => {};
-    }
-    
-    if (!isNaN(numValue)) {
-      // Update state
-      updater(numValue.toString());
-      
-      // Get appropriate class name based on field type
-      const className = getClassNameForField(fieldType);
-      
-      // Restore DOM structure and set value
-      restoreDOMIntegrity(container, className, numValue.toFixed(2));
-    } else {
-      // Invalid number - reset to original value
-      addLog(`Invalid input - resetting to original value`);
-      const className = getClassNameForField(fieldType);
-      restoreDOMIntegrity(container, className, originalValue.toFixed(2));
-    }
-    
-    // Reset interactive states
-    setActiveElement({ type: null, id: null });
-    setPreEditElement({ type: null, id: null });
-    
-    // Reset mobile state
-    if (isMobile) {
-      setMobileInteractionPhase({
-        element: { type: null, id: null },
-        phase: 'idle'
-      });
-    }
-  };
-
-  // Helper to get class name for each field type
-  const getClassNameForField = (fieldType: string): string => {
-    switch (fieldType) {
-      case 'price': return styles.priceValue;
-      case 'discount': return styles.discountValue;
-      case 'subtotal': return styles.subtotalValue;
-      case 'savings': return styles.savingsValue;
-      case 'tax': return styles.taxValue;
-      default: return '';
-    }
-  };
-
-  // Shared handler for real-time numeric input filtering
-  const handleNumericInput = (e: React.FormEvent<HTMLSpanElement>) => {
-    // Get current text
-    const el = e.currentTarget;
-    const currentText = el.textContent || '';
-    
-    // Store selection for restoration
-    const selection = window.getSelection();
-    const cursorPosition = selection?.focusOffset || 0;
-    
-    // Filter out non-numeric characters
-    const validChars = /^-?\d*\.?\d*$/;
-    if (!validChars.test(currentText)) {
-      // Remove invalid characters
-      const filteredText = currentText
-        .replace(/[^\d.-]/g, '')
-        .replace(/\.+/g, '.')
-        .replace(/^([^-]*)(-+)(.*)$/, '$1$3')
-        .replace(/^-+/, '-');
-        
-      addLog(`Filtering: "${currentText}" → "${filteredText}"`);
-      
-      // Update content
-      el.textContent = filteredText;
-      
-      // Restore cursor position (adjusted for removed characters)
-      const newPosition = Math.min(cursorPosition, filteredText.length);
-      if (selection && el.firstChild) {
-        const range = document.createRange();
-        range.setStart(el.firstChild, newPosition);
-        range.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
-    
-    // Always perform auto-scroll
-    el.scrollLeft = el.scrollWidth;
-  };
-
   return (
-    <div className={styles.cardContent}>
+    <div className={styles.cardContent} ref={cardRef} onClick={handleCardClick}>
       {/* ----------------------------------------
           CARD LIST - Items list
           ---------------------------------------- */}
@@ -613,7 +366,20 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
           >
             {/* Quantity and Item */}
             <div className={styles.qtyItem}>
-              <div className={styles.qtyFrame}>
+              {/* Quantity Frame - Now with dropdown functionality */}
+              <div 
+                className={styles.qtyFrame}
+                onClick={(e) => handleQuantityClick(e, item.id)}
+                ref={activeQuantityId === item.id ? quantityContainerRef : undefined}
+                aria-label={`Item quantity: ${item.quantity}. Click to change.`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === 'Space') {
+                    handleQuantityClick(e as unknown as React.MouseEvent, item.id);
+                  }
+                }}
+              >
                 {item.quantity === 1 ? (
                   <span className={`${styles.qtyFrameText} ${compStyles.bodyReceiptH3} ${compStyles.secondaryH2_40}`}>-</span>
                 ) : (
@@ -621,6 +387,45 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                     <span className={`${styles.qtyFrameText} ${compStyles.bodyReceiptH3} ${compStyles.secondaryH2_40}`}>{item.quantity}</span>
                     <span className={`${styles.qtyFrameMultiplier} ${compStyles.bodyReceiptH3} ${compStyles.secondaryH2_40}`}>x</span>
                   </>
+                )}
+                
+                {/* Quantity Dropdown - Displayed when active */}
+                {activeQuantityId === item.id && (
+                  <div 
+                    className={styles.quantityDropdown}
+                    ref={quantityDropdownRef}
+                    style={dropdownPosition}
+                    role="listbox"
+                    aria-label="Select quantity"
+                  >
+                    <div className={styles.quantityList}>
+                      {generateQuantityOptions().map((num) => (
+                        <div 
+                          key={num}
+                          className={`${styles.quantityItem} ${item.quantity === num ? styles.selected : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuantityChange(item.id, num);
+                            setActiveQuantityId(null);
+                            addLog(`Selected quantity ${num} for item ${item.id}`);
+                          }}
+                          role="option"
+                          aria-selected={item.quantity === num}
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === 'Space') {
+                              e.preventDefault();
+                              handleQuantityChange(item.id, num);
+                              setActiveQuantityId(null);
+                              addLog(`Selected quantity ${num} for item ${item.id} with keyboard`);
+                            }
+                          }}
+                        >
+                          {num}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
               
@@ -666,29 +471,8 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                     const el = e.currentTarget;
                     el.scrollLeft = el.scrollWidth;
                   }}
-                  onBlur={(e) => {
-                    addLog(`Item frame blur: id=${item.id}`);
-                    handleItemNameChange(item.id, e.currentTarget.textContent || item.name);
-                    setActiveElement({ type: null, id: null });
-                    setPreEditElement({ type: null, id: null });
-                    // Reset mobile interaction state on blur
-                    if (isMobile) {
-                      setMobileInteractionPhase({
-                        element: { type: null, id: null },
-                        phase: 'idle'
-                      });
-                    }
-                    e.currentTarget.scrollLeft = 0; // Reset scroll position on blur
-                  }}
-                  onKeyDown={(e) => {
-                    addLog(`Item keydown: key=${e.key}`);
-                    if (e.key === 'Enter' || e.key === 'Escape') {
-                      addLog(`Item - preventing default for: ${e.key}`);
-                      e.preventDefault();
-                      addLog(`Item - blurring after: ${e.key}`);
-                      e.currentTarget.blur();
-                    }
-                  }}
+                  onBlur={(e) => handleItemNameBlur(e, item.id)}
+                  onKeyDown={handleItemKeyDown}
                   onFocus={() => {
                     const isCaretActive = isEditable('item', item.id);
                     addLog(`Item frame focus: id=${item.id} ${isCaretActive ? '✓CARET ACTIVE' : '✗NO CARET'}`);
@@ -739,7 +523,7 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                   setActiveElement({ type: 'price', id: item.id });
                   setPreEditElement({ type: null, id: null });
                 }}
-                onBlur={(e) => handleNumericBlur(e, 'price', item.id)}
+                onBlur={(e) => handleNumericFieldBlur(e, 'price', item.id)}
               >
                 {currentCurrency.SymbolPosition === 0 ? (
                   // Currency symbol before number (default)
@@ -749,22 +533,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                       className={`${styles.priceValue} ${compStyles.bodyReceiptH1}`}
                       contentEditable={isEditable('price', item.id)}
                       suppressContentEditableWarning={true}
-                      onInput={(e) => handleNumericInput(e)}
-                      onBlur={(e) => handleNumericBlur(e, 'price', item.id)}
-                      onKeyDown={(e) => {
-                        addLog(`Price keydown: key=${e.key}`);
-                        if (e.key === 'Enter' || e.key === 'Escape') {
-                          addLog(`Price - preventing default for: ${e.key}`);
-                          e.preventDefault();
-                          addLog(`Price - blurring after: ${e.key}`);
-                          e.currentTarget.blur();
-                        }
-                      }}
+                      onInput={handleNumericInput}
+                      onBlur={(e) => handleNumericFieldBlur(e, 'price', item.id)}
+                      onKeyDown={(e) => handleNumericKeyDown(e, 'price')}
                     >
-                      {activeElement.type === 'price' && activeElement.id === item.id 
-                        ? item.price.toFixed(2)
-                        : item.price.toFixed(2)
-                      }
+                      {item.price.toFixed(2)}
                     </span>
                   </>
                 ) : (
@@ -774,22 +547,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                       className={`${styles.priceValue} ${compStyles.bodyReceiptH1}`}
                       contentEditable={isEditable('price', item.id)}
                       suppressContentEditableWarning={true}
-                      onInput={(e) => handleNumericInput(e)}
-                      onBlur={(e) => handleNumericBlur(e, 'price', item.id)}
-                      onKeyDown={(e) => {
-                        addLog(`Price keydown: key=${e.key}`);
-                        if (e.key === 'Enter' || e.key === 'Escape') {
-                          addLog(`Price - preventing default for: ${e.key}`);
-                          e.preventDefault();
-                          addLog(`Price - blurring after: ${e.key}`);
-                          e.currentTarget.blur();
-                        }
-                      }}
+                      onInput={handleNumericInput}
+                      onBlur={(e) => handleNumericFieldBlur(e, 'price', item.id)}
+                      onKeyDown={(e) => handleNumericKeyDown(e, 'price')}
                     >
-                      {activeElement.type === 'price' && activeElement.id === item.id 
-                        ? item.price.toFixed(2)
-                        : item.price.toFixed(2)
-                      }
+                      {item.price.toFixed(2)}
                     </span>
                     <span className={`${styles.priceCurrency} ${compStyles.bodyReceiptH1}`}>{currentCurrency.DisplayCurrencySymbol}</span>
                   </>
@@ -831,7 +593,7 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                   setActiveElement({ type: 'discount', id: item.id });
                   setPreEditElement({ type: null, id: null });
                 }}
-                onBlur={(e) => handleNumericBlur(e, 'discount', item.id)}
+                onBlur={(e) => handleNumericFieldBlur(e, 'discount', item.id)}
                 onClick={(e) => handleContainerClick(e, 'discount', item.id, styles.discountValue)}
               >
                 <span className={`${styles.discountMinus} ${compStyles.bodyReceiptH2}`}>-</span>
@@ -843,22 +605,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                       className={`${styles.discountValue} ${compStyles.bodyReceiptH2}`}
                       contentEditable={isEditable('discount', item.id)}
                       suppressContentEditableWarning={true}
-                      onInput={(e) => handleNumericInput(e)}
-                      onBlur={(e) => handleNumericBlur(e, 'discount', item.id)}
-                      onKeyDown={(e) => {
-                        addLog(`Discount keydown: key=${e.key}`);
-                        if (e.key === 'Enter' || e.key === 'Escape') {
-                          addLog(`Discount - preventing default for: ${e.key}`);
-                          e.preventDefault();
-                          addLog(`Discount - blurring after: ${e.key}`);
-                          e.currentTarget.blur();
-                        }
-                      }}
+                      onInput={handleNumericInput}
+                      onBlur={(e) => handleNumericFieldBlur(e, 'discount', item.id)}
+                      onKeyDown={(e) => handleNumericKeyDown(e, 'discount')}
                     >
-                      {activeElement.type === 'discount' && activeElement.id === item.id 
-                        ? item.discount.toFixed(2)
-                        : item.discount.toFixed(2)
-                      }
+                      {item.discount.toFixed(2)}
                     </span>
                   </>
                 ) : (
@@ -868,22 +619,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                       className={`${styles.discountValue} ${compStyles.bodyReceiptH2}`}
                       contentEditable={isEditable('discount', item.id)}
                       suppressContentEditableWarning={true}
-                      onInput={(e) => handleNumericInput(e)}
-                      onBlur={(e) => handleNumericBlur(e, 'discount', item.id)}
-                      onKeyDown={(e) => {
-                        addLog(`Discount keydown: key=${e.key}`);
-                        if (e.key === 'Enter' || e.key === 'Escape') {
-                          addLog(`Discount - preventing default for: ${e.key}`);
-                          e.preventDefault();
-                          addLog(`Discount - blurring after: ${e.key}`);
-                          e.currentTarget.blur();
-                        }
-                      }}
+                      onInput={handleNumericInput}
+                      onBlur={(e) => handleNumericFieldBlur(e, 'discount', item.id)}
+                      onKeyDown={(e) => handleNumericKeyDown(e, 'discount')}
                     >
-                      {activeElement.type === 'discount' && activeElement.id === item.id 
-                        ? item.discount.toFixed(2)
-                        : item.discount.toFixed(2)
-                      }
+                      {item.discount.toFixed(2)}
                     </span>
                     <span className={`${styles.discountCurrency} ${compStyles.bodyReceiptH2}`}>{currentCurrency.DisplayCurrencySymbol}</span>
                   </>
@@ -903,7 +643,7 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
           </div>
           
           {/* Values for calculations */}
-          <div className={styles.values}>
+          <div className={styles.finalValues}>
             <div 
               className={`
                 ${styles.subtotalPriceFrame} 
@@ -936,7 +676,7 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                 setActiveElement({ type: 'subtotal', id: null });
                 setPreEditElement({ type: null, id: null });
               }} 
-              onBlur={(e) => handleNumericBlur(e, 'subtotal')}
+              onBlur={(e) => handleNumericFieldBlur(e, 'subtotal')}
               onClick={(e) => handleContainerClick(e, 'subtotal', null, styles.subtotalValue)}
             >
               {currentCurrency.SymbolPosition === 0 ? (
@@ -947,22 +687,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                     className={`${styles.subtotalValue} ${compStyles.bodyReceiptH1}`}
                     contentEditable={isEditable('subtotal', null)}
                     suppressContentEditableWarning={true}
-                    onInput={(e) => handleNumericInput(e)}
-                    onBlur={(e) => handleNumericBlur(e, 'subtotal')}
-                    onKeyDown={(e) => {
-                      addLog(`Subtotal keydown: key=${e.key}`);
-                      if (e.key === 'Enter' || e.key === 'Escape') {
-                        addLog(`Subtotal - preventing default for: ${e.key}`);
-                        e.preventDefault();
-                        addLog(`Subtotal - blurring after: ${e.key}`);
-                        e.currentTarget.blur();
-                      }
-                    }}
+                    onInput={handleNumericInput}
+                    onBlur={(e) => handleNumericFieldBlur(e, 'subtotal')}
+                    onKeyDown={(e) => handleNumericKeyDown(e, 'subtotal')}
                   >
-                    {activeElement.type === 'subtotal' && activeElement.id === null 
-                      ? subtotal.toFixed(2)
-                      : subtotal.toFixed(2)
-                    }
+                    {subtotal.toFixed(2)}
                   </span>
                 </>
               ) : (
@@ -972,22 +701,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                     className={`${styles.subtotalValue} ${compStyles.bodyReceiptH1}`}
                     contentEditable={isEditable('subtotal', null)}
                     suppressContentEditableWarning={true}
-                    onInput={(e) => handleNumericInput(e)}
-                    onBlur={(e) => handleNumericBlur(e, 'subtotal')}
-                    onKeyDown={(e) => {
-                      addLog(`Subtotal keydown: key=${e.key}`);
-                      if (e.key === 'Enter' || e.key === 'Escape') {
-                        addLog(`Subtotal - preventing default for: ${e.key}`);
-                        e.preventDefault();
-                        addLog(`Subtotal - blurring after: ${e.key}`);
-                        e.currentTarget.blur();
-                      }
-                    }}
+                    onInput={handleNumericInput}
+                    onBlur={(e) => handleNumericFieldBlur(e, 'subtotal')}
+                    onKeyDown={(e) => handleNumericKeyDown(e, 'subtotal')}
                   >
-                    {activeElement.type === 'subtotal' && activeElement.id === null 
-                      ? subtotal.toFixed(2)
-                      : subtotal.toFixed(2)
-                    }
+                    {subtotal.toFixed(2)}
                   </span>
                   <span className={`${styles.subtotalCurrency} ${compStyles.bodyReceiptH1}`}>{currentCurrency.DisplayCurrencySymbol}</span>
                 </>
@@ -1026,7 +744,7 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                 setActiveElement({ type: 'savings', id: null });
                 setPreEditElement({ type: null, id: null });
               }}
-              onBlur={(e) => handleNumericBlur(e, 'savings')}
+              onBlur={(e) => handleNumericFieldBlur(e, 'savings')}
               onClick={(e) => handleContainerClick(e, 'savings', null, styles.savingsValue)}
             >
               <span className={`${styles.savingsMinus} ${compStyles.bodyReceiptH1}`}>-</span>
@@ -1038,22 +756,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                     className={`${styles.savingsValue} ${compStyles.bodyReceiptH1}`}
                     contentEditable={isEditable('savings', null)}
                     suppressContentEditableWarning={true}
-                    onInput={(e) => handleNumericInput(e)}
-                    onBlur={(e) => handleNumericBlur(e, 'savings')}
-                    onKeyDown={(e) => {
-                      addLog(`Savings keydown: key=${e.key}`);
-                      if (e.key === 'Enter' || e.key === 'Escape') {
-                        addLog(`Savings - preventing default for: ${e.key}`);
-                        e.preventDefault();
-                        addLog(`Savings - blurring after: ${e.key}`);
-                        e.currentTarget.blur();
-                      }
-                    }}
+                    onInput={handleNumericInput}
+                    onBlur={(e) => handleNumericFieldBlur(e, 'savings')}
+                    onKeyDown={(e) => handleNumericKeyDown(e, 'savings')}
                   >
-                    {activeElement.type === 'savings' && activeElement.id === null 
-                      ? savings.toFixed(2)
-                      : savings.toFixed(2)
-                    }
+                    {savings.toFixed(2)}
                   </span>
                 </>
               ) : (
@@ -1063,22 +770,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                     className={`${styles.savingsValue} ${compStyles.bodyReceiptH1}`}
                     contentEditable={isEditable('savings', null)}
                     suppressContentEditableWarning={true}
-                    onInput={(e) => handleNumericInput(e)}
-                    onBlur={(e) => handleNumericBlur(e, 'savings')}
-                    onKeyDown={(e) => {
-                      addLog(`Savings keydown: key=${e.key}`);
-                      if (e.key === 'Enter' || e.key === 'Escape') {
-                        addLog(`Savings - preventing default for: ${e.key}`);
-                        e.preventDefault();
-                        addLog(`Savings - blurring after: ${e.key}`);
-                        e.currentTarget.blur();
-                      }
-                    }}
+                    onInput={handleNumericInput}
+                    onBlur={(e) => handleNumericFieldBlur(e, 'savings')}
+                    onKeyDown={(e) => handleNumericKeyDown(e, 'savings')}
                   >
-                    {activeElement.type === 'savings' && activeElement.id === null 
-                      ? savings.toFixed(2)
-                      : savings.toFixed(2)
-                    }
+                    {savings.toFixed(2)}
                   </span>
                   <span className={`${styles.savingsCurrency} ${compStyles.bodyReceiptH1}`}>{currentCurrency.DisplayCurrencySymbol}</span>
                 </>
@@ -1117,7 +813,7 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                 setActiveElement({ type: 'tax', id: null });
                 setPreEditElement({ type: null, id: null });
               }}
-              onBlur={(e) => handleNumericBlur(e, 'tax')}
+              onBlur={(e) => handleNumericFieldBlur(e, 'tax')}
               onClick={(e) => handleContainerClick(e, 'tax', null, styles.taxValue)}
             >
               {currentCurrency.SymbolPosition === 0 ? (
@@ -1128,22 +824,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                     className={`${styles.taxValue} ${compStyles.bodyReceiptH1}`}
                     contentEditable={isEditable('tax', null)}
                     suppressContentEditableWarning={true}
-                    onInput={(e) => handleNumericInput(e)}
-                    onBlur={(e) => handleNumericBlur(e, 'tax')}
-                    onKeyDown={(e) => {
-                      addLog(`Tax keydown: key=${e.key}`);
-                      if (e.key === 'Enter' || e.key === 'Escape') {
-                        addLog(`Tax - preventing default for: ${e.key}`);
-                        e.preventDefault();
-                        addLog(`Tax - blurring after: ${e.key}`);
-                        e.currentTarget.blur();
-                      }
-                    }}
+                    onInput={handleNumericInput}
+                    onBlur={(e) => handleNumericFieldBlur(e, 'tax')}
+                    onKeyDown={(e) => handleNumericKeyDown(e, 'tax')}
                   >
-                    {activeElement.type === 'tax' && activeElement.id === null 
-                      ? tax.toFixed(2)
-                      : tax.toFixed(2)
-                    }
+                    {tax.toFixed(2)}
                   </span>
                 </>
               ) : (
@@ -1153,22 +838,11 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
                     className={`${styles.taxValue} ${compStyles.bodyReceiptH1}`}
                     contentEditable={isEditable('tax', null)}
                     suppressContentEditableWarning={true}
-                    onInput={(e) => handleNumericInput(e)}
-                    onBlur={(e) => handleNumericBlur(e, 'tax')}
-                    onKeyDown={(e) => {
-                      addLog(`Tax keydown: key=${e.key}`);
-                      if (e.key === 'Enter' || e.key === 'Escape') {
-                        addLog(`Tax - preventing default for: ${e.key}`);
-                        e.preventDefault();
-                        addLog(`Tax - blurring after: ${e.key}`);
-                        e.currentTarget.blur();
-                      }
-                    }}
+                    onInput={handleNumericInput}
+                    onBlur={(e) => handleNumericFieldBlur(e, 'tax')}
+                    onKeyDown={(e) => handleNumericKeyDown(e, 'tax')}
                   >
-                    {activeElement.type === 'tax' && activeElement.id === null 
-                      ? tax.toFixed(2)
-                      : tax.toFixed(2)
-                    }
+                    {tax.toFixed(2)}
                   </span>
                   <span className={`${styles.taxCurrency} ${compStyles.bodyReceiptH1}`}>{currentCurrency.DisplayCurrencySymbol}</span>
                 </>
@@ -1229,65 +903,7 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
             Debug Logs
             <button 
               className={styles.copyLogsBtn}
-              onClick={() => {
-                const logsText = uiLogs.join('\n');
-                
-                // Try to use the Clipboard API with fallback for older browsers
-                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-                  // Modern browsers with Clipboard API
-                  navigator.clipboard.writeText(logsText)
-                    .then(() => {
-                      const btn = document.querySelector(`.${styles.debugLogs} .${styles.copyLogsBtn}`) as HTMLButtonElement;
-                      if (btn) {
-                        const originalText = btn.textContent;
-                        btn.textContent = 'Copied!';
-                        setTimeout(() => {
-                          btn.textContent = originalText;
-                        }, 1000);
-                      }
-                      addLog('Logs copied to clipboard');
-                    })
-                    .catch(err => {
-                      console.error('Failed to copy logs: ', err);
-                      addLog(`Failed to copy logs: ${err.message}`);
-                    });
-                } else {
-                  // Fallback for older browsers
-                  try {
-                    // Create a temporary textarea element
-                    const textArea = document.createElement('textarea');
-                    textArea.value = logsText;
-                    textArea.style.position = 'fixed';  // Avoid scrolling to bottom
-                    textArea.style.opacity = '0';
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    
-                    // Execute the copy command
-                    const successful = document.execCommand('copy');
-                    
-                    // Remove the temporary element
-                    document.body.removeChild(textArea);
-                    
-                    if (successful) {
-                      const btn = document.querySelector(`.${styles.debugLogs} .${styles.copyLogsBtn}`) as HTMLButtonElement;
-                      if (btn) {
-                        const originalText = btn.textContent;
-                        btn.textContent = 'Copied!';
-                        setTimeout(() => {
-                          btn.textContent = originalText;
-                        }, 1000);
-                      }
-                      addLog('Logs copied to clipboard (fallback method)');
-                    } else {
-                      addLog('Failed to copy logs (fallback method failed)');
-                    }
-                  } catch (err) {
-                    console.error('Failed to copy logs with fallback: ', err);
-                    addLog('Failed to copy logs: fallback method failed');
-                  }
-                }
-              }}
+              onClick={() => copyLogs(uiLogs)}
             >
               Copy Logs
             </button>

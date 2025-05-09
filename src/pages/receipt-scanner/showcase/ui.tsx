@@ -129,17 +129,48 @@ const UIComponentsShowcase: React.FC = () => {
             </div>
           </div>
           
-          <h3 className="component-title">Custom Icon Button</h3>
-          <Button 
-            variant="primary" 
-            type="icon"
-            onClick={() => console.log('Custom icon button clicked')} 
-            icon={
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 0C4.03 0 0 4.03 0 9C0 13.97 4.03 18 9 18C13.97 18 18 13.97 18 9C18 4.03 13.97 0 9 0ZM13.5 9.9H9.9V13.5H8.1V9.9H4.5V8.1H8.1V4.5H9.9V8.1H13.5V9.9Z" fill="currentColor"/>
-              </svg>
-            }
-          />
+          <div className="component-grid">
+            <div className="component-item">
+              <h3 className="component-title">Custom Icon Button</h3>
+              <Button 
+                variant="primary" 
+                type="icon"
+                onClick={() => console.log('Custom icon button clicked')} 
+                icon={
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 0C4.03 0 0 4.03 0 9C0 13.97 4.03 18 9 18C13.97 18 18 13.97 18 9C18 4.03 13.97 0 9 0ZM13.5 9.9H9.9V13.5H8.1V9.9H4.5V8.1H8.1V4.5H9.9V8.1H13.5V9.9Z" fill="currentColor"/>
+                  </svg>
+                }
+              />
+            </div>
+            
+            <div className="component-item">
+              <h3 className="component-title">Done Icon Button</h3>
+              <Button 
+                variant="done" 
+                type="icon"
+                onClick={() => console.log('Done icon button clicked')} 
+              />
+            </div>
+            
+            <div className="component-item">
+              <h3 className="component-title">Close Icon Button</h3>
+              <Button 
+                variant="close" 
+                type="icon"
+                onClick={() => console.log('Close icon button clicked')} 
+              />
+            </div>
+            
+            <div className="component-item">
+              <h3 className="component-title">Delete Icon Button</h3>
+              <Button 
+                variant="delete" 
+                type="icon"
+                onClick={() => console.log('Delete icon button clicked')} 
+              />
+            </div>
+          </div>
         </section>
         
         <section className="section">

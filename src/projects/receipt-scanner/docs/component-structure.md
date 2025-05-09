@@ -5,7 +5,8 @@
 
 1. [Overview](#overview)
 2. [Component Hierarchy](#component-hierarchy)
-3. [Components](#components)
+3. [Component File Structure](#component-file-structure)
+4. [Components](#components)
    1. [ListItem Component](#listitem)
       - [Structure](#listitem-structure)
       - [State Management](#listitem-state)
@@ -17,21 +18,22 @@
       - [Structure](#cardcontent-structure)
       - [State Management](#cardcontent-state)
       - [Key Functions](#cardcontent-functions)
+      - [Hooks](#cardcontent-hooks)
       - [CSS Classes](#cardcontent-css)
       - [Critical Implementation Details](#cardcontent-critical)
       - [Edge Cases](#cardcontent-edge-cases)
-   3. [DatePickerCalendar Component](#datepicker)
+   3. [DatePicker Component](#datepicker)
       - [Structure](#datepicker-structure)
       - [State Management](#datepicker-state)
       - [Key Functions](#datepicker-functions)
       - [CSS Classes](#datepicker-css)
       - [Critical Implementation Details](#datepicker-critical)
       - [Edge Cases](#datepicker-edge-cases)
-4. [Currency Data Integration](#currency)
-5. [Cross-Component Interactions](#cross-component)
-6. [Responsive Design](#responsive)
-7. [Implementation Decisions](#decisions)
-8. [Component Index](#index)
+5. [Currency Data Integration](#currency)
+6. [Cross-Component Interactions](#cross-component)
+7. [Responsive Design](#responsive)
+8. [Implementation Decisions](#decisions)
+9. [Component Index](#index)
 
 <a id="overview"></a>
 ## Overview
@@ -90,6 +92,9 @@ ListItem.tsx (Main Container Component)
 │       │       │   ├── Quantity Frame (.qtyFrame)
 │       │       │   │   ├── Quantity Frame Text (.qtyFrameText)
 │       │       │   │   └── Quantity Frame Multiplier (.qtyFrameMultiplier) - if quantity > 1
+│       │       │   │   └── Quantity Dropdown (.quantityDropdown) - when open
+│       │       │   │       └── Quantity List (.quantityList)
+│       │       │   │           └── Quantity Items (.quantityItem) × 99
 │       │       │   └── Item Frame (.itemFrame)
 │       │       │       └── Item Frame Text (.itemFrameText)
 │       │       └── Values (.values)
@@ -102,19 +107,21 @@ ListItem.tsx (Main Container Component)
 │       │               └── Discount Value (.discountValue)
 │       └── Card Calculation (.cardCalculation)
 │           ├── Calculation Rows (.calculationRows)
-│           │   ├── Subtotal Price Frame (.subtotalPriceFrame)
-│           │   │   ├── Subtotal Label (.subtotalLabel)
-│           │   │   ├── Subtotal Currency (.subtotalCurrency)
-│           │   │   └── Subtotal Value (.subtotalValue)
-│           │   ├── Saving Price Frame (.savingPriceFrame) - if savings exist
-│           │   │   ├── Savings Label (.savingLabel)
-│           │   │   ├── Savings Minus (.savingsMinus)
-│           │   │   ├── Savings Currency (.savingsCurrency)
-│           │   │   └── Savings Value (.savingsValue)
-│           │   └── Tax Price Frame (.taxPriceFrame) - if tax exists
-│           │       ├── Tax Label (.taxLabel)
-│           │       ├── Tax Currency (.taxCurrency)
-│           │       └── Tax Value (.taxValue)
+│           │   ├── Fixed Calculations (.fixedCalculations)
+│           │   │   ├── Subtotal Item Frame (.subItemFrame)
+│           │   │   ├── Savings Item Frame (.savingsItemFrame)
+│           │   │   └── Tax Item Frame (.taxItemFrame)
+│           │   └── Final Values (.finalValues)
+│           │       ├── Subtotal Price Frame (.subtotalPriceFrame)
+│           │       │   ├── Subtotal Currency (.subtotalCurrency)
+│           │       │   └── Subtotal Value (.subtotalValue)
+│           │       ├── Saving Price Frame (.savingPriceFrame) - if savings exist
+│           │       │   ├── Savings Minus (.savingsMinus)
+│           │       │   ├── Savings Currency (.savingsCurrency)
+│           │       │   └── Savings Value (.savingsValue)
+│           │       └── Tax Price Frame (.taxPriceFrame) - if tax exists
+│           │           ├── Tax Currency (.taxCurrency)
+│           │           └── Tax Value (.taxValue)
 │           └── Total Row (.totalRow)
 │               ├── Total Label (.totalLabel)
 │               ├── Total Value (.totalValue)
@@ -122,6 +129,48 @@ ListItem.tsx (Main Container Component)
 │               │   └── Total Price (.totalPrice)
 │               └── Status Icon (.statusIcon) - check or error
 ```
+
+<a id="component-file-structure"></a>
+## Component File Structure
+[↑ Back to Table of Contents](#toc)
+
+The codebase follows a modular file structure, particularly for the CardContent component which has been refactored into a three-file approach for better maintainability:
+
+```
+/components/ui/
+├── ListItem.tsx                 # Main container component with primary UX
+├── DatePickerCalendar.tsx       # Calendar component for date selection
+├── CardContent.tsx              # Main component for displaying receipt items and calculations
+├── CardContentHooks.ts          # Custom hooks extracted from CardContent
+└── CardContentUtils.ts          # Utility functions for CardContent
+```
+
+### CardContent Component Files
+
+**1. CardContent.tsx**
+- Main component file with JSX rendering
+- Imports and uses hooks from CardContentHooks.ts
+- Imports utilities from CardContentUtils.ts
+- Focus on component structure and rendering logic
+
+**2. CardContentHooks.ts**
+- Contains all custom hooks that manage component state:
+  - `useEditableFields` - Manages active and hover states for editable fields
+  - `useHoverStates` - Tracks hover states for UI elements
+  - `useMobileInteraction` - Handles mobile-specific interaction patterns
+  - `useNumericFields` - Manages receipt items, calculations, and numeric editing
+  - `useDebugLogs` - Maintains debug logs for development
+  - `useClipboard` - Provides clipboard functionality
+
+**3. CardContentUtils.ts**
+- Contains pure utility functions without React dependencies:
+  - DOM manipulation helpers (like `restoreDOMIntegrity`)
+  - CSS class helpers (`getClassNameForField`)
+  - Format helpers (`formatDate`)
+  - Default data and constants
+  - Device detection utilities
+
+This modular approach improves code organization while maintaining cohesive functionality.
 
 <a id="components"></a>
 ## Components
@@ -293,122 +342,137 @@ handleCardInteractions(e) {
 ### CardContent Component
 [↑ Back to Table of Contents](#toc)
 
-The CardContent component displays the list of purchased items and calculation details, with editable values for prices, discounts, and totals. It uses a separate CSS module file (`CardContent.module.css`) for styling.
+The CardContent component displays the list of purchased items and calculation details, with editable values for prices, discounts, and totals. It uses a separate CSS module file (`CardContent.module.css`) for styling and is now split into three files for better code organization.
 
 <a id="cardcontent-structure"></a>
 #### Structure
 
-- `.cardContent` - Main container
-  - `.cardList` - List of purchased items
-    - `.contentRow` - Individual item row
-      - `.qtyItem` - Left side with quantity and name
-        - `.qtyFrame` - Quantity display
-          - `.qtyFrameText` - Quantity value
-          - `.qtyFrameMultiplier` - "x" symbol (if quantity > 1)
-        - `.itemFrame` - Item name (editable)
-          - `.itemFrameText` - The actual editable text
-      - `.values` - Right side with price and discount
-        - `.priceFrame` - Price container (editable)
-          - `.priceCurrency` - Currency symbol
-          - `.priceValue` - Editable price value
-        - `.discountFrame` - Discount container (editable)
-          - `.discountMinus` - Minus symbol
-          - `.discountCurrency` - Currency symbol
-          - `.discountValue` - Editable discount value
-  - `.contentFinalRow` - Calculations section
-    - `.fixedCalculations` - Labels column
-      - `.subItemFrame` - Subtotal label
-      - `.savingsItemFrame` - Savings label
-      - `.taxItemFrame` - Tax label
-    - `.values` - Values column
-      - `.subtotalPriceFrame` - Subtotal (editable)
-        - `.subtotalCurrency` - Currency symbol
-        - `.subtotalValue` - Editable subtotal value
-      - `.savingPriceFrame` - Savings (editable)
-        - `.savingsMinus` - Minus symbol
-        - `.savingsCurrency` - Currency symbol
-        - `.savingsValue` - Editable savings value
-      - `.taxPriceFrame` - Tax (editable)
-        - `.taxCurrency` - Currency symbol
-        - `.taxValue` - Editable tax value
-  - `.cardTotal` - Total row
-    - `.totalFrame` - Total label
-    - `.msFrame` - Status and amount
-      - `.errorFrame` - Checkmark or error icon
-      - `.totalPriceFrame` - Total amount
-        - `.totalCurrency` - Currency symbol
-        - `.totalValue` - Total value display
+The component has a hierarchical structure:
+
+```jsx
+<div className={styles.cardContent}>
+  <div className={styles.cardList}>
+    {/* Item rows */}
+    <div className={styles.contentRow}>
+      <div className={styles.qtyItem}>
+        {/* Editable quantity with dropdown */}
+        <div className={styles.qtyFrame}>
+          {item.quantity === 1 ? (
+            <span className={styles.qtyFrameText}>-</span>
+          ) : (
+            <>
+              <span className={styles.qtyFrameText}>{item.quantity}</span>
+              <span className={styles.qtyFrameMultiplier}>x</span>
+            </>
+          )}
+          
+          {/* Quantity dropdown (conditionally rendered) */}
+          {activeQuantityId === item.id && (
+            <div className={styles.quantityDropdown}>
+              {/* List of quantity options 1-99 */}
+              <div className={styles.quantityList}>...</div>
+            </div>
+          )}
+        </div>
+        
+        {/* Editable item name */}
+        <div className={styles.itemFrame}>...</div>
+      </div>
+      <div className={styles.values}>
+        {/* Editable price */}
+        <div className={styles.priceFrame}>...</div>
+        
+        {/* Editable discount */}
+        <div className={styles.discountFrame}>...</div>
+      </div>
+    </div>
+  </div>
+  
+  <div className={styles.contentFinalRow}>
+    {/* Calculations (subtotal, savings, tax) */}
+    <div className={styles.fixedCalculations}>...</div>
+    
+    {/* Total */}
+    <div className={styles.cardTotal}>...</div>
+  </div>
+</div>
+```
 
 <a id="cardcontent-state"></a>
 #### State Management
 
+The component's state is now managed through custom hooks in CardContentHooks.ts:
+
 ```typescript
-// UI state
-const [hoveredRow, setHoveredRow] = useState<number | null>(null);
-const [hoveredElement, setHoveredElement] = useState<string | null>(null);
-const [hoveredSubtotal, setHoveredSubtotal] = useState<boolean>(false);
-const [hoveredSavings, setHoveredSavings] = useState<boolean>(false);
-const [hoveredTax, setHoveredTax] = useState<boolean>(false);
+// CardContent.tsx
+const { uiLogs, addLog, logsContainerRef } = useDebugLogs();
+  
+const { 
+  activeElement, 
+  setActiveElement,
+  preEditElement,
+  setPreEditElement,
+  isEditable,
+  focusElement
+} = useEditableFields();
 
-// Active element tracking
-interface ActiveElement {
-  type: 'item' | 'price' | 'discount' | 'subtotal' | 'savings' | 'tax' | null;
-  id: number | null;
-}
-const [activeElement, setActiveElement] = useState<ActiveElement>({
-  type: null,
-  id: null
-});
+const {
+  hoveredRow, setHoveredRow,
+  hoveredElement, setHoveredElement,
+  // Other hover states...
+} = useHoverStates();
 
-// Pre-edit element for hover state
-const [preEditElement, setPreEditElement] = useState<ActiveElement>({
-  type: null,
-  id: null
-});
+const {
+  isMobile,
+  mobileInteractionPhase,
+  setMobileInteractionPhase,
+  handleMobileInteraction
+} = useMobileInteraction();
 
-// Mobile interaction tracking
-type InteractionPhase = 'idle' | 'focused' | 'editing';
-const [mobileInteractionPhase, setMobileInteractionPhase] = useState<{
-  element: ActiveElement;
-  phase: InteractionPhase;
-}>({
-  element: { type: null, id: null },
-  phase: 'idle'
-});
-
-// Mobile detection
-const [isMobile, setIsMobile] = useState(false);
-
-// Content data
-const [items, setItems] = useState([...]);
-const [subtotal, setSubtotal] = useState(12.00);
-const [savings, setSavings] = useState(10.00);
-const [tax, setTax] = useState(2.00);
-
-// Calculated total
-const total = subtotal - savings + tax;
-
-// Validation state
-const [isValid, setIsValid] = useState(true);
+const {
+  items, subtotal, savings, tax, total, isValid,
+  handleItemNameChange,
+  handlePriceChange,
+  handleDiscountChange,
+  // Other handlers...
+  handleNumericInput,
+  handleNumericBlur
+} = useNumericFields(addLog);
 ```
 
 <a id="cardcontent-functions"></a>
 #### Key Functions
 
-- `handleItemNameChange(id, value)` - Updates item name when edited
-- `handlePriceChange(id, value)` - Updates item price when edited
-- `handleDiscountChange(id, value)` - Updates item discount when edited
-- `handleSubtotalChange(value)` - Updates subtotal when edited
-- `handleSavingsChange(value)` - Updates savings amount when edited
-- `handleTaxChange(value)` - Updates tax amount when edited
-- `handleContainerClick(e, type, id, className)` - Handles click events on container elements, positioning cursor properly in editable text elements
-- `focusElement(type, id, className, wasClickOnText)` - Manages focus sequence and cursor positioning for editable fields
-- `isEditable(type, id)` - Helper function that determines if a specific field should be editable
-- `addLog(message)` - Adds timestamped logs to the debug interface for development
-- `handleNumericInput(e)` - Reusable handler for real-time filtering of numeric inputs
-- `handleNumericBlur(e, fieldType, itemId)` - Reusable handler for processing numeric field values on blur
-- `restoreDOMIntegrity(container, className, value)` - Maintains DOM structure after editing numeric fields
-- `getClassNameForField(fieldType)` - Helper to get the appropriate CSS class name for different field types
+Functions are now organized between the component file and hook files:
+
+**In CardContent.tsx:**
+- `handleContainerClick(e, type, id, className)` - Handles click events on container elements
+- `handleItemNameBlur(e, id)` - Specific handler for item name blur events
+- `handleNumericFieldBlur(e, fieldType, itemId)` - Wrapper for handling numeric field blur
+
+**In CardContentHooks.ts:**
+- `useEditableFields.focusElement(type, id, className, wasClickOnText)` - Manages focus sequence
+- `useMobileInteraction.handleMobileInteraction(type, id, textElement, wasClickOnText)` - Mobile interaction
+- `useNumericFields.handleNumericInput(e)` - Real-time filtering of numeric inputs
+- `useNumericFields.handleNumericBlur(e, fieldType, currentCurrency, itemId)` - Processing numeric field values
+
+**In CardContentUtils.ts:**
+- `restoreDOMIntegrity(container, className, value, currentCurrency)` - Maintains DOM structure
+- `getClassNameForField(fieldType)` - Helper for CSS class selection
+- `copyToClipboard(text, callback)` - Clipboard handling
+
+<a id="cardcontent-hooks"></a>
+#### Hooks
+
+The component implements several custom hooks:
+
+1. **useEditableFields** - Manages editable state of fields
+2. **useHoverStates** - Manages hover state interactions
+3. **useMobileInteraction** - Manages mobile-specific interaction patterns
+4. **useNumericFields** - Manages numeric values and validation
+5. **useQuantityDropdown** - Manages the quantity selection dropdown functionality
+6. **useClipboard** - Handles clipboard operations
+7. **useDebugLogs** - Manages debug information (development only)
 
 <a id="cardcontent-css"></a>
 #### CSS Classes
@@ -451,209 +515,31 @@ The component uses a separate CSS module file (`CardContent.module.css`) that de
 <a id="cardcontent-critical"></a>
 #### Critical Implementation Details
 
-##### Mobile Two-Tap Interaction Pattern
-```typescript
-// CRITICAL: The mobile interaction system uses a two-tap pattern
-// First tap highlights element, second tap activates editing
-if (isMobile) {
-  const currentPhase = mobileInteractionPhase.phase;
-  const isCurrentElement = 
-    mobileInteractionPhase.element.type === type && 
-    mobileInteractionPhase.element.id === id;
-                             
-  if (currentPhase === 'idle' || !isCurrentElement) {
-    // CRITICAL: First tap - just highlight the element
-    setMobileInteractionPhase({ 
-      element: { type, id }, 
-      phase: 'focused' 
-    });
-    return;
-  }
-  
-  if (currentPhase === 'focused' && isCurrentElement) {
-    // CRITICAL: Second tap - activate editing mode
-    setMobileInteractionPhase({ 
-      element: { type, id }, 
-      phase: 'editing' 
-    });
-    
-    // CRITICAL: Position cursor appropriately
-    if (textElement) {
-      textElement.contentEditable = 'true';
-      textElement.focus();
-      
-      // Position cursor based on tap location
-      const range = document.createRange();
-      range.selectNodeContents(textElement);
-      range.collapse(false);
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
-  }
-}
-```
+1. **Editable Fields**:
+   - Content editability is toggled dynamically using state
+   - Field validation happens in real-time during input
+   - Focus is managed programmatically for better UX
 
-##### Focus Management with Delayed Execution
-```typescript
-// CRITICAL: Separates state update from DOM manipulation
-const focusElement = (type, id, className, wasClickOnText) => {
-  // First set the active element state
-  setActiveElement({ type, id });
-  
-  // CRITICAL: Using setTimeout ensures React has updated the DOM
-  // with the new contentEditable state before focusing
-  setTimeout(() => {
-    // Find elements using data attributes for reliability
-    const container = document.querySelector(
-      id !== null 
-        ? `[data-type="${type}"][data-id="${id}"]` 
-        : `[data-type="${type}"]`
-    );
-    
-    // CRITICAL: Find element by className with CSS modules compatibility
-    const elements = container.getElementsByClassName(className);
-    const textElement = elements.length > 0 ? elements[0] : null;
-    
-    // Focus and position cursor
-    textElement.focus();
-    
-    // CRITICAL: Only position cursor at end if not clicked directly on text
-    if (!wasClickOnText) {
-      const selection = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents(textElement);
-      range.collapse(false); // Position at end
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-  }, 0);
-};
-```
+2. **Mobile Experience**:
+   - Uses a two-tap pattern (focus → edit) for text fields
+   - Special handling for touch events
+   - Responsive design with optimized layouts for different screen sizes
 
-##### Single Active Element Management
-```typescript
-// CRITICAL: The ActiveElement interface ensures only one element is editable at a time
-interface ActiveElement {
-  type: 'item' | 'price' | 'discount' | 'subtotal' | 'savings' | 'tax' | null;
-  id: number | null; // For row-specific elements like items, prices, discounts
-}
+3. **Quantity Selection**:
+   - Unified dropdown implementation for both desktop and mobile
+   - Implementation uses the `useQuantityDropdown` hook to manage state
+   - Visual indicator shows "-" for quantity 1, and "nx" for quantities > 1
+   - Keyboard accessibility with arrow keys, enter, and space
+   - Fixed positioning with high z-index to prevent clipping issues
+   - Dynamic positioning to ensure visibility in viewport
+   - Enhanced touch targets for mobile devices
+   - Quantity changes are validated within 1-99 range
 
-// CRITICAL: When setting a new active element, this causes previous element to lose focus
-<div 
-  onClick={() => setActiveElement({ type: 'price', id: item.id })}
-  onFocus={() => setActiveElement({ type: 'price', id: item.id })}
->
-  {/* ... */}
-</div>
-
-// CRITICAL: Keyboard handling for accessibility
-onKeyDown={(e) => {
-  if (e.key === 'Enter' || e.key === 'Escape') {
-    e.preventDefault(); // CRITICAL: Prevents new line insertion on Enter
-    e.currentTarget.blur(); // CRITICAL: Unfocuses element
-  }
-}}
-```
-
-##### Number Formatting
-```typescript
-// CRITICAL: All numerical values must display with 2 decimal places
-{item.price.toFixed(2)}
-
-// CRITICAL: When editing prices, ensure proper number conversion
-const handlePriceChange = (id: number, value: string) => {
-  const numValue = parseFloat(value);
-  if (!isNaN(numValue)) { // CRITICAL: Only update if valid number
-    setItems(items.map(item => 
-      item.id === id ? { ...item, price: numValue } : item
-    ));
-  }
-};
-```
-
-##### Numeric Input Filtering and Validation
-```typescript
-// CRITICAL: Reusable handler for real-time numeric input filtering
-const handleNumericInput = (e: React.FormEvent<HTMLSpanElement>) => {
-  // Get current text
-  const el = e.currentTarget;
-  const currentText = el.textContent || '';
-  
-  // Store selection for restoration
-  const selection = window.getSelection();
-  const cursorPosition = selection?.focusOffset || 0;
-  
-  // Filter out non-numeric characters
-  const validChars = /^-?\d*\.?\d*$/;
-  if (!validChars.test(currentText)) {
-    // Remove invalid characters
-    const filteredText = currentText
-      .replace(/[^\d.-]/g, '')
-      .replace(/\.+/g, '.')
-      .replace(/^([^-]*)(-+)(.*)$/, '$1$3')
-      .replace(/^-+/, '-');
-      
-    addLog(`Filtering: "${currentText}" → "${filteredText}"`);
-    
-    // Update content
-    el.textContent = filteredText;
-    
-    // Restore cursor position (adjusted for removed characters)
-    const newPosition = Math.min(cursorPosition, filteredText.length);
-    if (selection && el.firstChild) {
-      const range = document.createRange();
-      range.setStart(el.firstChild, newPosition);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-  }
-  
-  // Always perform auto-scroll
-  el.scrollLeft = el.scrollWidth;
-}
-```
-
-##### DOM Integrity Restoration
-```typescript
-// CRITICAL: Ensures DOM structure is maintained after editing
-const restoreDOMIntegrity = (
-  container: HTMLElement,
-  className: string,
-  value: string
-) => {
-  // Find if the element still exists
-  const elements = container.getElementsByClassName(className);
-  
-  if (elements.length === 0) {
-    // If not, the DOM structure is broken - recreate it
-    addLog(`Restoring DOM structure for ${className}`);
-    
-    // Clear container
-    while (container.firstChild) {
-      container.removeChild(container.firstChild);
-    }
-    
-    // Create a new element with the correct class
-    const newElement = document.createElement('span');
-    newElement.className = className;
-    newElement.textContent = value;
-    
-    // Add it back to container
-    container.appendChild(newElement);
-    
-    return newElement;
-  } else {
-    // Element exists, just update content
-    const element = elements[0] as HTMLElement;
-    element.textContent = value;
-    return element;
-  }
-}
-```
+4. **DOM Manipulation**:
+   - Directly manipulates DOM in controlled ways for better UX
+   - Restores DOM integrity after edits
+   - Handles focus and blur events carefully
+   - Creates proper stacking contexts for z-index management
 
 <a id="cardcontent-edge-cases"></a>
 #### Edge Cases
@@ -673,10 +559,10 @@ const restoreDOMIntegrity = (
 **WARNING:** Without this robust validation and DOM restoration, invalid inputs could cause calculation errors, display issues, or render fields non-editable after the first edit.
 
 <a id="datepicker"></a>
-### DatePickerCalendar Component
+### DatePicker Component
 [↑ Back to Table of Contents](#toc)
 
-The DatePickerCalendar component provides date selection functionality with month navigation and adaptive positioning.
+The DatePicker component provides date selection functionality with month navigation and adaptive positioning.
 
 <a id="datepicker-structure"></a>
 #### Structure
@@ -1081,11 +967,45 @@ ListItem's handleCardInteractions() → checks for specific class names → cond
    - Adequate spacing between clickable elements
    - Visible focus states for accessibility
 
+### Responsive Components
+
+The application uses several techniques to ensure components work well across devices:
+
+1. **Quantity Selection**
+   - Unified dropdown approach for all devices
+   - Increased touch target sizes on mobile (min 44px)
+   - Larger font size (16px) for better readability on mobile
+   - Fixed positioning to prevent clipping issues in scrollable containers
+   - Dynamic position calculations based on viewport dimensions
+
+2. **Date Picker**
+   - Larger calendar cells on mobile
+   - Adaptive positioning based on available space
+   - Overflow scrolling when necessary
+
+3. **Currency Selector**
+   - Simplified on smaller screens
+   - Touch-optimized dropdown with larger targets
+
 <a id="decisions"></a>
 ## Implementation Decisions
 [↑ Back to Table of Contents](#toc)
 
 This section explains non-obvious technical decisions.
+
+### Three-File Component Architecture for CardContent
+
+**Choice:** Split CardContent component into three files:
+- CardContent.tsx - Main component and rendering
+- CardContentHooks.ts - Custom hooks for state management
+- CardContentUtils.ts - Pure utility functions
+
+**Reasoning:**
+1. Improved maintainability by separating concerns
+2. Better organization of related code
+3. Reduced file size and complexity
+4. Easier testing and debugging
+5. Clear separation between rendering, state management, and utilities
 
 ### Using DOM Refs with Explicit Manipulation
 
@@ -1156,7 +1076,7 @@ This section explains non-obvious technical decisions.
 - [Critical Implementation](#cardcontent-critical)
 - [Edge Cases](#cardcontent-edge-cases)
 
-### DatePickerCalendar Component
+### DatePicker Component
 - [Structure](#datepicker-structure)
 - [State Management](#datepicker-state)
 - [Key Functions](#datepicker-functions)
