@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { CurrencyItem } from '../../constants/currency-data';
+import { ReceiptItem } from '../../types/receipt';
 import { 
   getClassNameForField, 
   restoreDOMIntegrity, 
@@ -296,19 +297,51 @@ export function useDebugLogs() {
 }
 
 // Hook for numeric fields and calculations
-export function useNumericFields(addLog?: (message: string) => void) {
-  // Sample item data
-  const [items, setItems] = useState(sampleItems);
+export function useNumericFields(
+  addLog?: (message: string) => void,
+  initialItems?: ReceiptItem[],
+  initialSubtotal?: number,
+  initialSavings?: number,
+  initialTax?: number
+) {
+  // Transform API items format to internal format if provided
+  const transformedItems = initialItems ? initialItems.map((item, index) => ({
+    id: index,
+    name: item.name,
+    quantity: item.quantity || 1,
+    price: item.price,
+    discount: item.discount || 0,
+    original_price: item.original_price
+  })) : sampleItems;
+
+  // Sample item data with initialItems as fallback
+  const [items, setItems] = useState(transformedItems);
   
-  // Totals data
-  const [subtotal, setSubtotal] = useState(12.00);
-  const [savings, setSavings] = useState(10.00);
-  const [tax, setTax] = useState(2.00);
+  // Totals data with initial values from API
+  const [subtotal, setSubtotal] = useState(initialSubtotal !== undefined ? initialSubtotal : 12.00);
+  const [savings, setSavings] = useState(initialSavings !== undefined ? initialSavings : 10.00);
+  const [tax, setTax] = useState(initialTax !== undefined ? initialTax : 2.00);
   
   // Calculated total
   const total = subtotal - savings + tax;
   
-  // Status (check or error) - in a real app would be determined by validation
+  // Calculate validation status based on items and total
+  useEffect(() => {
+    // Calculate sum of items
+    const itemsTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // Check if calculated total roughly matches subtotal (accounting for rounding)
+    const isItemTotalValid = Math.abs(itemsTotal - subtotal) < 0.02;
+    
+    // Update validation status
+    setIsValid(isItemTotalValid);
+    
+    if (addLog) {
+      addLog(`Validation: calculatedTotal=${total.toFixed(2)}, itemTotal=${itemsTotal.toFixed(2)}, valid=${isItemTotalValid}`);
+    }
+  }, [items, subtotal, savings, tax, total, addLog]);
+  
+  // Status (check or error) - determined by validation
   const [isValid, setIsValid] = useState(true);
 
   // Handle editing of item names

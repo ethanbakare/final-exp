@@ -2,7 +2,49 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CURRENCY_DATA, CurrencyItem } from '../../constants/currency-data';
 import DatePickerCalendar from './DatePickerCalendar';
 import CardContent from './CardContent';
+import { useReceipt } from '../../context/ReceiptContext';
 import styles from '../../styles/Components.module.css';
+
+/* ----------------------------------------
+   ----------------------------------------
+   UTILITY FUNCTIONS
+   ----------------------------------------
+   ---------------------------------------- */
+/**
+ * Safely parses a date string in DD-MM-YYYY format
+ * @param dateStr The date string to parse
+ * @returns A valid Date object or null if invalid
+ */
+const parseDateSafely = (dateStr: string): Date | null => {
+  try {
+    const parts = dateStr.split('-');
+    
+    // Validate that we have 3 parts and they're all valid numbers
+    if (parts.length === 3) {
+      const [day, month, year] = parts.map(Number);
+      
+      // Check if any part is NaN or invalid date range
+      if (!isNaN(day) && !isNaN(month) && !isNaN(year) && 
+          day > 0 && day <= 31 && 
+          month > 0 && month <= 12 && 
+          year > 1900 && year < 2100) {
+        const date = new Date(year, month - 1, day);
+        
+        // Extra validation: check if resulting date is valid
+        // This catches edge cases like February 30th
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+      }
+    }
+    
+    console.warn(`Invalid date format: ${dateStr}`);
+    return null;
+  } catch (error) {
+    console.error("Error parsing date:", error);
+    return null;
+  }
+};
 
 /* ----------------------------------------
    ----------------------------------------
@@ -25,6 +67,9 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
   /* ----------------------------------------
      STATE MANAGEMENT - Component State
      ---------------------------------------- */
+  // Get receipt data from context
+  const { receipt } = useReceipt();
+  
   // UI logs for debugging
   const [uiLogs, setUiLogs] = useState<string[]>([]);
   
@@ -34,19 +79,45 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
   };
      
   // State for the editable title
-  const [receiptTitle, setReceiptTitle] = useState("Today's Receipt");
+  const [receiptTitle, setReceiptTitle] = useState(() => receipt?.store_name || "Today's Receipt");
   const [isTitleFocused, setIsTitleFocused] = useState(false);
   
-  // State for the date picker
-  const [selectedDate, setSelectedDate] = useState(new Date(2025, 2, 2)); // March 2, 2025
+  // State for the date picker - parse date from receipt if available
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (receipt?.date) {
+      const parsedDate = parseDateSafely(receipt.date);
+      if (parsedDate) {
+        return parsedDate;
+      }
+    }
+    return new Date(); // Use current date as fallback
+  });
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   
-  // State for the currency selector
-  const [selectedCurrencyIdentifier, setSelectedCurrencyIdentifier] = useState("United States (USD)");
-  // Store the full currency object
-  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyItem>(
-    CURRENCY_DATA.find(c => c.DisplayCountry_CurrencyCode === "United States (USD)") || CURRENCY_DATA[0]
-  );
+  // State for the currency selector - use receipt currency if available
+  const [selectedCurrencyIdentifier, setSelectedCurrencyIdentifier] = useState(() => {
+    if (receipt?.currency?.code) {
+      // Try to find the currency in CURRENCY_DATA
+      const currencyItem = CURRENCY_DATA.find(c => c.CurrencyCode === receipt.currency.code);
+      if (currencyItem) {
+        return currencyItem.DisplayCountry_CurrencyCode;
+      }
+    }
+    return "United States (USD)"; // Default fallback
+  });
+  
+  // Store the full currency object - with receipt currency if available
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyItem>(() => {
+    if (receipt?.currency?.code) {
+      // Try to find the currency in CURRENCY_DATA
+      const currencyItem = CURRENCY_DATA.find(c => c.CurrencyCode === receipt.currency.code);
+      if (currencyItem) {
+        return currencyItem;
+      }
+    }
+    return CURRENCY_DATA.find(c => c.DisplayCountry_CurrencyCode === "United States (USD)") || CURRENCY_DATA[0];
+  });
+  
   const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
   const [currencySearchTerm, setCurrencySearchTerm] = useState("");
   
@@ -64,6 +135,38 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
   const currencySelectRef = useRef<HTMLDivElement>(null);
   const currencyDropdownRef = useRef<HTMLDivElement>(null);
   const titleContentRef = useRef<HTMLDivElement>(null);
+
+  /* ----------------------------------------
+     EFFECT HOOKS - Update from Receipt Data
+     ---------------------------------------- */
+  // Update state when receipt data changes
+  useEffect(() => {
+    if (receipt) {
+      // Update store name if available
+      if (receipt.store_name) {
+        setReceiptTitle(receipt.store_name);
+      }
+      
+      // Update date if available
+      if (receipt.date) {
+        const parsedDate = parseDateSafely(receipt.date);
+        if (parsedDate) {
+          setSelectedDate(parsedDate);
+        }
+      }
+      
+      // Update currency if available
+      if (receipt.currency?.code) {
+        const currencyItem = CURRENCY_DATA.find(c => c.CurrencyCode === receipt.currency.code);
+        if (currencyItem) {
+          setSelectedCurrencyIdentifier(currencyItem.DisplayCountry_CurrencyCode);
+          setSelectedCurrency(currencyItem);
+        }
+      }
+      
+      addLog(`Receipt data loaded: ${receipt.store_name}, ${receipt.date}`);
+    }
+  }, [receipt]);
 
   /* ----------------------------------------
      EFFECT HOOKS - Dropdown Positioning
@@ -389,7 +492,13 @@ const ListItem: React.FC<ListItemProps> = ({ className = '' }) => {
       {/* ----------------------------------------
           CARD CONTENT - Items list and totals
           ---------------------------------------- */}
-      <CardContent currency={selectedCurrency} />
+      <CardContent 
+        currency={selectedCurrency} 
+        initialItems={receipt?.items} 
+        initialSubtotal={receipt?.subtotal}
+        initialSavings={receipt?.savings}
+        initialTax={receipt?.tax_and_fees} 
+      />
       
       {/* Debug logs display */}
       {uiLogs.length > 0 && (

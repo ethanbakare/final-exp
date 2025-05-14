@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import compStyles from '../../styles/Components.module.css';
 import styles from '../../styles/CardContent.module.css';
 import { CurrencyItem } from '../../constants/currency-data';
+import { ReceiptItem } from '../../types/receipt';
 import { 
   defaultCurrency,
   generateQuantityOptions
@@ -23,8 +24,11 @@ import {
    ----------------------------------------
    ---------------------------------------- */
 interface CardContentProps {
-  // This interface will be populated with props as needed in the future
   currency?: CurrencyItem; // Optional currency prop with default fallback
+  initialItems?: ReceiptItem[]; // Initial items from receipt
+  initialSubtotal?: number; // Initial subtotal from receipt
+  initialSavings?: number; // Initial savings from receipt
+  initialTax?: number; // Initial tax from receipt
 }
 
 /* ----------------------------------------
@@ -33,7 +37,13 @@ interface CardContentProps {
    ----------------------------------------
    Displays the list of purchased items and totals
    ---------------------------------------- */
-const CardContent: React.FC<CardContentProps> = ({ currency }) => {
+const CardContent: React.FC<CardContentProps> = ({ 
+  currency,
+  initialItems,
+  initialSubtotal,
+  initialSavings,
+  initialTax
+}) => {
   /* ----------------------------------------
      USE HOOKS - Component State Management
      ---------------------------------------- */
@@ -100,7 +110,7 @@ const CardContent: React.FC<CardContentProps> = ({ currency }) => {
     handleQuantityChange,
     handleNumericInput,
     handleNumericBlur
-  } = useNumericFields(addLog);
+  } = useNumericFields(addLog, initialItems, initialSubtotal, initialSavings, initialTax);
   
   // Clipboard functionality
   const { copyLogs } = useClipboard(addLog);

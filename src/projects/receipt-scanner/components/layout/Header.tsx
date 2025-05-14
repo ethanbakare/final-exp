@@ -17,6 +17,7 @@ const Header: React.FC<HeaderProps> = ({
     if (onTabChange) {
       onTabChange(tab);
     }
+    console.log(`Switched to ${tab === 'scan' ? 'Scan Receipt' : 'Speak or Type'} tab`);
   };
 
   return (
@@ -64,6 +65,7 @@ const Header: React.FC<HeaderProps> = ({
           padding: 0px;
           gap: 0px;
           width: 100%;
+          max-width: 600px;
           height: 34px;
           flex: none;
           order: 0;

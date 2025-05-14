@@ -5,12 +5,14 @@ interface TextCardProps {
   onTextChange?: (text: string) => void;
   className?: string;
   placeholder?: string;
+  showPreview?: boolean;
 }
 
 const TextCard: React.FC<TextCardProps> = ({ 
   onTextChange, 
   className = '',
-  placeholder = 'Type your message here.'
+  placeholder = 'Type your message here.',
+  showPreview = false
 }) => {
   const [text, setText] = useState('');
   
@@ -30,6 +32,16 @@ const TextCard: React.FC<TextCardProps> = ({
         placeholder={placeholder}
         className={`textarea ${styles.bodyH1}`}
       />
+      
+      {/* Preview section that shows when showPreview is true */}
+      {showPreview && text.trim() !== '' && (
+        <div className="preview-section">
+          <h3 className="preview-title">Preview</h3>
+          <div className="preview-content">
+            {text}
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .card {
@@ -43,11 +55,12 @@ const TextCard: React.FC<TextCardProps> = ({
           background: #FFFFFF;
           border-radius: 10px;
           box-sizing: border-box;
+          margin: 0 auto;
         }
         
         .textarea {
           display: flex;
-          min-height: 296px;
+          min-height: ${showPreview ? '196px' : '296px'};
           width: 100%;
           resize: none;
           border-radius: 6px;
@@ -72,6 +85,31 @@ const TextCard: React.FC<TextCardProps> = ({
         .textarea:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+        
+        .preview-section {
+          width: 100%;
+          margin-top: 16px;
+          border-top: 1px solid rgba(94, 94, 94, 0.2);
+          padding-top: 12px;
+        }
+        
+        .preview-title {
+          font-size: 16px;
+          font-weight: 500;
+          color: #5E5E5E;
+          margin-bottom: 8px;
+        }
+        
+        .preview-content {
+          width: 100%;
+          min-height: 80px;
+          padding: 12px;
+          border-radius: 6px;
+          background-color: rgba(94, 94, 94, 0.05);
+          white-space: pre-wrap;
+          word-break: break-word;
+          color: #5E5E5E;
         }
       `}</style>
     </div>

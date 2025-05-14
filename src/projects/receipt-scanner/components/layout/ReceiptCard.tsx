@@ -1,766 +1,329 @@
-import React, { useState } from 'react';
-
-interface ReceiptItem {
-  id: string;
-  quantity: string;
-  name: string;
-  price: string;
-  discount: string;
-}
+import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import styles from '../../styles/Components.module.css';
+import FilePreviewLoad from '../ui/FilePreviewLoad';
+import FilePreviewError from '../ui/FilePreviewError';
 
 interface ReceiptCardProps {
+  onFileSelect?: (file: File | null) => void;
   className?: string;
-  onValueChange?: (field: string, value: string) => void;
-  initialItems?: ReceiptItem[];
 }
 
-const ReceiptCard: React.FC<ReceiptCardProps> = ({
-  className = '',
-  onValueChange,
-  initialItems = [
-    { id: '1', quantity: '10', name: 'Coffee Beans (Premium)', price: '14.99', discount: '3.00' },
-    { id: '2', quantity: '-', name: 'Wireless Headphones', price: '14.99', discount: '3.00' },
-    { id: '3', quantity: '5', name: 'Notebook Set', price: '12.00', discount: '3.00' }
-  ]
-}) => {
-  const [items, setItems] = useState(initialItems);
-  const [storeName, setStoreName] = useState("Today's Receipt");
-  const [date, setDate] = useState("Mar 2, 2025");
-  const [currency, setCurrency] = useState("USD[$]");
-  const [subtotal, setSubtotal] = useState("12.00");
-  const [savings, setSavings] = useState("10.00");
-  const [tax, setTax] = useState("2.00");
-  const [total, setTotal] = useState("240.36");
+// Define the ref type for external control
+export interface ReceiptCardRef {
+  triggerFileSelect: () => void;
+}
 
-  const handleInputChange = (field: string, value: string) => {
-    if (onValueChange) {
-      onValueChange(field, value);
+// List of allowed file types and maximum size
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/bmp'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+interface FileValidationResult {
+  valid: boolean;
+  errorTitle?: string;
+  errorMessage?: string;
+}
+
+const ReceiptCard = forwardRef<ReceiptCardRef, ReceiptCardProps>(({ 
+  onFileSelect, 
+  className = ''
+}, ref) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'error' | 'complete'>('idle');
+  const [errorDetails, setErrorDetails] = useState<{ title: string; message: string } | null>(null);
+  const uploadStartTimeRef = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Expose methods via ref for external control
+  useImperativeHandle(ref, () => ({
+    triggerFileSelect: () => {
+      if (uploadStatus === 'idle' && fileInputRef.current) {
+        fileInputRef.current.click();
+      }
     }
-  };
-
-  const handleItemChange = (id: string, field: 'quantity' | 'name' | 'price' | 'discount', value: string) => {
-    const updatedItems = items.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    );
-    setItems(updatedItems);
+  }));
+  
+  const validateFile = (file: File): FileValidationResult => {
+    // Check file type
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      return { 
+        valid: false,
+        errorTitle: 'Invalid File Type',
+        errorMessage: 'Please upload a JPG, JPEG, PNG, or BMP image'
+      };
+    }
     
-    if (onValueChange) {
-      onValueChange(`item-${id}-${field}`, value);
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      const maxSizeMB = MAX_FILE_SIZE / (1024 * 1024);
+      const actualSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      return { 
+        valid: false,
+        errorTitle: 'File Too Large',
+        errorMessage: `Maximum size is ${maxSizeMB}MB, your file is ${actualSizeMB}MB`
+      };
+    }
+    
+    // Check for empty or corrupt files
+    if (file.size === 0) {
+      return {
+        valid: false,
+        errorTitle: 'Empty File',
+        errorMessage: 'The file appears to be empty or corrupt'
+      };
+    }
+    
+    return { valid: true };
+  };
+  
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Validate the file
+      const validation = validateFile(file);
+      
+      if (!validation.valid) {
+        setUploadStatus('error');
+        setErrorDetails({
+          title: validation.errorTitle || 'Invalid File',
+          message: validation.errorMessage || 'The selected file cannot be processed'
+        });
+        return;
+      }
+      
+      // Start upload process
+      startFileUpload(file);
+    }
+    // If no files were selected (canceled), we do nothing
+    // This maintains the current state without transitions
+  };
+  
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
+  
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+  
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    
+    const files = event.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Validate the file
+      const validation = validateFile(file);
+      
+      if (!validation.valid) {
+        setUploadStatus('error');
+        setErrorDetails({
+          title: validation.errorTitle || 'Invalid File',
+          message: validation.errorMessage || 'The selected file cannot be processed'
+        });
+        return;
+      }
+      
+      // Start upload process
+      startFileUpload(file);
     }
   };
-
+  
+  const startFileUpload = (file: File) => {
+    setSelectedFile(file);
+    setUploadStatus('uploading');
+    uploadStartTimeRef.current = Date.now();
+    
+    // Calculate real upload time based on file size (simulated)
+    // Minimum 2 seconds as required
+    const fileSize = file.size;
+    const uploadSpeed = 1024 * 1024; // 1MB per second (simulated speed)
+    const calculatedUploadTime = Math.max(2000, (fileSize / uploadSpeed) * 1000);
+    
+    // Simulate upload completion after calculated time
+    setTimeout(() => {
+      setUploadStatus('complete');
+      // Only trigger onFileSelect when upload is truly complete
+      if (onFileSelect) {
+        onFileSelect(file);
+      }
+      console.log(`Selected file: ${file.name} (${file.type}, ${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
+    }, calculatedUploadTime);
+  };
+  
+  const handleFilePreviewClose = () => {
+    setUploadStatus('idle');
+    setSelectedFile(null);
+    setErrorDetails(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    
+    // Notify parent that file was removed
+    if (onFileSelect) {
+      onFileSelect(null);
+    }
+  };
+  
+  // Format file size for display
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+  
+  const handleLabelClick = () => {
+    if (uploadStatus === 'idle' && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
   return (
-    <div className={`card ${className}`}>
-      <div className="card-header">
-        <div className="store-with-date">
-          <div className="store-name">
-            <input
-              type="text"
-              value={storeName}
-              onChange={(e) => {
-                setStoreName(e.target.value);
-                handleInputChange('storeName', e.target.value);
-              }}
-              className="store-name-input"
-            />
-          </div>
-          <div className="date-select">
-            <input
-              type="text"
-              value={date}
-              onChange={(e) => {
-                setDate(e.target.value);
-                handleInputChange('date', e.target.value);
-              }}
-              className="date-input"
-            />
-            <div className="arrow-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9L12 15L18 9" stroke="rgba(94, 94, 94, 0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-        <div className="currency-select">
-          <input
-            type="text"
-            value={currency}
-            onChange={(e) => {
-              setCurrency(e.target.value);
-              handleInputChange('currency', e.target.value);
-            }}
-            className="currency-input"
-          />
-          <div className="arrow-icon">
+    <div className={`receipt-card ${styles.container} ${className}`}>
+      <div className="outline-box-container">
+        {/* Hidden file input */}
+        <input 
+          ref={fileInputRef}
+          type="file" 
+          accept=".jpg,.jpeg,.png,.bmp" 
+          onChange={handleFileChange} 
+          style={{ display: 'none' }}
+        />
+        
+        {uploadStatus === 'idle' ? (
+          <div 
+            className={`outline-box ${isDragOver ? 'drag-over' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={handleLabelClick}
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 9L12 15L18 9" stroke="rgba(94, 94, 94, 0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <g clipPath="url(#clip0_191_445)">
+                <path d="M9 16H15V10H19L12 3L5 10H9V16ZM5 18H19V20H5V18Z" fill="#5E5E5E" fillOpacity="0.8"/>
+              </g>
+              <defs>
+                <clipPath id="clip0_191_445">
+                  <rect width="24" height="24" fill="white"/>
+                </clipPath>
+              </defs>
             </svg>
-          </div>
-        </div>
-      </div>
-
-      <div className="card-content">
-        <div className="card-list">
-          {items.map((item) => (
-            <div className="content-row" key={item.id}>
-              <div className="qty-item">
-                <div className="qty-frame">
-                  <input
-                    type="text"
-                    value={item.quantity}
-                    onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
-                    className="qty-input"
-                  />
-                  {item.quantity !== '-' && <span className="qty-x">x</span>}
-                </div>
-                <div className="item-frame">
-                  <input
-                    type="text"
-                    value={item.name}
-                    onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
-                    className="item-input"
-                  />
-                </div>
-              </div>
-              <div className="values">
-                <div className="price-frame">
-                  <span className="currency-symbol">$</span>
-                  <input
-                    type="text"
-                    value={item.price}
-                    onChange={(e) => handleItemChange(item.id, 'price', e.target.value)}
-                    className="price-input"
-                  />
-                </div>
-                <div className="discount-frame">
-                  <span className="minus">-</span>
-                  <span className="currency-symbol">$</span>
-                  <input
-                    type="text"
-                    value={item.discount}
-                    onChange={(e) => handleItemChange(item.id, 'discount', e.target.value)}
-                    className="discount-input"
-                  />
-                </div>
+            
+            <div className="text-container">
+              <div className={`primary-text ${styles.bodyH1}`}>Click to select receipt</div>
+              <div className={`secondary-text ${styles.bodyH1}`}>
+                JPG, JPEG, PNG or BMP (max {MAX_FILE_SIZE / (1024 * 1024)}MB)
               </div>
             </div>
-          ))}
-        </div>
-
-        <div className="content-final-row">
-          <div className="summary-labels">
-            <div className="sub-item-frame">
-              <span className="summary-label">Subtotal</span>
-            </div>
-            <div className="savings-item-frame">
-              <span className="summary-label savings-label">Savings</span>
-            </div>
-            <div className="tax-item-frame">
-              <span className="summary-label tax-label">Tax (Sales)</span>
+          </div>
+        ) : uploadStatus === 'uploading' || uploadStatus === 'complete' ? (
+          <div className="outline-box">
+            <div className="preview-container">
+              {selectedFile && (
+                <FilePreviewLoad 
+                  fileInfo={{
+                    name: selectedFile.name,
+                    size: formatFileSize(selectedFile.size)
+                  }}
+                  onClose={handleFilePreviewClose}
+                  simulateLoadTime={Math.max(2000, (selectedFile.size / (1024 * 1024)) * 1000)} // Min 2 seconds
+                />
+              )}
             </div>
           </div>
-          <div className="summary-values">
-            <div className="subtotal-price-frame">
-              <span className="currency-symbol">$</span>
-              <input
-                type="text"
-                value={subtotal}
-                onChange={(e) => {
-                  setSubtotal(e.target.value);
-                  handleInputChange('subtotal', e.target.value);
+        ) : uploadStatus === 'error' ? (
+          <div className="outline-box">
+            <div className="preview-container">
+              <FilePreviewError 
+                fileInfo={{
+                  name: errorDetails?.title || "Upload failed",
+                  type: errorDetails?.message || "Unsupported file format"
                 }}
-                className="subtotal-input"
-              />
-            </div>
-            <div className="saving-price-frame">
-              <span className="minus">-</span>
-              <span className="currency-symbol">$</span>
-              <input
-                type="text"
-                value={savings}
-                onChange={(e) => {
-                  setSavings(e.target.value);
-                  handleInputChange('savings', e.target.value);
-                }}
-                className="savings-input"
-              />
-            </div>
-            <div className="tax-price-frame">
-              <span className="currency-symbol">$</span>
-              <input
-                type="text"
-                value={tax}
-                onChange={(e) => {
-                  setTax(e.target.value);
-                  handleInputChange('tax', e.target.value);
-                }}
-                className="tax-input"
+                onClose={handleFilePreviewClose}
               />
             </div>
           </div>
-        </div>
-      </div>
-
-      <div className="card-total">
-        <div className="total-frame">
-          <span className="total-label">Total</span>
-        </div>
-        <div className="ms-frame">
-          <div className="error-frame">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M11.99 2C6.47 2 2 6.48 2 12C2 17.52 6.47 22 11.99 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 11.99 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20ZM11 15H13V17H11V15ZM11 7H13V13H11V7Z" fill="#FD1F1F"/>
-            </svg>
-          </div>
-          <div className="total-price-frame">
-            <span className="currency-symbol">$</span>
-            <input
-              type="text"
-              value={total}
-              onChange={(e) => {
-                setTotal(e.target.value);
-                handleInputChange('total', e.target.value);
-              }}
-              className="total-input"
-            />
-          </div>
-        </div>
+        ) : null}
       </div>
 
       <style jsx>{`
-        .card {
+        .receipt-card {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 15px 20px 24px;
+          padding: 20px;
           gap: 20px;
           width: 100%;
           max-width: 600px;
-          min-height: 350px;
+          height: 336px;
           background: #FFFFFF;
           border-radius: 10px;
           box-sizing: border-box;
+          margin: 0 auto;
         }
         
-        .card-header {
-          display: flex;
-          flex-direction: row;
-          justify-content: space-between;
-          align-items: center;
-          padding: 2px 0px;
+        .outline-box-container {
           width: 100%;
-          height: 36px;
+          height: 296px;
         }
         
-        .store-with-date {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          padding: 0px;
-          gap: 17px;
-          height: 32px;
-        }
-        
-        .store-name {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px;
-          gap: 10px;
-          height: 32px;
-        }
-        
-        .store-name-input {
-          width: 123px;
-          height: 32px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 600;
-          font-size: 16px;
-          line-height: 32px;
-          display: flex;
-          align-items: center;
-          color: #525252;
-          border: none;
-          background: transparent;
-          padding: 0;
-          outline: none;
-        }
-        
-        .date-select {
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px 8px;
-          height: 32px;
-          border-radius: 4px;
-        }
-        
-        .date-input {
-          width: 93px;
-          height: 32px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 600;
-          font-size: 16px;
-          line-height: 32px;
-          display: flex;
-          align-items: center;
-          text-align: center;
-          color: #525252;
-          border: none;
-          background: transparent;
-          padding: 0;
-          outline: none;
-        }
-        
-        .currency-select {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px 8px;
-          height: 32px;
-          border-radius: 4px;
-        }
-        
-        .currency-input {
-          width: 57px;
-          height: 32px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 600;
-          font-size: 16px;
-          line-height: 32px;
-          display: flex;
-          align-items: center;
-          text-align: center;
-          color: rgba(82, 82, 82, 0.4);
-          border: none;
-          background: transparent;
-          padding: 0;
-          outline: none;
-        }
-        
-        .arrow-icon {
-          width: 24px;
-          height: 24px;
-        }
-        
-        .card-content {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          padding: 0px;
-          gap: 10px;
-          width: 100%;
-        }
-        
-        .card-list {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          padding: 0px;
-          width: 100%;
-          min-height: 200px;
-          max-height: 292px;
-          overflow-y: auto;
-        }
-        
-        .content-row {
-          display: flex;
-          flex-direction: row;
-          justify-content: space-between;
-          align-items: flex-start;
-          padding: 0px 4px;
-          gap: 20px;
-          width: 100%;
-          min-height: 68px;
-        }
-        
-        .qty-item {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          padding: 8px 0px 0px;
-          gap: 2px;
-          flex: 1;
-        }
-        
-        .qty-frame {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px 2px;
-          width: 25px;
-          height: 13px;
-          background: rgba(15, 23, 42, 0.1);
-          border-radius: 2.18182px;
-          margin-right: 4px;
-        }
-        
-        .qty-input {
-          width: 13px;
-          height: 26px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 500;
-          font-size: 11px;
-          line-height: 25px;
-          display: flex;
-          align-items: center;
-          color: rgba(15, 23, 42, 0.4);
-          border: none;
-          background: transparent;
-          padding: 0;
-          outline: none;
-        }
-        
-        .qty-x {
-          width: 7px;
-          height: 26px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 500;
-          font-size: 11px;
-          line-height: 25px;
-          display: flex;
-          align-items: center;
-          color: rgba(15, 23, 42, 0.4);
-        }
-        
-        .item-frame {
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px 8px;
-          gap: 10px;
-          height: 24px;
-          border-radius: 3px;
-        }
-        
-        .item-input {
-          width: 100%;
-          height: 24px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 500;
-          font-size: 13.6px;
-          line-height: 24px;
-          display: flex;
-          align-items: center;
-          color: #0F172A;
-          border: none;
-          background: transparent;
-          padding: 0;
-          outline: none;
-        }
-        
-        .values {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          padding: 8px 0px 12px;
-          flex: 1;
-        }
-        
-        .price-frame {
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px 8px;
-          height: 24px;
-          border-radius: 3px;
-        }
-        
-        .currency-symbol {
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 500;
-          font-size: 13.6px;
-          line-height: 24px;
-          display: flex;
-          align-items: center;
-          text-align: right;
-          color: #0F172A;
-          margin-right: 2px;
-        }
-        
-        .price-input {
-          width: 36px;
-          height: 24px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 500;
-          font-size: 13.6px;
-          line-height: 24px;
-          display: flex;
-          align-items: center;
-          text-align: right;
-          color: #0F172A;
-          border: none;
-          background: transparent;
-          padding: 0;
-          outline: none;
-        }
-        
-        .discount-frame {
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px 8px;
-          height: 24px;
-          border-radius: 3px;
-          margin-top: 4px;
-        }
-        
-        .minus {
-          width: 6px;
-          height: 20px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 400;
-          font-size: 11.9px;
-          line-height: 20px;
-          display: flex;
-          align-items: center;
-          text-align: right;
-          color: rgba(15, 23, 40, 0.5);
-          margin-right: 2px;
-        }
-        
-        .discount-input {
-          width: 26px;
-          height: 20px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 400;
-          font-size: 11.9px;
-          line-height: 20px;
-          display: flex;
-          align-items: center;
-          text-align: right;
-          color: rgba(15, 23, 40, 0.5);
-          border: none;
-          background: transparent;
-          padding: 0;
-          outline: none;
-        }
-        
-        .content-final-row {
-          display: flex;
-          flex-direction: row;
-          justify-content: space-between;
-          align-items: flex-start;
-          padding: 0px 4px;
-          gap: 20px;
-          width: 100%;
-          height: 88px;
-          background: #FFFFFF;
-        }
-        
-        .summary-labels {
+        .outline-box {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          align-items: flex-start;
-          padding: 12px 0px 4px;
-          flex: 1;
-        }
-        
-        .sub-item-frame {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
           align-items: center;
-          padding: 0px;
+          padding: 20px 0px 0px;
           gap: 10px;
-          height: 24px;
-          border-radius: 3px;
+          width: 100%;
+          height: 100%;
+          border: 1.5px dashed rgba(94, 94, 94, 0.2);
+          border-radius: 6px;
+          cursor: pointer;
+          transition: border-color 0.2s ease;
+          box-sizing: border-box;
         }
         
-        .summary-label {
-          height: 24px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 500;
-          font-size: 13.6px;
-          line-height: 24px;
-          display: flex;
-          align-items: center;
-          color: #0F172A;
+        .outline-box.drag-over {
+          border-color: rgba(94, 94, 94, 0.5);
+          background-color: rgba(94, 94, 94, 0.05);
         }
         
-        .savings-label, .tax-label {
-          color: rgba(15, 23, 40, 0.2);
-        }
-        
-        .savings-item-frame, .tax-item-frame {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px;
-          gap: 10px;
-          height: 24px;
-          border-radius: 3px;
-          margin-top: 4px;
-        }
-        
-        .summary-values {
+        .text-container {
           display: flex;
           flex-direction: column;
-          align-items: flex-end;
-          padding: 12px 0px 4px;
-          flex: 1;
-        }
-        
-        .subtotal-price-frame, .saving-price-frame, .tax-price-frame {
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
           align-items: center;
-          padding: 0px 8px;
-          height: 24px;
-          border-radius: 3px;
-          margin-bottom: 4px;
+          padding: 0px;
+          gap: 4px;
+          margin-top: 10px;
         }
         
-        .subtotal-input, .savings-input, .tax-input {
-          width: 36px;
-          height: 24px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 500;
+        .primary-text {
+          color: rgba(94, 94, 94, 0.8);
+        }
+        
+        .secondary-text {
+          color: rgba(94, 94, 94, 0.4);
           font-size: 13.6px;
-          line-height: 24px;
-          display: flex;
-          align-items: center;
-          text-align: right;
-          border: none;
-          background: transparent;
-          padding: 0;
-          outline: none;
         }
         
-        .subtotal-input {
-          color: #0F172A;
-        }
-        
-        .savings-input, .tax-input {
-          color: rgba(15, 23, 40, 0.2);
-        }
-        
-        .card-total {
-          display: flex;
-          flex-direction: row;
-          justify-content: space-between;
-          align-items: center;
-          padding: 2px 4px;
+        .preview-container {
           width: 100%;
-          height: 36px;
-        }
-        
-        .total-frame {
+          height: 100%;
           display: flex;
-          flex-direction: row;
           justify-content: center;
           align-items: center;
-          padding: 0px;
-          gap: 10px;
-          height: 32px;
-        }
-        
-        .total-label {
-          width: 39px;
-          height: 32px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 600;
-          font-size: 16px;
-          line-height: 32px;
-          display: flex;
-          align-items: center;
-          color: #525252;
-        }
-        
-        .ms-frame {
-          display: flex;
-          flex-direction: row;
-          justify-content: flex-end;
-          align-items: center;
-          padding: 0px;
-          gap: 5px;
-          height: 32px;
-        }
-        
-        .error-frame {
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px;
-          width: 24px;
-          height: 24px;
-          border-radius: 4px;
-        }
-        
-        .total-price-frame {
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-          align-items: center;
-          padding: 0px 8px;
-          height: 32px;
-          border-radius: 4px;
-        }
-        
-        .total-input {
-          width: 56px;
-          height: 32px;
-          font-family: 'Inter';
-          font-style: normal;
-          font-weight: 600;
-          font-size: 16px;
-          line-height: 32px;
-          display: flex;
-          align-items: center;
-          text-align: right;
-          color: #525252;
-          border: none;
-          background: transparent;
-          padding: 0;
-          outline: none;
-        }
-        
-        /* Focus styles for editable elements */
-        input:focus {
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35);
-          border-radius: 3px;
-        }
-        
-        /* Editable field hover style */
-        .store-name-input:hover, .date-input:hover, .currency-input:hover,
-        .qty-input:hover, .item-input:hover, .price-input:hover, .discount-input:hover,
-        .subtotal-input:hover, .savings-input:hover, .tax-input:hover, .total-input:hover {
-          background-color: rgba(148, 163, 184, 0.05);
-          border-radius: 3px;
         }
       `}</style>
     </div>
   );
-};
+});
 
-export default ReceiptCard; 
+// Add displayName for the component
+ReceiptCard.displayName = 'ReceiptCard';
+
+export default ReceiptCard;

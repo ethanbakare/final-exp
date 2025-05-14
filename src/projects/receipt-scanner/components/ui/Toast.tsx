@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 export type ToastType = 'success' | 'warning' | 'error' | 'file';
 
@@ -32,28 +32,103 @@ const Toast: React.FC<ToastProps> = ({
   autoCloseTime = 5000
 }) => {
   const [visible, setVisible] = useState(true);
-
+  const [timeRemaining, setTimeRemaining] = useState(autoCloseTime);
+  const [isPaused, setIsPaused] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(Date.now());
+  const animationFrameRef = useRef<number | null>(null);
+  
   const handleClose = useCallback(() => {
     setVisible(false);
     if (onClose) onClose();
+    
+    // Clean up any pending animations
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
   }, [onClose]);
 
+  // Handle auto-close animation
   useEffect(() => {
-    if (autoClose) {
-      const timer = setTimeout(() => {
-        handleClose();
-      }, autoCloseTime);
+    if (!autoClose || !visible) return;
+    
+    startTimeRef.current = Date.now();
+    
+    const updateProgress = () => {
+      if (isPaused) {
+        // If paused, just request the next frame without updating
+        animationFrameRef.current = requestAnimationFrame(updateProgress);
+        return;
+      }
       
-      return () => clearTimeout(timer);
+      const elapsed = Date.now() - startTimeRef.current;
+      const remaining = Math.max(0, autoCloseTime - elapsed);
+      setTimeRemaining(remaining);
+      
+      // Continue animation if not yet complete
+      if (remaining > 0) {
+        animationFrameRef.current = requestAnimationFrame(updateProgress);
+      }
+    };
+    
+    // Start the animation
+    animationFrameRef.current = requestAnimationFrame(updateProgress);
+    
+    // Set timeout for actual closing
+    timeoutRef.current = setTimeout(() => {
+      if (!isPaused) {
+        handleClose();
+      }
+    }, autoCloseTime);
+    
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [autoClose, autoCloseTime, handleClose, visible, isPaused]);
+  
+  // Pause timer on hover for non-error toasts
+  const handleMouseEnter = () => {
+    if (autoClose && type !== 'error') {
+      setIsPaused(true);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     }
-  }, [autoClose, autoCloseTime, handleClose]);
+  };
+  
+  const handleMouseLeave = () => {
+    if (autoClose && type !== 'error' && isPaused) {
+      setIsPaused(false);
+      // Reset the timer with remaining time
+      const remainingTime = timeRemaining;
+      startTimeRef.current = Date.now() - (autoCloseTime - remainingTime);
+      
+      // Set new timeout for closing
+      timeoutRef.current = setTimeout(() => {
+        handleClose();
+      }, remainingTime);
+    }
+  };
 
   if (!visible) return null;
+
+  // Calculate progress percentage for the timer
+  const progressPercent = autoClose ? (timeRemaining / autoCloseTime) * 100 : 0;
 
   // Render file upload toast
   if (type === 'file' && fileInfo) {
     return (
-      <div className="file-upload">
+      <div 
+        className="file-upload"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
         <div className="file-icon-container">
           <div className="file-icon">
             <svg width="16" height="21" viewBox="0 0 16 21" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -70,6 +145,14 @@ const Toast: React.FC<ToastProps> = ({
             <path d="M10 0.5C4.47 0.5 0 4.97 0 10.5C0 16.03 4.47 20.5 10 20.5C15.53 20.5 20 16.03 20 10.5C20 4.97 15.53 0.5 10 0.5ZM15 14.09L13.59 15.5L10 11.91L6.41 15.5L5 14.09L8.59 10.5L5 6.91L6.41 5.5L10 9.09L13.59 5.5L15 6.91L11.41 10.5L15 14.09Z" fill="#5E5E5E" fillOpacity="0.6"/>
           </svg>
         </div>
+        {autoClose && (
+          <div className="progress-container">
+            <div 
+              className="progress-bar" 
+              style={{ width: `${progressPercent}%` }}
+            ></div>
+          </div>
+        )}
         <style jsx>{`
           .file-upload {
             display: grid;
@@ -166,6 +249,24 @@ const Toast: React.FC<ToastProps> = ({
             fill: #D45959 !important;
             fillOpacity: 1 !important;
           }
+          
+          .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: rgba(94, 94, 94, 0.1);
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            overflow: hidden;
+          }
+          
+          .progress-bar {
+            height: 100%;
+            background-color: #7B61FF;
+            transition: width 0.1s linear;
+          }
         `}</style>
       </div>
     );
@@ -173,7 +274,11 @@ const Toast: React.FC<ToastProps> = ({
 
   // Render standard toast types (success, warning, error)
   return (
-    <div className={`toast toast-${type}`}>
+    <div 
+      className={`toast toast-${type}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="toast-content">
         <div className="toast-icon">
           {type === 'success' && (
@@ -210,6 +315,14 @@ const Toast: React.FC<ToastProps> = ({
           </svg>
         </div>
       </div>
+      {autoClose && (
+        <div className="progress-container">
+          <div 
+            className={`progress-bar progress-${type}`} 
+            style={{ width: `${progressPercent}%` }}
+          ></div>
+        </div>
+      )}
       <style jsx>{`
         .toast {
           width: 261px;
@@ -251,8 +364,9 @@ const Toast: React.FC<ToastProps> = ({
         
         .toast-title {
           font-weight: 500;
-          font-size: 16px;
+          font-size: 15px;
           line-height: 24px;
+          color: #5E5E5E;
         }
         
         .toast-message {
@@ -263,60 +377,76 @@ const Toast: React.FC<ToastProps> = ({
         }
         
         .toast-action {
-          font-weight: 400;
-          font-size: 13.6px;
-          line-height: 17px;
-          color: rgba(94, 94, 94, 0.4);
-          margin-top: 8px;
-          cursor: pointer;
           display: flex;
           align-items: center;
           gap: 4px;
-          text-decoration: none;
-          transition: text-decoration 0.3s ease-in;
-        }
-        
-        .toast-action:hover {
-          text-decoration: underline;
+          margin-top: 8px;
+          font-weight: 500;
+          font-size: 13.6px;
+          color: #5E5E5E;
+          cursor: pointer;
         }
         
         .toast-action svg {
           width: 16px;
           height: 16px;
-          opacity: 0.4;
         }
         
         .toast-close {
-          position: absolute;
           width: 24px;
           height: 24px;
-          right: 12px;
-          top: 12px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
+          flex-shrink: 0;
           cursor: pointer;
+          padding: 4px;
+          box-sizing: border-box;
         }
         
         .toast-close svg {
-          width: 16px;
-          height: 16px;
-          opacity: 0.4;
+          width: 100%;
+          height: 100%;
         }
         
-        /* Success toast styling */
-        .toast-success .toast-title {
-          color: #2D5329;
+        .progress-container {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 3px;
+          background-color: rgba(94, 94, 94, 0.1);
+          border-bottom-left-radius: 8px;
+          border-bottom-right-radius: 8px;
+          overflow: hidden;
         }
         
-        /* Warning toast styling */
-        .toast-warning .toast-title {
-          color: #9B6D00;
+        .progress-bar {
+          height: 100%;
+          transition: width 0.1s linear;
         }
         
-        /* Error toast styling */
-        .toast-error .toast-title {
-          color: #B42318;
+        .progress-success {
+          background-color: #34CD23;
+        }
+        
+        .progress-warning {
+          background-color: #F8AC07;
+        }
+        
+        .progress-error {
+          background-color: #C4102B;
+        }
+        
+        .progress-file {
+          background-color: #7B61FF;
+        }
+        
+        /* Add a subtle hover effect for non-error toasts */
+        .toast:not(.toast-error):hover {
+          box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Add a stronger attention-getting effect for error toasts */
+        .toast-error {
+          border-left: 4px solid #C4102B;
         }
       `}</style>
     </div>

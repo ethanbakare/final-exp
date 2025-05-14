@@ -27,6 +27,7 @@
     "sanity": "^3.83.0"
   },
   "devDependencies": {
+    "@types/formidable": "^3.4.5",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",

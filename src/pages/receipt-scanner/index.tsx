@@ -1,5 +1,10 @@
-import ReceiptScannerHome from '@/projects/receipt-scanner/components/pages/ReceiptScannerHome';
+import React from 'react';
+import RDemo from '@/projects/receipt-scanner/components/RDemo';
 
-export default function ReceiptScannerPage() {
-  return <ReceiptScannerHome />;
+export default function ReceiptScanner() {
+  return (
+    <>
+      <RDemo />
+    </>
+  );
 }

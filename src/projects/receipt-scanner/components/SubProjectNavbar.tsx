@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from '../styles/HomePage.module.css';
-import { useSectionLoading } from '@/hooks/useSectionLoading';
-import Image from 'next/image';
 import Link from 'next/link';
 
 // ----------------------------------------
@@ -28,7 +25,7 @@ const MenuItem = React.forwardRef<HTMLAnchorElement, MenuItemProps>(
           onMouseLeave={() => setIsHovered(false)}
           {...props}
         >
-          <div className={`menu-item-content ${styles.InterMedium14_H1}`}>
+          <div className="menu-item-content">
             {children}
           </div>
           {active && <div className="active-background"></div>}
@@ -52,7 +49,7 @@ const MenuItem = React.forwardRef<HTMLAnchorElement, MenuItemProps>(
             transform: translateX(-50%);
             width: 60%;
             height: 2px;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(82, 82, 82, 0.1);
             opacity: ${isHovered && !active ? '1' : '0'};
             transition: opacity 0.2s ease;
           }
@@ -63,7 +60,10 @@ const MenuItem = React.forwardRef<HTMLAnchorElement, MenuItemProps>(
             justify-content: center;
             padding: 0 12px;
             height: 100%;
-            color: white;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #525252;
             opacity: ${active ? '1' : '0.65'};
             text-decoration: none;
             z-index: 2;
@@ -80,7 +80,7 @@ const MenuItem = React.forwardRef<HTMLAnchorElement, MenuItemProps>(
             left: 0;
             right: 0;
             bottom: -6px;
-            background-color: rgba(255, 255, 255, 0.05);
+            background-color: rgba(82, 82, 82, 0.05);
             z-index: 1;
             border-radius: 8px;
           }
@@ -92,13 +92,10 @@ const MenuItem = React.forwardRef<HTMLAnchorElement, MenuItemProps>(
 MenuItem.displayName = "MenuItem";
 
 // ----------------------------------------
-// MAIN NAVBAR COMPONENT
+// SUBPROJECT NAVBAR COMPONENT
 // ----------------------------------------
-const MainNavBar: React.FC = () => {
-  // ----------------------------------------
-  // STATE MANAGEMENT
-  // ----------------------------------------
-  const [activeSection, setActiveSection] = useState('home');
+const SubProjectNavbar: React.FC = () => {
+  const [activeSection, setActiveSection] = useState('section1');
   const [windowWidth, setWindowWidth] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMenuClosing, setIsMenuClosing] = useState(false);
@@ -106,89 +103,12 @@ const MainNavBar: React.FC = () => {
   const navRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   
-  // Report loading status to LoadingContext
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { isLoaded } = useSectionLoading('MainNavBar', [true]);
-  
   // Client-side detection effect
   useEffect(() => {
     setIsClient(true);
     setWindowWidth(window.innerWidth);
   }, []);
   
-  // ----------------------------------------
-  // SCROLL TRACKING EFFECT
-  // ----------------------------------------
-  useEffect(() => {
-    const handleScroll = () => {
-      // Get all main sections to determine which one is in view
-      const sections = {
-        home: document.getElementById('home')?.offsetTop || 0,
-        tryDemos: document.getElementById('completed-projects')?.offsetTop || 0,
-        thisWeek: document.getElementById('this-week')?.offsetTop || 0,
-        pickNext: document.getElementById('whats-next')?.offsetTop || 0,
-        rules: document.getElementById('rules')?.offsetTop || 0,
-        about: document.getElementById('about')?.offsetTop || 0
-      };
-      
-      // Add a buffer to make the detection a bit more forgiving
-      const buffer = 200;
-      const scrollPosition = window.scrollY + buffer;
-      
-      // Determine active section based on scroll position
-      if (scrollPosition < sections.tryDemos) {
-        setActiveSection('home');
-      } else if (scrollPosition < sections.thisWeek) {
-        setActiveSection('tryDemos');
-      } else if (scrollPosition < sections.pickNext) {
-        setActiveSection('thisWeek');
-      } else if (scrollPosition < sections.rules) {
-        setActiveSection('pickNext');
-      } else if (scrollPosition < sections.about) {
-        setActiveSection('rules');
-      } else {
-        setActiveSection('about');
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    
-    // Set up section IDs if they don't exist
-    if (!document.getElementById('home')) {
-      const heroSection = document.querySelector('.hero_banner');
-      if (heroSection) heroSection.id = 'home';
-    }
-    
-    if (!document.getElementById('completed-projects')) {
-      const completedSection = document.querySelector('.completed_build_body');
-      if (completedSection) completedSection.id = 'completed-projects';
-    }
-
-    if (!document.getElementById('this-week')) {
-      const thisWeekSection = document.querySelector('.project_body');
-      if (thisWeekSection) thisWeekSection.id = 'this-week';
-    }
-    
-    if (!document.getElementById('whats-next')) {
-      const nextBuildSection = document.querySelector('.project_body .list_section_container');
-      if (nextBuildSection) nextBuildSection.id = 'whats-next';
-    }
-    
-    if (!document.getElementById('rules')) {
-      const rulesSection = document.querySelector('.rulesabout_body .experiment_container');
-      if (rulesSection) rulesSection.id = 'rules';
-    }
-    
-    if (!document.getElementById('about')) {
-      const aboutSection = document.querySelector('.rulesabout_body .about_container');
-      if (aboutSection) aboutSection.id = 'about';
-    }
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
   // ----------------------------------------
   // WINDOW RESIZE EFFECT
   // ----------------------------------------
@@ -205,42 +125,11 @@ const MainNavBar: React.FC = () => {
     };
   }, []);
 
-  // ----------------------------------------
-  // SMOOTH SCROLL FUNCTION
-  // ----------------------------------------
+  // Dummy section navigation - can be expanded later
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
     e.preventDefault();
-    
-    const targetSection = document.getElementById(sectionId);
-    if (!targetSection) return;
-    
-    const startPosition = window.pageYOffset;
-    const targetPosition = targetSection.getBoundingClientRect().top + startPosition;
-    const distance = targetPosition - startPosition;
-    const duration = 1000; // ms
-    let startTime: number | null = null;
-    
-    // Easing function for smooth acceleration and deceleration
-    const easeInOutCubic = (t: number): number => {
-      return t < 0.5 
-        ? 4 * t * t * t 
-        : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    };
-    
-    const animateScroll = (currentTime: number) => {
-      if (startTime === null) startTime = currentTime;
-      const timeElapsed = currentTime - startTime;
-      const progress = Math.min(timeElapsed / duration, 1);
-      const easeProgress = easeInOutCubic(progress);
-      
-      window.scrollTo(0, startPosition + distance * easeProgress);
-      
-      if (timeElapsed < duration) {
-        requestAnimationFrame(animateScroll);
-      }
-    };
-    
-    requestAnimationFrame(animateScroll);
+    setActiveSection(sectionId);
+    // Actual scrolling functionality can be added here when sections exist
   };
 
   // Toggle mobile menu
@@ -297,11 +186,6 @@ const MainNavBar: React.FC = () => {
     }, 300);
   };
 
-  // Handle external navigation
-  const handleExternalNavigation = () => {
-    // Don't need to preventDefault here as we want normal navigation to happen
-  };
-
   // ----------------------------------------
   // COMPONENT RENDER
   // ----------------------------------------
@@ -310,79 +194,54 @@ const MainNavBar: React.FC = () => {
       <div className="navbar">
         <div className="navbar-content">
           <div className="navbar-left">
-            {/* Logo */}
-            <div 
-              className="logo-container focus-visible-only" 
-              onClick={(e) => {
-                scrollToSection(e as unknown as React.MouseEvent<HTMLAnchorElement>, 'about');
-                // Remove focus after click
-                (e.target as HTMLElement).blur();
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label="Scroll to About section"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  scrollToSection(e as unknown as React.MouseEvent<HTMLAnchorElement>, 'about');
-                }
-              }}
-            >
-              <Image 
-                src="/images/portrait.png" 
-                alt="Profile" 
-                className="logo-image"
-                width={33}
-                height={33}
-                style={{ borderRadius: '50%' }}
-              />
-            </div>
+            {/* Back to Home Link */}
+            <Link href="/" passHref legacyBehavior>
+              <a className="back-home-link">
+                <div className="back-icon">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 8H1M1 8L8 15M1 8L8 1" stroke="#525252" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <span>Back to Home</span>
+              </a>
+            </Link>
 
             {/* Desktop Navigation */}
             <nav className={isClient && windowWidth <= 768 ? 'subnavbar-main hidden' : 'subnavbar-main'}>
               <MenuItem 
-                href="#home" 
-                active={activeSection === 'home'} 
-                onClick={(e) => scrollToSection(e, 'home')}
+                href="#section1" 
+                active={activeSection === 'section1'} 
+                onClick={(e) => scrollToSection(e, 'section1')}
               >
-                Home
-              </MenuItem>
-              <Link href="/receipt-scanner" passHref legacyBehavior>
-                <MenuItem 
-                  href="/receipt-scanner"
-                  active={activeSection === 'tryDemos'} 
-                  onClick={handleExternalNavigation}
-                >
-                  Try Demos
-                </MenuItem>
-              </Link>
-              <MenuItem 
-                href="#this-week" 
-                active={activeSection === 'thisWeek'} 
-                onClick={(e) => scrollToSection(e, 'this-week')}
-              >
-                This Week
+                Section 1
               </MenuItem>
               <MenuItem 
-                href="#whats-next" 
-                active={activeSection === 'pickNext'} 
-                onClick={(e) => scrollToSection(e, 'whats-next')}
+                href="#section2" 
+                active={activeSection === 'section2'} 
+                onClick={(e) => scrollToSection(e, 'section2')}
               >
-                Pick Next Build
+                Section 2
               </MenuItem>
               <MenuItem 
-                href="#rules" 
-                active={activeSection === 'rules'} 
-                onClick={(e) => scrollToSection(e, 'rules')}
+                href="#section3" 
+                active={activeSection === 'section3'} 
+                onClick={(e) => scrollToSection(e, 'section3')}
               >
-                Rules
+                Section 3
               </MenuItem>
               <MenuItem 
-                href="#about" 
-                active={activeSection === 'about'} 
-                onClick={(e) => scrollToSection(e, 'about')}
+                href="#section4" 
+                active={activeSection === 'section4'} 
+                onClick={(e) => scrollToSection(e, 'section4')}
               >
-                About
+                Section 4
+              </MenuItem>
+              <MenuItem 
+                href="#section5" 
+                active={activeSection === 'section5'} 
+                onClick={(e) => scrollToSection(e, 'section5')}
+              >
+                Section 5
               </MenuItem>
             </nav>
           </div>
@@ -393,7 +252,7 @@ const MainNavBar: React.FC = () => {
               href="mailto:iamethanbakare@gmail.com"
               className={`subnavbar-contact ${isClient && windowWidth <= 768 ? 'mobile' : ''}`}
             >
-              <span className={styles.InterMedium14_H1}>Contact</span>
+              <span>Contact</span>
             </a>
             
             {/* Mobile Hamburger Button */}
@@ -420,48 +279,39 @@ const MainNavBar: React.FC = () => {
           >
             <nav className="mobile-menu">
               <MenuItem 
-                href="#home" 
-                active={activeSection === 'home'} 
-                onClick={(e) => handleMobileMenuItemClick(e, 'home')}
+                href="#section1" 
+                active={activeSection === 'section1'} 
+                onClick={(e) => handleMobileMenuItemClick(e, 'section1')}
               >
-                Home
-              </MenuItem>
-              <Link href="/receipt-scanner" passHref legacyBehavior>
-                <MenuItem 
-                  href="/receipt-scanner"
-                  active={activeSection === 'tryDemos'}
-                  onClick={handleExternalNavigation}
-                >
-                  Try Demos
-                </MenuItem>
-              </Link>
-              <MenuItem 
-                href="#this-week" 
-                active={activeSection === 'thisWeek'} 
-                onClick={(e) => handleMobileMenuItemClick(e, 'this-week')}
-              >
-                This Week
+                Section 1
               </MenuItem>
               <MenuItem 
-                href="#whats-next" 
-                active={activeSection === 'pickNext'} 
-                onClick={(e) => handleMobileMenuItemClick(e, 'whats-next')}
+                href="#section2" 
+                active={activeSection === 'section2'} 
+                onClick={(e) => handleMobileMenuItemClick(e, 'section2')}
               >
-                Pick Next Build
+                Section 2
               </MenuItem>
               <MenuItem 
-                href="#rules" 
-                active={activeSection === 'rules'} 
-                onClick={(e) => handleMobileMenuItemClick(e, 'rules')}
+                href="#section3" 
+                active={activeSection === 'section3'} 
+                onClick={(e) => handleMobileMenuItemClick(e, 'section3')}
               >
-                Rules
+                Section 3
               </MenuItem>
               <MenuItem 
-                href="#about" 
-                active={activeSection === 'about'} 
-                onClick={(e) => handleMobileMenuItemClick(e, 'about')}
+                href="#section4" 
+                active={activeSection === 'section4'} 
+                onClick={(e) => handleMobileMenuItemClick(e, 'section4')}
               >
-                About
+                Section 4
+              </MenuItem>
+              <MenuItem 
+                href="#section5" 
+                active={activeSection === 'section5'} 
+                onClick={(e) => handleMobileMenuItemClick(e, 'section5')}
+              >
+                Section 5
               </MenuItem>
             </nav>
           </div>
@@ -486,7 +336,28 @@ const MainNavBar: React.FC = () => {
           transform: translateX(-50%);
           z-index: 10;
           padding: 10px 0px 20px 0px;
-          background: #141414;  /* Fallback */
+          background: rgba(248, 246, 240, 0.9);  /* Fallback for browsers without blur support */
+        }
+
+        .navbar::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          mask-image: linear-gradient(
+            to bottom,
+            black 0%,
+            black 70%,
+            transparent 100%
+          );
+          -webkit-mask-image: linear-gradient(
+            to bottom,
+            black 0%,
+            black 70%,
+            transparent 100%
+          );
+          z-index: -1;
         }
 
         /* Container for flexible layout */
@@ -510,39 +381,31 @@ const MainNavBar: React.FC = () => {
           align-items: center;
         }
 
-        /* Logo container and image styles */
-        .logo-container {
+        /* Back to home link styles */
+        .back-home-link {
           display: flex;
           align-items: center;
           justify-content: center;
+          gap: 8px;
           height: 33px;
-          width: 33px;
           margin-right: 32px;
-          overflow: hidden;
           cursor: pointer;
-          transition: transform 0.2s ease;
+          transition: opacity 0.2s ease;
+          text-decoration: none;
+          color: #525252;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 14px;
+          font-weight: 500;
         }
 
-        .logo-container:hover {
-          transform: scale(1.05);
+        .back-home-link:hover {
+          opacity: 0.8;
         }
 
-        /* Only show focus styles when using keyboard navigation */
-        .focus-visible-only:focus:not(:focus-visible) {
-          outline: none;
-        }
-
-        .focus-visible-only:focus-visible {
-          outline: 2px solid rgba(255, 255, 255, 0.3);
-          outline-offset: 2px;
-        }
-        
-        .logo-image {
-          height: 100%;
-          width: 100%;
-          object-fit: cover;
-          border-radius: 50%;
-          border: 0px solid rgba(255, 255, 255, 0.1);
+        .back-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         /* Main navigation styles */
@@ -564,18 +427,21 @@ const MainNavBar: React.FC = () => {
           align-items: center;
           justify-content: center;
           border-radius: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background-color: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(82, 82, 82, 0.1);
+          background-color: rgba(82, 82, 82, 0.05);
           padding: 4px 12px;
           height: 38px;
-          color: var(--WhiteOpacity);
+          color: #525252;
           text-decoration: none;
           transition: background-color 0.2s ease;
           cursor: pointer;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 14px;
+          font-weight: 500;
         }
 
         .subnavbar-contact:hover {
-          background-color: rgba(255, 255, 255, 0.2);
+          background-color: rgba(82, 82, 82, 0.1);
         }
 
         /* Hamburger button styles */
@@ -588,25 +454,25 @@ const MainNavBar: React.FC = () => {
           width: 38px;
           height: 38px;
           background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0); /* Transparent border initially */
-          background-color: rgba(255, 255, 255, 0);
+          border: 1px solid rgba(82, 82, 82, 0); /* Transparent border initially */
+          background-color: rgba(82, 82, 82, 0);
           border-radius: 8px;
           cursor: pointer;
           margin-left: 10px;
           margin-right: 0;
-          transition: border-color 0.3s ease; /* Transition only the border color */
+          transition: border-color 0.3s ease;
         }
 
         /* Add border when expanded */
         .hamburger-button[aria-expanded="true"] {
-          border-color: rgba(255, 255, 255, 0.1); /* Only change the color, not the border itself */
-          background-color: rgba(255, 255, 255, 0.05);
+          border-color: rgba(82, 82, 82, 0.1);
+          background-color: rgba(82, 82, 82, 0.05);
         }
 
         .hamburger-line {
           width: 18px;
           height: 2px;
-          background-color: white;
+          background-color: #525252;
           border-radius: 4px;
           transition: all 0.3s ease;
         }
@@ -623,12 +489,12 @@ const MainNavBar: React.FC = () => {
         /* Mobile dropdown styles */
         .mobile-dropdown {
           position: absolute;
-          top: 70px; /* Position below the navbar */
-          right: 10px; /* Position from the right with margin */
-          left: auto; /* Remove left positioning */
+          top: 70px;
+          right: 10px;
+          left: auto;
           width: 60%;
-          background-color: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background-color: rgba(248, 246, 240, 0.95);
+          border: 1px solid rgba(82, 82, 82, 0.05);
           border-radius: 10px;
           z-index: 20;
           overflow: hidden;
@@ -676,21 +542,29 @@ const MainNavBar: React.FC = () => {
         }
 
         /* Mobile styles */
-        .subnavbar-main.mobile,
-        .subnavbar-contact.mobile {
-          flex-wrap: wrap;
-          justify-content: center;
-          padding: 4px 8px;
-        }
+        @media (max-width: 768px) {
+          .back-home-link {
+            margin-right: 16px;
+          }
+          
+          .navbar-content {
+            flex-direction: row;
+            align-items: center;
+          }
 
+          .subnavbar-contact {
+            margin-left: 0;
+          }
+        }
+        
         /* Modern browsers - gradient blur effect */
         @supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
           .navbar {
             background: linear-gradient(
               to bottom,
-              rgba(20, 20, 20, 0.1) 0%,
-              rgba(20, 20, 20, 0.1) 70%,
-              rgba(20, 20, 20, 0) 100%
+              rgba(248, 246, 240, 0.1) 0%,
+              rgba(248, 246, 240, 0.1) 70%,
+              rgba(248, 246, 240, 0) 100%
             );
           }
 
@@ -715,21 +589,9 @@ const MainNavBar: React.FC = () => {
             z-index: -1;
           }
         }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-          .navbar-content {
-            flex-direction: row;
-            align-items: center;
-          }
-
-          .subnavbar-contact {
-            margin-left: 0;
-          }
-        }
       `}</style>
     </div>
   );
 };
 
-export default MainNavBar; 
+export default SubProjectNavbar; 
