@@ -29,6 +29,9 @@
       ],
       "@reading-practice/*": [
         "./src/projects/reading-practice/*"
+      ],
+      "@ai-confidence-tracker/*": [
+        "./src/projects/ai-confidence-tracker/*"
       ]
     },
     "plugins": [

@@ -43,6 +43,7 @@
   "workspaces": [
     "src/projects/dictate",
     "src/projects/reading-practice",
-    "src/projects/receipt-scanner"
+    "src/projects/receipt-scanner",
+    "src/projects/ai-confidence-tracker"
   ]
 }

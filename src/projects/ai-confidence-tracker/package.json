@@ -1,0 +1,14 @@
+{
+  "name": "@master-exp/ai-confidence-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Speech recognition confidence visualization tool",
+  "main": "index.js",
+  "dependencies": {
+    "@deepgram/sdk": "^2.4.0",
+    "formidable": "^3.5.4"
+  },
+  "devDependencies": {
+    "@types/formidable": "^3.4.5"
+  }
+}
