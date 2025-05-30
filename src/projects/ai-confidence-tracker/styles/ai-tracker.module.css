@@ -1,0 +1,607 @@
+/* Simplify to just set background color */
+.darkBackground {
+    background-color: #141414;
+  }
+  
+/* Font Face Declarations */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Regular.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Medium.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Semibold.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Semibold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Bold.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/fonts/OpenSans/OpenSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/fonts/OpenSans/OpenSans-Italic.woff2') format('woff2'),
+       url('/fonts/OpenSans/OpenSans-Italic.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/fonts/OpenSans/OpenSans-BoldItalic.woff') format('woff');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Color Variables Container */
+.container {
+    /* Base Colors */
+    --secondary: #1E293B;
+    --secondary05: rgba(15, 23, 42, 0.05);
+    --secondary03: rgba(15, 23, 42, 0.03);
+    --secondary01: rgba(15, 23, 42, 0.01);
+    --secondary03: rgba(15, 23, 42, 0.03);
+    --MediumCon: #F59E0B;
+    --LowCon: #EF4444;
+    --HighCon: #22C55E;
+    --MediumConDot: rgba(245, 159, 11, 0.7);
+    --LowConDot: rgba(239, 68, 68, 0.7);
+    --HighConDot: rgba(34, 197, 94, 0.7);
+    --MediumConBg: #FFEDD5;
+    --LowConBg: #FEE2E2;
+    --HighConBg: #DCFCE7;
+    --MediumLegendText: rgba(94, 61, 4, 0.6);
+    --LowLegendText: rgba(94, 6, 6, 0.6);
+    --BaseWhite: #FFFFFF;
+    --BaseWhite_70: rgba(255, 255, 255, 0.7);
+    --BaseWhite_90: rgba(255, 255, 255, 0.9);
+    --RecordingButtonBg: #FECACA;
+    --MainBoxBg: #FAFAFA;
+    --MainBoxDrawerBg: #FCFCFC;
+    --MainBoxOutline: #F2F2F2;
+    
+    /* Dark Grey Variations */
+    --darkGrey: #5E5E5E;
+    --darkGrey80: rgba(94, 94, 94, 0.8);
+    --darkGrey60: rgba(94, 94, 94, 0.6);
+    --darkGrey40: rgba(94, 94, 94, 0.4);
+    --darkGrey50: rgba(94, 94, 94, 0.5);
+    --darkGrey30: rgba(94, 94, 94, 0.3);
+    --darkGrey20: rgba(94, 94, 94, 0.2);
+    --darkGrey10: rgba(94, 94, 94, 0.1);
+    --darkGrey08: rgba(94, 94, 94, 0.08);
+    --darkGrey06: rgba(94, 94, 94, 0.06);
+    --darkGrey05: rgba(94, 94, 94, 0.05);
+  }
+
+  
+  
+  
+  /* Typography Styles as classes */
+  .FrankRuhlLibre64 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 64px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -2px;
+    line-height: 93.8%;
+  }
+  
+  .FrankRuhlLibre48 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 48px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -2px;
+    line-height: 93.8%;
+  }
+  
+  .FrankRuhlLibre32 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 32px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -2px;
+    line-height: 93.8%;
+  }
+  
+  .FrankRuhlLibre24 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 24px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -2px;
+    line-height: 93.8%;
+  }
+  
+  .InterRegular28 {
+    font-family: 'Inter', sans-serif;
+    font-size: 28px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -1px;
+    line-height: 143.8%;
+  }
+  
+  .InterMedium28 {
+    font-family: 'Inter', sans-serif;
+    font-size: 28px;
+    font-weight: 500; /* Medium */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular26 {
+    font-family: 'Inter', sans-serif;
+    font-size: 26px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -1px;
+    line-height: normal;
+  }
+  
+  .InterRegular24 {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular24_H1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterMedium24_H1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 500; /* Medium */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular20 {
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular20_H1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular20_H1_SemiBold {
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 600; /* Semi-Bold */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular18 {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular18_H1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular17 {
+    font-family: 'Inter', sans-serif;
+    font-size: 17px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular16 {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .OpenSansRegular14It {
+    font-family: 'Open Sans', 'Inter', sans-serif;
+    font-style: italic;
+    font-size: 14px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
+
+  .OpenSansRegular16It {
+    font-family: 'Open Sans', 'Inter', sans-serif;
+    font-style: italic;
+    font-size: 16px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
+
+
+  .OpenSansRegular14ItBold {
+    font-family: 'Open Sans', 'Inter', sans-serif;
+    font-style: italic;
+    font-size: 14px;
+    font-weight: 700; /* Bold */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
+
+  .OpenSansRegular16ItBold {
+    font-family: 'Open Sans', 'Inter', sans-serif;
+    font-style: italic;
+    font-size: 16px;
+    font-weight: 700; /* Bold */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
+
+
+  .InterRegular14 {
+    font-family: 'Inter', sans-serif;
+    font-style: italic;
+    font-size: 14px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+
+
+  
+  .InterMedium14_H1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500; /* Medium */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .InterRegular12 {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 400; /* Regular */
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+/* 
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+Open Runde Typography Classes */
+  .OpenRundeRegular20 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+  .OpenRundeRegular18 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 18px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+  .OpenRundeRegular16 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+
+
+  .OpenRundeRegular16_H1 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+
+
+  .OpenRundeRegular14 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+  .OpenRundeRegular12 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 400; /* Regular */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+  .OpenRundeMedium20 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 500; /* Medium */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+  .OpenRundeRegular20_H1 {
+    font-size: 20px;
+  }
+
+  .OpenRundeMedium16 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500; /* Medium */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+  .OpenRundeMedium14 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500; /* Medium */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+  .OpenRundeMedium12 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500; /* Medium */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+  .OpenRundeSemiBold16 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600; /* SemiBold */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+  
+  .OpenRundeSemiBold14 {
+    font-family: 'Open Runde', 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600; /* SemiBold */
+    letter-spacing: -0.01em;
+    line-height: 143.75%;
+  }
+/* 
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+Open Runde Typography Classes end
+__________________________________________________________________________
+__________________________________________________________________________
+
+
+
+
+
+  /* Extra small devices (portrait phones) */
+  @media (max-width: 576px) {
+    /* Typography Styles as classes */
+    .FrankRuhlLibre64 {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 48px;
+      font-weight: 400; /* Regular */
+      letter-spacing: -2px;
+      line-height: 120%;
+    }
+    
+    .FrankRuhlLibre48 {
+      font-family: 'Frank Ruhl Libre', serif;
+      font-size: 36px;
+      font-weight: 400; /* Regular */
+      letter-spacing: -2px;
+      line-height: 93.8%;
+    }
+  
+    .InterRegular24_H1 {
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 400; /* Regular */
+      letter-spacing: 0;
+      line-height: normal;
+    }
+    
+    .InterRegular28 {
+      font-family: 'Inter', sans-serif;
+      font-size: 24px;
+      font-weight: 400; /* Regular */
+      letter-spacing: -1px;
+      line-height: 143.8%;
+    }
+  
+    .InterRegular26 {
+      font-family: 'Inter', sans-serif;
+      font-size: 24px;
+      font-weight: 400; /* Regular */
+      letter-spacing: -1px;
+      line-height: 143.8%;
+    }
+    
+    .InterMedium28 {
+      font-family: 'Inter', sans-serif;
+      font-size: 24px;
+      font-weight: 500; /* Medium */
+      letter-spacing: 0;
+      line-height: normal;
+    }
+  
+    .InterRegular24 {
+      font-family: 'Inter', sans-serif;
+      font-size: 24px;
+      font-weight: 400; /* Regular */
+      letter-spacing: 0;
+      line-height: normal;
+    }
+  
+    .InterMedium24_H1 {
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 500; /* Medium */
+      letter-spacing: 0;
+      line-height: normal;
+    }
+  
+    .InterRegular20_H1 {
+      font-family: 'Inter', sans-serif;
+      font-size: 17px;
+      font-weight: 400; /* Regular */
+      letter-spacing: 0;
+      line-height: 26px;
+    }
+  
+    .InterRegular17 {
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 400; /* Regular */
+      letter-spacing: 0;
+      line-height: normal;
+    }
+  
+    .InterRegular18 {
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 400; /* Regular */
+      letter-spacing: 0;
+      line-height: normal;
+    }
+  
+    .InterRegular18_H1 {
+      font-family: 'Inter', sans-serif;
+      font-size: 18px;
+      font-weight: 400; /* Regular */
+      letter-spacing: 0;
+      line-height: normal;
+    }
+  
+    .InterRegular16 {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 400; /* Regular */
+      letter-spacing: 0;
+      line-height: normal;
+    }
+    
+    .InterRegular16_H1 {
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 400; /* Regular */
+      letter-spacing: 0;
+      line-height: normal;
+    }
+
+
+/* 
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+__________________________________________________________________________
+Open Runde mobile Typography Classes */
+
+
+    /* Open Runde Responsive Typography */
+    .OpenRundeRegular20 {
+      font-size: 18px;
+    }
+    
+    .OpenRundeRegular20_H1 {
+      font-size: 20px;
+    }
+
+    .OpenRundeRegular18 {
+      font-size: 16px;
+    }
+    
+    .OpenRundeRegular16 {
+      font-size: 14px;
+    }
+
+    /* OpenSans mobile Typography Classes */
+    .OpenSansRegular14It {
+      font-size: 12px;
+    }
+    
+    .OpenSansRegular16It {
+      font-size: 16px;
+    }
+    
+    .OpenSansRegular14ItBold {
+      font-size: 12px;
+    }
+    
+    .OpenSansRegular16ItBold {
+      font-size: 16px;
+    }
+  }
+  
+  /* Custom breakpoint for very small devices */
+  @media (max-width: 320px) {
+    /* Add styles for this breakpoint when needed */
+  } 

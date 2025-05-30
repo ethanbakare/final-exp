@@ -10,6 +10,7 @@
     "migrate:current-project": "node scripts/migrate-current-project.js"
   },
   "dependencies": {
+    "@deepgram/sdk": "^4.1.1",
     "@portabletext/react": "^3.2.1",
     "@sanity/client": "^6.12.3",
     "@sanity/image-url": "^1.1.0",
@@ -24,7 +25,9 @@
     "openai": "^4.0.0",
     "react": "latest",
     "react-dom": "latest",
-    "sanity": "^3.83.0"
+    "sanity": "^3.83.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@types/formidable": "^3.4.5",

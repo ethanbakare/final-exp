@@ -6,39 +6,7 @@ This document outlines the step-by-step process for consolidating the AI Confide
 
 ## File Structure
 
-### Current Structure (16+ files)
-```
-ai-confidence-tracker/
-├── hooks/
-│   ├── useReferenceSentences.ts
-│   ├── audio/
-│   │   └── useAudioRecording.ts
-│   ├── useDeepgramProcessing.ts
-│   ├── useSpeechConfidenceState.ts
-│   └── speechConfidenceContext.tsx
-├── components/
-│   ├── types.ts
-│   ├── reference/
-│   │   └── ReferenceSentence.tsx
-│   ├── recording/
-│   │   └── RecordingControls.tsx
-│   ├── visualization/
-│   │   └── ConfidenceVisualizer.tsx
-│   ├── ErrorDisplay.tsx
-│   └── SpeechConfidenceVisualizer.tsx
-├── types/
-│   ├── states.ts
-│   ├── css.d.ts
-│   └── deepgram.ts
-├── utils/
-│   └── deepgram/
-│       └── api.ts
-├── styles/
-│   └── confidence.module.css
-└── pages/
-    └── api/
-        └── transcribe.ts
-```
+
 
 ### Consolidated Structure (7 files)
 ```

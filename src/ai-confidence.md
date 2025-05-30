@@ -2,7 +2,7 @@ Speech Confidence Visualizer Implementation Plan (Technical Structure)
 Table of Contents
 
 
-project file should be called confidence-tracker
+project file should be called ai-confidence-tracker
 
 
 

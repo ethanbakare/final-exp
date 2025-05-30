@@ -128,7 +128,7 @@ export function useAudioRecording() {
       
       setError(userFriendlyMessage);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -147,15 +147,22 @@ export function useAudioRecording() {
       setIsRecording(false);
       setError('Recording state was inconsistent. Please try again.');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording]);
+
+  const resetRecording = useCallback(() => {
+    setAudioData(null);
+    setError(null);
+    setIsRecording(false);
+    audioChunksRef.current = [];
+  }, []);
 
   return {
     isRecording,
     audioData,
     error,
     startRecording,
-    stopRecording
+    stopRecording,
+    resetRecording
   };
 }
 
@@ -203,8 +210,16 @@ export function useDeepgramProcessing() {
         throw new Error(errorMessage);
       }
       
-      if (!data || !data.transcript || !data.words || !Array.isArray(data.words)) {
+      if (!data || typeof data !== 'object') {
         throw new Error('The server returned an invalid response format');
+      }
+      
+      if (!data.hasOwnProperty('transcript') || !data.hasOwnProperty('words') || !Array.isArray(data.words)) {
+        throw new Error('The server returned an invalid response format');
+      }
+      
+      if (data.transcript === '' && data.words.length === 0) {
+        throw new Error('No speech detected in recording. Please try again.');
       }
       
       setResult(data);
@@ -243,7 +258,8 @@ export function useSpeechConfidenceState() {
     audioData, 
     error: recordingError, 
     startRecording, 
-    stopRecording 
+    stopRecording,
+    resetRecording
   } = useAudioRecording();
   
   const { 
@@ -251,7 +267,7 @@ export function useSpeechConfidenceState() {
     result, 
     error: processingError, 
     processAudio, 
-    resetProcessing 
+    resetProcessing
   } = useDeepgramProcessing();
   
   useEffect(() => {
@@ -282,13 +298,14 @@ export function useSpeechConfidenceState() {
     if (audioData && !isRecording && appState !== AppState.ERROR) {
       processAudio(audioData);
     }
-  }, [audioData, isRecording, processAudio, appState]);
+  }, [audioData, isRecording, processAudio]); // eslint-disable-line react-hooks/exhaustive-deps
   
   const resetState = useCallback(() => {
     resetProcessing();
     setAppState(AppState.INITIAL);
     setErrorState(null);
-  }, [resetProcessing]);
+    resetRecording();
+  }, [resetProcessing, resetRecording]);
   
   return {
     appState,
