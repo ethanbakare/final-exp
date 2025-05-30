@@ -55,10 +55,12 @@ export const StyledText: React.FC<StyledTextProps> = ({
           </div>
           
           {/* Reset button */}
+          {/* TESTING ONLY - NOT FOR PRODUCTION NOTE IN USE ONLY IN TESTING FEATURES */}
           <button
             onClick={resetAnimation}
             className="reset-button"
             aria-label="Replay animation"
+            style={{ display: 'none' }} // Hidden for production
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 15C7.325 15 5.90625 14.4188 4.74375 13.2563C3.58125 12.0938 3 10.675 3 9C3 7.325 3.58125 5.90625 4.74375 4.74375C5.90625 3.58125 7.325 3 9 3C9.8625 3 10.6875 3.17813 11.475 3.53438C12.2625 3.89063 12.9375 4.4 13.5 5.0625V3.75C13.5 3.5375 13.5719 3.35938 13.7156 3.21563C13.8594 3.07188 14.0375 3 14.25 3C14.4625 3 14.6406 3.07188 14.7844 3.21563C14.9281 3.35938 15 3.5375 15 3.75V7.5C15 7.7125 14.9281 7.89063 14.7844 8.03438C14.6406 8.17813 14.4625 8.25 14.25 8.25H10.5C10.2875 8.25 10.1094 8.17813 9.96563 8.03438C9.82188 7.89063 9.75 7.7125 9.75 7.5C9.75 7.2875 9.82188 7.10938 9.96563 6.96563C10.1094 6.82188 10.2875 6.75 10.5 6.75H12.9C12.5 6.05 11.9531 5.5 11.2594 5.1C10.5656 4.7 9.8125 4.5 9 4.5C7.75 4.5 6.6875 4.9375 5.8125 5.8125C4.9375 6.6875 4.5 7.75 4.5 9C4.5 10.25 4.9375 11.3125 5.8125 12.1875C6.6875 13.0625 7.75 13.5 9 13.5C9.85 13.5 10.6281 13.2844 11.3344 12.8531C12.0406 12.4219 12.5875 11.8438 12.975 11.1188C13.075 10.9438 13.2156 10.8219 13.3969 10.7531C13.5781 10.6844 13.7625 10.6813 13.95 10.7438C14.15 10.8063 14.2938 10.9375 14.3813 11.1375C14.4688 11.3375 14.4625 11.525 14.3625 11.7C13.85 12.7 13.1188 13.5 12.1688 14.1C11.2188 14.7 10.1625 15 9 15Z" fill="#5E5E5E" fillOpacity="0.45"/>
@@ -122,7 +124,7 @@ export const StyledText: React.FC<StyledTextProps> = ({
           border-radius: 50%;
           background: #f0f0f0;
           border: 1px solid #ccc;
-          display: flex;
+          display: none; /* Hidden for production - TESTING ONLY */
           align-items: center;
           justify-content: center;
           cursor: pointer;
@@ -690,11 +692,13 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
         ))}
         
         {/* Reset animation button */}
+        {/* TESTING ONLY - NOT FOR PRODUCTION */}
         {highlightPositions.length > 0 && (
           <button
             onClick={resetAnimation}
             className="reset-button"
             aria-label="Replay animation"
+            style={{ display: 'none' }} // Hidden for production
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 15C7.325 15 5.90625 14.4188 4.74375 13.2563C3.58125 12.0938 3 10.675 3 9C3 7.325 3.58125 5.90625 4.74375 4.74375C5.90625 3.58125 7.325 3 9 3C9.8625 3 10.6875 3.17813 11.475 3.53438C12.2625 3.89063 12.9375 4.4 13.5 5.0625V3.75C13.5 3.5375 13.5719 3.35938 13.7156 3.21563C13.8594 3.07188 14.0375 3 14.25 3C14.4625 3 14.6406 3.07188 14.7844 3.21563C14.9281 3.35938 15 3.5375 15 3.75V7.5C15 7.7125 14.9281 7.89063 14.7844 8.03438C14.6406 8.17813 14.4625 8.25 14.25 8.25H10.5C10.2875 8.25 10.1094 8.17813 9.96563 8.03438C9.82188 7.89063 9.75 7.7125 9.75 7.5C9.75 7.2875 9.82188 7.10938 9.96563 6.96563C10.1094 6.82188 10.2875 6.75 10.5 6.75H12.9C12.5 6.05 11.9531 5.5 11.2594 5.1C10.5656 4.7 9.8125 4.5 9 4.5C7.75 4.5 6.6875 4.9375 5.8125 5.8125C4.9375 6.6875 4.5 7.75 4.5 9C4.5 10.25 4.9375 11.3125 5.8125 12.1875C6.6875 13.0625 7.75 13.5 9 13.5C9.85 13.5 10.6281 13.2844 11.3344 12.8531C12.0406 12.4219 12.5875 11.8438 12.975 11.1188C13.075 10.9438 13.2156 10.8219 13.3969 10.7531C13.5781 10.6844 13.7625 10.6813 13.95 10.7438C14.15 10.8063 14.2938 10.9375 14.3813 11.1375C14.4688 11.3375 14.4625 11.525 14.3625 11.7C13.85 12.7 13.1188 13.5 12.1688 14.1C11.2188 14.7 10.1625 15 9 15Z" fill="#5E5E5E" fillOpacity="0.45"/>
@@ -806,7 +810,7 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
           border-radius: 50%;
           background: #f0f0f0;
           border: 1px solid #ccc;
-          display: flex;
+          display: none; /* Hidden for production - TESTING ONLY */
           align-items: center;
           justify-content: center;
           cursor: pointer;
