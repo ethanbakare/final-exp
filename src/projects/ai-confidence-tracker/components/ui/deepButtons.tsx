@@ -841,11 +841,12 @@ export const RetryButton: React.FC<RetryButtonProps> = ({
         className={`retry-button ${className}`}
         onClick={onClick}
         disabled={disabled}
-        aria-label="Retry"
+        aria-label="Retry recording"
       >
         <div className="retry-content">
-          {/* Retry Text - no icon */}
-          <span className="retry-text">Retry</span>
+          <span className={`retry-text ${styles.OpenRundeMedium18}`}>
+            Retry
+          </span>
         </div>
       </button>
       
@@ -854,6 +855,7 @@ export const RetryButton: React.FC<RetryButtonProps> = ({
           /* Auto layout */
           display: flex;
           flex-direction: row;
+          justify-content: center;
           align-items: center;
           padding: 0px;
           gap: 11.25px;
@@ -886,8 +888,8 @@ export const RetryButton: React.FC<RetryButtonProps> = ({
           flex-direction: row;
           justify-content: center;
           align-items: center;
-          padding: 9px 16.875px;
-          gap: 11.25px;
+          padding: 9px 16px;
+          gap: 11px;
           
           width: 79.75px;
           height: 36px;
@@ -899,16 +901,8 @@ export const RetryButton: React.FC<RetryButtonProps> = ({
         }
         
         .retry-text {
-          width: 46px;
-          height: 26px;
-          
-          font-family: 'Open Runde', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          font-style: normal;
-          font-weight: 500;
-          font-size: 18px;
-          line-height: 143.75%;
-          /* identical to box height, or 26px */
-          letter-spacing: -0.01em;
+          width: auto;
+          height: auto;
           
           color: #FCFCFC;
           
@@ -1161,13 +1155,13 @@ const BaseConfidenceTooltip: React.FC<ConfidenceTooltipProps> = ({
           flex-direction: row;
           justify-content: center;
           align-items: center;
-          padding: 0px 11.2px 0px 5.6px;
-          gap: 5.6px;
+          padding: 0px 0px 0px 0px;
+          gap: 4px;
           
           position: relative;
           height: 20px;
-          
-          border-radius: 22.4px;
+          width: auto;
+          border-radius: 16px;
           
           flex: none;
           order: 0;

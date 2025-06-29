@@ -484,6 +484,7 @@ export const IntegratedDeepCard: React.FC<IntegratedDeepCardProps> = ({
           position: relative;
           z-index: 2;
           overflow: visible;
+          // border: 2px solid green;
         }
         
         .transcript-data {

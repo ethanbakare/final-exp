@@ -96,6 +96,7 @@ export const TranscriptBoxNav: React.FC<TranscriptBoxNavProps> = ({
           padding: 0px 27px;
           gap: 10px;
           width: 100%;
+          // border: 1px solid red;
           max-width: 600px;
           height: 32px;
           border-radius: 6px;

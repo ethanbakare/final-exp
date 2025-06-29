@@ -1,7 +1,7 @@
 import { NextApiRequest } from 'next'
 import { NextApiResponse } from 'next'
 import OpenAI from 'openai'
-import { Server as WebSocketServer } from 'ws'
+import { WebSocketServer } from 'ws'
 import { Socket } from 'net'
 
 const openai = new OpenAI({

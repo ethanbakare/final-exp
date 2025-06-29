@@ -309,6 +309,18 @@ Cursor IDE provides enhanced capabilities for working with this monorepo:
    cat package.json | grep workspaces -A 5
    ```
 
+54. **Tailwind v4 Layout Issues**:
+   - **Symptom**: Elements overflowing containers, buttons positioned outside parent boundaries, text touching container edges
+   - **Root Cause**: Tailwind v4 PostCSS processing doesn't properly apply CSS reset, causing elements to use `box-sizing: content-box` instead of `border-box`
+   - **Solution**: Added explicit box-sizing rule to `src/styles/globals.css`:
+   ```css
+   /* Fix for broken Tailwind v4 box-sizing reset */
+   *, *::before, *::after {
+     box-sizing: border-box;
+   }
+   ```
+   - **Background**: This issue emerged after upgrading from Tailwind v3 to v4 PostCSS processing while retaining v3 configuration. The CSS reset wasn't properly applied, causing child elements with padding to exceed parent container boundaries.
+
 ### Debugging Tips
 
 1. Check workspace configuration in root package.json
