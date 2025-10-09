@@ -1,0 +1,38 @@
+{
+  "name": "tictactoe-arena",
+  "version": "1.0.0",
+  "description": "Infinite AI-vs-AI Tic-Tac-Toe: Claude vs GPT-4 with move decay",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "framer-motion": "^12.6.2",
+    "lucide-react": "^0.486.0",
+    "next": "^14.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "openrouter": "^1.0.0"
+  },
+  "keywords": [
+    "tictactoe",
+    "ai",
+    "claude",
+    "gpt-4",
+    "openrouter",
+    "react",
+    "nextjs"
+  ],
+  "author": "Final-Exp Team",
+  "license": "MIT"
+} 

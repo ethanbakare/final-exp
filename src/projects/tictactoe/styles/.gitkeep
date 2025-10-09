@@ -1,0 +1,12 @@
+# Styles Directory - LEAN APPROACH
+
+This directory contains consolidated styling for the Tic-Tac-Toe Arena:
+
+- `arena.module.css` - Single CSS module with organized sections:
+  • Colors & fonts (CSS variables)
+  • Game arena layout (header + commentary)  
+  • Game board styling (3x3 grid + cells)
+  • Animations (fade in/out, move decay)
+  • Responsive design (mobile/desktop)
+
+This approach consolidates 4 separate CSS files into 1 organized module. 

@@ -1,0 +1,92 @@
+🎯 INSTRUCTION TO AI:
+You are a world-class AI system embodying three expert roles simultaneously:
+
+1. 🧠 Master Product Manager – skilled in decomposing ideas into structured plans with precise effort evaluation  
+2. 🎨 Master Frontend Engineer – fluent in React/Next.js and capable of anticipating UI/UX implementation complexities  
+3. 🛠️ Master Backend Engineer – experienced in API design, AI model orchestration, and server-side logic  
+
+I want you to help me create a multiplayer AI-based Tic-Tac-Toe game.  
+The **structural logic of the game is locked in** and provided in this file: /Users/ethan/Documents/projects/final-exp/src/projects/tictactoe/tac_intro.md
+
+
+🔍 Before doing anything, read this file `tac_intro.md **in full**. It contains precise instructions on:
+- Game rules and mechanics
+- Visual layout expectations (mobile and desktop)
+- Turn-by-turn logic
+- Constraints for MVP implementation
+
+You **must incorporate everything from `tac_intro.md`** into your implementation plan unless otherwise instructed.
+
+---
+
+### ✅ YOUR TASK:
+
+Create a comprehensive, step-by-step implementation plan.
+
+This plan must include:
+- Sequential development steps with clearly labeled stages  
+- For each stage:
+  - 🔸 Purpose
+  - 🔧 Tools / frameworks needed
+  - 🧠 Key logic decisions and tradeoffs
+  - 🎯 **Difficulty Score** on a scale of 1–5, where:
+    - 1️⃣ = Trivial implementation (low ambiguity, low friction)  
+    - 2️⃣ = Straightforward with minor considerations  
+    - 3️⃣ = Moderately complex (requires care, likely interdependencies)  
+    - 4️⃣ = High-complexity (risk of blockers, needs testing strategy)  
+    - 5️⃣ = Technically challenging, structurally risky, or requires custom architecture
+
+This difficulty rating is **not** a time estimate and **not** a skill label.  
+It is used for internal scoping and prioritization.
+
+---
+
+### 📥 OUTPUT INSTRUCTION:
+
+Once your plan is complete, save it as a **Markdown file** at: /Users/ethan/Documents/projects/final-exp/src/projects/tictactoe
+
+
+
+The plan must follow this format:
+
+#### 📐 Format
+
+Render the plan as a **markdown table**, emulating terminal-style PM tools.
+
+Each row should represent a task or subtask and contain the following fields:
+
+| [ ] | ID   | Parent Goal           | Task Label                       | Description                                                             | Difficulty | Status       |
+|-----|------|------------------------|----------------------------------|-------------------------------------------------------------------------|------------|--------------|
+| [ ] | T-01 | Gameplay Loop          | Initialize board state           | Set up base 3x3 grid and default empty values for all 9 cells           | 2          | Not Started  |
+| [x] | T-02 | Gameplay Loop          | Parse move position from AI      | Extract cell position (e.g., A1) from model response reliably           | 3          | Done         |
+| [ ] | T-03 | Turn Display Engine    | Mark X or O visually             | Render correct symbol in the selected cell                             | 2          | In Progress  |
+| [ ] | T-04 | History Commentary     | Render message log               | Show most recent move as a caption below board                         | 3          | Blocked      |
+
+#### 🧩 Difficulty
+
+Use numeric scores (1–5) based on technical effort, ambiguity, and UI/infra complexity.  
+This is **not** time estimation — it’s effort + possible friction.
+
+#### 🟢 Status Values
+
+Use only these statuses:
+
+- `Not Started`  
+- `In Progress`  
+- `Blocked`  
+- `Done`
+
+#### 🏗 Task Types
+
+For **epics / high-level goals**, leave the `Parent Goal` field blank or repeat the same label.  
+Use the `ID` field to differentiate them (`G-01`, `G-02`, etc.).
+
+Subtasks should list the relevant `Parent Goal` so they are grouped cleanly.
+
+---
+
+This file should be treated as a **live execution tracker** and must remain fully machine-parseable (one task per row, no extra text).
+
+The plan must be thorough and unambiguous — a senior engineer should be able to execute it confidently based on your breakdown alone.
+
+After presenting the plan, wait for confirmation before writing any code.

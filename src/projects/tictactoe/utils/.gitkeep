@@ -1,0 +1,10 @@
+# Utils Directory
+
+This directory will contain utility functions for the Tic-Tac-Toe Arena:
+
+- `gameLogic.ts` - Core game logic (win detection, move validation)
+- `aiPrompts.ts` - AI prompt generation and formatting
+- `boardUtils.ts` - Board state manipulation utilities
+- `apiClient.ts` - OpenRouter API client wrapper
+
+This file can be deleted once actual utilities are added. 

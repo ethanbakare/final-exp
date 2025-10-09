@@ -1,0 +1,13 @@
+# Hooks Directory - LEAN APPROACH
+
+This directory contains consolidated custom React hooks for the Tic-Tac-Toe Arena:
+
+- `useGameState.ts` - Single hook managing all game logic:
+  • Board state and move tracking
+  • Move validation and win detection
+  • AI turn orchestration and API calls
+  • Move decay system (FIFO with 7-turn limit)
+  • Animation state and timing
+  • Error handling and recovery
+
+This approach consolidates 4 separate hooks into 1 comprehensive hook. 

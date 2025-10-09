@@ -1,0 +1,12 @@
+# API Directory - LEAN APPROACH
+
+This directory contains consolidated Next.js API routes for the Tic-Tac-Toe Arena:
+
+- `arena.ts` - Single endpoint handling all AI orchestration:
+  • Claude 3.5 Sonnet and GPT-4 model switching
+  • Game state formatting and prompt generation
+  • Response parsing and validation
+  • Error handling and retry logic
+  • Real-time streaming (if needed)
+
+This approach consolidates 3 separate API routes into 1 comprehensive endpoint. 

@@ -32,6 +32,9 @@
       ],
       "@ai-confidence-tracker/*": [
         "./src/projects/ai-confidence-tracker/*"
+      ],
+      "@tictactoe/*": [
+        "./src/projects/tictactoe/*"
       ]
     },
     "plugins": [
@@ -47,6 +50,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/types/**/*.d.ts",
+    "src/projects/*/types/*.d.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": [

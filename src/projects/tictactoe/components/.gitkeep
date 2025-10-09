@@ -1,0 +1,16 @@
+# Components Directory - LEAN APPROACH
+
+This directory contains consolidated React components for the Tic-Tac-Toe Arena:
+
+- `GameArena.tsx` - Main container component including:
+  • Player header (Claude vs GPT-4)
+  • Real-time commentary panel
+  • Game controller logic
+  • Overall layout and styling
+
+- `GameBoard.tsx` - Pure 3x3 grid component:
+  • Cell rendering and animations
+  • Move display and decay effects
+  • Click handling (if needed for debugging)
+
+This approach consolidates 4 separate components into 2 focused components. 

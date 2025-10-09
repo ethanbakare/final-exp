@@ -347,13 +347,13 @@ const MainNavBar: React.FC = () => {
               >
                 Home
               </MenuItem>
-              <Link href="/receipt-scanner" passHref legacyBehavior>
+              <Link href="/tictactoe" passHref legacyBehavior>
                 <MenuItem 
-                  href="/receipt-scanner"
+                  href="/tictactoe"
                   active={activeSection === 'tryDemos'} 
                   onClick={handleExternalNavigation}
                 >
-                  Try Demos
+                  Tic-Tac-Toe Arena
                 </MenuItem>
               </Link>
               <MenuItem 
@@ -426,13 +426,13 @@ const MainNavBar: React.FC = () => {
               >
                 Home
               </MenuItem>
-              <Link href="/receipt-scanner" passHref legacyBehavior>
+              <Link href="/tictactoe" passHref legacyBehavior>
                 <MenuItem 
-                  href="/receipt-scanner"
+                  href="/tictactoe"
                   active={activeSection === 'tryDemos'}
                   onClick={handleExternalNavigation}
                 >
-                  Try Demos
+                  Tic-Tac-Toe Arena
                 </MenuItem>
               </Link>
               <MenuItem 
