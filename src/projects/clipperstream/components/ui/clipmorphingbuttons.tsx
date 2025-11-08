@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DoneButton, ProcessingButton, CopyButton, CheckTickButton, ProcessingButtonSVG, StructureButton, TimerText, CloseButton } from './clipbuttons';
+import { DoneButton, ProcessingButton, CopyButton, CheckTickButton, TimerText, CloseButton } from './clipbuttons';
 import styles from '@/projects/clipperstream/styles/clipper.module.css';
 
 // ClipperStream Morphing Button Components

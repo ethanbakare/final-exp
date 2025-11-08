@@ -615,7 +615,7 @@ export const RecordNavBarMorphingDemo: React.FC<RecordNavBarMorphingDemoProps> =
       mediaStreamRef.current = stream;
 
       // Create audio context
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const context = new AudioContextClass();
       await context.resume();
       audioContextRef.current = context;

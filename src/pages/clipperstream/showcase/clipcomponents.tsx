@@ -273,7 +273,7 @@ const ClipComponents: React.FC = () => {
               <br /><br />
               <strong>4 States:</strong>
               <br />
-              • <strong>Record</strong> - Small white pill with "RECORD" text (113×42px)
+              • <strong>Record</strong> - Small white pill with &quot;RECORD&quot; text (113×42px)
               <br />
               • <strong>Recording</strong> - Full navbar with Close + WaveClipper + Timer + Done (366×50px, dark bg)
               <br />

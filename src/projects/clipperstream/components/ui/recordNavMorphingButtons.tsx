@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { DoneButton, ProcessingButton, CopyButton, CheckTickButton, StructureButton, CloseButton } from './clipbuttons';
+import React from 'react';
+import { CopyButton, CloseButton } from './clipbuttons';
 import styles from '@/projects/clipperstream/styles/clipper.module.css';
 
 // RecordNavBar Morphing Button Components

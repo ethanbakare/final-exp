@@ -36,7 +36,6 @@ const ACTIVE_OPACITY = 0.6;             // --RecWhite_30 (bars with audio)
 const BAR_COLOR = "#FFFFFF";
 
 // Audio analysis
-const FFT_SIZE = 256;                   // Frequency resolution
 const SMOOTHING_ALPHA = 0.05;            // Audio smoothing (0-1, lower = smoother)
 
 // Waveform behavior
@@ -164,7 +163,7 @@ export const WaveClipper: React.FC<WaveClipperProps> = ({
       // GET AUDIO DATA - If recording and analyser available (but NOT when frozen)
       if (!isFrozen && isRecording && audioAnalyser && dataArrayRef.current && dataArrayRef.current.length > 0) {
         // Get frequency data from analyser
-        // @ts-ignore - Web Audio API type mismatch between Uint8Array<ArrayBufferLike> and Uint8Array<ArrayBuffer>
+        // @ts-expect-error - Web Audio API type mismatch between Uint8Array<ArrayBufferLike> and Uint8Array<ArrayBuffer>
         audioAnalyser.getByteFrequencyData(dataArrayRef.current);
         
         // Calculate average volume across all frequencies
