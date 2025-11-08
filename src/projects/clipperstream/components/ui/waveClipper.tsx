@@ -76,7 +76,7 @@ export const WaveClipper: React.FC<WaveClipperProps> = ({
   
   // Audio data storage
   const volumeHistoryRef = useRef<number[]>(new Array(MAX_BAR_HISTORY).fill(0));
-  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   
   // Animation timing
   const lastPushTimeRef = useRef<number>(0);
