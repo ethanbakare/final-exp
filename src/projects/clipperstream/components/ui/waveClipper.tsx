@@ -163,7 +163,6 @@ export const WaveClipper: React.FC<WaveClipperProps> = ({
       // GET AUDIO DATA - If recording and analyser available (but NOT when frozen)
       if (!isFrozen && isRecording && audioAnalyser && dataArrayRef.current && dataArrayRef.current.length > 0) {
         // Get frequency data from analyser
-        // @ts-expect-error - Web Audio API type mismatch between Uint8Array<ArrayBufferLike> and Uint8Array<ArrayBuffer>
         audioAnalyser.getByteFrequencyData(dataArrayRef.current);
         
         // Calculate average volume across all frequencies
