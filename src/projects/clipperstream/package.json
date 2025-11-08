@@ -1,0 +1,13 @@
+{
+  "name": "@master-exp/clipperstream",
+  "version": "1.0.0",
+  "description": "Offline-first voice transcription PWA",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["voice", "transcription", "pwa", "offline"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {}
+}

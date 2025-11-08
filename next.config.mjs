@@ -8,7 +8,7 @@ const nextConfig = {
   eslint: {
     // Exclude tictactoe folder from linting during builds
     ignoreDuringBuilds: false,
-    dirs: ['src/pages', 'src/projects/ai-confidence-tracker', 'src/projects/receipt-scanner', 'src/projects/dictate', 'src/projects/reading-practice']
+    dirs: ['src/pages', 'src/projects/ai-confidence-tracker', 'src/projects/receipt-scanner', 'src/projects/dictate', 'src/projects/reading-practice', 'src/projects/clipperstream']
   },
   webpack: (config) => {
     config.resolve.modules.push(path.resolve('./src'));
