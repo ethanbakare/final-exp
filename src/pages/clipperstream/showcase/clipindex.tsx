@@ -101,7 +101,7 @@ const ClipperShowcase: React.FC = () => {
         <div className="nav-container">
           <h1 className="nav-title">🎙️ ClipperStream Showcase</h1>
           <p className="nav-subtitle">
-            Component development and testing environment for ClipperStream's 
+            Component development and testing environment for ClipperStream&apos;s 
             offline-first voice transcription system.
           </p>
           
