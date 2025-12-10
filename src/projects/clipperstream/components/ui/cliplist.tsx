@@ -55,7 +55,7 @@ interface DotMenuIconProps {
   isClicked: boolean;
 }
 
-const DotMenuIcon: React.FC<DotMenuIconProps> = ({ isHovered, isClicked }) => {
+const DotMenuIcon: React.FC<DotMenuIconProps> = ({ /* isHovered, isClicked */ }) => {
   // Determine fill opacity based on state
   // Desktop: 0 (invisible) → 1 (visible on hover)
   // Mobile: 0.4 (default) → 1 (on click)
@@ -152,7 +152,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
     const spaceBelow = boundsHeight - dotRelativeBottom - viewportPadding;
     const spaceAbove = dotRelativeTop - viewportPadding;
 
-    let position: { top?: number; bottom?: number; left?: number; right?: number } = {};
+    const position: { top?: number; bottom?: number; left?: number; right?: number } = {};
 
     // Determine vertical placement (below or above)
     const canPlaceBelow = spaceBelow >= menuHeight + gap;

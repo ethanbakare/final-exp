@@ -34,7 +34,7 @@ interface SearchProps {
 export const Search: React.FC<SearchProps> = ({ 
   value: controlledValue,
   onChange,
-  onSearch,
+  // onSearch, // Removed - not used yet
   placeholder = 'Search',
   onFocus,
   onBlur,

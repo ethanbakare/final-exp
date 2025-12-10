@@ -74,7 +74,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   const [animationVariant, setAnimationVariant] = useState<'morph' | 'fade'>('morph');
   
   // Network status for ClipRecordScreen
-  const [isOnline, setIsOnline] = useState(true);
+  // const [isOnline, setIsOnline] = useState(true); // Removed - not used yet
   
   // Toast notification state (for copy from RecordBar)
   const [showCopyToast, setShowCopyToast] = useState(false);

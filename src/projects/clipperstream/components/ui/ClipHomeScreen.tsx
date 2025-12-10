@@ -43,7 +43,7 @@ interface ClipHomeScreenProps {
 export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   clips: initialClips,
   onClipClick,
-  onRecordClick,
+  // onRecordClick, // Removed - not used yet
   onSearchActiveChange: externalSearchActiveChange,
   className = ''
 }) => {

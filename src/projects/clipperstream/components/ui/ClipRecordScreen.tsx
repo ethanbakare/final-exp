@@ -51,7 +51,7 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   onNewClipClick,
   onNetworkChange,
   onTranscribeClick,
-  onDeletePendingClick,
+  // onDeletePendingClick, // Removed - not used yet
   className = ''
 }) => {
   // Portal container for dropdowns (ClipOffline uses portals)

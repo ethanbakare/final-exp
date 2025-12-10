@@ -459,5 +459,6 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({
    DEFAULT EXPORTS
    ============================================ */
 
-export default { CopyToast, AudioToast, ToastNotification };
+const ToastComponents = { CopyToast, AudioToast, ToastNotification };
+export default ToastComponents;
 

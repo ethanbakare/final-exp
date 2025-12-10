@@ -62,6 +62,7 @@ export const EntryBox: React.FC<EntryBoxProps> = ({
         return () => cancelAnimationFrame(timer);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoFocus, autoSelect]);  // Only run on mount (intentionally omit inputValue)
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
