@@ -223,7 +223,7 @@ const ClipScreenComponents: React.FC = () => {
               <div className="state-description">
                 {homeScreenState === 'empty' && (
                   <>
-                    <strong>A1 - Empty State:</strong> First-time user with no recordings. Shows NoClipsFrameIcon and &quot;Tap the record button to get started.&quot;
+                    <strong>A1 - Empty State:</strong> First-time user with no recording. Shows NoClipsFrameIcon and &quot;Tap the record button to get started.&quot;
                   </>
                 )}
                 {homeScreenState === 'with-clips' && (
