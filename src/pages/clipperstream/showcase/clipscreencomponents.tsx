@@ -35,9 +35,9 @@ const sampleClips: Clip[] = [
 ];
 
 const samplePendingClips: PendingClip[] = [
-  { id: 'p1', title: 'Untitled Recording 1', time: '2:34', isTranscribing: false },
-  { id: 'p2', title: 'Meeting Notes Draft', time: '5:12', isTranscribing: true },
-  { id: 'p3', title: 'Quick Thought', time: '0:45', isTranscribing: false },
+  { id: 'p1', title: 'Untitled Recording 1', time: '2:34', status: 'waiting' },
+  { id: 'p2', title: 'Meeting Notes Draft', time: '5:12', status: 'transcribing' },
+  { id: 'p3', title: 'Quick Thought', time: '0:45', status: 'waiting' },
 ];
 
 const sampleTranscription = `Today I want to share my thoughts on building better products. The key insight I've had recently is that simplicity wins every time.
