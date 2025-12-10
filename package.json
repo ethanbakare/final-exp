@@ -21,7 +21,7 @@
     "framer-motion": "^12.6.2",
     "lightningcss": "^1.30.2",
     "lucide-react": "^0.486.0",
-    "next": "latest",
+    "next": "15.5.7",
     "next-sanity": "^9.9.9",
     "openai": "^4.0.0",
     "openrouter-kit": "^0.1.65",
