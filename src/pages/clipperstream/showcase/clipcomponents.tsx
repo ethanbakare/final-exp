@@ -781,7 +781,7 @@ const ClipComponents: React.FC = () => {
               <br />
               • <strong>Scroll Lock:</strong> Prevents background scrolling when modal is open
               <br />
-              • <strong>Accessibility:</strong> role="dialog" and aria-modal="true"
+              • <strong>Accessibility:</strong> role=&quot;dialog&quot; and aria-modal=&quot;true&quot;
             </p>
             
             {/* Demo container with relative positioning for modal */}
