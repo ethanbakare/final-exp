@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import styles from '@/projects/clipperstream/styles/clipper.module.css';
 import { 
   RecordButton,
   DoneButton,
@@ -249,7 +248,7 @@ const ClipComponents: React.FC = () => {
         <div className="section">
           <h2 className="section-title">Morphing Online/Offline Status</h2>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-            Click to toggle between Online (dimmed white) and Offline (orange) status. Uses 0.4s opacity crossfade - slower than buttons since it's informational, not interactive. Includes proper accessibility (aria-live region).
+            Click to toggle between Online (dimmed white) and Offline (orange) status. Uses 0.4s opacity crossfade - slower than buttons since it&apos;s informational, not interactive. Includes proper accessibility (aria-live region).
             <br /><br />
             <strong>Use case:</strong> During recording, network status changes. Recording continues regardless, but user sees visual feedback.
           </p>
@@ -476,9 +475,9 @@ const ClipComponents: React.FC = () => {
               <br />
               • <strong>Completed (null):</strong> No status shown - transcription done
               <br />
-              • <strong>Pending:</strong> Shows "Waiting to transcribe" with pending icon
+              • <strong>Pending:</strong> Shows &quot;Waiting to transcribe&quot; with pending icon
               <br />
-              • <strong>Transcribing:</strong> Shows "Transcribing..." with rotating transcribe icon + animated ellipsis
+              • <strong>Transcribing:</strong> Shows &quot;Transcribing...&quot; with rotating transcribe icon + animated ellipsis
               <br /><br />
               <strong>Desktop:</strong> Hover over the list item to see background color change to #252525 and three-dot menu fade in. Click dots to open options menu.
               <br />
@@ -631,7 +630,7 @@ const ClipComponents: React.FC = () => {
               <br /><br />
               <strong>Components:</strong>
               <br />
-              • <strong>TransHeaderMain:</strong> Row layout with "Transcribed Clips" title (Inter Medium 32px) and circular avatar with user initial
+              • <strong>TransHeaderMain:</strong> Row layout with &quot;Transcribed Clips&quot; title (Inter Medium 32px) and circular avatar with user initial
               <br />
               • <strong>Search:</strong> Reuses the existing Search component for consistency
               <br /><br />
@@ -654,7 +653,7 @@ const ClipComponents: React.FC = () => {
               <br /><br />
               <strong>Components:</strong>
               <br />
-              • <strong>ReturnToHome:</strong> Back button with "Clips" text (LEFT side, z-index: 0)
+              • <strong>ReturnToHome:</strong> Back button with &quot;Clips&quot; text (LEFT side, z-index: 0)
               <br />
               • <strong>MorphingOnlineOfflineStatus:</strong> Network indicator (CENTER, z-index: 1)
               <br />
@@ -662,7 +661,7 @@ const ClipComponents: React.FC = () => {
               <br /><br />
               <strong>Layout:</strong> Responsive width (100%, max 361px) × 70px header using <strong>CSS Grid</strong> (industry best practice). Three-column layout (1fr auto 1fr) ensures perfect centering without absolute positioning. Matches cliphomeheader.tsx responsive pattern.
               <br /><br />
-              <strong>Network Detection:</strong> Automatically detects network status using navigator.onLine and window online/offline events. Try turning off your WiFi to see it change to "Offline" (orange).
+              <strong>Network Detection:</strong> Automatically detects network status using navigator.onLine and window online/offline events. Try turning off your WiFi to see it change to &quot;Offline&quot; (orange).
               <br /><br />
               <strong>Use case:</strong> During clip recording or viewing, provides navigation back to clips list, option to create new clip, and live network status feedback.
             </p>
