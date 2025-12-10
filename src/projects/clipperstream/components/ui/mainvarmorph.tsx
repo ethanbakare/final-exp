@@ -7,29 +7,30 @@ import { LiveTimer } from './liveTimer';
 import { RecordButton } from './clipbuttons';
 
 /* ============================================
-   RECORD NAV BAR MORPHING
+   RECORD NAV BAR VAR MORPHING
    
-   Main orchestrator component (like TranscriptBoxNav.tsx pattern)
-   Manages morphing between 4 states with modular button components
+   EXPERIMENTAL: Variant-based animation system
+   Adds 'variant' prop to control animation behavior
    
-   STATES:
-   1. record      - Small white pill with "RECORD" text (113×42px)
-   2. recording   - Full navbar with Close + WaveClipper + Timer + Done (366×50px)
-   3. processing  - Full navbar with Close + WaveClipper (frozen) + Timer (frozen) + Processing spinner (366×50px)
-   4. complete    - Full navbar with Copy + RecordButton + Structure (366×50px, transparent bg)
+   VARIANTS:
+   - 'morph' (default): Full expansion animation (record → recording → processing → complete)
+   - 'fade': Direct to complete - container already expanded, buttons fade in at fixed positions
    
-   ARCHITECTURE:
-   - ORCHESTRATOR PATTERN: Like IntegratedDeepCard.tsx
-   - ROUTER/LAYOUT: Like TranscriptBoxNav.tsx
-   - PURE COMPONENTS: From recordNavMorphingButtons.tsx, waveClipper.tsx, liveTimer.tsx
+   USE CASES:
+   - 'morph': Normal recording flow via button interactions
+   - 'fade': Viewing an existing transcribed clip (skip expansion, just show final state)
    
    ============================================ */
 
 // Navigation states
 export type RecordNavState = 'record' | 'recording' | 'processing' | 'complete';
 
-interface RecordNavBarMorphingProps {
+// Animation variants
+export type AnimationVariant = 'morph' | 'fade';
+
+interface RecordNavBarVarMorphingProps {
   navState: RecordNavState;
+  variant?: AnimationVariant;  // NEW: Controls animation behavior
   onRecordClick?: () => void;
   onCloseClick?: () => void;
   onCopyClick?: () => void;
@@ -39,8 +40,9 @@ interface RecordNavBarMorphingProps {
   className?: string;
 }
 
-export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
+export const RecordNavBarVarMorphing: React.FC<RecordNavBarVarMorphingProps> = ({
   navState,
+  variant = 'morph',  // Default to existing behavior
   onRecordClick,
   onCloseClick,
   onCopyClick,
@@ -51,10 +53,9 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
 }) => {
   
   // ============================================
-  // STATE MAPPING FUNCTIONS (Like TranscriptBoxNav.tsx)
+  // STATE MAPPING FUNCTIONS
   // ============================================
   
-  // Map high-level navState to left button state
   const getLeftButtonState = (): 'close' | 'copy' => {
     switch (navState) {
       case 'recording':
@@ -67,7 +68,6 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
     }
   };
 
-  // Map high-level navState to right button state
   const getRightButtonState = (): 'done' | 'processing' | 'structure' => {
     switch (navState) {
       case 'recording':
@@ -81,8 +81,12 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
     }
   };
 
-  // Determine container background color
   const getContainerBackground = () => {
+    // In 'fade' variant with complete state, always transparent
+    if (variant === 'fade' && navState === 'complete') {
+      return 'transparent';
+    }
+    
     switch (navState) {
       case 'record':
         return 'var(--RecWhite)';
@@ -94,12 +98,11 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
     }
   };
 
-  // Determine if timer should be visible
   const shouldShowTimer = (): boolean => {
     return navState === 'recording' || navState === 'processing';
   };
 
-  // Determine if center should show wave (RecordButton now in persistent layer)
+  // RecordButton now in persistent layer - center only shows wave
   const getCenterContent = (): 'wave' | null => {
     if (navState === 'recording' || navState === 'processing') {
       return 'wave';
@@ -109,17 +112,16 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
 
   return (
     <>
-      {/* VISUAL WRAPPER - Morphing container (extracted from RecordMorphing.tsx) */}
-      <div className="morph-container">
+      <div className={`morph-container variant-${variant}`}>
         <div 
-          className={`record-morphing-button state-${navState} ${className} ${styles.container}`}
+          className={`record-morphing-button state-${navState} variant-${variant} ${className} ${styles.container}`}
           style={{ background: getContainerBackground() }}
           onClick={navState === 'record' ? onRecordClick : undefined}
         >
           
           {/* ============================================
-              RECORD STATE LAYER - Initial small button
-              Visible only in 'record' state
+              RECORD STATE LAYER - "RECORD" text
+              Hidden in 'fade' variant (we skip directly to complete)
               ============================================ */}
           <div className="record-content">
             <span className={`record-text ${styles.JetBrainsMonoRegular18}`}>
@@ -129,11 +131,11 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
 
           {/* ============================================
               NAV STATE LAYER - Full navbar layout
-              Visible in 'recording', 'processing', 'complete' states
+              In 'fade' variant: visible immediately in complete state
               ============================================ */}
           <div className="nav-content">
             
-            {/* LEFT SECTION: Close ↔ Copy ↔ Check Button */}
+            {/* LEFT SECTION: Copy Button (fades in at fixed position in 'fade' variant) */}
             <div className="nav-left">
               {navState === 'complete' ? (
                 <MorphingCopyToCheckButton onClick={onCopyClick} />
@@ -148,7 +150,7 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
             
             {/* CENTER SECTION: WaveClipper only (RecordButton moved to persistent layer) */}
             <div className="nav-center">
-              {/* WaveClipper layer - visible in recording/processing */}
+              {/* WaveClipper layer - only for morph variant */}
               <div className={`center-layer ${getCenterContent() === 'wave' ? 'active' : ''}`}>
                 <div className="audio-container">
                   <WaveClipper 
@@ -160,14 +162,13 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
               </div>
             </div>
             
-            {/* RIGHT SECTION: Timer + Action Button (Done → Processing → Structure) */}
+            {/* RIGHT SECTION: Structure Button (fades in at fixed position in 'fade' variant) */}
             <div className="nav-right">
-              {/* Timer wrapper - fades out and collapses in complete state */}
               <div 
                 className="timer-wrapper"
                 style={{ 
                   opacity: shouldShowTimer() ? 1 : 0,
-                  transition: 'opacity 0.1s ease',  /* Fades at half the button morph speed for better choreography */
+                  transition: 'opacity 0.1s ease',
                   pointerEvents: shouldShowTimer() ? 'auto' : 'none'
                 }}
               >
@@ -177,7 +178,6 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
                 />
               </div>
               
-              {/* Action button morphing: Done → Processing → Structure */}
               <div className="button-width-tracker">
                 <MorphingDoneProcessingStructureButton
                   state={getRightButtonState()}
@@ -193,7 +193,7 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
             PERSISTENT RECORD BUTTON LAYER
             Positioned absolute to morph-container (366×50 fixed)
             Stays perfectly centered during all transitions
-            Only visible in 'complete' state
+            Visible in 'complete' state
             ============================================ */}
         <div className={`persistent-record-layer ${navState === 'complete' ? 'active' : ''}`}>
           <RecordButton onClick={onRecordClick} />
@@ -216,16 +216,14 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
         
         /* ============================================
            OUTER CONTAINER
-           Reserves space for largest state (366×50px)
-           Prevents layout shift during morph
            ============================================ */
         
         .morph-container {
           position: relative;
-          width: 366px;        /* RecordNavBar width */
-          height: 50px;        /* RecordNavBar height */
+          width: 366px;
+          height: 50px;
           display: flex;
-          justify-content: center;  /* Center alignment for bidirectional expansion */
+          justify-content: center;
           align-items: center;
         }
         
@@ -246,7 +244,7 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           opacity: 0;
           pointer-events: none;
           
-          /* Fade transition */
+          /* Fade transition - 'morph' variant */
           transition: opacity 0.15s ease;
         }
         
@@ -255,14 +253,17 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           pointer-events: auto;
         }
         
+        /* 'fade' variant: RecordButton visible immediately (no transition delay) */
+        .morph-container.variant-fade .persistent-record-layer.active {
+          transition: none;
+        }
+        
         /* ============================================
            MORPHING BUTTON CONTAINER
-           Main element that changes dimensions
-           Expands from CENTER (bidirectional growth)
+           DEFAULT ('morph' variant): Expands from center
            ============================================ */
         
         .record-morphing-button {
-          /* Layout */
           position: relative;
           display: flex;
           flex-direction: row;
@@ -272,18 +273,16 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           border: none;
           cursor: pointer;
           
-          /* RECORD STATE - Initial smaller pill (113×42px) */
+          /* RECORD STATE - Initial smaller pill */
           width: 113px;
           height: 42px;
           background: var(--RecWhite);
           border-radius: 24px;
           
-          /* CENTER-ORIGIN EXPANSION 
-             Key for bidirectional growth - both sides expand equally */
           transform-origin: center center;
           margin: auto;
           
-          /* SMOOTH TRANSITIONS */
+          /* SMOOTH TRANSITIONS - 'morph' variant */
           transition: 
             all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
             background 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -291,11 +290,10 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           overflow: hidden;
         }
         
-        /* RECORDING & PROCESSING STATES - Expanded nav bar (366×50px) */
+        /* RECORDING & PROCESSING STATES */
         .record-morphing-button.state-recording,
         .record-morphing-button.state-processing {
           width: 366px;
-          // border: .3px solid red;
           height: 50px;
           padding: 4px;
           background: var(--ClipRecNavBarBg);
@@ -304,7 +302,7 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           cursor: default;
         }
         
-        /* COMPLETE STATE - Same size as navbar but transparent background */
+        /* COMPLETE STATE - 'morph' variant */
         .record-morphing-button.state-complete {
           width: 366px;
           height: 50px;
@@ -316,39 +314,62 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
         }
         
         /* ============================================
-           RECORD CONTENT LAYER
-           "RECORD" Text - visible only in record state
+           'FADE' VARIANT OVERRIDES
+           Container is IMMEDIATELY at full size
+           No expansion animation
+           ============================================ */
+        
+        .record-morphing-button.variant-fade {
+          /* Skip all container transitions */
+          transition: none;
+        }
+        
+        .record-morphing-button.variant-fade.state-complete {
+          /* Immediately at full size */
+          width: 366px;
+          height: 50px;
+          padding: 4px;
+          background: transparent;
+          border-radius: 32px;
+          justify-content: space-between;
+          cursor: default;
+        }
+        
+        /* ============================================
+           RECORD CONTENT LAYER - "RECORD" Text
            ============================================ */
         
         .record-content {
-          /* Absolutely centered - prevents sliding during morph */
           position: absolute;
           left: 50%;
           top: 50%;
           transform: translate(-50%, -50%) translateZ(0);
           
-          /* Layout */
           display: flex;
           justify-content: center;
           align-items: center;
           width: 65px;
           height: 26px;
           
-          /* Visibility */
           opacity: 1;
           pointer-events: none;
           
-          /* Fade timing - fades out at 50% of main duration (gone by halfway point) */
           transition: opacity 0.15s ease;
           backface-visibility: hidden;
         }
         
-        /* Hidden in all nav states */
+        /* Hidden in nav states */
         .record-morphing-button.state-recording .record-content,
         .record-morphing-button.state-processing .record-content,
         .record-morphing-button.state-complete .record-content {
           opacity: 0;
           pointer-events: none;
+        }
+        
+        /* 'fade' variant: RECORD text hidden immediately */
+        .record-morphing-button.variant-fade.state-complete .record-content {
+          opacity: 0;
+          transition: none;
         }
         
         .record-text {
@@ -360,38 +381,31 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
         
         /* ============================================
            NAV CONTENT LAYER
-           Full navbar layout - visible in recording/processing/complete
            ============================================ */
         
         .nav-content {
-          /* Absolutely centered - prevents jitter during morph */
           position: absolute;
           left: 50%;
           top: 50%;
           transform: translate(-50%, -50%) translateZ(0);
           
-          /* Layout - Full nav bar width */
           display: flex;
           flex-direction: row;
           justify-content: space-between;
           align-items: center;
           
-          /* FIXED WIDTH: Center section flexes internally to accommodate timer */
-          width: 358px;            /* Fixed: 38 (left) + flexible (center) + growing (right) = 358px */
+          width: 358px;
           height: 42px;
           gap: 0px;
           
-          /* Visibility */
           opacity: 0;
           pointer-events: none;
           
-          /* Fade timing - fades in at 50% of main duration (visible by halfway point) */
           transition: opacity 0.15s ease;
           backface-visibility: hidden;
-          /* border: 1px solid magenta;  /* DEBUG */
         }
         
-        /* Visible in all nav states */
+        /* Visible in nav states */
         .record-morphing-button.state-recording .nav-content,
         .record-morphing-button.state-processing .nav-content,
         .record-morphing-button.state-complete .nav-content {
@@ -399,20 +413,36 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           pointer-events: auto;
         }
         
+        /* 'fade' variant: nav-content visible immediately */
+        .record-morphing-button.variant-fade.state-complete .nav-content {
+          opacity: 1;
+          pointer-events: auto;
+          transition: none;
+        }
+        
         /* ============================================
            NAV SECTIONS - Left, Center, Right
            ============================================ */
         
-        /* LEFT: Close/Copy button (38×38px) */
         .nav-left {
           width: 38px;
           height: 38px;
           flex: none;
           order: 0;
-          /* border: 1px solid red;  /* DEBUG */
+          
+          /* 'fade' variant: fade in from opacity 0 */
+          opacity: 1;
+          transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        /* CENTER: Generic container for WaveClipper ↔ RecordButton */
+        /* 'fade' variant: side buttons start invisible, fade in */
+        .record-morphing-button.variant-fade .nav-left {
+          opacity: 0;
+        }
+        .record-morphing-button.variant-fade.state-complete .nav-left {
+          opacity: 1;
+        }
+        
         .nav-center {
           position: relative;
           display: flex;
@@ -420,34 +450,26 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           justify-content: center;
           align-items: center;
           
-          /* FLEXIBLE WIDTH: Grows/shrinks to fill available space */
-          flex: 1;              /* Shorthand: flex-grow: 1, flex-shrink: 1, flex-basis: 0 */
-          min-width: 150px;     /* Minimum width to keep waveform visible */
-          /* No fixed height - adapts to content (32px for wave, 42px for record) */
+          flex: 1;
+          min-width: 150px;
           
           order: 1;
-          /* border: 1px solid blue;  /* DEBUG */
         }
         
-        /* Audio container - specialized wrapper for WaveClipper with masks */
         .audio-container {
           position: relative;
           display: flex;
-          // border: .3px solid blue;
           flex-direction: row;
           justify-content: center;
           align-items: center;
           padding: 0px 0px;
           
-          /* FLEXIBLE WIDTH: Fills parent container (nav-center) */
-          width: 100%;          /* Takes full width of flexible parent */
+          width: 100%;
           height: 32px;
           border-radius: 0px;
           overflow: clip;
-          /* border: 1px solid green;  /* DEBUG */
         }
         
-        /* Left edge fade overlay - creates smooth fade on left side of waveform */
         .audio-container::before {
           content: '';
           position: absolute;
@@ -460,7 +482,6 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           z-index: 10;
         }
         
-        /* Right edge fade overlay - creates smooth fade on right side of waveform */
         .audio-container::after {
           content: '';
           position: absolute;
@@ -473,7 +494,6 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           z-index: 10;
         }
         
-        /* Opacity crossfade layers for center content */
         .center-layer {
           position: absolute;
           left: 0;
@@ -484,9 +504,8 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           justify-content: center;
           align-items: center;
           opacity: 0;
-          transition: opacity 0.15s ease;  /* Default: quick fade (for exiting complete state) */
+          transition: opacity 0.15s ease;
           pointer-events: none;
-          /* border: 1px solid yellow;  /* DEBUG */
         }
         
         .center-layer.active {
@@ -494,78 +513,112 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
           pointer-events: auto;
         }
         
-        /* RIGHT: Timer + Action Button */
         .nav-right {
           display: flex;
           flex-direction: row;
           align-items: center;
-          justify-content: flex-end;  /* RIGHT-ALIGN content - keeps button at right edge */
+          justify-content: flex-end;
           padding: 0px;
           gap: 10px;
           
-          /* ADAPTIVE WIDTH: Expands when timer grows (10+ minutes) */
-          min-width: 130px;          /* Minimum for 4-char timer (44px) + gap (10px) + button (76px) */
-          width: auto;               /* Grows with timer (max 5 chars, capped at 15 minutes) */
+          min-width: 130px;
+          width: auto;
           
           height: 42px;
-          transition: width 0s 0.15s, gap 0s;  /* Gap appears instantly, width delayed 0.15s (for RecordButton fade-out) */
+          transition: width 0s 0.15s, gap 0s;
           
           flex: none;
           order: 2;
-          /* border: 1px solid orange;  DEBUG - CONTAINER */
+          
+          /* 'fade' variant: fade in from opacity 0 */
+          opacity: 1;
         }
         
-        /* Complete state: Shrink container to match button size */
-        .record-morphing-button.state-complete .nav-right {
-          min-width: 38px;   /* Force minimum to button width */
-          max-width: 38px;   /* Force maximum to button width */
-          width: 38px;       /* Shrinks to Structure button width (matches left container) */
-          gap: 0px;          /* Remove gap when timer is gone */
+        /* 'fade' variant: side buttons start invisible, fade in */
+        .record-morphing-button.variant-fade .nav-right {
+          opacity: 0;
+          /* In fade variant complete state, immediately at final size */
+          min-width: 38px;
+          max-width: 38px;
+          width: 38px;
+          gap: 0px;
+          transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .record-morphing-button.variant-fade.state-complete .nav-right {
+          opacity: 1;
+        }
+        
+        /* 'morph' variant: normal shrink behavior */
+        .record-morphing-button.variant-morph.state-complete .nav-right {
+          min-width: 38px;
+          max-width: 38px;
+          width: 38px;
+          gap: 0px;
           transition: min-width 0s 0.2s, max-width 0s 0.2s, width 0s 0.2s, gap 0s 0.2s;
         }
         
         .timer-wrapper {
           display: flex;
           align-items: center;
-          min-width: 44px;          /* Minimum width for 4 chars (0:26, 9:59) */
-          width: auto;              /* Grows automatically for 5 chars (10:00 - 99:59) */
+          min-width: 44px;
+          width: auto;
           height: 42px;
-          transition: min-width 0s 0.2s;  /* Delayed collapse via min-width */
-          /* overflow: hidden removed - was clipping timer text at 10+ minutes */
+          transition: min-width 0s 0.2s;
         }
         
-        /* Complete state: Collapse timer after fade completes */
+        /* Hide timer in fade variant */
+        .record-morphing-button.variant-fade .timer-wrapper {
+          display: none;
+        }
+        
         .record-morphing-button.state-complete .timer-wrapper {
-          min-width: 0px;   /* Collapses to nothing at 0.2s mark (after opacity fade) */
+          min-width: 0px;
         }
-        
-        /* ========================================
-           BUTTON WIDTH TRACKER - Reports button width to parent flexbox
-           ======================================== */
         
         .button-width-tracker {
-          /* Tracks button's morphing width without interfering with internal alignment */
-          position: relative;  /* Establish positioning context */
-          width: 76px;         /* Initial width - matches done/processing button */
-          height: 42px;        /* Match button height */
-          flex-shrink: 0;      /* Prevent parent from squeezing this wrapper */
-          transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);  /* Match button morph speed */
-          overflow: hidden;    /* CRITICAL: Clips the 76px internal container when wrapper shrinks */
+          position: relative;
+          width: 76px;
+          height: 42px;
+          flex-shrink: 0;
+          transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          overflow: hidden;
           display: flex;
           align-items: center;
-          justify-content: flex-end;  /* Keep button right-aligned within tracker */
-          /* border: 1px solid cyan;  DEBUG - BUTTON TRACKER */
+          justify-content: flex-end;
         }
         
-        /* Keep at 76px during recording and processing states */
         .record-morphing-button.state-recording .button-width-tracker,
         .record-morphing-button.state-processing .button-width-tracker {
-          width: 76px;         /* Matches done/processing button */
+          width: 76px;
         }
         
-        /* Shrink wrapper to match button's morphed width in complete state (when button shows structure) */
         .record-morphing-button.state-complete .button-width-tracker {
-          width: 38px;         /* Final width - matches structure button */
+          width: 38px;
+        }
+        
+        /* 'fade' variant: button tracker immediately at final size */
+        .record-morphing-button.variant-fade .button-width-tracker {
+          width: 38px;
+          transition: none;
+        }
+        
+        /* ============================================
+           'FADE' VARIANT: DISABLE ALL INTERNAL ANIMATIONS
+           The morphing buttons have their own internal transitions
+           We need to override them to make the switch instant
+           ============================================ */
+        
+        /* Disable ALL transitions inside morphing buttons for fade variant */
+        .record-morphing-button.variant-fade :global(*) {
+          transition: none !important;
+        }
+        
+        /* Re-enable ONLY opacity transitions for the side buttons */
+        .record-morphing-button.variant-fade .nav-left {
+          transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .record-morphing-button.variant-fade .nav-right {
+          transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
       `}</style>
     </>
@@ -573,79 +626,44 @@ export const RecordNavBarMorphing: React.FC<RecordNavBarMorphingProps> = ({
 };
 
 /* ============================================
-   DEMO WRAPPER COMPONENT WITH AUTO-TRANSITIONS
-   
-   Self-contained demo version with internal state
-   Shows complete state flow: record → recording → processing → complete
-   
-   Usage in showcase/testing:
-   <RecordNavBarMorphingDemo />
-   
-   For production, use RecordNavBarMorphing with external state:
-   <RecordNavBarMorphing 
-     navState={currentState}
-     onRecordClick={() => setState('recording')}
-     onDoneClick={() => setState('processing')}
-     ...
-   />
+   DEMO 1: Normal Flow (morph variant)
+   record → recording → processing → complete
    ============================================ */
 
-interface RecordNavBarMorphingDemoProps {
+interface RecordNavBarVarMorphingDemoProps {
   className?: string;
 }
 
-export const RecordNavBarMorphingDemo: React.FC<RecordNavBarMorphingDemoProps> = ({ 
+export const RecordNavBarVarMorphingDemo: React.FC<RecordNavBarVarMorphingDemoProps> = ({ 
   className = '' 
 }) => {
-  // State
   const [navState, setNavState] = React.useState<RecordNavState>('record');
   
-  // Audio refs
   const audioContextRef = React.useRef<AudioContext | null>(null);
   const audioAnalyserRef = React.useRef<AnalyserNode | null>(null);
   const mediaStreamRef = React.useRef<MediaStream | null>(null);
   const processingTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ============================================
-  // EVENT HANDLERS
-  // ============================================
-
-  // Start recording with mic access
   const handleRecordClick = async () => {
-    // Check if we're in a browser environment
-    if (typeof window === 'undefined') {
-      console.error('Not in browser environment (SSR)');
-      return;
-    }
-
-    // Check if MediaDevices API is available
+    if (typeof window === 'undefined') return;
     if (!navigator?.mediaDevices?.getUserMedia) {
-      alert('Your browser does not support audio recording.\n\nPlease use a modern browser (Chrome, Firefox, Safari, Edge).');
+      alert('Your browser does not support audio recording.');
       return;
     }
-
-    // Check if we're in a secure context (required for getUserMedia)
     if (!window.isSecureContext) {
-      alert('Microphone access requires a secure connection.\n\n' +
-            'Please access via:\n' +
-            '• https:// (secure connection)\n' +
-            '• http://localhost (development)\n\n' +
-            'Current: ' + window.location.origin);
+      alert('Microphone access requires a secure connection.');
       return;
     }
 
     try {
-      // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
 
-      // Create audio context
       const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const context = new AudioContextClass();
       await context.resume();
       audioContextRef.current = context;
 
-      // Create analyser node
       const source = context.createMediaStreamSource(stream);
       const analyser = context.createAnalyser();
       analyser.fftSize = 256;
@@ -653,87 +671,51 @@ export const RecordNavBarMorphingDemo: React.FC<RecordNavBarMorphingDemoProps> =
       source.connect(analyser);
       audioAnalyserRef.current = analyser;
       
-      // Set recording state
       setNavState('recording');
     } catch (err) {
       console.error('Error accessing microphone:', err);
-      
-      // Provide helpful error messages
-      if ((err as Error).name === 'NotAllowedError') {
-        alert('Microphone access was denied.\n\nPlease grant permission in your browser settings.');
-      } else if ((err as Error).name === 'NotFoundError') {
-        alert('No microphone found.\n\nPlease connect a microphone and try again.');
-      } else {
-        alert('Could not access microphone.\n\nError: ' + (err as Error).message);
-      }
+      alert('Could not access microphone.');
     }
   };
 
-  // Stop recording and cleanup
   const stopRecording = () => {
-    // Stop microphone
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
-    
-    // Close audio context
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
-    
     audioAnalyserRef.current = null;
-    
-    // Clear processing timer if active
     if (processingTimerRef.current) {
       clearTimeout(processingTimerRef.current);
       processingTimerRef.current = null;
     }
-    
     setNavState('record');
   };
 
-  const handleCloseClick = () => {
-    stopRecording();
-  };
+  const handleCloseClick = () => stopRecording();
 
   const handleDoneClick = () => {
-    // Stop microphone but keep waveform frozen
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
-    
-    // Close audio context
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
-    
     audioAnalyserRef.current = null;
     
-    // Show processing button - waveform stays frozen
     setNavState('processing');
     
-    // Auto-transition to complete state after 3 seconds
     processingTimerRef.current = setTimeout(() => {
       setNavState('complete');
       processingTimerRef.current = null;
     }, 3000);
   };
 
-  const handleCopyClick = () => {
-    console.log('Copy clicked - would copy transcription to clipboard');
-    // In production: copy transcription to clipboard
-  };
-
-  const handleStructureClick = () => {
-    console.log('Structure clicked - would open structure/formatting panel');
-    // In production: open structure panel
-  };
-
-  // Cleanup on unmount
   React.useEffect(() => {
     return () => {
       if (mediaStreamRef.current) {
@@ -749,18 +731,81 @@ export const RecordNavBarMorphingDemo: React.FC<RecordNavBarMorphingDemoProps> =
   }, []);
 
   return (
-    <RecordNavBarMorphing
+    <RecordNavBarVarMorphing
       navState={navState}
+      variant="morph"
       onRecordClick={handleRecordClick}
       onCloseClick={handleCloseClick}
-      onCopyClick={handleCopyClick}
+      onCopyClick={() => console.log('Copy clicked')}
       onDoneClick={handleDoneClick}
-      onStructureClick={handleStructureClick}
+      onStructureClick={() => console.log('Structure clicked')}
       audioAnalyser={audioAnalyserRef.current}
       className={className}
     />
   );
 };
 
-export default RecordNavBarMorphing;
+/* ============================================
+   DEMO 2: Direct to Complete (fade variant)
+   Toggle button switches: record ↔ complete
+   Simulates viewing an existing transcribed clip
+   ============================================ */
+
+interface RecordNavBarVarMorphingDirectDemoProps {
+  className?: string;
+}
+
+export const RecordNavBarVarMorphingDirectDemo: React.FC<RecordNavBarVarMorphingDirectDemoProps> = ({ 
+  className = '' 
+}) => {
+  const [navState, setNavState] = React.useState<RecordNavState>('record');
+
+  const handleToggle = () => {
+    // Toggle between record and complete to see the fade animation
+    setNavState(prev => prev === 'record' ? 'complete' : 'record');
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+      {/* The morphing component */}
+      <RecordNavBarVarMorphing
+        navState={navState}
+        variant="fade"
+        onRecordClick={handleToggle}
+        onCopyClick={() => console.log('Copy clicked')}
+        onStructureClick={() => console.log('Structure clicked')}
+        className={className}
+      />
+      
+      {/* Toggle button - separate from component */}
+      <button
+        onClick={handleToggle}
+        style={{
+          padding: '8px 16px',
+          background: navState === 'record' ? 'var(--ClipGrey, #333)' : 'var(--RecWhite_10, rgba(255,255,255,0.1))',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '8px',
+          color: 'white',
+          cursor: 'pointer',
+          fontSize: '13px',
+          fontFamily: 'Inter, sans-serif',
+          transition: 'background 0.2s ease'
+        }}
+      >
+        {navState === 'record' ? 'Switch to Complete →' : '← Switch to Record'}
+      </button>
+      
+      {/* State indicator */}
+      <span style={{ 
+        color: 'rgba(255, 255, 255, 0.5)', 
+        fontSize: '0.75rem',
+        fontFamily: 'JetBrains Mono, monospace'
+      }}>
+        Current: {navState}
+      </span>
+    </div>
+  );
+};
+
+export default RecordNavBarVarMorphing;
 

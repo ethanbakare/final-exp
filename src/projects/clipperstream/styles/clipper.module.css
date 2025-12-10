@@ -71,6 +71,14 @@
 
 
 /* Inter Medium */
+.InterMedium16 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 143.75%;
+}
+
 .InterMedium18 {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 18px;
@@ -126,16 +134,18 @@
     --RecRed: #EF4444;
     --RecTrayBg: #262424;
     --RecWhite: #FFFFFF;
-    --RecWhite_70: rgba(255, 255, 255, 0.7);
     --RecWhite_90: rgba(255, 255, 255, 0.9);
+    --RecWhite_80: rgba(255, 255, 255, 0.8);
+    --RecWhite_70: rgba(255, 255, 255, 0.7);
     --RecWhite_60: rgba(255, 255, 255, 0.6);
     --RecWhite_40: rgba(255, 255, 255, 0.4);
     --RecWhite_30: rgba(255, 255, 255, 0.3);
     --RecWhite_20: rgba(255, 255, 255, 0.2);
     --RecWhite_10: rgba(255, 255, 255, 0.1);
     --RecWhite_05: rgba(255, 255, 255, 0.05);
-
-
+    --ClipBgOverlay: rgba(28, 28, 28, 0.8);
+    --ClipBgBlackOverlay: rgba(0, 0, 0, 0.5);
+    --ClipRetryRed: rgba(255, 14, 14, 0.15);
     --ClipGrey:#252525;
     --ClipRecNavBarBg: #3C3A3A;
     --ClipBg: #1C1C1C;

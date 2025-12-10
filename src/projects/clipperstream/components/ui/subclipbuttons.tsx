@@ -178,3 +178,287 @@ export const SubRenameIcon: React.FC<SubButtonProps> = ({
   );
 };
 
+/* ============================================
+   SUB TRANSCRIBE ICON - Smaller transcribe/refresh icon button (28×28px)
+   ============================================ */
+
+export const SubTranscribeIcon: React.FC<SubButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <SharedSubButtonStyles />
+      <button 
+        className={`sub-button-base ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Transcribe"
+      >
+        <svg 
+          className="sub-icon-base"
+          width="18" 
+          height="18" 
+          viewBox="0 0 18 18" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M7.50024 12H3.75024V15.75M10.5002 6H14.2502V2.25M3.4375 6.75237C3.85801 5.71156 4.56207 4.8096 5.46966 4.14899C6.37724 3.48838 7.45226 3.09564 8.57193 3.01538C9.69161 2.93512 10.8112 3.17055 11.8037 3.69496C12.7962 4.21937 13.6213 5.01171 14.1859 5.9819M14.5634 11.2476C14.1429 12.2884 13.4388 13.1904 12.5312 13.851C11.6237 14.5116 10.5491 14.9044 9.42944 14.9846C8.30977 15.0649 7.18979 14.8294 6.19727 14.305C5.20474 13.7806 4.37936 12.9883 3.8147 12.0181" 
+            stroke="white" 
+            strokeWidth="1.17" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+    </>
+  );
+};
+
+/* ============================================
+   SUB TRANSCRIBE ICON SPINNING - Smaller transcribe icon with continuous rotation (28×28px)
+   ============================================ */
+
+export const SubTranscribeIconSpinning: React.FC<SubButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <SharedSubButtonStyles />
+      <button 
+        className={`sub-button-base sub-transcribe-spinning ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Transcribing"
+      >
+        <div className="spinner-wrapper">
+          <svg 
+            className="sub-icon-base spinning-icon"
+            width="18" 
+            height="18" 
+            viewBox="0 0 18 18" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              d="M7.50024 12H3.75024V15.75M10.5002 6H14.2502V2.25M3.4375 6.75237C3.85801 5.71156 4.56207 4.8096 5.46966 4.14899C6.37724 3.48838 7.45226 3.09564 8.57193 3.01538C9.69161 2.93512 10.8112 3.17055 11.8037 3.69496C12.7962 4.21937 13.6213 5.01171 14.1859 5.9819M14.5634 11.2476C14.1429 12.2884 13.4388 13.1904 12.5312 13.851C11.6237 14.5116 10.5491 14.9044 9.42944 14.9846C8.30977 15.0649 7.18979 14.8294 6.19727 14.305C5.20474 13.7806 4.37936 12.9883 3.8147 12.0181" 
+              stroke="white" 
+              strokeWidth="1.17" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      </button>
+      
+      <style jsx>{`
+        /* Rotation animation keyframes */
+        @keyframes rotate-transcribe {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        /* Spinner wrapper - contains and rotates the icon */
+        .sub-transcribe-spinning .spinner-wrapper {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 18px;
+          height: 18px;
+        }
+        
+        /* Apply rotation animation to the SVG icon */
+        .sub-transcribe-spinning .spinning-icon {
+          animation: rotate-transcribe 1.5s linear infinite;
+          transform-origin: center center;
+        }
+        
+        /* Pause animation when button is disabled */
+        .sub-transcribe-spinning:disabled .spinning-icon {
+          animation-play-state: paused;
+        }
+        
+        /* Respect user's motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+          .sub-transcribe-spinning .spinning-icon {
+            animation: none;
+          }
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   SUB PENDING ICON SPINNING - Pending/reload icon with continuous rotation (28×28px)
+   Duplicated from cliplist.tsx PendingIcon with rotation animation
+   ============================================ */
+
+export const SubPendingIconSpinning: React.FC<SubButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <SharedSubButtonStyles />
+      <button 
+        className={`sub-button-base sub-pending-spinning ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Pending"
+      >
+        <div className="spinner-wrapper">
+          <svg 
+            className="pending-icon spinning-icon"
+            width="12" 
+            height="12" 
+            viewBox="0 0 12 12" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              d="M5.05613 7.88726H2.69677V10.2466M6.94361 4.11229H9.30297V1.75293M2.5 4.58565C2.76457 3.93081 3.20754 3.36333 3.77856 2.9477C4.34957 2.53207 5.02593 2.28497 5.73039 2.23448C6.43485 2.18398 7.13924 2.33211 7.7637 2.66204C8.38816 2.99198 8.90723 3.49049 9.2625 4.1009M9.5 7.41389C9.23543 8.06873 8.79246 8.63621 8.22144 9.05184C7.65043 9.46747 6.97436 9.71458 6.2699 9.76508C5.56545 9.81558 4.8608 9.66743 4.23634 9.33749C3.61188 9.00756 3.09258 8.50907 2.73732 7.89867" 
+              stroke="white" 
+              strokeOpacity="0.4" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      </button>
+      
+      <style jsx>{`
+        /* Rotation animation keyframes */
+        @keyframes rotate-pending {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        /* Spinner wrapper - contains and rotates the icon */
+        .sub-pending-spinning .spinner-wrapper {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 12px;
+          height: 12px;
+        }
+        
+        /* Apply rotation animation to the SVG icon */
+        .sub-pending-spinning .spinning-icon {
+          animation: rotate-pending 1.5s linear infinite;
+          transform-origin: center center;
+        }
+        
+        .pending-icon {
+          width: 12px;
+          height: 12px;
+        }
+        
+        /* Pause animation when button is disabled */
+        .sub-pending-spinning:disabled .spinning-icon {
+          animation-play-state: paused;
+        }
+        
+        /* Respect user's motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+          .sub-pending-spinning .spinning-icon {
+            animation: none;
+          }
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   SUB CHECKMARK ICON - Checkmark/tick icon button (28×28px)
+   ============================================ */
+
+export const SubCheckmarkIcon: React.FC<SubButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <SharedSubButtonStyles />
+      <button 
+        className={`sub-button-base ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Confirm"
+      >
+        <svg 
+          className="sub-icon-base"
+          width="18" 
+          height="18" 
+          viewBox="0 0 18 18" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M3 8.99997L6.71231 12.7123L14.6676 4.75732" 
+            stroke="white" 
+            strokeWidth="1.17" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+    </>
+  );
+};
+
+/* ============================================
+   SUB CLOSE ICON - X/close icon button (28×28px)
+   ============================================ */
+
+export const SubCloseIcon: React.FC<SubButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <SharedSubButtonStyles />
+      <button 
+        className={`sub-button-base ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Dismiss"
+      >
+        <svg 
+          className="sub-icon-base"
+          width="18" 
+          height="18" 
+          viewBox="0 0 18 18" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M13.5 13.5L4.5 4.5M13.5 4.5L4.5 13.5" 
+            stroke="white" 
+            strokeOpacity="0.6"
+            strokeWidth="1.17" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+    </>
+  );
+};
+

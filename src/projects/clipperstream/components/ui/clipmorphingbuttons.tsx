@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DoneButton, ProcessingButton, CopyButton, CheckTickButton, TimerText, CloseButton } from './clipbuttons';
+import { OnlineStatus, OfflineStatus } from './midClipButtons';
 import styles from '@/projects/clipperstream/styles/clipper.module.css';
 
 // ClipperStream Morphing Button Components
@@ -724,13 +725,155 @@ export const MorphingTimerProcessingToStructure: React.FC<MorphingTimerProcessin
   );
 };
 
+/* ============================================
+   MORPHING STATUS INDICATORS
+   (Non-interactive components for visual feedback)
+   ============================================ */
+
+/* ============================================
+   MORPHING ONLINE/OFFLINE STATUS
+   
+   PATTERN: Two-status opacity crossfade
+   - Two status text components stacked absolutely
+   - One fades out (opacity: 1 → 0) while other fades in (opacity: 0 → 1)
+   - No physical dimension changes, just visibility swap
+   - Non-interactive (no click handlers - pure status indicator)
+   
+   ACCESSIBILITY:
+   - role="status" for screen reader announcements
+   - aria-live="polite" for non-urgent updates
+   - aria-atomic="true" to read entire status
+   
+   USE CASE:
+   - During recording: network status changes (online ↔ offline)
+   - Recording continues regardless of connectivity
+   - Visual feedback for user awareness
+   
+   ADJUSTABLE PARAMETERS:
+   - Transition speed: 0.4s (.status-layer transition) - slower than buttons (informational change)
+   - Container size: 58×22px (accommodates both "Online" and "Offline")
+   
+   ============================================ */
+
+interface MorphingOnlineOfflineStatusProps {
+  state: 'online' | 'offline';  // Parent controls which status is visible
+  onChange?: (state: 'online' | 'offline') => void;  // Optional callback when state changes (for logging/analytics)
+  className?: string;
+}
+
+export const MorphingOnlineOfflineStatus: React.FC<MorphingOnlineOfflineStatusProps> = ({
+  state,
+  onChange,
+  className = ''
+}) => {
+  // Notify parent when state changes (for side effects like logging)
+  useEffect(() => {
+    if (onChange) {
+      onChange(state);
+    }
+  }, [state, onChange]);
+
+  return (
+    <>
+      <div 
+        className={`morphing-status-wrapper ${className}`}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {/* Online Status - visible in online state */}
+        <div 
+          className={`status-layer online-layer ${state === 'online' ? 'active' : ''}`}
+          aria-hidden={state !== 'online'}
+        >
+          <OnlineStatus />
+        </div>
+        
+        {/* Offline Status - visible in offline state */}
+        <div 
+          className={`status-layer offline-layer ${state === 'offline' ? 'active' : ''}`}
+          aria-hidden={state !== 'offline'}
+        >
+          <OfflineStatus />
+        </div>
+      </div>
+      
+      <style jsx>{`
+        /* ========================================
+           ACCESSIBILITY
+           ======================================== */
+        
+        /* Disable animations for users who prefer reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .status-layer {
+            transition: none !important;
+          }
+        }
+        
+        /* ========================================
+           CONTAINER - Fixed wrapper prevents layout shift
+           ======================================== */
+        
+        /* Fixed container prevents layout shift during status swap */
+        .morphing-status-wrapper {
+          position: relative;
+          width: 58px;   /* ADJUST: Must match largest status width (Offline: 58px) */
+          height: 22px;  /* ADJUST: Must match status height */
+          
+          /* Accessibility attributes applied via JSX:
+             - role="status" makes this a live region
+             - aria-live="polite" announces changes without interrupting
+             - aria-atomic="true" reads complete status, not just change
+          */
+        }
+        
+        /* ========================================
+           STATUS LAYERS - Both statuses stacked absolutely
+           ======================================== */
+        
+        /* Both status components are absolutely positioned and stacked */
+        .status-layer {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0;    /* Hidden by default */
+          transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);  /* SPEED CONTROL: 0.4s for calm status change (slower than buttons) */
+          pointer-events: none;  /* Status indicators are not interactive */
+        }
+        
+        /* Active status is visible */
+        .status-layer.active {
+          opacity: 1;  /* Fully visible */
+        }
+        
+        /* ========================================
+           VISUAL FEEDBACK
+           ======================================== */
+        
+        /* Online layer - dimmed white text (RecWhite_30) */
+        .online-layer {
+          /* Color handled by OnlineStatus component */
+        }
+        
+        /* Offline layer - orange text (ClipOfflineOrange) */
+        .offline-layer {
+          /* Color handled by OfflineStatus component */
+        }
+      `}</style>
+    </>
+  );
+};
+
 // Create a named object for default export
 const clipMorphingButtons = {
   MorphingDoneToProcessingButton,
   MorphingCopyToCheckButton,
   MorphingCloseToCopyButton,
   MorphingProcessingToStructureButton,
-  MorphingTimerProcessingToStructure
+  MorphingTimerProcessingToStructure,
+  MorphingOnlineOfflineStatus
 };
 
 export default clipMorphingButtons;

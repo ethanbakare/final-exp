@@ -786,3 +786,234 @@ export const CheckTickButton: React.FC<ButtonProps> = ({
     </>
   );
 };
+
+/* ============================================
+   RETRY BUTTON - Red retry button with icon and text (96×38px)
+   Used for retry actions after failures
+   ============================================ */
+
+export const RetryButton: React.FC<ButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <button 
+        className={`retry-button ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Retry"
+      >
+        <svg 
+          className="retry-icon"
+          width="24" 
+          height="24" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M14 8H19V3" 
+            stroke="#EF4444" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+          <path 
+            d="M19.4203 14.9954C18.2347 17.9297 15.3591 20 12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4C14.9642 4 17.5518 5.61212 18.934 8.00741" 
+            stroke="#EF4444" 
+            strokeWidth="2" 
+            strokeLinecap="round"
+          />
+        </svg>
+        <span className={`retry-text ${styles.InterMedium16}`}>
+          Retry
+        </span>
+      </button>
+      
+      <style jsx>{`
+        .retry-button {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px 12px 0px 10px;
+          gap: 8px;
+          
+          width: 96px;
+          height: 38px;
+          
+          background: var(--ClipRetryRed);
+          border-radius: 32px;
+          border: none;
+          cursor: pointer;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+        
+        .retry-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .retry-icon {
+          width: 24px;
+          height: 24px;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+        
+        .retry-text {
+          width: 42px;
+          height: 23px;
+          
+          text-align: center;
+          color: var(--RecRed);
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   TRANSCRIBE BIG - Transcribe/refresh icon (24×24px)
+   Shows transcription state - can be static or spinning
+   spinning={true} = actively transcribing (rotating)
+   spinning={false} = waiting to transcribe (static)
+   ============================================ */
+
+interface TranscribeBigProps extends ButtonProps {
+  spinning?: boolean;  // Controls animation - default true for backward compatibility
+}
+
+export const TranscribeBig: React.FC<TranscribeBigProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '',
+  spinning = true  // Default true to maintain backward compatibility
+}) => {
+  return (
+    <>
+      <button 
+        className={`transcribe-big ${spinning ? 'spinning' : 'static'} ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={spinning ? "Transcribing" : "Waiting to transcribe"}
+      >
+        <div className="spinner-wrapper">
+          <svg 
+            className="transcribe-icon"
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              d="M10.1123 15.775H5.39353V20.4937M13.8872 8.22506H18.6059V3.50635M5 9.17179C5.52914 7.86212 6.41508 6.72715 7.55711 5.89589C8.69915 5.06463 10.0519 4.57044 11.4608 4.46945C12.8697 4.36845 14.2785 4.6647 15.5274 5.32458C16.7763 5.98445 17.8145 6.98147 18.525 8.20229M19 14.8283C18.4709 16.1379 17.5849 17.2729 16.4429 18.1042C15.3009 18.9354 13.9487 19.4297 12.5398 19.5306C11.1309 19.6316 9.7216 19.3354 8.47268 18.6755C7.22376 18.0156 6.18517 17.0186 5.47464 15.7978" 
+              stroke="white" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+      </button>
+      
+      <style jsx>{`
+        .transcribe-big {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 3px;
+          
+          width: 24px;
+          height: 24px;
+          
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+        
+        .transcribe-big:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        /* Rotation animation keyframes */
+        @keyframes rotate-transcribe-big {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        /* Spinner wrapper - contains the icon */
+        .transcribe-big .spinner-wrapper {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 24px;
+          height: 24px;
+        }
+        
+        /* Base icon styles */
+        .transcribe-big .transcribe-icon {
+          width: 24px;
+          height: 24px;
+          transform-origin: center center;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+        
+        /* Spinning state - apply rotation animation */
+        .transcribe-big.spinning .transcribe-icon {
+          animation: rotate-transcribe-big 1.5s linear infinite;
+        }
+        
+        /* Static state - no animation */
+        .transcribe-big.static .transcribe-icon {
+          animation: none;
+        }
+        
+        /* Pause animation when button is disabled (only relevant for spinning) */
+        .transcribe-big.spinning:disabled .transcribe-icon {
+          animation-play-state: paused;
+        }
+        
+        /* Respect user's motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+          .transcribe-big .transcribe-icon {
+            animation: none;
+          }
+        }
+      `}</style>
+    </>
+  );
+};

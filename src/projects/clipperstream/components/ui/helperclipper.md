@@ -52,7 +52,6 @@
 
 **Key insight:** Don't modify shared components; wrap them locally when behavior needs adaptation.
 
----
 
 ## Technical Challenge: Jarring Gap Appearance
 
@@ -284,3 +283,6 @@ mainmorph.tsx (Orchestrator)
 
 
 */
+
+
+

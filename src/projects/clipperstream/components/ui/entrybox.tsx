@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import styles from '@/projects/clipperstream/styles/clipper.module.css';
 
 // EntryBox Component
@@ -16,6 +16,8 @@ interface EntryBoxProps {
   onBlur?: () => void;
   className?: string;
   disabled?: boolean;
+  autoSelect?: boolean;  // Auto-select text when component mounts (for rename modal)
+  autoFocus?: boolean;   // Auto-focus input when component mounts
 }
 
 export const EntryBox: React.FC<EntryBoxProps> = ({ 
@@ -25,7 +27,9 @@ export const EntryBox: React.FC<EntryBoxProps> = ({
   onFocus,
   onBlur,
   className = '',
-  disabled = false
+  disabled = false,
+  autoSelect = false,
+  autoFocus = false
 }) => {
   // Internal state for uncontrolled mode
   const [internalValue, setInternalValue] = useState('');
@@ -34,6 +38,31 @@ export const EntryBox: React.FC<EntryBoxProps> = ({
   
   // Use controlled value if provided, otherwise use internal state
   const inputValue = controlledValue !== undefined ? controlledValue : internalValue;
+  
+  // Auto-focus and auto-select on mount
+  // Industry standard for rename modals: focus + select all text for easy replacement
+  useEffect(() => {
+    if (inputRef.current) {
+      if (autoFocus) {
+        inputRef.current.focus();
+      }
+      if (autoSelect && inputValue) {
+        // Small delay to ensure value is set before selecting
+        const timer = requestAnimationFrame(() => {
+          if (inputRef.current) {
+            // Select all text
+            inputRef.current.select();
+            // Scroll to start of text so user sees the beginning
+            // This handles long titles that overflow the input
+            inputRef.current.scrollLeft = 0;
+            // Also set selection to start from position 0
+            inputRef.current.setSelectionRange(0, inputRef.current.value.length);
+          }
+        });
+        return () => cancelAnimationFrame(timer);
+      }
+    }
+  }, [autoFocus, autoSelect]);  // Only run on mount (intentionally omit inputValue)
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -68,7 +97,7 @@ export const EntryBox: React.FC<EntryBoxProps> = ({
           <input
             ref={inputRef}
             type="text"
-            className="title-text"
+            className={`title-text ${styles.InterRegular16}`}
             value={inputValue}
             onChange={handleChange}
             onFocus={handleFocus}
@@ -81,20 +110,26 @@ export const EntryBox: React.FC<EntryBoxProps> = ({
       
       <style jsx>{`
         /* ============================================
-           🎨 CURSOR CUSTOMIZATION VARIABLES
+           🎨 CUSTOMIZATION VARIABLES
            ============================================
            Easy customization - change these values at the top:
-           --cursor-color: Change the cursor color (default: blue)
-           --cursor-thickness: Adjust via font-size (limited control)
+           --entry-bar-radius: Inner container border-radius
+           --outline-padding: Space between inner and outer containers
+           --outline-radius: Automatically calculated (inner + padding)
+           --cursor-color: Custom cursor color
            ============================================ */
         
         /* ============================================
            RENAME OUTLINE - Outer container with focus ring
            ============================================ */
         .rename-outline {
-          /* Cursor customization variables */
-          --cursor-color: var(--ClipCursorColor);        /* Cursor color (Tailwind blue-500) */
-          --cursor-thickness: 2px;         /* Note: Limited browser support */
+          /* Dynamic border-radius calculation */
+          --entry-bar-radius: 8px;
+          --outline-padding: 2px;
+          --outline-radius: calc(var(--entry-bar-radius) + var(--outline-padding));
+          
+          /* Cursor customization */
+          --cursor-color: var(--ClipCursorColor);
           
           /* Box model - border-box ensures padding is inside dimensions */
           box-sizing: border-box;
@@ -104,13 +139,13 @@ export const EntryBox: React.FC<EntryBoxProps> = ({
           flex-direction: column;
           align-items: flex-start;
           justify-content: center;
-          padding: 2px;
+          padding: var(--outline-padding);
           gap: 10px;
           
           width: 231px;
           height: 42px;
           
-          border-radius: 9px;
+          border-radius: var(--outline-radius);
           
           /* Use box-shadow for focus ring - doesn't affect layout */
           box-shadow: 0 0 0 0px var(--RecWhite_05);
@@ -149,7 +184,7 @@ export const EntryBox: React.FC<EntryBoxProps> = ({
           
           background: var(--RecWhite_05);
           border: 1px solid transparent;
-          border-radius: 8px;
+          border-radius: var(--entry-bar-radius);
           
           /* Smooth transition for border */
           transition: border-color 0.2s ease;
@@ -173,13 +208,6 @@ export const EntryBox: React.FC<EntryBoxProps> = ({
           background: transparent;
           border: none;
           outline: none;
-          
-          /* Typography */
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-style: normal;
-          font-weight: 400;
-          font-size: 16px;
-          line-height: 19px;
           
           color: var(--RecWhite);
           

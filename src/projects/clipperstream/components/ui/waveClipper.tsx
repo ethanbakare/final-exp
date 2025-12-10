@@ -32,11 +32,11 @@ import styles from '@/projects/clipperstream/styles/clipper.module.css';
 
 // Visual appearance
 const GHOST_OPACITY = 0.2;              // --RecWhite_10 (empty bars)
-const ACTIVE_OPACITY = 0.6;             // --RecWhite_30 (bars with audio)
+const ACTIVE_OPACITY = .7;             // --RecWhite_30 (bars with audio)
 const BAR_COLOR = "#FFFFFF";
 
 // Audio analysis
-const SMOOTHING_ALPHA = 0.05;            // Audio smoothing (0-1, lower = smoother)
+const SMOOTHING_ALPHA = 0.1;            // Audio smoothing (0-1, lower = smoother)
 
 // Waveform behavior
 const MAX_BAR_HISTORY = 30;             // Total number of bars (matches static design)
@@ -87,34 +87,63 @@ export const WaveClipper: React.FC<WaveClipperProps> = ({
   const frozenScrollOffsetRef = useRef<number>(0);
 
   /* ============================================
-     CANVAS SETUP - DPI Awareness
-     Runs once on mount to set canvas resolution
+     CANVAS SETUP - DPI Awareness with ResizeObserver
+     Re-calculates canvas size when container resizes
+     (Critical for morphing containers that change size)
      ============================================ */
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
+    // Function to resize canvas to match container
+    const resizeCanvas = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      
+      // Skip if container has no size yet (hidden/collapsed)
+      if (rect.width === 0 || rect.height === 0) return;
+      
+      // Check if resize is actually needed (avoid unnecessary resets)
+      const newWidth = Math.floor(rect.width * dpr);
+      const newHeight = Math.floor(rect.height * dpr);
+      
+      if (canvas.width === newWidth && canvas.height === newHeight) return;
+      
+      // Set internal canvas resolution (accounts for Retina displays)
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      
+      // Set display size
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      
+      // Scale the drawing context to match DPI
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform before scaling
+        ctx.scale(dpr, dpr);
+      }
+    };
     
-    // Set internal canvas resolution (accounts for Retina displays)
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
+    // Initial resize
+    resizeCanvas();
     
-    // Set display size
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
+    // Watch for container size changes (critical for morphing animations)
+    const resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+    });
     
-    // Scale the drawing context to match DPI
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.scale(dpr, dpr);
-    }
+    resizeObserver.observe(canvas);
     
     // Initialize volume history
     if (volumeHistoryRef.current.length !== MAX_BAR_HISTORY) {
       volumeHistoryRef.current = new Array(MAX_BAR_HISTORY).fill(0);
     }
+    
+    // Cleanup
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, []);
 
   /* ============================================
@@ -173,7 +202,7 @@ export const WaveClipper: React.FC<WaveClipperProps> = ({
         const averageVolume = dataArrayRef.current.length > 0 ? sum / dataArrayRef.current.length : 0;
         
         // Normalize to 0-1 range (byte data is 0-255, divide by 128 for louder response)
-        currentNormalizedVolume = Math.min(Math.max(averageVolume / 128, 0), 1);
+        currentNormalizedVolume = Math.min(Math.max(averageVolume / 72, 0), 1);
       } else {
         currentNormalizedVolume = 0;
       }
