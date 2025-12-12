@@ -497,8 +497,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         clearTimeout(timer);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Intentionally access ref in cleanup - standard cleanup pattern
+  }, []);
 
   // ============================================
   // DERIVED STATE
