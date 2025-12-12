@@ -2,8 +2,12 @@ To-do list then we go to a new line so it's a list.
 
 
 
+In our to-do list, the next thing to sort of work on is how the scroll feature works when you add extra blocks to an existing clip. Right? And then also the second thing we which we also need to work on is a scroll feature wherever you have like a little button that basically shows how you can scroll down to the bottom and see all the text that's actually missing. So people always know that when they cross the viewport, there's extra text they haven't checked yet.
+
+The second thing that we also haven't worked on is what happens when you go offline. You click to record and record a clip rather than there. That means the clip needs to be stored somewhere for later translation, so that means it's going to be saved and then sent for translation after you go back online. So that whole process hasn't been tested out. Storage space for recording clips is one, two, name method for recording clips that's two, and three. The process of sending the transcription online to let you get transcribed, and then what we would also need to do at this junction is sort of see what it's like when we have one that's waiting to transcribe when you go online. The switch is to transcribing, and then also what it looks like on the inside when it literally goes from the state of a recording container which is showing transcribing to the actual text which you would see that replaces it. It's meant to be automatic, so that's what we need to test next.
 
 
+In my mind, one of the things I want to do is see the transition between an actual container, like an equivalent clip of Offline.tsx demo. Just like the way we do with interactive demos, we switch from an existing clip which is actively transcribing to a block of text. That's the next thing we need to try.
 
 
 

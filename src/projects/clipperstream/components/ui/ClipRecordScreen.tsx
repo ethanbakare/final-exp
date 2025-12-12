@@ -27,9 +27,15 @@ export interface PendingClip {
 
 type RecordScreenState = 'recording' | 'transcribed' | 'offline';
 
+export interface ContentBlock {
+  id: string;
+  text: string;
+  animate: boolean;
+}
+
 interface ClipRecordScreenProps {
   state?: RecordScreenState;              // Current screen state
-  transcriptionText?: string;             // Transcribed text (D3 state)
+  contentBlocks?: ContentBlock[];          // Content blocks to render (industry standard list pattern)
   pendingClips?: PendingClip[];           // Offline clips (D4 state)
   onBackClick?: () => void;               // Navigate back to home
   onNewClipClick?: () => void;            // Create new clip
@@ -45,7 +51,7 @@ interface ClipRecordScreenProps {
 
 export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   state = 'recording',
-  transcriptionText = '',
+  contentBlocks = [],
   pendingClips = [],
   onBackClick,
   onNewClipClick,
@@ -84,13 +90,20 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
             {/* D1: Recording state - Empty content area */}
             {/* Content area is empty while recording - transcription appears after processing */}
             
-            {/* D3: Transcribed state - Show transcription text */}
-            {state === 'transcribed' && transcriptionText && (
-              <div className="transcription-text">
-                <p className={styles.InterRegular16}>
-                  {transcriptionText}
-                </p>
-              </div>
+            {/* D3: Transcribed state - Render content blocks (industry standard list pattern) */}
+            {state === 'transcribed' && contentBlocks.length > 0 && (
+              <>
+                {contentBlocks.map((block) => (
+                  <div 
+                    key={block.id}
+                    className={block.animate ? 'content-block animate-text-intro-horizontal' : 'content-block'}
+                  >
+                    <p className={styles.InterRegular16}>
+                      {block.text}
+                    </p>
+                  </div>
+                ))}
+              </>
             )}
             
             {/* D4: Offline state - Show pending clips */}
@@ -217,18 +230,46 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
         }
         
         /* ============================================
-           D3: TRANSCRIPTION TEXT
+           D3: CONTENT BLOCKS (Industry Standard List Pattern)
+           Following AI Confidence Tracker pattern (Animation Style 3)
            ============================================ */
         
-        .transcription-text {
+        /* Content block - Base styles */
+        .content-block {
           width: 100%;
+          margin-bottom: 16px; /* Spacing between blocks */
         }
         
-        .transcription-text p {
+        .content-block:last-child {
+          margin-bottom: 0; /* No spacing after last block */
+        }
+        
+        .content-block p {
           color: var(--ClipWhite);
           line-height: 1.6;
           margin: 0;
           white-space: pre-wrap;  /* Preserve line breaks */
+        }
+        
+        /* Text fade-in animation - Only applied to blocks with animate=true */
+        .content-block.animate-text-intro-horizontal {
+          animation: textIntroAnimationHorizontal 0.6s ease-out forwards;
+          opacity: 0;
+          filter: blur(3px);
+          transform: translateX(-10px);
+        }
+        
+        @keyframes textIntroAnimationHorizontal {
+          0% {
+            opacity: 0;
+            filter: blur(3px);
+            transform: translateX(-10px);
+          }
+          100% {
+            opacity: 1;
+            filter: blur(0);
+            transform: translateX(0);
+          }
         }
         
         /* ============================================

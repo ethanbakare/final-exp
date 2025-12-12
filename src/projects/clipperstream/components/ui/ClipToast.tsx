@@ -27,6 +27,10 @@ interface AudioToastProps extends ToastProps {
   text?: string;  // Default: "Audio saved for later"
 }
 
+interface ErrorToastProps extends ToastProps {
+  text?: string;  // Default: "No audio recorded"
+}
+
 /* ============================================
    SHARED TOAST STYLES
    DRY principle - shared between all toast components
@@ -278,6 +282,73 @@ export const AudioToast: React.FC<AudioToastProps> = ({
 };
 
 /* ============================================
+   ERROR TOAST - Shows error messages
+   Icon: CautionIcon (warning triangle) | Text: "No audio recorded" | Close: SubCloseIcon
+   ============================================ */
+
+export const ErrorToast: React.FC<ErrorToastProps> = ({
+  text = 'No audio recorded',
+  onClose,
+  className = '',
+  fullWidth = false
+}) => {
+  return (
+    <>
+      <SharedToastStyles />
+      <div className={`toast-base ${fullWidth ? 'full-width' : ''} ${className} ${styles.container}`}>
+        {/* Card Frame - Icon + Text */}
+        <div className="toast-card-frame">
+          {/* CautionIcon - Warning triangle */}
+          <div className="toast-icon">
+            <svg 
+              width="18" 
+              height="18" 
+              viewBox="0 0 18 18" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              aria-label="Warning"
+            >
+              <path 
+                d="M3.28369 11.4001L3.79032 11.6926L3.28369 11.4001ZM6.921 5.10008L6.41437 4.80758L6.921 5.10008ZM11.0781 5.10008L11.5848 4.80758L11.0781 5.10008ZM14.7154 11.4001L15.2221 11.1076L14.7154 11.4001ZM8.38926 3.12968L8.6272 3.66411L8.38926 3.12968ZM9.60962 3.12968L9.37168 3.66411V3.66411L9.60962 3.12968ZM2.92188 14.7136L2.57802 15.1868L2.92188 14.7136ZM2.31162 13.6568L2.89342 13.5956L2.31162 13.6568ZM15.0772 14.7136L15.4211 15.1868L15.0772 14.7136ZM15.6875 13.6568L16.2693 13.7179L15.6875 13.6568ZM9.03687 12H9.62187C9.62187 11.677 9.35995 11.415 9.03687 11.415V12ZM9.03687 12.075L9.03672 12.66C9.1919 12.6601 9.34073 12.5985 9.45047 12.4888C9.56021 12.379 9.62187 12.2302 9.62187 12.075H9.03687ZM8.96216 12.075H8.37716C8.37716 12.3981 8.63898 12.6599 8.96201 12.66L8.96216 12.075ZM8.96216 12V11.415C8.63907 11.415 8.37716 11.677 8.37716 12H8.96216ZM9.58451 6.75004C9.58451 6.42696 9.3226 6.16504 8.99951 6.16504C8.67643 6.16504 8.41451 6.42696 8.41451 6.75004H8.99951H9.58451ZM8.41451 9.75004C8.41451 10.0731 8.67643 10.335 8.99951 10.335C9.3226 10.335 9.58451 10.0731 9.58451 9.75004H8.99951H8.41451ZM12.6369 15V14.415H5.36231V15V15.585H12.6369V15ZM3.28369 11.4001L3.79032 11.6926L7.42762 5.39258L6.921 5.10008L6.41437 4.80758L2.77707 11.1076L3.28369 11.4001ZM11.0781 5.10008L10.5715 5.39258L14.2088 11.6926L14.7154 11.4001L15.2221 11.1076L11.5848 4.80758L11.0781 5.10008ZM6.921 5.10008L7.42762 5.39258C7.77444 4.79187 8.01475 4.37676 8.22175 4.08372C8.43051 3.78819 8.55184 3.69766 8.6272 3.66411L8.38926 3.12968L8.15132 2.59526C7.78143 2.75994 7.50966 3.06392 7.26613 3.40868C7.02083 3.75593 6.74963 4.2269 6.41437 4.80758L6.921 5.10008ZM11.0781 5.10008L11.5848 4.80758C11.2495 4.22685 10.9782 3.75589 10.7328 3.40861C10.4892 3.06384 10.2174 2.75992 9.84756 2.59526L9.60962 3.12968L9.37168 3.66411C9.44709 3.69768 9.56848 3.78826 9.77729 4.08378C9.98433 4.3768 10.2247 4.79192 10.5715 5.39258L11.0781 5.10008ZM8.38926 3.12968L8.6272 3.66411C8.8641 3.55863 9.13478 3.55863 9.37168 3.66411L9.60962 3.12968L9.84756 2.59526C9.30774 2.35491 8.69114 2.35491 8.15132 2.59526L8.38926 3.12968ZM5.36231 15V14.415C4.6687 14.415 4.18907 14.4145 3.83184 14.3817C3.47159 14.3486 3.33251 14.2888 3.26573 14.2403L2.92188 14.7136L2.57802 15.1868C2.90555 15.4248 3.3046 15.5082 3.72495 15.5468C4.14833 15.5856 4.69177 15.585 5.36231 15.585V15ZM3.28369 11.4001L2.77707 11.1076C2.44179 11.6883 2.16958 12.1586 1.99154 12.5447C1.81477 12.928 1.68751 13.3153 1.72983 13.7179L2.31162 13.6568L2.89342 13.5956C2.88479 13.5135 2.90253 13.3632 3.05401 13.0347C3.20423 12.7089 3.44352 12.2933 3.79032 11.6926L3.28369 11.4001ZM2.92188 14.7136L3.26573 14.2403C3.05585 14.0878 2.92051 13.8534 2.89342 13.5956L2.31162 13.6568L1.72983 13.7179C1.7916 14.3057 2.10006 14.8396 2.57802 15.1868L2.92188 14.7136ZM12.6369 15V15.585C13.3075 15.585 13.8509 15.5856 14.2742 15.5468C14.6946 15.5082 15.0936 15.4248 15.4211 15.1868L15.0772 14.7136L14.7334 14.2403C14.6666 14.2888 14.5275 14.3486 14.1673 14.3817C13.8101 14.4145 13.3305 14.415 12.6369 14.415V15ZM14.7154 11.4001L14.2088 11.6926C14.5556 12.2933 14.7949 12.7089 14.9451 13.0347C15.0966 13.3632 15.1143 13.5135 15.1057 13.5956L15.6875 13.6568L16.2693 13.7179C16.3116 13.3153 16.1844 12.9281 16.0076 12.5447C15.8295 12.1586 15.5573 11.6883 15.2221 11.1076L14.7154 11.4001ZM15.0772 14.7136L15.4211 15.1868C15.8991 14.8396 16.2075 14.3057 16.2693 13.7179L15.6875 13.6568L15.1057 13.5956C15.0786 13.8534 14.9433 14.0878 14.7334 14.2403L15.0772 14.7136ZM9.03687 12H8.45187V12.075H9.03687H9.62187V12H9.03687ZM9.03687 12.075L9.03701 11.49L8.96231 11.49L8.96216 12.075L8.96201 12.66L9.03672 12.66L9.03687 12.075ZM8.96216 12.075H9.54716V12H8.96216H8.37716V12.075H8.96216ZM8.96216 12V12.585H9.03687V12V11.415H8.96216V12ZM8.99951 6.75004H8.41451V9.75004H8.99951H9.58451V6.75004H8.99951Z" 
+                fill="white"
+              />
+            </svg>
+          </div>
+          
+          {/* Toast Text */}
+          <span className="toast-text">{text}</span>
+        </div>
+        
+        {/* Close Button - SubCloseIcon */}
+        <button 
+          className="toast-close-btn"
+          onClick={onClose}
+          type="button"
+          aria-label="Dismiss notification"
+        >
+          <svg 
+            width="18" 
+            height="18" 
+            viewBox="0 0 18 18" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path 
+              d="M13.5 13.5L4.5 4.5M13.5 4.5L4.5 13.5" 
+              stroke="white" 
+              strokeOpacity="0.6"
+              strokeWidth="1.17" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+    </>
+  );
+};
+
+/* ============================================
    TOAST NOTIFICATION - Animated wrapper with slide-down/up
    
    Features:
@@ -291,7 +362,7 @@ export const AudioToast: React.FC<AudioToastProps> = ({
 interface ToastNotificationProps {
   isVisible: boolean;
   onDismiss: () => void;
-  type?: 'copy' | 'audio';
+  type?: 'copy' | 'audio' | 'error';
   text?: string;
   duration?: number;  // Auto-dismiss duration in ms (default: 3000)
   className?: string;
@@ -399,6 +470,8 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({
       <div className={`toast-notification ${isAnimatedIn ? 'visible' : ''} ${className}`}>
         {type === 'copy' ? (
           <CopyToast text={text} onClose={handleClose} fullWidth />
+        ) : type === 'error' ? (
+          <ErrorToast text={text} onClose={handleClose} fullWidth />
         ) : (
           <AudioToast text={text} onClose={handleClose} fullWidth />
         )}
@@ -459,6 +532,6 @@ export const ToastNotification: React.FC<ToastNotificationProps> = ({
    DEFAULT EXPORTS
    ============================================ */
 
-const ToastComponents = { CopyToast, AudioToast, ToastNotification };
+const ToastComponents = { CopyToast, AudioToast, ErrorToast, ToastNotification };
 export default ToastComponents;
 

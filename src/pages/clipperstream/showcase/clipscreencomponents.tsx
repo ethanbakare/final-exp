@@ -315,7 +315,11 @@ const ClipScreenComponents: React.FC = () => {
           <div className="screen-wrapper">
             <ClipRecordScreen
               state={recordScreenState}
-              transcriptionText={recordScreenState === 'transcribed' ? sampleTranscription : undefined}
+              contentBlocks={recordScreenState === 'transcribed' ? [{
+                id: 'demo-transcription',
+                text: sampleTranscription,
+                animate: false
+              }] : []}
               pendingClips={recordScreenState === 'offline' ? samplePendingClips : []}
               onBackClick={() => console.log('Back clicked')}
               onNewClipClick={() => console.log('New clip clicked')}
@@ -357,7 +361,6 @@ const ClipScreenComponents: React.FC = () => {
         
         <div className="component-grid">
           <ClipMasterScreen
-            clips={sampleClips}
             pendingClips={samplePendingClips}
           />
         </div>

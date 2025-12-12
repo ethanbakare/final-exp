@@ -572,6 +572,9 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
           overflow: hidden;
           text-overflow: ellipsis;
           
+          /* Smooth title fade transition (for AI-generated titles) */
+          transition: opacity 0.3s ease-in-out;
+          
           /* Inside auto layout */
           flex: none;
           order: 0;

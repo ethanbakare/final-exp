@@ -33,8 +33,10 @@ import { ClipListItem } from '@/projects/clipperstream/components/ui/cliplist';
 import { ClipOffline } from '@/projects/clipperstream/components/ui/ClipOffline';
 import { ClipHomeHeader } from '@/projects/clipperstream/components/ui/cliphomeheader';
 import { ClipRecordHeader } from '@/projects/clipperstream/components/ui/cliprecordheader';
-import { CopyToast, AudioToast } from '@/projects/clipperstream/components/ui/ClipToast';
+import { CopyToast, AudioToast, ErrorToast } from '@/projects/clipperstream/components/ui/ClipToast';
 import { ClipModalOverlay } from '@/projects/clipperstream/components/ui/ClipModalOverlay';
+import { ClipVarListDemo } from '@/projects/clipperstream/components/ui/ClipVarList';
+import { BlockAnimationTest } from '@/projects/clipperstream/components/ui/BlockAnimationTest';
 
 // Import for morphing buttons
 import { MorphingDoneToProcessingButton, MorphingCopyToCheckButton, MorphingCloseToCopyButton, MorphingProcessingToStructureButton, MorphingTimerProcessingToStructure, MorphingOnlineOfflineStatus } from '@/projects/clipperstream/components/ui/clipmorphingbuttons';
@@ -501,6 +503,25 @@ const ClipComponents: React.FC = () => {
               />
             </div>
           </div>
+          
+          {/* Title Fade Transition Demo */}
+          <div className="section" style={{ marginTop: '2rem' }}>
+            <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Title Fade Transition</h3>
+            <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+              Interactive demo showing the opacity fade animation when AI-generated titles replace default "Clip 001" names. This demonstrates the real-time title update behavior in Clipstream.
+            </p>
+            <ClipVarListDemo />
+          </div>
+
+          {/* Content Block Animation Test */}
+          <div className="section" style={{ marginTop: '2rem' }}>
+            <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Content Block Animation Test</h3>
+            <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+              Interactive test component to verify content block behavior. Uses same rendering as ClipRecordScreen.
+              Blocks maintain stable keys - no DOM restructuring, no visual shifts.
+            </p>
+            <BlockAnimationTest />
+          </div>
         </div>
 
         {/* File divider - Components from ClipOffline.tsx */}
@@ -753,6 +774,18 @@ const ClipComponents: React.FC = () => {
               <div className="component-grid" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
                 <AudioToast onClose={() => console.log('Audio toast closed')} />
                 <AudioToast text="Recording saved offline" onClose={() => console.log('Audio toast closed')} />
+              </div>
+            </div>
+
+            <div className="section" style={{ marginTop: '2rem' }}>
+              <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Error Toast</h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                Shows error messages with CautionIcon (warning triangle). Used for recording errors, transcription failures, and network issues. Click the X to dismiss.
+              </p>
+              <div className="component-grid" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+                <ErrorToast onClose={() => console.log('Error toast closed')} />
+                <ErrorToast text="No speech detected" onClose={() => console.log('Error toast closed')} />
+                <ErrorToast text="Transcription failed" onClose={() => console.log('Error toast closed')} />
               </div>
             </div>
           </div>

@@ -8,6 +8,7 @@ import { NoClipsFrameIcon, EmptyClipFrameIcon } from './midClipButtons';
 import { ClipModalOverlay } from './ClipModalOverlay';
 import { ClipDeleteModalFull, ClipRenameModalFull } from './clipModal';
 import { ToastNotification } from './ClipToast';
+import { deleteClip as deleteClipFromStorage, updateClip } from '../../services/clipStorage';
 
 // ClipHomeScreen Component
 // Home screen with iOS-style collapsing search header on scroll
@@ -33,6 +34,7 @@ interface ClipHomeScreenProps {
   onClipClick?: (id: string) => void;          // Navigate to clip's record screen
   onRecordClick?: () => void;                   // Start new recording
   onSearchActiveChange?: (isActive: boolean) => void;  // Notify parent of search state (for RecordBar)
+  onClipsChange?: () => void;                   // Called after delete/rename to refresh clips
   className?: string;
 }
 
@@ -41,14 +43,14 @@ interface ClipHomeScreenProps {
    ============================================ */
 
 export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
-  clips: initialClips,
+  clips, // Always fresh from parent (ClipMasterScreen)
   onClipClick,
-  // onRecordClick, // Removed - not used yet
+  onRecordClick,
   onSearchActiveChange: externalSearchActiveChange,
+  onClipsChange,
   className = ''
 }) => {
-  // Local clips state for managing deletions (demo purposes)
-  const [localClips, setLocalClips] = useState<Clip[]>(initialClips);
+  // No local clips state - use props.clips directly (managed by parent)
   
   // Search query for filtering clips
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,11 +90,6 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   // Ref to scrollable list for programmatic scroll-to-top
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  // Sync local clips with props when they change
-  useEffect(() => {
-    setLocalClips(initialClips);
-  }, [initialClips]);
-  
   // Set portal container after mount (ref is null during first render)
   useEffect(() => {
     if (portalContainerRef.current) {
@@ -130,12 +127,12 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   const SEARCH_HEIGHT = 38;  // Search bar height - collapse happens over this distance
 
   // Filter clips based on search query
-  const filteredClips = localClips.filter(clip => 
+  const filteredClips = clips.filter(clip => 
     clip.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Determine which state we're in
-  const hasClips = localClips.length > 0;
+  const hasClips = clips.length > 0;
   const hasSearchQuery = searchQuery.trim().length > 0;
   const hasResults = filteredClips.length > 0;
   
@@ -175,12 +172,12 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
 
   // Open delete confirmation modal
   const handleDeleteClick = useCallback((clipId: string) => {
-    const clip = localClips.find(c => c.id === clipId);
+    const clip = clips.find(c => c.id === clipId);
     if (clip) {
       setSelectedClip({ id: clip.id, title: clip.title });
       setActiveModal('delete');
     }
-  }, [localClips]);
+  }, [clips]);
 
   // Confirm delete: animate out, then remove from list
   const handleConfirmDelete = useCallback(() => {
@@ -192,13 +189,15 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
     // Start fade-out animation
     setDeletingClipId(selectedClip.id);
     
-    // After animation completes (200ms), remove from list
+    // After animation completes (200ms), remove from storage
     setTimeout(() => {
-      setLocalClips(prev => prev.filter(c => c.id !== selectedClip.id));
+      deleteClipFromStorage(selectedClip.id);
+      // Notify parent to refresh clips from storage
+      onClipsChange?.();
       setDeletingClipId(null);
       setSelectedClip(null);
     }, 1000);  // Slightly longer than CSS animation (200ms) for smooth transition
-  }, [selectedClip]);
+  }, [selectedClip, onClipsChange]);
 
   // Open rename modal with current title pre-filled
   const handleRenameClick = useCallback((clipId: string, currentTitle: string) => {
@@ -211,29 +210,29 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   const handleConfirmRename = useCallback(() => {
     if (!selectedClip || !renameValue.trim()) return;
     
-    // Update clip title in local state
-    setLocalClips(prev => prev.map(clip => 
-      clip.id === selectedClip.id 
-        ? { ...clip, title: renameValue.trim() }
-        : clip
-    ));
+    // Update clip title in storage
+    const updated = updateClip(selectedClip.id, { title: renameValue.trim() });
+    if (updated) {
+      // Notify parent to refresh clips from storage
+      onClipsChange?.();
+    }
     
     // Close modal and reset
     setActiveModal(null);
     setSelectedClip(null);
     setRenameValue('');
-  }, [selectedClip, renameValue]);
+  }, [selectedClip, renameValue, onClipsChange]);
 
   // Handle copy - copies transcribed text and shows toast
   const handleCopyClick = useCallback((clipId: string) => {
-    const clip = localClips.find(c => c.id === clipId);
+    const clip = clips.find(c => c.id === clipId);
     if (clip?.content) {
       navigator.clipboard.writeText(clip.content);
       console.log('Copied to clipboard:', clip.content);
       // Show copy toast
       setShowCopyToast(true);
     }
-  }, [localClips]);
+  }, [clips]);
   
   // Dismiss toast
   const handleDismissToast = useCallback(() => {
