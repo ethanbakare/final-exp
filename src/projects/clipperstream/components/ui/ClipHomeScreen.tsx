@@ -45,7 +45,7 @@ interface ClipHomeScreenProps {
 export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   clips, // Always fresh from parent (ClipMasterScreen)
   onClipClick,
-  onRecordClick,
+  // onRecordClick, // Reserved for future direct record button
   onSearchActiveChange: externalSearchActiveChange,
   onClipsChange,
   className = ''

@@ -41,7 +41,7 @@ class Logger {
    * Only logged in development mode
    * Use for: Function calls, state changes, API requests
    */
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.config.enableDebug) {
       console.log(`${this.config.prefix} [DEBUG]`, message, ...args);
     }
@@ -52,7 +52,7 @@ class Logger {
    * Logged in all environments
    * Use for: Important user actions, successful operations
    */
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.config.enableInfo) {
       console.log(`${this.config.prefix} [INFO]`, message, ...args);
     }
@@ -63,7 +63,7 @@ class Logger {
    * Always logged in all environments
    * Use for: Degraded functionality, fallbacks triggered
    */
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     console.warn(`${this.config.prefix} [WARN]`, message, ...args);
   }
 
@@ -72,7 +72,7 @@ class Logger {
    * Always logged in all environments
    * Use for: Exceptions, failed operations, critical issues
    */
-  error(message: string, ...args: any[]): void {
+  error(message: string, ...args: unknown[]): void {
     console.error(`${this.config.prefix} [ERROR]`, message, ...args);
   }
 
@@ -109,23 +109,23 @@ class ScopedLogger {
     private config: LoggerConfig
   ) {}
 
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.config.enableDebug) {
       console.log(`${this.config.prefix} [${this.moduleName}] [DEBUG]`, message, ...args);
     }
   }
 
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.config.enableInfo) {
       console.log(`${this.config.prefix} [${this.moduleName}] [INFO]`, message, ...args);
     }
   }
 
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     console.warn(`${this.config.prefix} [${this.moduleName}] [WARN]`, message, ...args);
   }
 
-  error(message: string, ...args: any[]): void {
+  error(message: string, ...args: unknown[]): void {
     console.error(`${this.config.prefix} [${this.moduleName}] [ERROR]`, message, ...args);
   }
 }

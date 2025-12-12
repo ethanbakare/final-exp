@@ -21,7 +21,7 @@ export const ClipVarListDemo: React.FC = () => {
         </h3>
         
         <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1.5rem', fontSize: '0.875rem', lineHeight: '1.5' }}>
-          Demonstrates the opacity fade when AI-generated title replaces the default "Clip 001" name. 
+          Demonstrates the opacity fade when AI-generated title replaces the default &quot;Clip 001&quot; name. 
           Click the button to toggle between states and observe the smooth transition.
         </p>
         

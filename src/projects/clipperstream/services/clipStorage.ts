@@ -36,7 +36,7 @@ function safeStorageSet(key: string, value: string): boolean {
   try {
     sessionStorage.setItem(key, value);
     return true;
-  } catch (error) {
+  } catch {
     console.warn('sessionStorage unavailable (incognito mode). Clips persist in memory only.');
     return false;
   }
@@ -45,7 +45,7 @@ function safeStorageSet(key: string, value: string): boolean {
 function safeStorageGet(key: string): string | null {
   try {
     return sessionStorage.getItem(key);
-  } catch (error) {
+  } catch {
     return null;
   }
 }

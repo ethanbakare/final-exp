@@ -182,7 +182,8 @@ export function useClipRecording(): UseClipRecordingReturn {
         setError('Could not access microphone. Please try again.');
       }
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only capture function on mount (intentionally omit stopRecording)
   
   // ============================================
   // STOP RECORDING

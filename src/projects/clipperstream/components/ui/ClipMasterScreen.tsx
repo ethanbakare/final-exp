@@ -177,7 +177,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         setActiveScreen('record');
       }
     }
-  }, [clips]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clips]); // Only run when clips change (intentionally omit resetRecording)
   
   // Navigate back from record to home screen (via "Clips" button only)
   const handleBackClick = useCallback(() => {
@@ -490,8 +491,10 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (processingTimerRef.current) {
-        clearTimeout(processingTimerRef.current);
+      // Capture ref value in cleanup scope (React best practice)
+      const timer = processingTimerRef.current;
+      if (timer) {
+        clearTimeout(timer);
       }
     };
   }, []);
