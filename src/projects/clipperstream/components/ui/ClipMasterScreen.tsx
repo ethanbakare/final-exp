@@ -490,9 +490,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   
   // Cleanup on unmount
   useEffect(() => {
+    // Capture ref value INSIDE effect (React best practice for cleanup)
+    const timer = processingTimerRef.current;
     return () => {
-      // Capture ref value in cleanup scope (React best practice)
-      const timer = processingTimerRef.current;
       if (timer) {
         clearTimeout(timer);
       }

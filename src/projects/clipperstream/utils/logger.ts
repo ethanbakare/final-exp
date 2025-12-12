@@ -26,8 +26,7 @@ class Logger {
     // Automatically detect environment
     const isDevelopment = 
       process.env.NODE_ENV === 'development' ||
-      process.env.NODE_ENV === 'test' ||
-      __DEV__; // Expo/React Native global
+      process.env.NODE_ENV === 'test';
 
     this.config = {
       enableDebug: isDevelopment,
