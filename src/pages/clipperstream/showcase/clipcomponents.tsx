@@ -508,7 +508,7 @@ const ClipComponents: React.FC = () => {
           <div className="section" style={{ marginTop: '2rem' }}>
             <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Title Fade Transition</h3>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-              Interactive demo showing the opacity fade animation when AI-generated titles replace default "Clip 001" names. This demonstrates the real-time title update behavior in Clipstream.
+              Interactive demo showing the opacity fade animation when AI-generated titles replace default &quot;Clip 001&quot; names. This demonstrates the real-time title update behavior in Clipstream.
             </p>
             <ClipVarListDemo />
           </div>
