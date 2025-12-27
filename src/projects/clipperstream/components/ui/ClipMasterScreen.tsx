@@ -66,6 +66,26 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     deleteClipById
   } = useClipState();
 
+  // PHASE 2: Smart counter - reads from storage (survives page refresh)
+  const getNextPendingClipNumber = useCallback(() => {
+    const allClips = getClips();
+
+    // Extract existing pending clip numbers
+    const existingNumbers = allClips
+      .filter(c => c.pendingClipTitle)
+      .map(c => {
+        const match = c.pendingClipTitle?.match(/Clip (\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0);
+
+    // Find highest number, increment (wraps at 100)
+    const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
+    const nextNumber = (maxNumber % 100) + 1;
+
+    return `Clip ${String(nextNumber).padStart(3, '0')}`;
+  }, []);
+
   // Current active screen
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(initialScreen);
 
@@ -74,8 +94,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // DELETED - now returned from useClipState hook
 
-  // Selected pending clip (when viewing a clip waiting to be transcribed)
-  const [selectedPendingClip, setSelectedPendingClip] = useState<PendingClip | null>(null);
+  // PHASE 2: Selected pending clips array (multiple clips can be pending)
+  const [selectedPendingClips, setSelectedPendingClips] = useState<PendingClip[]>([]);
 
   // Track if search is active (to hide RecordBar)
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -198,7 +218,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       if (clip.content) {
         // Transcribed clip - show in complete state
         setSelectedClip(clip); // Pass full clip object
-        setSelectedPendingClip(null);
+        setSelectedPendingClips([]);
         // Reset append mode flags - viewing existing clip shows full combined text
         setIsAppendMode(false);
         setCurrentClipId(null);
@@ -224,13 +244,13 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         const pendingStatus = clip.status === 'transcribing' ? 'transcribing' : 'waiting';
 
         // Use stored pendingClipTitle (set when clip became pending)
-        setSelectedPendingClip({
+        setSelectedPendingClips([{
           id: clip.id,
           title: clip.pendingClipTitle || 'Clip 001',  // Use stored name
           time: clip.duration || '0:00',
           status: pendingStatus,
           isActiveRequest: isActiveRequest  // Controls spinning icon
-        });
+        }]);
         setAnimationVariant('fade');
         setRecordNavState('record');  // Show record button (not complete)
         setActiveScreen('record');
@@ -247,7 +267,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     setCurrentClipId(null);
     setAppendBaseContent('');
     setSelectedClip(null);
-    setSelectedPendingClip(null);
+    setSelectedPendingClips([]);
     setContentBlocks([]); // Clear content blocks
     setIsFirstTranscription(true); // Reset animation flag for next recording
     resetRecording(); // This clears transcription from the hook
@@ -262,7 +282,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     setCurrentClipId(null);
     setAppendBaseContent('');
     setSelectedClip(null);
-    setSelectedPendingClip(null);
+    setSelectedPendingClips([]);
     setContentBlocks([]); // Clear content blocks for new recording
     setIsFirstTranscription(true); // Reset animation flag for next recording
     resetRecording();
@@ -325,22 +345,22 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     }
 
     // ✅ NEW Case 2.5: Recording from pending clip (no content yet, but has audioId)
-    else if (activeScreen === 'record' && selectedPendingClip) {
+    else if (activeScreen === 'record' && selectedPendingClips.length > 0) {
       // Keep currentClipId - we're adding to the SAME clip file
       // This allows multiple pending recordings in one file
       setIsAppendMode(true);
-      setCurrentClipId(selectedPendingClip.id);
+      setCurrentClipId(selectedPendingClips[0].id);
       setAppendBaseContent('');
       setContentBlocks([]);
       log.debug('Recording from pending clip (adding successive recording)', {
-        clipId: selectedPendingClip.id,
-        pendingTitle: selectedPendingClip.title
+        clipId: selectedPendingClips[0].id,
+        pendingTitle: selectedPendingClips[0].title
       });
       setTimeout(() => startRecordingHook(), 200);
     }
 
     // Case 3: Recording from record screen (no existing content AND no pending clip) → NEW clip
-    else if (!selectedPendingClip) {  // ← ADDED CONDITION: only create new if no pending clip
+    else if (selectedPendingClips.length === 0) {  // ← ADDED CONDITION: only create new if no pending clip
       setIsAppendMode(false);
       setCurrentClipId(null);
       setAppendBaseContent('');
@@ -1111,8 +1131,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
             setPendingBatch({ clipId: '', transcriptions: [] });
 
             // Update UI if viewing
-            if (selectedPendingClip?.id === targetClip!.id) {
-              setSelectedPendingClip(null);
+            if (selectedPendingClips.some(p => p.id === targetClip!.id)) {
+              setSelectedPendingClips(prev => prev.filter(p => p.id !== targetClip!.id));
               const updated = getClips().find(c => c.id === targetClip!.id);
               if (updated) setSelectedClip(updated);
             }
@@ -1151,8 +1171,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
             setRecordNavState('complete');
           } else {
             // First pending completed
-            if (selectedPendingClip?.id === targetClip.id) {
-              setSelectedPendingClip(null);
+            if (selectedPendingClips.some(p => p.id === targetClip.id)) {
+              setSelectedPendingClips(prev => prev.filter(p => p.id !== targetClip.id));
               const updated = getClips().find(c => c.id === targetClip.id);
               if (updated) setSelectedClip(updated);
             }
@@ -1183,7 +1203,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     audioId,
     isFirstTranscription,
     pendingBatch,
-    selectedPendingClip,
+    selectedPendingClips,
     isFirstPendingForClip,
     countRemainingPending,
     formatTranscriptionInBackground,
@@ -1291,8 +1311,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           const updatedClip = getClips().find(c => c.id === clipIdToUpdate);
           if (updatedClip) {
             const pendingClip = clipToPendingClip(updatedClip);
-            setSelectedPendingClip(pendingClip);
-            log.debug('Set selectedPendingClip for offline display', { pendingClip });
+            setSelectedPendingClips(prev => [...prev, pendingClip]);
+            log.debug('Added to selectedPendingClips for offline display', { pendingClip });
           }
         }
       }
@@ -1342,7 +1362,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // Determine ClipRecordScreen state
   const getRecordScreenState = (): 'recording' | 'transcribed' | 'offline' => {
     // Viewing a specific pending clip (waiting/transcribing)
-    if (selectedPendingClip) return 'offline';
+    if (selectedPendingClips.length > 0) return 'offline';
     // Viewing a transcribed clip (from selected clip or new transcription)
     if (transcription || selectedClip?.content) return 'transcribed';
     // Default: recording state (empty screen, ready to record)
@@ -1356,9 +1376,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // Get pending clips to display (either selected one or all pending)
   const getDisplayPendingClips = (): PendingClip[] => {
-    if (selectedPendingClip) {
-      // Viewing a single pending clip
-      return [selectedPendingClip];
+    if (selectedPendingClips.length > 0) {
+      // Viewing selected pending clips
+      return selectedPendingClips;
     }
     // Show all pending clips
     return pendingClips;
