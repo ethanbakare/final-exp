@@ -106,7 +106,7 @@ const ClipperShowcase: React.FC = () => {
           </p>
           
           <div className="nav-options">
-            <Link href="/clipperstream/showcase/clipcomponents" className="nav-card">
+            <Link href="/clipperstream/showcase/clipcomponent" className="nav-card">
               <div>
                 <h2 className="nav-card-title">Component Library</h2>
                 <p className="nav-card-description">

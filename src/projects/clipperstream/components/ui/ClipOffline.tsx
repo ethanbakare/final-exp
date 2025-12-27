@@ -18,6 +18,9 @@ interface ClipOfflineProps {
   time?: string;             // Default: "0:26"
   status?: ClipOfflineStatus; // Default: 'waiting'
   onRetryClick?: () => void; // Called when retry button is clicked
+  onTap?: () => void;        // Called when row is tapped (tap-to-skip)
+  isTappable?: boolean;      // true = waiting (tappable), false = active attempt
+  isActiveRequest?: boolean; // Controls icon spinning (true=spinning, false=static, undefined=spinning)
   fullWidth?: boolean;       // Default: false (361px), true = 100% width
   className?: string;
 }
@@ -60,6 +63,9 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
   time = '0:26',
   status = 'waiting',
   onRetryClick,
+  onTap,
+  isTappable = false,
+  isActiveRequest,
   fullWidth = false,
   className = ''
 }) => {
@@ -70,7 +76,11 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
   return (
     <>
       {/* Master Container - 361px or 100% width based on fullWidth prop */}
-      <div className={`pending-master-clip status-${status} ${fullWidth ? 'full-width' : ''} ${className} ${styles.container}`}>
+      <div 
+        className={`pending-master-clip status-${status} ${fullWidth ? 'full-width' : ''} ${className} ${styles.container}`}
+        onClick={isTappable ? onTap : undefined}
+        style={{ cursor: isTappable ? 'pointer' : 'default' }}
+      >
         
         {/* PendingClip - Flexible width, shrinks when RetryButton appears */}
         <div className="pending-clip">
@@ -91,8 +101,8 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
             {/* Icon Crossfade Container - Both icons stacked, swap via opacity */}
             <div className="icon-crossfade-wrapper">
               {/* TranscribeBig Layer - Visible in waiting/transcribing, hidden in failed */}
-              <div className={`icon-layer transcribe-layer ${status !== 'failed' ? 'active' : ''} ${status === 'waiting' ? 'waiting-opacity' : ''}`}>
-                <TranscribeBig spinning={status === 'transcribing'} />
+              <div className={`icon-layer transcribe-layer ${status !== 'failed' ? 'active' : ''} ${status === 'waiting' || (status === 'transcribing' && isActiveRequest === false) ? 'waiting-opacity' : ''}`}>
+                <TranscribeBig spinning={status === 'transcribing' && isActiveRequest !== false} />
               </div>
               
               {/* CautionIcon Layer - Hidden in waiting/transcribing, visible in failed */}

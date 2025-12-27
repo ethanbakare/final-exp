@@ -889,6 +889,86 @@ export const RetryButton: React.FC<ButtonProps> = ({
 };
 
 /* ============================================
+   SCROLL BUTTON - Scroll down arrow button (38×38px)
+   Used for scroll-to-bottom or scroll navigation features
+   ============================================ */
+
+export const ScrollButton: React.FC<ButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <button 
+        className={`scroll-button ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Scroll"
+      >
+        <svg 
+          className="scroll-icon"
+          width="24" 
+          height="24" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M12 5V19M12 19L18 13M12 19L6 13" 
+            stroke="white" 
+            strokeOpacity="0.8" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      
+      <style jsx>{`
+        .scroll-button {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+          
+          width: 38px;
+          height: 38px;
+          
+          background: var(--ClipScrollBg);
+          border-radius: 32px;
+          border: none;
+          cursor: pointer;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+        
+        .scroll-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .scroll-icon {
+          width: 24px;
+          height: 24px;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
    TRANSCRIBE BIG - Transcribe/refresh icon (24×24px)
    Shows transcription state - can be static or spinning
    spinning={true} = actively transcribing (rotating)

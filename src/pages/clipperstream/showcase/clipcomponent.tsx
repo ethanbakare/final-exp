@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 
+import {
   RecordButton,
   DoneButton,
   ProcessingButton,
@@ -10,9 +10,10 @@ import {
   CloseButton,
   CheckTickButton,
   TranscribeBig,
-  RetryButton
+  RetryButton,
+  ScrollButton
 } from '@/projects/clipperstream/components/ui/clipbuttons';
-import { 
+import {
   NoClipsFrameIcon,
   EmptyClipFrameIcon,
   ReturnToHome,
@@ -54,41 +55,41 @@ const ClipComponents: React.FC = () => {
   const [processingStructureState, setProcessingStructureState] = useState<'processing' | 'structure'>('processing');
   const [timerProcessingState, setTimerProcessingState] = useState<'processing' | 'structure'>('processing');
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline'>('online');
-  
+
   // State for modal overlay demos
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModalFull, setShowDeleteModalFull] = useState(false);
   const [showRenameModalFull, setShowRenameModalFull] = useState(false);
   const [renameValue, setRenameValue] = useState('Meeting Notes - Q4 Review');
-  
+
   const handleMorphingButtonClick = () => {
     setMorphingButtonState(prev => prev === 'done' ? 'processing' : 'done');
   };
-  
+
   const handleCloseCopyClick = () => {
     setCloseCopyState(prev => prev === 'close' ? 'copy' : 'close');
   };
-  
+
   const handleProcessingStructureClick = () => {
     setProcessingStructureState(prev => prev === 'processing' ? 'structure' : 'processing');
   };
-  
+
   const handleTimerProcessingClick = () => {
     setTimerProcessingState(prev => prev === 'processing' ? 'structure' : 'processing');
   };
-  
+
   const handleNetworkStatusClick = () => {
     setNetworkStatus(prev => prev === 'online' ? 'offline' : 'online');
   };
-  
+
   // State for ClipOffline demo (transcribing ↔ failed toggle)
   const [clipOfflineStatus, setClipOfflineStatus] = useState<'waiting' | 'transcribing' | 'failed'>('transcribing');
-  
+
   const handleClipOfflineToggle = () => {
     setClipOfflineStatus(prev => prev === 'transcribing' ? 'failed' : 'transcribing');
   };
-  
+
   return (
     <>
       <style jsx global>{`
@@ -139,7 +140,7 @@ const ClipComponents: React.FC = () => {
           margin-bottom: 2rem;
         }
       `}</style>
-      
+
       <div className="showcase-container">
         <div className="section">
           <h2 className="section-title">Buttons</h2>
@@ -155,11 +156,12 @@ const ClipComponents: React.FC = () => {
             <CheckTickButton />
             <TranscribeBig />
             <RetryButton />
+            <ScrollButton />
             <ButtonOutline />
             <ButtonFull />
           </div>
         </div>
-        
+
         <div className="section">
           <h2 className="section-title">Sub Buttons</h2>
           <div className="file-label">📁 subclipbuttons.tsx</div>
@@ -177,9 +179,9 @@ const ClipComponents: React.FC = () => {
             <SubCloseIcon />
           </div>
         </div>
-        
+
         <div className="section">
-        
+
           <h2 className="section-title">Morphing Buttons - Opacity Crossfade Pattern</h2>
           <div className="file-label">📁 clipmorphingbuttons.tsx</div>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -187,16 +189,16 @@ const ClipComponents: React.FC = () => {
           </p>
           <div className="component-grid">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
-              <MorphingDoneToProcessingButton 
+              <MorphingDoneToProcessingButton
                 state={morphingButtonState}
                 onDoneClick={handleMorphingButtonClick}
                 onProcessingClick={handleMorphingButtonClick}
               />
               <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem' }}>Done ↔ Processing</span>
             </div>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
-              <MorphingCloseToCopyButton 
+              <MorphingCloseToCopyButton
                 state={closeCopyState}
                 onCloseClick={handleCloseCopyClick}
                 onCopyClick={handleCloseCopyClick}
@@ -205,40 +207,40 @@ const ClipComponents: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="section">
           <h2 className="section-title">Morphing Copy → Check Button</h2>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
             Click the Copy button to see it morph to CheckTick. After 3 seconds, it automatically reverts back to Copy. Perfect for copy-to-clipboard validation feedback.
           </p>
           <div className="component-grid">
-            <MorphingCopyToCheckButton 
+            <MorphingCopyToCheckButton
               onClick={() => console.log('Copy clicked!')}
             />
           </div>
         </div>
-        
+
         <div className="section">
           <h2 className="section-title">Morphing Processing → Structure Button</h2>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
             Click to see ONE button physically morph between states. Processing (76px × 42px white pill) shrinks to Structure (38px × 38px semi-transparent circle). Width, height, background color, and border-radius all transition smoothly (0.2s) while icons crossfade. Right-aligned shrinking with center-aligned vertical positioning prevents upward movement.
           </p>
           <div className="component-grid">
-            <MorphingProcessingToStructureButton 
+            <MorphingProcessingToStructureButton
               state={processingStructureState}
               onProcessingClick={handleProcessingStructureClick}
               onStructureClick={handleProcessingStructureClick}
             />
           </div>
         </div>
-        
+
         <div className="section">
           <h2 className="section-title">Morphing Timer + Processing → Structure</h2>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
             Click to see a container div (130px → 48px) that naturally shrinks as its contents morph. Timer fades out first (0.1s), then button finishes morphing (0.2s total). Mimics timer-done-container from recordnavbar.tsx. Container uses width: fit-content with smooth transition.
           </p>
           <div className="component-grid">
-            <MorphingTimerProcessingToStructure 
+            <MorphingTimerProcessingToStructure
               state={timerProcessingState}
               time="0:26"
               onProcessingClick={handleTimerProcessingClick}
@@ -246,7 +248,7 @@ const ClipComponents: React.FC = () => {
             />
           </div>
         </div>
-        
+
         <div className="section">
           <h2 className="section-title">Morphing Online/Offline Status</h2>
           <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -254,12 +256,12 @@ const ClipComponents: React.FC = () => {
             <br /><br />
             <strong>Use case:</strong> During recording, network status changes. Recording continues regardless, but user sees visual feedback.
           </p>
-          <div 
-            className="component-grid" 
+          <div
+            className="component-grid"
             onClick={handleNetworkStatusClick}
             style={{ cursor: 'pointer' }}
           >
-            <MorphingOnlineOfflineStatus 
+            <MorphingOnlineOfflineStatus
               state={networkStatus}
               onChange={(newState) => console.log(`Network status changed to: ${newState}`)}
             />
@@ -268,7 +270,7 @@ const ClipComponents: React.FC = () => {
             Click anywhere in this section to toggle status
           </p>
         </div>
-        
+
         <div className="section">
           <h2 className="section-title">Background Icons</h2>
           <div className="file-label">📁 midClipButtons.tsx</div>
@@ -277,7 +279,7 @@ const ClipComponents: React.FC = () => {
             <EmptyClipFrameIcon />
           </div>
         </div>
-        
+
         <div className="section">
           <h2 className="section-title">Clip Header</h2>
           <div className="file-label">📁 midClipButtons.tsx</div>
@@ -288,18 +290,18 @@ const ClipComponents: React.FC = () => {
             <OfflineStatus />
           </div>
         </div>
-        
+
         {/* File divider - Components from recordnavbar.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 recordnavbar.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">RecordNavBar</h2>
             <div className="component-grid">
               <RecordNavBar />
             </div>
           </div>
-          
+
           <div className="section">
             <h2 className="section-title">RecordNavBarAlt</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -314,7 +316,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from recordMorphing.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 recordMorphing.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">RecordMorphingButton</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -329,7 +331,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from mainmorph.tsx (NEW MODULAR SYSTEM) */}
         <div className="file-divider">
           <div className="file-label">📁 mainmorph.tsx + recordNavMorphingButtons.tsx (NEW MODULAR PATTERN)</div>
-          
+
           <div className="section">
             <h2 className="section-title">RecordNavBarMorphing - 4-State Modular System</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
@@ -364,7 +366,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from mainvarmorph.tsx (EXPERIMENTAL VARIANT SYSTEM) */}
         <div className="file-divider">
           <div className="file-label">📁 mainvarmorph.tsx (EXPERIMENTAL - Variant-Based Animation)</div>
-          
+
           <div className="section">
             <h2 className="section-title">RecordNavBarVarMorphing - Variant Prop System</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
@@ -390,7 +392,7 @@ const ClipComponents: React.FC = () => {
               <br />
               • Animation behavior is explicit in the prop
             </p>
-            
+
             <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', marginTop: '2rem' }}>Demo 1: Normal Flow (variant=&quot;morph&quot;)</h3>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
               Same as mainmorph.tsx - click RECORD, grant mic, speak, click DONE.
@@ -398,7 +400,7 @@ const ClipComponents: React.FC = () => {
             <div className="component-grid">
               <RecordNavBarVarMorphingDemo />
             </div>
-            
+
             <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem', marginTop: '2rem' }}>Demo 2: Direct to Complete (variant=&quot;fade&quot;)</h3>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
               <strong>Use the toggle button</strong> to switch between record ↔ complete.
@@ -422,7 +424,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from clipModal.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 clipModal.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">ClipDeleteModal</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -432,7 +434,7 @@ const ClipComponents: React.FC = () => {
               <ClipDeleteModal />
             </div>
           </div>
-          
+
           <div className="section">
             <h2 className="section-title">ClipRenameModal</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -442,7 +444,7 @@ const ClipComponents: React.FC = () => {
               <ClipRenameModal />
             </div>
           </div>
-          
+
           <div className="section">
             <h2 className="section-title">ClipDeleteModalFull (314px, vertical buttons)</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -452,7 +454,7 @@ const ClipComponents: React.FC = () => {
               <ClipDeleteModalFull />
             </div>
           </div>
-          
+
           <div className="section">
             <h2 className="section-title">ClipRenameModalFull (314px, vertical buttons)</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -467,7 +469,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from cliplist.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 cliplist.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">Clip List Item - Three Status Variations</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -486,24 +488,24 @@ const ClipComponents: React.FC = () => {
               <strong>Mobile:</strong> Three-dot menu is visible at 20% opacity by default. Click the dots to make them fully visible and open menu.
             </p>
             <div className="component-grid" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
-              <ClipListItem 
+              <ClipListItem
                 title="Morning thoughts on productivity"
                 date="May 15, 2025"
                 status={null}
               />
-              <ClipListItem 
+              <ClipListItem
                 title="Teach me to love myself today"
                 date="May 13, 2025"
                 status="pending"
               />
-              <ClipListItem 
+              <ClipListItem
                 title="Ideas for the new project launch"
                 date="May 14, 2025"
                 status="transcribing"
               />
             </div>
           </div>
-          
+
           {/* Title Fade Transition Demo */}
           <div className="section" style={{ marginTop: '2rem' }}>
             <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Title Fade Transition</h3>
@@ -527,7 +529,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from ClipOffline.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 ClipOffline.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">Clip Offline (Pending Clip) - 3 States</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -553,17 +555,17 @@ const ClipComponents: React.FC = () => {
                 </div>
                 <div>
                   <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>Failed (RetryButton slides in)</span>
-                  <ClipOffline 
+                  <ClipOffline
                     title="Clip 003"
                     time="1:15"
-                    status="failed" 
-                    onRetryClick={() => console.log('Retry clicked')} 
+                    status="failed"
+                    onRetryClick={() => console.log('Retry clicked')}
                   />
                 </div>
               </div>
             </div>
           </div>
-          
+
           {/* Interactive Demo: Transcribing ↔ Failed Toggle */}
           <div className="section" style={{ marginTop: '2rem' }}>
             <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Interactive Demo: Transcribing ↔ Failed</h3>
@@ -581,13 +583,13 @@ const ClipComponents: React.FC = () => {
               • PendingClip shrinks to make room
             </p>
             <div className="component-grid" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
-              <ClipOffline 
+              <ClipOffline
                 title="Clip 004"
                 status={clipOfflineStatus}
                 time="0:42"
-                onRetryClick={() => console.log('Retry clicked - would restart transcription')} 
+                onRetryClick={() => console.log('Retry clicked - would restart transcription')}
               />
-              <button 
+              <button
                 onClick={handleClipOfflineToggle}
                 style={{
                   padding: '10px 20px',
@@ -612,7 +614,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from entrybox.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 entrybox.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">EntryBox</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -628,7 +630,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from search.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 search.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">Search - 3-State iPhone-Style Search Bar</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -643,7 +645,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from cliphomeheader.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 cliphomeheader.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">Clip Home Header</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -666,7 +668,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from cliprecordheader.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 cliprecordheader.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">Clip Record Header</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -687,7 +689,7 @@ const ClipComponents: React.FC = () => {
               <strong>Use case:</strong> During clip recording or viewing, provides navigation back to clips list, option to create new clip, and live network status feedback.
             </p>
             <div className="component-grid">
-              <ClipRecordHeader 
+              <ClipRecordHeader
                 onBackClick={() => console.log('Back to clips')}
                 onNewClipClick={() => console.log('New clip')}
                 onNetworkChange={(status) => console.log(`Network status changed to: ${status}`)}
@@ -699,20 +701,20 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from clipmenudropdown.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 clipmenudropdown.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">Dropdown Menus</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
               Context menus triggered by triple-dot icons. Hover over rows to see 5% white overlay. Width dynamically adjusts to content.
             </p>
-            
+
             <div className="section" style={{ marginTop: '2rem' }}>
               <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Options DropDown</h3>
               <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                 3 rows: Rename, Copy, Delete. Used for clip actions. Dynamic width with 119px minimum.
               </p>
               <div className="component-grid">
-                <OptionsDropDown 
+                <OptionsDropDown
                   onRenameClick={() => console.log('Rename clicked')}
                   onCopyClick={() => console.log('Copy clicked')}
                   onDeleteClick={() => console.log('Delete clicked')}
@@ -726,7 +728,7 @@ const ClipComponents: React.FC = () => {
                 2 rows: Transcribe, Delete. Used for transcription actions. Dynamic width with 128px minimum.
               </p>
               <div className="component-grid">
-                <TranscribeDropDown 
+                <TranscribeDropDown
                   onTranscribeClick={() => console.log('Transcribe clicked')}
                   onDeleteClick={() => console.log('Delete clicked')}
                 />
@@ -738,7 +740,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from ClipToast.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 ClipToast.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">Toast Notifications</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -754,7 +756,7 @@ const ClipComponents: React.FC = () => {
               <br /><br />
               <strong>Icons:</strong> Uses SubCopyIcon (copy) and SubCheckmarkIcon (audio) from subclipbuttons.tsx with 1.17px stroke.
             </p>
-            
+
             <div className="section" style={{ marginTop: '2rem' }}>
               <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Copy Toast</h3>
               <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -794,7 +796,7 @@ const ClipComponents: React.FC = () => {
         {/* File divider - Components from ClipModalOverlay.tsx */}
         <div className="file-divider">
           <div className="file-label">📁 ClipModalOverlay.tsx</div>
-          
+
           <div className="section">
             <h2 className="section-title">Modal Overlay System</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
@@ -816,13 +818,13 @@ const ClipComponents: React.FC = () => {
               <br />
               • <strong>Accessibility:</strong> role=&quot;dialog&quot; and aria-modal=&quot;true&quot;
             </p>
-            
+
             {/* Demo container with relative positioning for modal */}
-            <div style={{ 
-              position: 'relative', 
-              width: '393px', 
-              height: '300px', 
-              background: 'var(--ClipBg)', 
+            <div style={{
+              position: 'relative',
+              width: '393px',
+              height: '300px',
+              background: 'var(--ClipBg)',
               borderRadius: '8px',
               overflow: 'hidden',
               marginBottom: '1rem',
@@ -838,7 +840,7 @@ const ClipComponents: React.FC = () => {
                   <ClipListItem title="Podcast Episode Summary" date="Nov 28, 2025" />
                 </div>
               </div>
-              
+
               {/* Delete Modal Demo */}
               <ClipModalOverlay
                 isVisible={showDeleteModal}
@@ -853,7 +855,7 @@ const ClipComponents: React.FC = () => {
                   }}
                 />
               </ClipModalOverlay>
-              
+
               {/* Rename Modal Demo */}
               <ClipModalOverlay
                 isVisible={showRenameModal}
@@ -871,10 +873,10 @@ const ClipComponents: React.FC = () => {
                 />
               </ClipModalOverlay>
             </div>
-            
+
             {/* Control buttons */}
             <div className="component-grid" style={{ gap: '1rem' }}>
-              <button 
+              <button
                 onClick={() => setShowDeleteModal(true)}
                 style={{
                   padding: '10px 20px',
@@ -888,7 +890,7 @@ const ClipComponents: React.FC = () => {
               >
                 Show Delete Modal
               </button>
-              <button 
+              <button
                 onClick={() => setShowRenameModal(true)}
                 style={{
                   padding: '10px 20px',
@@ -906,7 +908,7 @@ const ClipComponents: React.FC = () => {
             <p style={{ color: 'rgba(255, 255, 255, 0.4)', marginTop: '1rem', fontSize: '0.75rem' }}>
               Note: Click outside modal or press ESC to dismiss. Rename modal auto-focuses and selects text.
             </p>
-            
+
             {/* Full-Width Modal Variations */}
             <div className="section" style={{ marginTop: '2rem' }}>
               <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Full-Width Modal Variations (314px, vertical buttons)</h3>
@@ -919,13 +921,13 @@ const ClipComponents: React.FC = () => {
                 <br />
                 • Elements: Set to fill available space
               </p>
-              
+
               {/* Full-width modal demo container */}
-              <div style={{ 
-                position: 'relative', 
-                width: '393px', 
-                height: '350px', 
-                background: 'var(--ClipBg)', 
+              <div style={{
+                position: 'relative',
+                width: '393px',
+                height: '350px',
+                background: 'var(--ClipBg)',
                 borderRadius: '8px',
                 overflow: 'hidden',
                 marginBottom: '1rem',
@@ -941,7 +943,7 @@ const ClipComponents: React.FC = () => {
                     <ClipListItem title="Weekly Team Standup Notes" date="Nov 30, 2025" />
                   </div>
                 </div>
-                
+
                 {/* Delete Modal Full Demo */}
                 <ClipModalOverlay
                   isVisible={showDeleteModalFull}
@@ -956,7 +958,7 @@ const ClipComponents: React.FC = () => {
                     }}
                   />
                 </ClipModalOverlay>
-                
+
                 {/* Rename Modal Full Demo */}
                 <ClipModalOverlay
                   isVisible={showRenameModalFull}
@@ -974,10 +976,10 @@ const ClipComponents: React.FC = () => {
                   />
                 </ClipModalOverlay>
               </div>
-              
+
               {/* Control buttons for full-width modals */}
               <div className="component-grid" style={{ gap: '1rem' }}>
-                <button 
+                <button
                   onClick={() => setShowDeleteModalFull(true)}
                   style={{
                     padding: '10px 20px',
@@ -991,7 +993,7 @@ const ClipComponents: React.FC = () => {
                 >
                   Show Delete Modal (Full)
                 </button>
-                <button 
+                <button
                   onClick={() => setShowRenameModalFull(true)}
                   style={{
                     padding: '10px 20px',

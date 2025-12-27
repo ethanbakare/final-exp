@@ -43,7 +43,7 @@ export async function generateClipTitle(
     // Generate title using AI SDK
     log.debug('Calling OpenAI generateText API');
     const { text } = await generateText({
-      model: openaiClient('gpt-3.5-turbo'),
+      model: openaiClient('gpt-4o-mini'), // GPT-4o-mini: Smarter + 70% cheaper than GPT-3.5-turbo
       prompt: `Generate a short, descriptive title (max 6 words) for this voice note transcript. Be specific and capture the main topic. Do not use quotes.
 
 Transcript: ${transcription.substring(0, 500)}`,

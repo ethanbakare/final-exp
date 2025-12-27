@@ -17,7 +17,8 @@ interface ClipListItemProps {
   id?: string;                              // Unique identifier for the clip
   title?: string;                           // Default: "Teach me to love myself"
   date?: string;                            // Default: "May 13, 2025" - Format: "Mon DD, YYYY"
-  status?: 'pending' | 'transcribing' | null; // Default: null (completed, no status shown)
+  status?: 'pending' | 'transcribing' | 'failed' | null; // Default: null (completed, no status shown)
+  isActiveRequest?: boolean;                // NEW: Controls icon spinning (default: false) - Only applies when status='transcribing'
   onClick?: (id: string) => void;                  // Called when item is clicked (navigate to clip)
   onDotMenuClick?: () => void;
   onRename?: (id: string, title: string) => void;  // Called when rename is clicked
@@ -34,11 +35,11 @@ interface ClipListItemProps {
 
 const PendingIcon: React.FC = () => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path 
-      d="M5.05613 7.88726H2.69677V10.2466M6.94361 4.11229H9.30297V1.75293M2.5 4.58565C2.76457 3.93081 3.20754 3.36333 3.77856 2.9477C4.34957 2.53207 5.02593 2.28497 5.73039 2.23448C6.43485 2.18398 7.13924 2.33211 7.7637 2.66204C8.38816 2.99198 8.90723 3.49049 9.2625 4.1009M9.5 7.41389C9.23543 8.06873 8.79246 8.63621 8.22144 9.05184C7.65043 9.46747 6.97436 9.71458 6.2699 9.76508C5.56545 9.81558 4.8608 9.66743 4.23634 9.33749C3.61188 9.00756 3.09258 8.50907 2.73732 7.89867" 
-      stroke="white" 
-      strokeOpacity="0.4" 
-      strokeLinecap="round" 
+    <path
+      d="M5.05613 7.88726H2.69677V10.2466M6.94361 4.11229H9.30297V1.75293M2.5 4.58565C2.76457 3.93081 3.20754 3.36333 3.77856 2.9477C4.34957 2.53207 5.02593 2.28497 5.73039 2.23448C6.43485 2.18398 7.13924 2.33211 7.7637 2.66204C8.38816 2.99198 8.90723 3.49049 9.2625 4.1009M9.5 7.41389C9.23543 8.06873 8.79246 8.63621 8.22144 9.05184C7.65043 9.46747 6.97436 9.71458 6.2699 9.76508C5.56545 9.81558 4.8608 9.66743 4.23634 9.33749C3.61188 9.00756 3.09258 8.50907 2.73732 7.89867"
+      stroke="white"
+      strokeOpacity="0.4"
+      strokeLinecap="round"
       strokeLinejoin="round"
     />
   </svg>
@@ -59,14 +60,14 @@ const DotMenuIcon: React.FC<DotMenuIconProps> = ({ /* isHovered, isClicked */ })
   // Determine fill opacity based on state
   // Desktop: 0 (invisible) → 1 (visible on hover)
   // Mobile: 0.4 (default) → 1 (on click)
-  
+
   return (
-    <svg 
-      className="dot-menu-svg" 
-      width="24" 
-      height="24" 
-      viewBox="0 0 24 24" 
-      fill="none" 
+    <svg
+      className="dot-menu-svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
       <circle cx="6" cy="12" r="1.5" fill="white" className="dot-circle" />
@@ -86,6 +87,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
   title = 'Teach me to love myself today and I will teach you to love yourself',
   date = 'May 13, 2025',
   status = null, // Default to completed (no status)
+  isActiveRequest = false,  // NEW: Default to false (icon static)
   onClick,
   onDotMenuClick,
   onRename,
@@ -107,10 +109,10 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
   const listDotRef = useRef<HTMLDivElement>(null); // Reference to list-dot container (for click detection)
   const dotMenuRef = useRef<HTMLDivElement>(null); // Reference to visual dot-menu (24x24) for positioning
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   // Get portal container from context (falls back to document.body if not in a screen component)
   const portalContainer = usePortalContainer();
-  
+
   // Check if we're using a custom container (not document.body)
   const isContainedPortal = portalContainer && portalContainer !== document.body;
 
@@ -121,18 +123,18 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
 
     // Get boundaries of the VISUAL dot-menu (24x24), not the container
     const dotRect = dotMenuRef.current.getBoundingClientRect();
-    
+
     // Get container boundaries (for contained portals)
     const containerRect = isContainedPortal && portalContainer
       ? portalContainer.getBoundingClientRect()
       : { top: 0, left: 0, bottom: window.innerHeight, right: window.innerWidth, width: window.innerWidth, height: window.innerHeight };
-    
+
     // Estimated dimensions (will be dynamically adjusted if menu extends past viewport)
     const menuHeight = 119; // 3 rows × 35px + padding
     const menuWidth = 119;  // Minimum width (actual width may vary)
     const gap = 10;         // Gap between VISUAL dot-menu (24x24) and dropdown - consistent in both directions
     const viewportPadding = 8; // Safety margin from edges
-    
+
     // Use container bounds for contained portals, viewport for document.body
     const boundsHeight = isContainedPortal ? containerRect.height : window.innerHeight;
     const boundsWidth = isContainedPortal ? containerRect.width : window.innerWidth;
@@ -141,7 +143,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
     // For contained portals: subtract container offset to get relative positions
     const offsetTop = isContainedPortal ? containerRect.top : 0;
     const offsetLeft = isContainedPortal ? containerRect.left : 0;
-    
+
     // Relative positions within bounds
     const dotRelativeTop = dotRect.top - offsetTop;
     const dotRelativeBottom = dotRect.bottom - offsetTop;
@@ -157,7 +159,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
     // Determine vertical placement (below or above)
     const canPlaceBelow = spaceBelow >= menuHeight + gap;
     const canPlaceAbove = spaceAbove >= menuHeight + gap;
-    
+
     // Prefer below, fallback to above
     const placeBelow = canPlaceBelow || !canPlaceAbove;
 
@@ -174,11 +176,11 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
     // Determine horizontal placement (left-aligned or right-aligned)
     // Key: Check if menu would extend past right edge
     const menuWouldOverflowRight = dotRelativeLeft + menuWidth > boundsWidth - viewportPadding;
-    
+
     if (menuWouldOverflowRight) {
       // Right-align: Position menu so its right edge aligns with dot menu's right edge
       position.right = boundsWidth - dotRelativeRight;
-      
+
       // Clamp to ensure menu doesn't go past left edge
       const calculatedLeft = boundsWidth - (boundsWidth - dotRelativeRight) - menuWidth;
       if (calculatedLeft < viewportPadding) {
@@ -194,9 +196,9 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
 
   const handleDotMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering parent click
-    
+
     const newMenuState = !isMenuOpen;
-    
+
     if (newMenuState) {
       // Opening menu: Calculate position first, then trigger animation
       calculateMenuPosition();
@@ -213,7 +215,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
         setIsMenuOpen(false);
       }, 150);
     }
-    
+
     setIsDotClicked(!isDotClicked);
     onDotMenuClick?.();
   };
@@ -241,7 +243,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
       const timer = setTimeout(() => {
         calculateMenuPosition();
       }, 0);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isMenuOpen, calculateMenuPosition]);
@@ -254,12 +256,12 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
     // Save current scroll position
     const scrollY = window.scrollY;
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    
+
     // Lock scroll
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = '100%';
-    
+
     // Prevent layout shift from scrollbar disappearing
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
@@ -271,7 +273,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
       document.body.style.top = '';
       document.body.style.width = '';
       document.body.style.paddingRight = '';
-      
+
       // Restore scroll position
       window.scrollTo(0, scrollY);
     };
@@ -284,7 +286,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
       const target = event.target as Node;
       const clickedInsideList = listItemRef.current?.contains(target);
       const clickedInsideDropdown = dropdownRef.current?.contains(target);
-      
+
       // Only close if clicked outside BOTH the list item AND dropdown
       if (!clickedInsideList && !clickedInsideDropdown) {
         if (isDotClicked) {
@@ -308,7 +310,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
 
   return (
     <>
-      <div 
+      <div
         ref={listItemRef}
         className={`vn-list-clip ${fullWidth ? 'full-width' : ''} ${shouldShowHover ? 'hovered' : ''} ${isMenuOpen ? 'menu-open' : ''} ${isDeleting ? 'deleting' : ''} ${className} ${styles.container}`}
         onMouseEnter={() => setIsHovered(true)}
@@ -323,13 +325,13 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
               {title}
             </span>
           </div>
-          
+
           {/* Subheader with date and status */}
           <div className="vn-list-clip-subheader">
             <span className={`date-text ${styles.InterRegular13}`}>
               {date}
             </span>
-            
+
             {/* Status Frame - DRY principle: Reusable component for all status types */}
             {status === 'pending' && (
               <div className="status-frame">
@@ -341,24 +343,24 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
                 </span>
               </div>
             )}
-            
+
             {status === 'transcribing' && (
               <div className="status-frame transcribing">
-                <div className="status-icon-wrapper spinning-wrapper">
+                <div className={`status-icon-wrapper ${isActiveRequest ? 'spinning-wrapper' : ''}`}>
                   {/* Inline SVG - NOT a separate component, so styled-jsx can reach it */}
-                  <svg 
-                    className="pending-icon spinning-icon"
-                    width="12" 
-                    height="12" 
-                    viewBox="0 0 12 12" 
-                    fill="none" 
+                  <svg
+                    className={`pending-icon ${isActiveRequest ? 'spinning-icon' : ''}`}
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                   >
-                    <path 
-                      d="M5.05613 7.88726H2.69677V10.2466M6.94361 4.11229H9.30297V1.75293M2.5 4.58565C2.76457 3.93081 3.20754 3.36333 3.77856 2.9477C4.34957 2.53207 5.02593 2.28497 5.73039 2.23448C6.43485 2.18398 7.13924 2.33211 7.7637 2.66204C8.38816 2.99198 8.90723 3.49049 9.2625 4.1009M9.5 7.41389C9.23543 8.06873 8.79246 8.63621 8.22144 9.05184C7.65043 9.46747 6.97436 9.71458 6.2699 9.76508C5.56545 9.81558 4.8608 9.66743 4.23634 9.33749C3.61188 9.00756 3.09258 8.50907 2.73732 7.89867" 
-                      stroke="white" 
-                      strokeOpacity="0.4" 
-                      strokeLinecap="round" 
+                    <path
+                      d="M5.05613 7.88726H2.69677V10.2466M6.94361 4.11229H9.30297V1.75293M2.5 4.58565C2.76457 3.93081 3.20754 3.36333 3.77856 2.9477C4.34957 2.53207 5.02593 2.28497 5.73039 2.23448C6.43485 2.18398 7.13924 2.33211 7.7637 2.66204C8.38816 2.99198 8.90723 3.49049 9.2625 4.1009M9.5 7.41389C9.23543 8.06873 8.79246 8.63621 8.22144 9.05184C7.65043 9.46747 6.97436 9.71458 6.2699 9.76508C5.56545 9.81558 4.8608 9.66743 4.23634 9.33749C3.61188 9.00756 3.09258 8.50907 2.73732 7.89867"
+                      stroke="white"
+                      strokeOpacity="0.4"
+                      strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                   </svg>
@@ -368,13 +370,13 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
                 </span>
               </div>
             )}
-            
+
             {/* status === null: No status frame shown (transcription completed) */}
           </div>
         </div>
-        
+
         {/* Dot Menu Area */}
-        <div 
+        <div
           ref={listDotRef}
           className={`list-dot ${isDotClicked ? 'clicked' : ''}`}
           onMouseEnter={handleDotMouseEnter}
@@ -386,10 +388,10 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* Dropdown Menu Portal - renders to context container or document.body */}
       {isMounted && isMenuOpen && portalContainer && createPortal(
-        <div 
+        <div
           ref={dropdownRef}
           className={`dropdown-menu-container ${isMenuAnimating ? 'animating' : ''} ${menuPlacedAbove ? 'placed-above' : 'placed-below'}`}
           style={{
@@ -401,7 +403,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
             zIndex: 1000
           }}
         >
-          <OptionsDropDown 
+          <OptionsDropDown
             onRenameClick={() => {
               // Close menu first
               setIsMenuAnimating(false);
@@ -428,7 +430,7 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
         </div>,
         portalContainer
       )}
-      
+
       <style jsx>{`
         /* ============================================
            MAIN CONTAINER - VN_List_Clip

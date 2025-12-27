@@ -147,6 +147,48 @@ export const WaveClipper: React.FC<WaveClipperProps> = ({
   }, []);
 
   /* ============================================
+     🔴 CRITICAL: WAVEFORM RESET ON NEW RECORDING
+     
+     EDGE DETECTION: false → true transition
+     
+     PROBLEM: When user finishes a recording and starts a new one,
+     the old waveform bars remain visible because:
+     1. After recording ends, waveform enters "frozen" state (for processing UI)
+     2. The frozen state prevents clearing during the stop→start transition
+     3. Old bars persist in volumeHistoryRef from previous recording
+     
+     SOLUTION: Detect the EXACT moment isRecording changes from false → true
+     and instantly clear the waveform (< 0.001 seconds) BEFORE the first
+     frame of the new recording renders.
+     
+     WHY SEPARATE useEffect: The animation loop below runs continuously
+     and has complex logic for frozen states. This dedicated effect ensures
+     clean slate for every new recording, independent of animation timing.
+     
+     ⚠️ DO NOT DELETE: Without this, old bars appear when starting new
+     recordings in existing clips (the "ghost bars" bug).
+     ============================================ */
+  const prevIsRecordingRef = useRef(false);
+  
+  useEffect(() => {
+    // Detect edge: isRecording changed from false → true (NEW recording starting)
+    if (isRecording && !prevIsRecordingRef.current) {
+      // INSTANT RESET - Clear all previous recording data
+      volumeHistoryRef.current = new Array(MAX_BAR_HISTORY).fill(0);
+      pushedSinceRecordingStartCountRef.current = 0;
+      lastPushTimeRef.current = 0;
+      frozenScrollOffsetRef.current = 0;
+      initialStaticBarsDrawnRef.current = false;
+      
+      // This runs synchronously BEFORE React renders the next frame
+      // Result: User sees empty waveform instantly when pressing Record
+    }
+    
+    // Update previous state for next comparison
+    prevIsRecordingRef.current = isRecording;
+  }, [isRecording]); // Only re-run when isRecording changes
+
+  /* ============================================
      ANIMATION LOOP
      Main rendering and audio processing logic
      ============================================ */

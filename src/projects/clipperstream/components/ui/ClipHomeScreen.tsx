@@ -25,8 +25,15 @@ export interface Clip {
   id: string;
   title: string;
   date: string;
-  status: 'pending' | 'transcribing' | null;  // null = completed (no status shown)
-  content?: string;  // Transcribed text (null if pending)
+  status: 'pending' | 'transcribing' | 'failed' | null;  // null = completed (no status shown)
+  isActiveRequest?: boolean; // NEW: Controls icon spinning when status='transcribing' (default: false)
+  content?: string;  // Transcribed text (null if pending) - DEPRECATED, kept for backward compatibility
+  rawText?: string; // Combined raw transcriptions
+  formattedText?: string; // Combined formatted text
+  currentView?: 'formatted' | 'raw'; // User's current view preference
+  audioId?: string; // Reference to IndexedDB audio blob
+  transcriptionError?: string; // Error message for failed transcriptions
+  createdAt?: number; // timestamp for sorting
 }
 
 interface ClipHomeScreenProps {
@@ -51,83 +58,83 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   className = ''
 }) => {
   // No local clips state - use props.clips directly (managed by parent)
-  
+
   // Search query for filtering clips
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Progressive collapse amount (0 = fully expanded, 1 = fully collapsed)
   // Directly tied to scroll position for smooth iOS-style behavior
   const [searchCollapseAmount, setSearchCollapseAmount] = useState(0);
-  
+
   // Track when search is actively focused (for header morphing)
   const [isSearchActive, setIsSearchActive] = useState(false);
-  
+
   // Wrapper to update search state and notify parent
   const handleSearchActiveChange = useCallback((isActive: boolean) => {
     setIsSearchActive(isActive);
     externalSearchActiveChange?.(isActive);
   }, [externalSearchActiveChange]);
-  
+
   // Modal state: which modal is currently shown
   const [activeModal, setActiveModal] = useState<'delete' | 'rename' | null>(null);
-  
+
   // Currently selected clip (for modal context)
   const [selectedClip, setSelectedClip] = useState<{ id: string; title: string } | null>(null);
-  
+
   // Clip being deleted (for fade-out animation)
   const [deletingClipId, setDeletingClipId] = useState<string | null>(null);
-  
+
   // Rename input value
   const [renameValue, setRenameValue] = useState('');
-  
+
   // Toast notification state
   const [showCopyToast, setShowCopyToast] = useState(false);
-  
+
   // Portal container for dropdowns to render into (contained within this screen)
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
-  
+
   // Ref to scrollable list for programmatic scroll-to-top
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   // Set portal container after mount (ref is null during first render)
   useEffect(() => {
     if (portalContainerRef.current) {
       setPortalContainer(portalContainerRef.current);
     }
   }, []);
-  
+
   // Track previous search active state for detecting cancel
   const prevSearchActiveRef = useRef(isSearchActive);
-  
+
   // Scroll to top when exiting search mode (Cancel pressed)
   // Industry standard: search is a temporary mode, exiting returns to "home" state
   useEffect(() => {
     const wasSearchActive = prevSearchActiveRef.current;
-    
+
     // Detect transition from search active → inactive (Cancel pressed)
     if (wasSearchActive && !isSearchActive) {
       // Scroll list back to top
       if (scrollRef.current) {
         scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
-      
+
       // Reset collapse state
       setSearchCollapseAmount(0);
-      
+
       // Clear search query
       setSearchQuery('');
     }
-    
+
     // Update ref for next render
     prevSearchActiveRef.current = isSearchActive;
   }, [isSearchActive]);
-  
+
   // Header height constant for collapse calculation
   const SEARCH_HEIGHT = 38;  // Search bar height - collapse happens over this distance
 
   // Filter clips based on search query
-  const filteredClips = clips.filter(clip => 
+  const filteredClips = clips.filter(clip =>
     clip.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -135,24 +142,24 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   const hasClips = clips.length > 0;
   const hasSearchQuery = searchQuery.trim().length > 0;
   const hasResults = filteredClips.length > 0;
-  
+
   // A1: No clips at all (empty state)
   const showEmptyState = !hasClips && !hasSearchQuery;
-  
+
   // B2: Search active but no results found
   const showNoResultsState = hasSearchQuery && !hasResults;
-  
+
   // Default/B1: Show clip list (either all clips or filtered results)
   const showClipList = hasResults;
 
   // Scroll handler - Progressive collapse tied directly to scroll position
   const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
     const currentScrollTop = event.currentTarget.scrollTop;
-    
+
     // Calculate collapse progress for header: 0 at top, 1 when scrolled past search height
     // Clamped 0-1 for header's search-wrapper collapse
     const progress = Math.min(1, Math.max(0, currentScrollTop / SEARCH_HEIGHT));
-    
+
     setSearchCollapseAmount(progress);
   }, [SEARCH_HEIGHT]);
 
@@ -182,13 +189,13 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   // Confirm delete: animate out, then remove from list
   const handleConfirmDelete = useCallback(() => {
     if (!selectedClip) return;
-    
+
     // Close modal first
     setActiveModal(null);
-    
+
     // Start fade-out animation
     setDeletingClipId(selectedClip.id);
-    
+
     // After animation completes (200ms), remove from storage
     setTimeout(() => {
       deleteClipFromStorage(selectedClip.id);
@@ -209,14 +216,14 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   // Confirm rename: update clip title
   const handleConfirmRename = useCallback(() => {
     if (!selectedClip || !renameValue.trim()) return;
-    
+
     // Update clip title in storage
     const updated = updateClip(selectedClip.id, { title: renameValue.trim() });
     if (updated) {
       // Notify parent to refresh clips from storage
       onClipsChange?.();
     }
-    
+
     // Close modal and reset
     setActiveModal(null);
     setSelectedClip(null);
@@ -233,7 +240,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
       setShowCopyToast(true);
     }
   }, [clips]);
-  
+
   // Dismiss toast
   const handleDismissToast = useCallback(() => {
     setShowCopyToast(false);
@@ -251,13 +258,13 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
       <div className={`main ${className} ${styles.container}`}>
         {/* Portal Container - Dropdowns render here, contained within this screen */}
         <div ref={portalContainerRef} className="portal-container" />
-        
+
         <PortalContainerProvider value={portalContainer}>
           {/* Main Trans Body - Header + Scrollable List */}
           <div className="main-trans-body">
             {/* Fixed Header - gradient is built into ClipHomeHeader as ::after */}
             <div className="trans-header-fixed">
-              <ClipHomeHeader 
+              <ClipHomeHeader
                 searchCollapseAmount={searchCollapseAmount}
                 searchValue={searchQuery}
                 onSearchChange={handleSearchChange}
@@ -267,9 +274,9 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
                 showSearch={hasClips}
               />
             </div>
-            
+
             {/* List Container - scrollable with static padding for header */}
-            <div 
+            <div
               ref={scrollRef}
               className={`vn-list ${isSearchActive ? 'search-active' : ''}`}
               onScroll={handleScroll}
@@ -288,7 +295,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {/* B2: No Results State - Search with no matches (has search bar) */}
               {showNoResultsState && (
                 <div className="empty-state">
@@ -303,7 +310,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {/* Default/B1: Clip list items */}
               {showClipList && filteredClips.map((clip) => (
                 <ClipListItem
@@ -312,6 +319,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
                   title={clip.title}
                   date={clip.date}
                   status={clip.status}
+                  isActiveRequest={clip.isActiveRequest}  /* Controls icon spinning when status='transcribing' */
                   fullWidth={true}  /* Responsive: fills VN_List container */
                   onClick={onClipClick}
                   onRename={handleRenameClick}
@@ -322,7 +330,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
               ))}
             </div>
           </div>
-          
+
           {/* ============================================
              TOAST NOTIFICATION - Copy confirmation
              Slides down from top with fade animation
@@ -332,12 +340,12 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
             onDismiss={handleDismissToast}
             type="copy"
           />
-          
+
           {/* ============================================
              MODAL OVERLAYS - Delete and Rename
              Rendered inside portal container for containment
              ============================================ */}
-          
+
           {/* Delete Confirmation Modal - Full width with vertical buttons */}
           <ClipModalOverlay
             isVisible={activeModal === 'delete'}
@@ -349,7 +357,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
               onDelete={handleConfirmDelete}
             />
           </ClipModalOverlay>
-          
+
           {/* Rename Modal - Full width with vertical buttons */}
           <ClipModalOverlay
             isVisible={activeModal === 'rename'}
@@ -365,7 +373,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
           </ClipModalOverlay>
         </PortalContainerProvider>
       </div>
-      
+
       <style jsx>{`
         /* ============================================
            MAIN - Full screen container
@@ -499,6 +507,9 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
           /* Static padding - header space at top, content padding on sides/bottom */
           /* 144px = 40px top + 46px main + 10px gap + 38px search + 10px buffer */
           padding: 144px 16px 20px 16px;
+          
+          /* Smooth transition for padding to sync with header animation */
+          transition: padding-top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           
           /* Box sizing */
           box-sizing: border-box;

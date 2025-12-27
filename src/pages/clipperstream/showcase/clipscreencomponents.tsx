@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { ClipHomeScreen, Clip } from '@/projects/clipperstream/components/ui/ClipHomeScreen';
 import { ClipRecordScreen, PendingClip } from '@/projects/clipperstream/components/ui/ClipRecordScreen';
 import { ClipMasterScreen } from '@/projects/clipperstream/components/ui/ClipMasterScreen';
+import { ClipOfflineScreen } from './ClipOfflineScreen';
 
 // ClipScreenComponents Showcase
 // Displays full-screen component compositions with toggle controls
-// Shows: ClipHomeScreen, ClipRecordScreen, ClipMasterScreen (orchestrator)
+// Shows: ClipHomeScreen, ClipRecordScreen, ClipMasterScreen (orchestrator), ClipOfflineScreen (retry states)
 
 /* ============================================
    SAMPLE DATA
@@ -60,7 +61,7 @@ const ClipScreenComponents: React.FC = () => {
   // State toggles for showcases
   const [homeScreenState, setHomeScreenState] = useState<HomeScreenState>('with-clips');
   const [recordScreenState, setRecordScreenState] = useState<RecordScreenState>('transcribed');
-  
+
   // Get clips based on current state
   const getClipsForHomeState = (): Clip[] => {
     switch (homeScreenState) {
@@ -193,7 +194,7 @@ const ClipScreenComponents: React.FC = () => {
           }
         }
       `}</style>
-      
+
       <div className="showcase-container">
         {/* ============================================
            SECTION 1: ClipHomeScreen (Standalone)
@@ -201,25 +202,25 @@ const ClipScreenComponents: React.FC = () => {
         <div className="showcase-content">
           <div className="file-divider" style={{ marginTop: 0 }}>
             <div className="file-label">📁 ClipHomeScreen.tsx</div>
-            
+
             <div className="section">
               <h2 className="section-title">Clip Home Screen - iOS-Style Collapsing Header</h2>
-              
+
               <div className="toggle-controls">
-                <button 
+                <button
                   className={`toggle-btn ${homeScreenState === 'empty' ? 'active' : ''}`}
                   onClick={() => setHomeScreenState('empty')}
                 >
                   A1: Empty (No Clips)
                 </button>
-                <button 
+                <button
                   className={`toggle-btn ${homeScreenState === 'with-clips' ? 'active' : ''}`}
                   onClick={() => setHomeScreenState('with-clips')}
                 >
                   Default: With Clips
                 </button>
               </div>
-              
+
               <div className="state-description">
                 {homeScreenState === 'empty' && (
                   <>
@@ -236,7 +237,7 @@ const ClipScreenComponents: React.FC = () => {
                   </>
                 )}
               </div>
-              
+
               <p style={{ color: 'rgba(0, 0, 0, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                 <strong>Note:</strong> This standalone view doesn&apos;t include RecordBar (which lives in ClipMasterScreen).
                 The screen fills available height and is designed to work within the orchestrator.
@@ -244,7 +245,7 @@ const ClipScreenComponents: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="component-grid">
           <div className="screen-wrapper">
             <ClipHomeScreen clips={getClipsForHomeState()} />
@@ -257,31 +258,31 @@ const ClipScreenComponents: React.FC = () => {
         <div className="showcase-content">
           <div className="file-divider">
             <div className="file-label">📁 ClipRecordScreen.tsx</div>
-            
+
             <div className="section">
               <h2 className="section-title">Clip Record Screen - Recording & Transcription View</h2>
-              
+
               <div className="toggle-controls">
-                <button 
+                <button
                   className={`toggle-btn ${recordScreenState === 'recording' ? 'active' : ''}`}
                   onClick={() => setRecordScreenState('recording')}
                 >
                   D1: Recording
                 </button>
-                <button 
+                <button
                   className={`toggle-btn ${recordScreenState === 'transcribed' ? 'active' : ''}`}
                   onClick={() => setRecordScreenState('transcribed')}
                 >
                   D3: Transcribed
                 </button>
-                <button 
+                <button
                   className={`toggle-btn ${recordScreenState === 'offline' ? 'active' : ''}`}
                   onClick={() => setRecordScreenState('offline')}
                 >
                   D4: Offline
                 </button>
               </div>
-              
+
               <div className="state-description">
                 {recordScreenState === 'recording' && (
                   <>
@@ -302,7 +303,7 @@ const ClipScreenComponents: React.FC = () => {
                   </>
                 )}
               </div>
-              
+
               <p style={{ color: 'rgba(0, 0, 0, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                 <strong>Structure:</strong> ClipRecordHeader (static) + TranscriptionContent (scrollable).
                 Header doesn&apos;t need fixed positioning since it&apos;s above the scroll area.
@@ -310,7 +311,7 @@ const ClipScreenComponents: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="component-grid">
           <div className="screen-wrapper">
             <ClipRecordScreen
@@ -333,10 +334,10 @@ const ClipScreenComponents: React.FC = () => {
         <div className="showcase-content">
           <div className="file-divider">
             <div className="file-label">📁 ClipMasterScreen.tsx (Orchestrator)</div>
-            
+
             <div className="section">
               <h2 className="section-title">Clip Master Screen - Full App Demo with Transitions</h2>
-              
+
               <div className="state-description">
                 <strong>Orchestrator Component:</strong> Manages screen transitions and shared RecordBar.<br />
                 <br />
@@ -350,7 +351,7 @@ const ClipScreenComponents: React.FC = () => {
                 <strong>RecordBar States:</strong> record → recording → processing → complete<br />
                 Try the full flow: RECORD → speak → DONE → auto-process → COMPLETE
               </div>
-              
+
               <p style={{ color: 'rgba(0, 0, 0, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                 <strong>Architecture:</strong> ClipMasterScreen wraps ClipHomeScreen and ClipRecordScreen.
                 RecordBar (RecordNavBarMorphing) persists across transitions - screens slide while bar stays fixed.
@@ -358,11 +359,45 @@ const ClipScreenComponents: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="component-grid">
           <ClipMasterScreen
             pendingClips={samplePendingClips}
           />
+        </div>
+
+        {/* ============================================
+           SECTION 4: ClipOfflineScreen (Retry States)
+           ============================================ */}
+        <div className="showcase-content">
+          <div className="file-divider">
+            <div className="file-label">📁 ClipOfflineScreen.tsx (Retry States)</div>
+
+            <div className="section">
+              <h2 className="section-title">Offline Recording States</h2>
+
+              <p className="section-description">
+                Interactive demo of offline recording retry behavior. Toggle between states 
+                to see how the UI responds during different phases of the retry cycle.
+              </p>
+
+              <div className="state-description">
+                <strong>Retry Pattern:</strong><br />
+                • <strong>3 rapid attempts</strong> (no waits between) → ~3 min of continuous spinning<br />
+                • <strong>Interval-based retries:</strong> 1 min → 2 min → 4 min → 5 min (cycle repeats)<br />
+                <br />
+                <strong>Icon States:</strong><br />
+                • <strong>Gray spinning:</strong> HTTP request actively in progress<br />
+                • <strong>Gray static:</strong> Waiting between attempts OR offline<br />
+                <br />
+                <strong>Toggle Controls:</strong> Same 4 buttons control both Home Screen and Detail View simultaneously
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="component-grid">
+          <ClipOfflineScreen />
         </div>
       </div>
     </>

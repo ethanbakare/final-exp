@@ -1,470 +1,354 @@
-/* DeleteCard */
 
-/* Auto layout */
-display: flex;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-padding: 0px;
-gap: 16px;
 
-position: absolute;
-width: 314px;
-min-width: 177px;
-height: 181px;
-left: calc(50% - 314px/2);
-top: calc(50% - 181px/2 - 77.5px);
 
-background: #252525;
-border-radius: 16px;
+# ClipStream: Text Display & Formatting Changes
 
-/* Inside auto layout */
-flex: none;
-order: 3;
-flex-grow: 0;
-z-index: 3;
+---
 
+## Overview
 
-/* DeleteHeader */
+This document outlines the changes needed to implement smart text formatting and improve the text display behavior in ClipStream. The focus is on context-aware formatting that preserves existing text while intelligently formatting new transcriptions.
 
-/* Auto layout */
-display: flex;
-flex-direction: column;
-align-items: center;
-padding: 12px 10px 0px;
-gap: 4px;
+---
 
-width: 314px;
-height: 70px;
+## 1. Animation Behavior Changes
 
-border-radius: 8px;
+### Current State
+- Slide-in animation (opacity fade) occurs for EVERY new transcription
 
-/* Inside auto layout */
-flex: none;
-order: 0;
-align-self: stretch;
-flex-grow: 0;
+### New Behavior
 
+**First transcription in clip:**
+- Stick to the current animation style we have, the fading animation style we're currently using for elements inside the transcript content div
+- Smooth, polished introduction
 
-/* Delete_clip */
+**Subsequent transcriptions (appending):**
+- New text appears INSTANTLY
+- No fade animation
+- No slide-in effect
+- Appears like live typing
+- Simply appends to existing text
 
-width: 94px;
-height: 22px;
+**Rationale:** First transcription deserves polish. Subsequent appends should feel immediate and natural, not repetitive.
 
-font-family: 'Inter';
-font-style: normal;
-font-weight: 500;
-font-size: 18px;
-line-height: 22px;
-/* identical to box height */
+---
 
-color: #FFFFFF;
+## 2. Smart Formatting System
 
+### Formatting Strategy: Context-Aware (Option A)
 
-/* Inside auto layout */
-flex: none;
-order: 0;
-flex-grow: 0;
+**How it works:**
 
+**First transcription:**
+```
+Raw transcription → Send to AI for formatting → Display formatted text → Auto-copy
+```
 
-/* This action will remove the clip permanently. Are you sure? */
+**Subsequent transcriptions:**
+```
+New raw transcription + Existing formatted text (context) 
+  ↓
+Send to AI with context
+  ↓
+AI formats ONLY the new text (using context to understand structure)
+  ↓
+Append formatted new text to existing text
+  ↓
+Auto-copy updated full text
+```
 
-width: 207px;
-height: 32px;
+**Key principle:** Existing formatted text remains unchanged. Only new text gets formatted, but AI uses full context to format it correctly.
 
-font-family: 'Inter';
-font-style: normal;
-font-weight: 400;
-font-size: 13px;
-line-height: 16px;
-text-align: center;
+**Example:**
+```
+Existing (formatted): "There are three things I need to do:"
+New (raw): "one finish report two email team"
 
-color: rgba(255, 255, 255, 0.8);
+AI receives both for context
+AI formats only new text: "1. Finish report\n2. Email team"
 
+Result displayed:
+"There are three things I need to do:
+1. Finish report
+2. Email team"
+```
 
-/* Inside auto layout */
-flex: none;
-order: 1;
-flex-grow: 0;
+---
 
+## 3. Formatting Prompt Requirements
 
-/* DeleteButtons */
+### Prompt Must Handle
 
-box-sizing: border-box;
+**Paragraph decisions:**
+- Determine if new text should start a new paragraph OR continue from last sentence
+- Use conversational shift patterns (transitional phrases, question → new point, mode shifts)
+- Consider context from existing formatted text
 
-/* Auto layout */
-display: flex;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-padding: 10px;
-gap: 5px;
+**List detection:**
+- Recognize enumeration patterns across different phrasings
+- Not just "firstly/secondly" but also "there are three things", "one is... another is...", etc.
+- Use existing text context (if previous text set up a list, continue it)
 
-width: 314px;
-height: 95px;
+**Punctuation & formatting:**
+- Add proper punctuation, capitalization
+- Preserve ALL original words (never change, add, or remove words)
+- Use quotation marks only for direct quotes
 
-border-top: 1px solid rgba(255, 255, 255, 0.05);
+**Context awareness:**
+- Understand relationship between existing formatted text and new raw text
+- Format new text to flow naturally with what came before
+- Maintain consistent structure (if list was started, continue it)
 
-/* Inside auto layout */
-flex: none;
-order: 1;
-align-self: stretch;
-flex-grow: 0;
+### Prompt Location
+- Create formatting prompt as separate document
+- Reference the paragraph guidelines discussed (conversational shifts, transitional phrases)
+- Include examples showing context-aware formatting
+
+---
 
+## 4. Structure Button Behavior
+
+### Button Design
+- Direct toggle (no menu)
+- Single tap switches between formatted ↔ unformatted
+- Visual feedback: Button state change or toast message
 
-/* CancelButton */
+### Toggle Behavior
 
-box-sizing: border-box;
+**When text is formatted (default):**
+```
+User taps Structure
+  ↓
+Display switches to unformatted version (raw transcription)
+  ↓
+Button state updates to show "unformatted" mode
+  ↓
+NO auto-copy (user chose to view unformatted, doesn't mean they want to copy it)
+```
 
-/* Auto layout */
-display: flex;
-flex-direction: row;
-justify-content: center;
-align-items: center;
-padding: 8px 10px 8px 6px;
-gap: 6px;
+**When text is unformatted:**
+```
+User taps Structure
+  ↓
+Display switches to formatted version
+  ↓
+Button state updates to show "formatted" mode
+  ↓
+NO auto-copy (just viewing, not recording new content)
+```
 
-width: 294px;
-min-width: 111px;
-height: 35px;
+### Toggle Animation
+**Reference:** Use existing animation from clipmainscreen.tsx (close ↔ copy button transition)
 
-border: 1px solid rgba(255, 255, 255, 0.3);
-border-radius: 24px;
+**Behavior:** Instant switch between versions (no fade needed for MVP)
 
-/* Inside auto layout */
-flex: none;
-order: 0;
-align-self: stretch;
-flex-grow: 0;
+---
 
+## 5. Auto-Copy Behavior
 
-/* Cancel */
+### When Auto-Copy DOES Trigger
 
-width: 53px;
-height: 19px;
+**After new transcription completes:**
+- First transcription of day → Auto-copy + toast
+- Subsequent transcriptions → Auto-copy + button tick only
 
-font-family: 'Inter';
-font-style: normal;
-font-weight: 400;
-font-size: 16px;
-line-height: 19px;
+**When user manually presses Copy button:**
+- Copies current version (formatted or unformatted)
+- Shows toast + button tick
 
-color: #FFFFFF;
+### When Auto-Copy Does NOT Trigger
 
+**When toggling format/unformat:**
+- User is just viewing different version
+- Not recording new content
+- They can manually copy if they want that version
 
-/* Inside auto layout */
-flex: none;
-order: 0;
-flex-grow: 0;
+**Rationale:** Format toggle is for viewing/comparison. Recording new content is for copying. Keep these separate.
 
+---
 
-/* DeleteButton */
+## 6. Storage Requirements
 
-/* Auto layout */
-display: flex;
-flex-direction: row;
-justify-content: center;
-align-items: center;
-padding: 8px 10px 8px 6px;
-gap: 6px;
+### What to Store (Per Clip)
 
-width: 294px;
-min-width: 111px;
-height: 35px;
+```javascript
+{
+  clipId: "unique-id",
+  recordings: [
+    {
+      audioFile: "path/to/audio",  // Format: browser-compatible for web, native format for mobile
+      rawTranscription: "raw text from speech-to-text",
+      formattedText: "AI-formatted version"
+    }
+  ],
+  combinedRaw: "all raw transcriptions concatenated",
+  combinedFormatted: "all formatted text combined",
+  currentView: "formatted" // or "unformatted"
+}
+```
 
-background: #FFFFFF;
-border-radius: 24px;
+### Storage Medium
+- **Current (demo):** Session storage
+- **Raw transcription:** Store in session storage
+- **Formatted text:** Store in session storage
+- **Audio files:** Store appropriately for offline-to-online transcription recovery
 
-/* Inside auto layout */
-flex: none;
-order: 1;
-align-self: stretch;
-flex-grow: 0;
+### Audio Format
+- **Web:** Browser-compatible format (webm, mp4, etc.)
+- **Mobile (Expo/React Native):** Platform-appropriate format
+- **Note:** Don't hardcode format. Use what the platform provides.
 
+---
 
-/* DeleteText */
+## 7. Text Appending Logic
 
-width: 49px;
-height: 19px;
+### How Append Position is Determined
 
-font-family: 'Inter';
-font-style: normal;
-font-weight: 400;
-font-size: 16px;
-line-height: 19px;
+**The formatting prompt decides:**
+- If new text should start a new paragraph → Add line break before new text
+- If new text should continue from last sentence → Append directly after last period/punctuation
 
-color: #1C1C1C;
+**Example scenarios:**
 
+**Scenario 1: Continuation**
+```
+Existing: "I need to finish the report."
+New formatted: " Then I'll email the team."
 
-/* Inside auto layout */
-flex: none;
-order: 0;
-flex-grow: 0;
+Result: "I need to finish the report. Then I'll email the team."
+```
 
+**Scenario 2: New paragraph**
+```
+Existing: "I need to finish the report."
+New formatted: "\n\nSecondly, I should review the budget."
 
-/* RenameCard */
+Result: 
+"I need to finish the report.
 
-/* Auto layout */
-display: flex;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-padding: 0px;
-gap: 16px;
+Secondly, I should review the budget."
+```
 
-position: absolute;
-width: 314px;
-min-width: 177px;
-height: 234px;
-left: calc(50% - 314px/2);
-top: calc(50% - 234px/2 - 77.5px);
+**The AI prompt determines paragraph breaks based on conversational shifts, not arbitrary rules.**
 
-background: #252525;
-border-radius: 16px;
+---
 
-/* Inside auto layout */
-flex: none;
-order: 3;
-flex-grow: 0;
-z-index: 3;
+## 8. Context Example (Rare but Important)
 
+### Why Context Matters
 
-/* RenameHolder */
+**Example: List continuation**
 
-/* Auto layout */
-display: flex;
-flex-direction: column;
-align-items: flex-start;
-padding: 0px 10px;
-gap: 28px;
+```
+First transcription (formatted):
+"There are three things I need to do:"
 
-width: 314px;
-height: 120px;
+Second transcription (raw):
+"one finish report"
 
+Without context: AI might format as:
+"One finish report." (doesn't know it's a list)
 
-/* Inside auto layout */
-flex: none;
-order: 0;
-align-self: stretch;
-flex-grow: 0;
+With context: AI formats as:
+"1. Finish report" (understands list structure from context)
+```
 
+**This is why we pass existing formatted text to AI as context—it needs to understand the structure to format new text appropriately.**
 
-/* RenameHeader */
+---
 
-/* Auto layout */
-display: flex;
-flex-direction: column;
-align-items: center;
-padding: 12px 10px 0px;
-gap: 4px;
+## 9. Summary of Changes
 
-width: 294px;
-height: 54px;
+### Remove
+- [x] Slide-in animation for subsequent transcriptions
+- [x] Auto-copy on format toggle
 
-border-radius: 8px;
+### Add
+- [ ] Smart formatting with AI prompt
+- [ ] Context-aware formatting (pass existing text as context)
+- [ ] Storage for both raw and formatted versions
+- [ ] Structure button as direct toggle
+- [ ] Instant append for subsequent transcriptions
 
-/* Inside auto layout */
-flex: none;
-order: 0;
-align-self: stretch;
-flex-grow: 0;
+### Modify
+- [ ] Animation behavior (fade-in only for first)
+- [ ] Auto-copy behavior (only on new recordings, not on toggle)
+- [ ] Storage structure (add formatted text storage)
 
+---
 
-/* Rename_clip */
+## 10. Implementation Notes
 
-width: 108px;
-height: 22px;
+### For clipmainscreen.tsx
+- Reference existing close ↔ copy button animation for format toggle
+- First transcription: Use fade-in animation
+- Subsequent: Instant append (no animation)
 
-font-family: 'Inter';
-font-style: normal;
-font-weight: 500;
-font-size: 18px;
-line-height: 22px;
-/* identical to box height */
+### For AI Integration
+- Create formatting prompt (separate document)
+- Pass existing formatted text as context when formatting new text
+- AI formats only new text, not entire document
+- Store both raw and formatted results
 
-color: #FFFFFF;
+### For Storage
+- Use session storage for demo
+- Store raw + formatted for each recording
+- Store combined versions for quick access
+- Track current view state (formatted/unformatted)
 
+---
 
-/* Inside auto layout */
-flex: none;
-order: 0;
-flex-grow: 0;
+**End of Document**
 
 
-/* Enter a new name */
 
-width: 207px;
-height: 16px;
 
-font-family: 'Inter';
-font-style: normal;
-font-weight: 400;
-font-size: 13px;
-line-height: 16px;
-/* identical to box height */
-text-align: center;
 
-color: rgba(255, 255, 255, 0.8);
 
 
-/* Inside auto layout */
-flex: none;
-order: 1;
-flex-grow: 0;
 
 
-/* EntryBar */
 
-/* Auto layout */
-display: flex;
-flex-direction: row;
-align-items: center;
-padding: 0px 8px;
 
-width: 294px;
-height: 38px;
-min-height: 38px;
+Prompt, I've made as a guide for the formatting feature. Not too sure we're going to use this exactly, but I'd like to also get your thoughts on what's the best way to do prompting for OpenAI prompts.
 
-background: rgba(255, 255, 255, 0.05);
-border-radius: 8px;
+You are a text formatter for transcribed speech. Add formatting to make text readable WITHOUT changing any words.
 
-/* Inside auto layout */
-flex: none;
-order: 1;
-align-self: stretch;
-flex-grow: 0;
+CORE RULE: Use EXACTLY the words provided. Never add, remove, or change words. Only add formatting.
 
+WHAT YOU CAN ADD:
+- Punctuation (periods, commas, question marks, dashes etc.)
+- Capitalization
+- Line breaks and paragraph breaks
+- List formatting (numbered or bulleted)
+- Quotation marks (only for direct quotes)
 
-/* TitleText */
+SMART FORMATTING GUIDELINES:
 
-width: 76px;
-height: 19px;
+Lists:
+- Create a list when the speaker is clearly enumerating multiple items
+- This includes phrases like "firstly/secondly", "the first thing/the second thing", "there are three things", "one is... another is...", or any pattern where items are being counted/listed
+- Use your judgment—if it reads better as a list, make it a list
 
-font-family: 'Inter';
-font-style: normal;
-font-weight: 400;
-font-size: 16px;
-line-height: 19px;
+Dialogue/Quotes:
+- Only use quotation marks when the speaker is directly quoting actual words someone said
+- Example with quotes: "She said, 'I'll be there at 5'"
+- Example WITHOUT quotes: "She told me to be there at 5" (indirect speech, no quotes needed)
+- If unsure, don't add quotes
 
-color: rgba(255, 255, 255, 0.4);
+Paragraphs:
+- Create new paragraph when speaker shifts conversational mode or direction
+- Look for transitional phrases: "So...", "Based on...", "I'm thinking...", "Secondly...", "Another thing..."
+- Create break after questions if speaker continues with new point
+- Create break when speaker shifts between: describing ↔ proposing, explaining ↔ analyzing, problem ↔ solution
+- If a single continuous thought runs very long (5+ sentences), consider adding break for readability
+- Don't over-paragraph—only break when there's a clear shift
 
+Return ONLY the formatted text with no explanation.
 
-/* Inside auto layout */
-flex: none;
-order: 0;
-flex-grow: 0;
+Text to format:
 
+[INSERT TRANSCRIBED TEXT HERE]
 
-/* RenameButtons */
 
-box-sizing: border-box;
 
-/* Auto layout */
-display: flex;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-padding: 10px;
-gap: 5px;
-
-width: 314px;
-height: 98px;
-
-border-top: 1px solid rgba(255, 255, 255, 0.05);
-
-/* Inside auto layout */
-flex: none;
-order: 1;
-align-self: stretch;
-flex-grow: 0;
-
-
-/* CancelButton */
-
-box-sizing: border-box;
-
-/* Auto layout */
-display: flex;
-flex-direction: row;
-justify-content: center;
-align-items: center;
-padding: 8px 10px 8px 6px;
-gap: 6px;
-
-width: 294px;
-min-width: 111px;
-height: 38px;
-
-border: 1px solid rgba(255, 255, 255, 0.3);
-border-radius: 24px;
-
-/* Inside auto layout */
-flex: none;
-order: 0;
-align-self: stretch;
-flex-grow: 0;
-
-
-/* Cancel */
-
-width: 59px;
-height: 22px;
-
-font-family: 'Inter';
-font-style: normal;
-font-weight: 400;
-font-size: 18px;
-line-height: 22px;
-/* identical to box height */
-
-color: #FFFFFF;
-
-
-/* Inside auto layout */
-flex: none;
-order: 0;
-flex-grow: 0;
-
-
-/* Okbutton */
-
-/* Auto layout */
-display: flex;
-flex-direction: row;
-justify-content: center;
-align-items: center;
-padding: 8px 10px 8px 6px;
-gap: 6px;
-
-width: 294px;
-min-width: 111px;
-height: 35px;
-
-background: #FFFFFF;
-border-radius: 24px;
-
-/* Inside auto layout */
-flex: none;
-order: 1;
-align-self: stretch;
-flex-grow: 0;
-
-
-/* Save */
-
-width: 23px;
-height: 19px;
-
-font-family: 'Inter';
-font-style: normal;
-font-weight: 400;
-font-size: 16px;
-line-height: 19px;
-
-color: #1C1C1C;
-
-
-/* Inside auto layout */
-flex: none;
-order: 0;
-flex-grow: 0;

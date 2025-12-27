@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import styles from '@/projects/clipperstream/styles/clipper.module.css';
 import { ClipRecordHeader } from './cliprecordheader';
 import { ClipOffline } from './ClipOffline';
 import { PortalContainerProvider } from './PortalContainerContext';
+import { useScrollToBottom } from '../../hooks/useScrollToBottom';
+import { ScrollButton } from './clipbuttons';
+import { Clip } from './ClipHomeScreen';
 
 // ClipRecordScreen Component
 // Screen for recording and viewing transcriptions
@@ -23,6 +26,7 @@ export interface PendingClip {
   title: string;  // Default format: "Clip 001", "Clip 002", etc.
   time: string;
   status?: 'waiting' | 'transcribing' | 'failed';
+  isActiveRequest?: boolean;  // Controls icon spinning during retry attempts
 }
 
 type RecordScreenState = 'recording' | 'transcribed' | 'offline';
@@ -36,6 +40,7 @@ export interface ContentBlock {
 interface ClipRecordScreenProps {
   state?: RecordScreenState;              // Current screen state
   contentBlocks?: ContentBlock[];          // Content blocks to render (industry standard list pattern)
+  selectedClip?: Clip;                    // Full clip for formatted/raw view toggle
   pendingClips?: PendingClip[];           // Offline clips (D4 state)
   onBackClick?: () => void;               // Navigate back to home
   onNewClipClick?: () => void;            // Create new clip
@@ -52,6 +57,7 @@ interface ClipRecordScreenProps {
 export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   state = 'recording',
   contentBlocks = [],
+  selectedClip,
   pendingClips = [],
   onBackClick,
   onNewClipClick,
@@ -64,6 +70,16 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   const portalContainerRef = React.useRef<HTMLDivElement>(null);
   const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
 
+  // Scroll-to-bottom hook for transcription content
+  const {
+    scrollRef,
+    isAtBottom,
+    scrollToBottom,
+    scrollToPosition,
+    checkIfAtBottom,
+    resetScrollTracking
+  } = useScrollToBottom();
+
   // Set portal container after mount
   React.useEffect(() => {
     if (portalContainerRef.current) {
@@ -71,12 +87,86 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
     }
   }, []);
 
+  // Determine which text to display based on clip's currentView preference
+  const displayText = useMemo(() => {
+    if (!selectedClip) {
+      // No clip selected, show contentBlocks (raw transcription during recording)
+      return contentBlocks;
+    }
+
+    // Clip selected - check currentView preference
+    if (selectedClip.currentView === 'raw') {
+      // Show raw text
+      return [{
+        id: 'raw-view',
+        text: selectedClip.rawText || selectedClip.content || '',
+        animate: false
+      }];
+    } else {
+      // Show formatted text (default)
+      return [{
+        id: 'formatted-view',
+        text: selectedClip.formattedText || selectedClip.content || '',
+        animate: false
+      }];
+    }
+  }, [selectedClip, contentBlocks]);
+
+  // Track previous text length to detect when NEW content is added
+  // We now use a single block with full combined text, so track text length instead of block count
+  const prevTextLengthRef = React.useRef(0);
+
+  // Auto-scroll logic based on contentBlocks changes
+  useEffect(() => {
+    if (contentBlocks.length === 0) {
+      prevTextLengthRef.current = 0;
+      return;
+    }
+
+    // Get current text length from displayText (which may be formatted or raw based on view)
+    const currentTextLength = displayText.reduce((sum, block) => sum + block.text.length, 0);
+    const prevTextLength = prevTextLengthRef.current;
+    const isAppendingNewContent = prevTextLength > 0 && currentTextLength > prevTextLength;
+
+    // Update ref for next comparison
+    prevTextLengthRef.current = currentTextLength;
+
+    if (!isAppendingNewContent) {
+      // First transcription or viewing existing clip - scroll to top
+      scrollToPosition(0, { behavior: 'instant' });
+      return;
+    }
+
+    // NEW content was APPENDED (text got longer) - scroll to bottom to show it
+    // Small delay to ensure DOM has updated
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+  }, [contentBlocks, displayText, scrollToPosition, scrollToBottom]);
+
+  // Re-check scroll button visibility when content or state changes
+  // This ensures button state is correct when navigating between clips
+  useEffect(() => {
+    // Small delay to ensure DOM has fully updated with new content
+    const timer = setTimeout(() => {
+      checkIfAtBottom();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [contentBlocks, pendingClips, state, checkIfAtBottom]);
+
+  // Reset scroll tracking when switching clips
+  // This hides the scroll button initially when opening a new clip
+  useEffect(() => {
+    resetScrollTracking();
+  }, [contentBlocks, resetScrollTracking]);
+
   return (
     <>
       <div className={`record-screen ${className} ${styles.container}`}>
         {/* Portal Container - Dropdowns render here */}
         <div ref={portalContainerRef} className="portal-container" />
-        
+
         <PortalContainerProvider value={portalContainer}>
           {/* Header - Not scrollable, sits at top */}
           <ClipRecordHeader
@@ -84,17 +174,17 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
             onNewClipClick={onNewClipClick}
             onNetworkChange={onNetworkChange}
           />
-          
+
           {/* Content Area - Scrollable */}
-          <div className="transcription-content">
+          <div ref={scrollRef} className="transcription-content">
             {/* D1: Recording state - Empty content area */}
             {/* Content area is empty while recording - transcription appears after processing */}
-            
+
             {/* D3: Transcribed state - Render content blocks (industry standard list pattern) */}
-            {state === 'transcribed' && contentBlocks.length > 0 && (
+            {state === 'transcribed' && displayText.length > 0 && (
               <>
-                {contentBlocks.map((block) => (
-                  <div 
+                {displayText.map((block) => (
+                  <div
                     key={block.id}
                     className={block.animate ? 'content-block animate-text-intro-horizontal' : 'content-block'}
                   >
@@ -105,26 +195,53 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
                 ))}
               </>
             )}
-            
-            {/* D4: Offline state - Show pending clips */}
-            {state === 'offline' && pendingClips.length > 0 && (
-              <div className="pending-clips">
-                {pendingClips.map((clip) => (
-                  <ClipOffline
-                    key={clip.id}
-                    title={clip.title}
-                    time={clip.time}
-                    status={clip.status}
-                    fullWidth={true}
-                    onRetryClick={() => onTranscribeClick?.(clip.id)}
-                  />
+
+            {/* D4: Offline state - Show existing text (if any) AND pending clips */}
+            {state === 'offline' && (
+              <>
+                {/* Show existing content blocks first (for append mode) */}
+                {displayText.length > 0 && displayText.map((block) => (
+                  <div
+                    key={block.id}
+                    className={block.animate ? 'content-block animate-text-intro-horizontal' : 'content-block'}
+                  >
+                    <p className={styles.InterRegular16}>
+                      {block.text}
+                    </p>
+                  </div>
                 ))}
-              </div>
+
+                {/* Then show pending clips below */}
+                {pendingClips.length > 0 && (
+                  <div className="pending-clips">
+                    {pendingClips.map((clip) => (
+                      <ClipOffline
+                        key={clip.id}
+                        title={clip.title}
+                        time={clip.time}
+                        status={clip.status}
+                        isActiveRequest={clip.isActiveRequest}
+                        fullWidth={true}
+                        onRetryClick={() => onTranscribeClick?.(clip.id)}
+                        onTap={() => onTranscribeClick?.(clip.id)}
+                        isTappable={clip.status === 'transcribing' && !clip.isActiveRequest}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </PortalContainerProvider>
+
+        {/* Scroll Button - Appears when content exceeds viewport and user not at bottom */}
+        {!isAtBottom && (
+          <div className="scroll-button-container">
+            <ScrollButton onClick={scrollToBottom} />
+          </div>
+        )}
       </div>
-      
+
       <style jsx>{`
         /* ============================================
            RECORD SCREEN - Main container
@@ -237,7 +354,7 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
         /* Content block - Base styles */
         .content-block {
           width: 100%;
-          margin-bottom: 16px; /* Spacing between blocks */
+          margin-bottom: 0px; /* Spacing between blocks */
         }
         
         .content-block:last-child {
@@ -283,6 +400,27 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
           gap: 8px;
           
           width: 100%;
+        }
+        
+        /* ============================================
+           SCROLL BUTTON CONTAINER
+           Positioned above record bar, centered horizontally
+           ============================================ */
+        
+        .scroll-button-container {
+          /* Positioning */
+          position: absolute;
+          bottom: 24px; /* 24px above record bar */
+          left: 50%;
+          transform: translateX(-50%);
+          
+          /* Layering */
+          z-index: 200; /* Above content, below modals */
+          
+          /* Fade animation */
+          opacity: 1;
+          transition: opacity 0.2s ease-out;
+          pointer-events: auto;
         }
       `}</style>
     </>
