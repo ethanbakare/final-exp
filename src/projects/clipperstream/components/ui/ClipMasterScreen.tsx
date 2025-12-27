@@ -5,6 +5,7 @@ import { ClipRecordScreen, PendingClip } from './ClipRecordScreen';
 import { RecordNavBarVarMorphing, RecordNavState } from './mainvarmorph';
 import { ToastNotification } from './ClipToast';
 import { useClipRecording } from '../../hooks/useClipRecording';
+import { useClipState } from '../../hooks/useClipState';
 import { Clip, getClips, createClip, updateClip, initializeClips, getNextClipNumber, getNextRecordingNumber } from '../../services/clipStorage';
 import { deleteAudio, clearAllAudio, getAudio } from '../../services/audioStorage';
 import { logger } from '../../utils/logger';
@@ -54,8 +55,16 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // STATE
   // ============================================
 
-  // Clips management (loaded from storage)
-  const [clips, setClips] = useState<Clip[]>([]);
+  // PHASE 1: Extracted to useClipState hook
+  const {
+    clips,
+    selectedClip,
+    setSelectedClip,
+    refreshClips,
+    createNewClip,
+    updateClipById,
+    deleteClipById
+  } = useClipState();
 
   // Current active screen
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(initialScreen);
@@ -63,8 +72,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // RecordBar state (managed here since it persists across screens)
   const [recordNavState, setRecordNavState] = useState<RecordNavState>('record');
 
-  // Selected clip (when viewing a transcribed clip)
-  const [selectedClip, setSelectedClip] = useState<SelectedClip | null>(null);
+  // DELETED - now returned from useClipState hook
 
   // Selected pending clip (when viewing a clip waiting to be transcribed)
   const [selectedPendingClip, setSelectedPendingClip] = useState<PendingClip | null>(null);
@@ -300,7 +308,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       // If currently viewing raw text, switch back to formatted view
       // Recording always produces formatted output, so switch view to match
       if (selectedClip.currentView === 'raw') {
-        const updatedClip = updateClip(selectedClip.id, { currentView: 'formatted' });
+        const updatedClip = updateClipById(selectedClip.id, { currentView: 'formatted' });
         if (updatedClip) {
           setSelectedClip(updatedClip);
           refreshClips();
@@ -316,19 +324,23 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       setTimeout(() => startRecordingHook(), 200);
     }
 
-    // Case 2.5: Recording from pending clip (no content yet, only pending recordings)
+    // ✅ NEW Case 2.5: Recording from pending clip (no content yet, but has audioId)
     else if (activeScreen === 'record' && selectedPendingClip) {
-      // Keep currentClipId - we're adding to existing clip file
+      // Keep currentClipId - we're adding to the SAME clip file
+      // This allows multiple pending recordings in one file
       setIsAppendMode(true);
       setCurrentClipId(selectedPendingClip.id);
-      log.debug('Recording from pending clip - keeping clip context', {
-        clipId: selectedPendingClip.id
+      setAppendBaseContent('');
+      setContentBlocks([]);
+      log.debug('Recording from pending clip (adding successive recording)', {
+        clipId: selectedPendingClip.id,
+        pendingTitle: selectedPendingClip.title
       });
       setTimeout(() => startRecordingHook(), 200);
     }
 
     // Case 3: Recording from record screen (no existing content AND no pending clip) → NEW clip
-    else {
+    else if (!selectedPendingClip) {  // ← ADDED CONDITION: only create new if no pending clip
       setIsAppendMode(false);
       setCurrentClipId(null);
       setAppendBaseContent('');
@@ -390,30 +402,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // STORAGE & CALLBACKS
   // ============================================
 
-  // Load clips from storage on mount
-  // Clear orphaned audio from IndexedDB if sessionStorage is empty
-  useEffect(() => {
-    const storedClips = getClips();
-    if (storedClips.length === 0) {
-      // First visit / sessionStorage cleared - clear orphaned audio from IndexedDB
-      clearAllAudio().then(() => {
-        log.info('Cleared orphaned audio from IndexedDB');
-      }).catch((error) => {
-        log.error('Failed to clear orphaned audio', error);
-      });
+  // DELETED - now handled inside useClipState hook
 
-      // Initialize with demo clips
-      const demoClips = initializeClips();
-      setClips(demoClips);
-    } else {
-      setClips(storedClips);
-    }
-  }, []);
-
-  // Refresh clips from storage
-  const refreshClips = useCallback(() => {
-    setClips(getClips());
-  }, []);
+  // DELETED - now returned from useClipState hook
 
   // Helper: Format duration in seconds to "M:SS" format
   const formatDuration = useCallback((seconds: number): string => {
@@ -479,7 +470,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           trigger: 'auto-retry-online'
         });
 
-        updateClip(clip.id, {
+        updateClipById(clip.id, {
           status: 'transcribing',
           transcriptionError: undefined
         });
@@ -519,7 +510,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           trigger: 'auto-retry-error'
         });
 
-        updateClip(clip.id, {
+        updateClipById(clip.id, {
           status: 'failed',
           transcriptionError: error instanceof Error ? error.message : 'Auto-retry failed'
         });
@@ -558,7 +549,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // Toggle between formatted ↔ raw
     const newView = selectedClip.currentView === 'formatted' ? 'raw' : 'formatted';
 
-    const updatedClip = updateClip(selectedClip.id, {
+    const updatedClip = updateClipById(selectedClip.id, {
       currentView: newView
     });
 
@@ -594,12 +585,12 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       from: clip.status,
       to: 'transcribing',
       trigger: 'manual-retry'
-    });
+    }        );
 
-    updateClip(clipId, {
-      status: 'transcribing',
-      transcriptionError: undefined
-    });
+        updateClipById(clipId, {
+          status: 'transcribing',
+          transcriptionError: undefined
+        });
     refreshClips();
 
     // Set context for transcription completion
@@ -638,7 +629,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         trigger: 'manual-retry-error'
       });
 
-      updateClip(clipId, {
+      updateClipById(clipId, {
         status: 'failed',
         transcriptionError: error instanceof Error ? error.message : 'Retry failed'
       });
@@ -722,7 +713,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
       // Update clip with AI-generated title
       // ClipListItem's opacity transition handles the fade automatically
-      const updatedClip = updateClip(clipId, { title });
+      const updatedClip = updateClipById(clipId, { title });
       if (updatedClip) {
         refreshClips();
         // If still viewing this clip, update selectedClip
@@ -800,7 +791,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
               trigger: 'transcription-complete-formatting-failed'
             });
 
-            updateClip(clipIdToUpdate, {
+            updateClipById(clipIdToUpdate, {
               audioId: undefined,
               status: null
             });
@@ -808,7 +799,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           } catch (error) {
             log.error('Failed to delete audio after formatting fallback', { error });
             // Still clear status even if audio deletion fails
-            updateClip(clipIdToUpdate, {
+            updateClipById(clipIdToUpdate, {
               audioId: undefined,
               status: null
             });
@@ -838,7 +829,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           updatedFormattedText = formattedText;
         }
 
-        const updatedClip = updateClip(clipIdToUpdate, {
+        const updatedClip = updateClipById(clipIdToUpdate, {
           formattedText: updatedFormattedText
         });
         refreshClips();
@@ -888,7 +879,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
             });
 
             // Clear audioId and status from clip
-            updateClip(clipIdToUpdate, {
+            updateClipById(clipIdToUpdate, {
               audioId: undefined,
               status: null
             });
@@ -900,7 +891,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
               error
             });
             // Still clear status even if audio deletion fails
-            updateClip(clipIdToUpdate, {
+            updateClipById(clipIdToUpdate, {
               audioId: undefined,
               status: null
             });
@@ -947,7 +938,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
             trigger: 'transcription-complete-formatting-error'
           });
 
-          updateClip(clipIdToUpdate, {
+          updateClipById(clipIdToUpdate, {
             audioId: undefined,
             status: null
           });
@@ -955,7 +946,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         } catch (deleteError) {
           log.error('Failed to delete audio after formatting error', { error: deleteError });
           // Still clear status even if audio deletion fails
-          updateClip(clipIdToUpdate, {
+          updateClipById(clipIdToUpdate, {
             audioId: undefined,
             status: null
           });
@@ -1003,7 +994,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           const existingRawText = selectedClip?.rawText || appendBaseContent;
           const updatedRawText = existingRawText + ' ' + transcription;
 
-          const updatedClip = updateClip(currentClipId, {
+          const updatedClip = updateClipById(currentClipId, {
             content: finalRawText, // For backward compatibility
             rawText: updatedRawText,
             audioId: audioId || undefined, // Save audioId for potential retry
@@ -1028,11 +1019,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
           const nextNumber = getNextRecordingNumber(getClips());
           log.info('Creating new clip', { title: nextNumber });
-          const newClip = createClip(finalRawText, nextNumber, finalRawText);
+          const newClip = createNewClip(finalRawText, nextNumber, finalRawText);
 
           // Save audioId with clip for potential retry
           if (audioId) {
-            updateClip(newClip.id, {
+            updateClipById(newClip.id, {
               audioId: audioId,
               status: 'transcribing' // Will be cleared after audio deletion
             });
@@ -1223,7 +1214,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           error: transcriptionError
         });
 
-        updateClip(currentClipId, {
+        updateClipById(currentClipId, {
           audioId: audioId,
           duration: formatDuration(duration),
           status: 'failed',
@@ -1256,7 +1247,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         if (!currentClipId && !isAppendMode) {
           const nextNumber = getNextRecordingNumber(getClips());
           // Create a minimal placeholder clip - content will be added after transcription succeeds
-          const newClip = createClip('', nextNumber, '');
+          const newClip = createNewClip('', nextNumber, '');
           clipIdToUpdate = newClip.id;
           setCurrentClipId(newClip.id);
           log.info('Created new clip for offline recording', {
@@ -1287,7 +1278,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           console.log('🔍 DEBUG: existingPendingCount =', existingPendingCount, '→ new clip will be', existingPendingCount + 1);
           const newClipName = `Clip ${String(existingPendingCount + 1).padStart(3, '0')}`;
 
-          updateClip(clipIdToUpdate, {
+          updateClipById(clipIdToUpdate, {
             audioId: audioId,
             duration: formatDuration(duration),
             status: 'pending',
