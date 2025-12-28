@@ -368,10 +368,10 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
               {/* Default/B1: Clip list items */}
               {showClipList && filteredClips.map((clip) => {
                 // v2.5.3 FIX: Derive complete status using parent-based tracking
-                const allClips = getClips();
+                // v2.6.0 ZUSTAND: Use clips prop instead of calling getClips()
                 const displayClip = getDisplayClip(
                   clip,
-                  allClips,
+                  clips,  // Use clips from props (already fresh from Zustand)
                   activeTranscriptionParentId,
                   activeHttpClipId  // v2.5.4 FIX: Use per-clip HTTP tracking instead of global flag
                 );
