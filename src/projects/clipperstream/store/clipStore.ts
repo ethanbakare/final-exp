@@ -13,9 +13,6 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Clip } from '../services/clipStorage';
 import { 
   getClips as getClipsFromStorage,
-  createClip as createClipInStorage,
-  updateClip as updateClipInStorage,
-  deleteClip as deleteClipInStorage
 } from '../services/clipStorage';
 
 /* ============================================
@@ -72,9 +69,6 @@ export const useClipStore = create<ClipStore>()(
         set((state) => ({
           clips: [...state.clips, clip]
         }));
-        
-        // Also persist to sessionStorage for backwards compat
-        createClipInStorage(clip);
       },
 
       updateClip: (id: string, updates: Partial<Clip>) => {
@@ -84,9 +78,6 @@ export const useClipStore = create<ClipStore>()(
             c.id === id ? { ...c, ...updates } : c
           )
         }));
-        
-        // Also persist to sessionStorage for backwards compat
-        updateClipInStorage(id, updates);
         
         // If updating selected clip, refresh it
         const currentSelectedClip = get().selectedClip;
@@ -102,9 +93,6 @@ export const useClipStore = create<ClipStore>()(
         set((state) => ({
           clips: state.clips.filter(c => c.id !== id)
         }));
-        
-        // Also remove from sessionStorage for backwards compat
-        deleteClipInStorage(id);
         
         // Clear selected clip if it was deleted
         if (get().selectedClip?.id === id) {
@@ -153,10 +141,22 @@ export const useClipStore = create<ClipStore>()(
     {
       name: 'clipstream-storage', // sessionStorage key
       version: 1,
-      storage: createJSONStorage(() => sessionStorage),
+      
+      // SSR Safety: Only use sessionStorage in browser environment
+      // Prevents Next.js SSR error when rendering pages server-side
+      storage: typeof window !== 'undefined'
+        ? createJSONStorage(() => sessionStorage)
+        : createJSONStorage(() => ({
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: () => {},
+            length: 0,
+            clear: () => {},
+            key: () => null,
+          } as Storage)),
       
       // Only persist clips and selectedClip, not tracking flags
-      partialPersist: (state) => ({
+      partialize: (state) => ({
         clips: state.clips,
         selectedClip: state.selectedClip,
       }),
