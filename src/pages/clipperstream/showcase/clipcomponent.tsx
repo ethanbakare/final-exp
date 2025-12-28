@@ -471,17 +471,19 @@ const ClipComponents: React.FC = () => {
           <div className="file-label">📁 cliplist.tsx</div>
 
           <div className="section">
-            <h2 className="section-title">Clip List Item - Three Status Variations</h2>
+            <h2 className="section-title">Clip List Item - Four Status Variations</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-              List item component for displaying clips with title, date, and status. Features responsive hover states and three status variations following <strong>DRY principle</strong> (Don&apos;t Repeat Yourself).
+              List item component for displaying clips with title, date, and status. Features responsive hover states and four status variations following <strong>DRY principle</strong> (Don&apos;t Repeat Yourself).
               <br /><br />
               <strong>Status Variations:</strong>
               <br />
               • <strong>Completed (null):</strong> No status shown - transcription done
               <br />
-              • <strong>Pending:</strong> Shows &quot;Waiting to transcribe&quot; with pending icon
+              • <strong>Pending:</strong> Shows &quot;Waiting to transcribe&quot; with static pending icon (40% opacity)
               <br />
-              • <strong>Transcribing:</strong> Shows &quot;Transcribing...&quot; with rotating transcribe icon + animated ellipsis
+              • <strong>Transcribing (waiting):</strong> Shows &quot;Transcribing...&quot; with static icon - between retry attempts
+              <br />
+              • <strong>Transcribing (active):</strong> Shows &quot;Transcribing...&quot; with <strong>spinning</strong> icon - HTTP request in progress
               <br /><br />
               <strong>Desktop:</strong> Hover over the list item to see background color change to #252525 and three-dot menu fade in. Click dots to open options menu.
               <br />
@@ -502,6 +504,13 @@ const ClipComponents: React.FC = () => {
                 title="Ideas for the new project launch"
                 date="May 14, 2025"
                 status="transcribing"
+                isActiveRequest={false}
+              />
+              <ClipListItem
+                title="Weekly team standup notes"
+                date="May 16, 2025"
+                status="transcribing"
+                isActiveRequest={true}
               />
             </div>
           </div>

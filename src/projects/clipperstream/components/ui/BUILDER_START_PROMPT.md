@@ -54,6 +54,11 @@ ls src/projects/clipperstream/components/ui/013_*.md
 - ✅ You're on refactor/clip-master-phases branch
 - ✅ All MD files and code available
 
+
+STOP AFTER FINISHING STEP 1 BEFORE GOING TO STEP 2 THE USER WOULD TELL YOU CONTNUE
+
+
+
 ## STEP 2: READ INSTRUCTIONS (30 minutes)
 
 Read these files in order:

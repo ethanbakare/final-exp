@@ -8,7 +8,7 @@ import { NoClipsFrameIcon, EmptyClipFrameIcon } from './midClipButtons';
 import { ClipModalOverlay } from './ClipModalOverlay';
 import { ClipDeleteModalFull, ClipRenameModalFull } from './clipModal';
 import { ToastNotification } from './ClipToast';
-import { deleteClip as deleteClipFromStorage, updateClip } from '../../services/clipStorage';
+import { deleteClip as deleteClipFromStorage, updateClip, getClips } from '../../services/clipStorage';
 
 // ClipHomeScreen Component
 // Home screen with iOS-style collapsing search header on scroll
@@ -25,7 +25,7 @@ export interface Clip {
   id: string;
   title: string;
   date: string;
-  status: 'pending' | 'transcribing' | 'failed' | null;  // null = completed (no status shown)
+  status: 'pending' | 'pending-child' | 'transcribing' | 'failed' | null;  // null = completed (no status shown)
   isActiveRequest?: boolean; // NEW: Controls icon spinning when status='transcribing' (default: false)
   content?: string;  // Transcribed text (null if pending) - DEPRECATED, kept for backward compatibility
   rawText?: string; // Combined raw transcriptions
@@ -33,6 +33,7 @@ export interface Clip {
   currentView?: 'formatted' | 'raw'; // User's current view preference
   audioId?: string; // Reference to IndexedDB audio blob
   transcriptionError?: string; // Error message for failed transcriptions
+  parentId?: string; // PHASE 2.3.1: Links child clips to parent recording
   createdAt?: number; // timestamp for sorting
 }
 
@@ -43,6 +44,11 @@ interface ClipHomeScreenProps {
   onSearchActiveChange?: (isActive: boolean) => void;  // Notify parent of search state (for RecordBar)
   onClipsChange?: () => void;                   // Called after delete/rename to refresh clips
   className?: string;
+  
+  // v2.5.3 FIX: For status derivation (parent-based tracking)
+  activeTranscriptionParentId?: string | null;  // Which parent should show spinner
+  activeHttpClipId?: string | null;  // v2.5.4 CRITICAL FIX: Which specific clip is doing HTTP RIGHT NOW
+  isActiveRequest?: boolean;                     // From useClipRecording (GLOBAL flag, DO NOT USE for derivation)
 }
 
 /* ============================================
@@ -55,7 +61,10 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   // onRecordClick, // Reserved for future direct record button
   onSearchActiveChange: externalSearchActiveChange,
   onClipsChange,
-  className = ''
+  className = '',
+  activeTranscriptionParentId = null,  // v2.5.3 FIX (renamed)
+  activeHttpClipId = null,  // v2.5.4 FIX: Add default value
+  isActiveRequest = false
 }) => {
   // No local clips state - use props.clips directly (managed by parent)
 
@@ -132,6 +141,51 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
 
   // Header height constant for collapse calculation
   const SEARCH_HEIGHT = 38;  // Search bar height - collapse happens over this distance
+
+  // v2.5.3 FIX: Derive both status AND isActiveRequest from children
+  // Uses parent-based tracking for simpler, more robust spinner logic
+  const getDisplayClip = useCallback((
+    clip: Clip,
+    allClips: Clip[],
+    activeTranscriptionParentId: string | null,  // ✅ FIX: parent ID instead of child ID
+    activeHttpClipId: string | null  // v2.5.4 FIX: Use this instead of global isActiveRequest
+  ): Clip => {
+    // Find children for this parent
+    const children = allClips.filter(c => c.parentId === clip.id);
+
+    if (children.length === 0) {
+      // No children - show clip as-is
+      return clip;
+    }
+
+    // Derive status from children's states
+    const hasTranscribingChildren = children.some(c => c.status === 'transcribing');
+    const hasPendingChildren = children.some(c => c.status === 'pending-child');
+
+    let derivedStatus: Clip['status'] = clip.status;
+
+    if (hasTranscribingChildren) {
+      // At least one child is transcribing
+      derivedStatus = 'transcribing';
+    } else if (hasPendingChildren) {
+      // Children waiting to transcribe
+      derivedStatus = 'pending';
+    }
+
+    // v2.5.4 CRITICAL FIX: Derive isActiveRequest from activeHttpClipId
+    // Parent's spinner = "Do I have a child currently doing HTTP?"
+    // This is IMMUNE to resetRecording() calls from other clips
+    const derivedIsActiveRequest =
+      activeTranscriptionParentId !== null &&
+      clip.id === activeTranscriptionParentId &&
+      children.some(c => c.id === activeHttpClipId);
+
+    return {
+      ...clip,
+      status: derivedStatus,
+      isActiveRequest: derivedIsActiveRequest
+    };
+  }, []);
 
   // Filter clips based on search query
   const filteredClips = clips.filter(clip =>
@@ -312,22 +366,33 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
               )}
 
               {/* Default/B1: Clip list items */}
-              {showClipList && filteredClips.map((clip) => (
-                <ClipListItem
-                  key={clip.id}
-                  id={clip.id}
-                  title={clip.title}
-                  date={clip.date}
-                  status={clip.status}
-                  isActiveRequest={clip.isActiveRequest}  /* Controls icon spinning when status='transcribing' */
-                  fullWidth={true}  /* Responsive: fills VN_List container */
-                  onClick={onClipClick}
-                  onRename={handleRenameClick}
-                  onCopy={handleCopyClick}
-                  onDelete={handleDeleteClick}
-                  isDeleting={deletingClipId === clip.id}
-                />
-              ))}
+              {showClipList && filteredClips.map((clip) => {
+                // v2.5.3 FIX: Derive complete status using parent-based tracking
+                const allClips = getClips();
+                const displayClip = getDisplayClip(
+                  clip,
+                  allClips,
+                  activeTranscriptionParentId,
+                  activeHttpClipId  // v2.5.4 FIX: Use per-clip HTTP tracking instead of global flag
+                );
+
+                return (
+                  <ClipListItem
+                    key={clip.id}
+                    id={clip.id}
+                    title={displayClip.title}
+                    date={displayClip.date}
+                    status={displayClip.status as 'pending' | 'transcribing' | 'failed' | null}
+                    isActiveRequest={displayClip.isActiveRequest}
+                    fullWidth={true}  /* Responsive: fills VN_List container */
+                    onClick={onClipClick}
+                    onRename={handleRenameClick}
+                    onCopy={handleCopyClick}
+                    onDelete={handleDeleteClick}
+                    isDeleting={deletingClipId === clip.id}
+                  />
+                );
+              })}
             </div>
           </div>
 
