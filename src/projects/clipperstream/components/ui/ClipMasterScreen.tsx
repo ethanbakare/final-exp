@@ -5,10 +5,11 @@ import { ClipRecordScreen, PendingClip } from './ClipRecordScreen';
 import { RecordNavBarVarMorphing, RecordNavState } from './mainvarmorph';
 import { ToastNotification } from './ClipToast';
 import { useClipRecording } from '../../hooks/useClipRecording';
-import { useClipState } from '../../hooks/useClipState';
+// PHASE 4 (v2.6.0): Replace useClipState with Zustand
+import { useClipStore } from '../../store/clipStore';
 import { useOfflineRecording } from '../../hooks/useOfflineRecording';
 import { useTranscriptionHandler } from '../../hooks/useTranscriptionHandler';
-import { Clip, getClips, createClip, updateClip, initializeClips, getNextClipNumber, getNextRecordingNumber } from '../../services/clipStorage';
+import { Clip, initializeClips, getNextClipNumber, getNextRecordingNumber } from '../../services/clipStorage';
 import { deleteAudio, clearAllAudio, getAudio } from '../../services/audioStorage';
 import { logger } from '../../utils/logger';
 
@@ -57,20 +58,46 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // STATE
   // ============================================
 
-  // PHASE 1: Extracted to useClipState hook
-  const {
-    clips,
-    selectedClip,
-    setSelectedClip,
-    refreshClips,
-    createNewClip,
-    updateClipById,
-    deleteClipById
-  } = useClipState();
+  // PHASE 4 (v2.6.0): Zustand store replaces useClipState hook
+  const clips = useClipStore((state) => state.clips);
+  const selectedClip = useClipStore((state) => state.selectedClip);
+  const setSelectedClip = useClipStore((state) => state.setSelectedClip);
+  const addClip = useClipStore((state) => state.addClip);
+  const updateClip = useClipStore((state) => state.updateClip);
+  const deleteClip = useClipStore((state) => state.deleteClip);
+  const getClipById = useClipStore((state) => state.getClipById);
+  const refreshClips = useClipStore((state) => state.refreshClips);
+  
+  // Wrapper functions to match old API (backwards compat)
+  const createNewClip = useCallback((content: string, title: string, formattedText: string) => {
+    const newClip: Clip = {
+      id: `clip-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      title,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      status: null,
+      content,
+      rawText: content,
+      formattedText,
+      currentView: 'formatted',
+      createdAt: Date.now()
+    };
+    addClip(newClip);
+    return newClip;
+  }, [addClip]);
+  
+  const updateClipById = useCallback((clipId: string, updates: Partial<Clip>) => {
+    updateClip(clipId, updates);
+    return getClipById(clipId) || null;  // v2.6.0: Return null instead of undefined for type compatibility
+  }, [updateClip, getClipById]);
+  
+  const deleteClipById = useCallback((clipId: string) => {
+    deleteClip(clipId);
+  }, [deleteClip]);
 
   // PHASE 2: Smart counter - reads from storage (survives page refresh)
   const getNextPendingClipNumber = useCallback(() => {
-    const allClips = getClips();
+    // v2.6.0: Use Zustand getState() for fresh data without re-creating callback
+    const allClips = useClipStore.getState().clips;
 
     // Extract existing pending clip numbers
     const existingNumbers = allClips
@@ -198,15 +225,15 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // Navigate from home to record screen (when clicking a clip)
   const handleClipClick = useCallback((clipId: string) => {
-    const allClips = getClips();
-    const clip = allClips.find(c => c.id === clipId);
+    // v2.6.0: Use clips from Zustand (already subscribed)
+    const clip = clips.find(c => c.id === clipId);
     if (!clip) return;
 
     // v2.4: ALWAYS set currentClipId so subsequent recordings append correctly
     setCurrentClipId(clipId);
 
     // v2.4: ALWAYS check for children (fixes Bug #3 - pending clips disappear)
-    const children = allClips.filter(c => c.parentId === clipId);
+    const children = clips.filter(c => c.parentId === clipId);
 
     if (children.length > 0) {
       // v2.3.2 FIX: Sort children by creation time (timestamp in ID)
@@ -481,7 +508,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           return;
         }
         
-        const clip = getClips().find(c => c.id === clipId);
+        // v2.6.0: Use Zustand getState() for fresh data inside interval
+        const clip = useClipStore.getState().getClipById(clipId);
         
         // Success: status cleared, has formatted text, audio deleted
         if (clip && clip.status === null && clip.formattedText && !clip.audioId) {
@@ -521,7 +549,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
     log.info('Network online - attempting auto-retry of pending clips');
 
-    const allClips = getClips();
+    // v2.6.0: Use clips from Zustand (already fresh)
+    const allClips = clips;
     
     // v2.5.1 FIX: Include 'pending-child' status for auto-retry
     // After v2.4, children have status='pending-child' instead of 'pending'
@@ -603,7 +632,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           } else {
             log.warn('Clip formatting failed or timed out', { clipId: clip.id });
             // Mark as failed if it timed out
-            const clipAfterWait = getClips().find(c => c.id === clip.id);
+            // v2.6.0: Use Zustand getState() for fresh data
+            const clipAfterWait = useClipStore.getState().getClipById(clip.id);
             if (clipAfterWait && clipAfterWait.status !== null) {
               updateClipById(clip.id, {
                 status: 'failed',
@@ -918,7 +948,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         log.warn('Formatting failed, falling back to raw text', errorData);
         // Fallback: show raw text instead (use full combined raw text)
-        const clip = getClips().find(c => c.id === clipIdToUpdate);
+        // v2.6.0: Use Zustand getState() for fresh data
+        const clip = useClipStore.getState().getClipById(clipIdToUpdate);
         const fullRawText = clip?.rawText || rawText;
         setContentBlocks([{
           id: `fallback-${Date.now()}`,
@@ -975,7 +1006,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
 
       // Update clip with formatted text
-      const clip = getClips().find(c => c.id === clipIdToUpdate);
+      // v2.6.0: Use Zustand getState() for fresh data
+      const clip = useClipStore.getState().getClipById(clipIdToUpdate);
       if (clip) {
         let updatedFormattedText: string;
 
@@ -1065,7 +1097,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     } catch (error) {
       log.error('Background formatting failed', error);
       // Fallback: show raw text (use full combined raw text)
-      const clip = getClips().find(c => c.id === clipIdToUpdate);
+      // v2.6.0: Use Zustand getState() for fresh data
+      const clip = useClipStore.getState().getClipById(clipIdToUpdate);
       const fullRawText = clip?.rawText || rawText;
       setContentBlocks([{
         id: `error-${Date.now()}`,
