@@ -13,9 +13,13 @@
  * - Finds parents with placeholder titles ("Recording XX")
  * - Checks if all children are complete
  * - Triggers title generation using first child's content
+ * 
+ * FIX v2.6.1: Added deduplication to prevent infinite loop
+ * - Uses useRef to track which parents already had titles generated
+ * - Removes generateTitleInBackground from dependency array
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useClipStore } from '../store/clipStore';
 
 interface UseParentTitleGeneratorProps {
@@ -26,6 +30,7 @@ export const useParentTitleGenerator = ({
   generateTitleInBackground
 }: UseParentTitleGeneratorProps) => {
   const clips = useClipStore((state) => state.clips);
+  const generatedTitles = useRef(new Set<string>());
 
   useEffect(() => {
     // Find parents with all children completed
@@ -34,6 +39,9 @@ export const useParentTitleGenerator = ({
     for (const parent of parents) {
       // Skip if already has AI title (not "Recording XX")
       if (!parent.title.startsWith('Recording ')) continue;
+
+      // Prevent duplicate calls
+      if (generatedTitles.current.has(parent.id)) continue;
 
       // Get children
       const children = clips.filter(c => c.parentId === parent.id);
@@ -46,13 +54,15 @@ export const useParentTitleGenerator = ({
         // Generate title from first child's content
         const firstChild = children[0];
         if (firstChild.rawText) {
+          generatedTitles.current.add(parent.id);
           // Fire and forget - don't await
           generateTitleInBackground(parent.id, firstChild.rawText).catch(err => {
             console.error('Failed to generate parent title:', err);
+            generatedTitles.current.delete(parent.id); // Allow retry on error
           });
         }
       }
     }
-  }, [clips, generateTitleInBackground]); // Re-run when clips change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clips]); // Only depend on clips
 };
-

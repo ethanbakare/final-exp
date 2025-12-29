@@ -185,14 +185,14 @@ export const useTranscriptionHandler = (
               month: 'short',
               day: 'numeric',
               year: 'numeric'
-            })
-          });
+          })
+        });
 
-          if (updatedClip) {
-            refreshClips();
-          }
+        if (updatedClip) {
+          // v2.6.0: Removed refreshClips() - Zustand handles reactivity automatically
+        }
 
-          clipIdForFormatting = currentClipId;
+        clipIdForFormatting = currentClipId;
           targetClip = updatedClip || undefined;
         } else {
           // New clip - use transcription as-is
@@ -207,13 +207,13 @@ export const useTranscriptionHandler = (
           if (audioId) {
             updateClipById(newClip.id, {
               audioId: audioId,
-              status: 'transcribing' // Will be cleared after audio deletion
-            });
-          }
+            status: 'transcribing' // Will be cleared after audio deletion
+          });
+        }
 
-          refreshClips();
+        // v2.6.0: Removed refreshClips() - Zustand handles reactivity automatically
 
-          // PHASE 2.3.3 FIX: Only update currentClipId for active recordings
+        // PHASE 2.3.3 FIX: Only update currentClipId for active recordings
           // During background transcription, don't change currentClipId to prevent state leak
           if (isActiveRecording) {
             setCurrentClipId(newClip.id);
