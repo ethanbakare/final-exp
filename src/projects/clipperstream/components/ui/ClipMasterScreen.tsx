@@ -9,6 +9,8 @@ import { useClipRecording } from '../../hooks/useClipRecording';
 import { useClipStore } from '../../store/clipStore';
 import { useOfflineRecording } from '../../hooks/useOfflineRecording';
 import { useTranscriptionHandler } from '../../hooks/useTranscriptionHandler';
+// PHASE 6 (v2.6.0): Auto-generate parent titles
+import { useParentTitleGenerator } from '../../hooks/useParentTitleGenerator';
 import { Clip, initializeClips, getNextClipNumber, getNextRecordingNumber } from '../../services/clipStorage';
 import { deleteAudio, clearAllAudio, getAudio } from '../../services/audioStorage';
 import { logger } from '../../utils/logger';
@@ -1192,6 +1194,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     refreshClips,
     resetRecording,
     formatTranscriptionInBackground,
+    generateTitleInBackground
+  });
+
+  // PHASE 6 (v2.6.0): Auto-generate parent titles when all children complete
+  useParentTitleGenerator({
     generateTitleInBackground
   });
 
