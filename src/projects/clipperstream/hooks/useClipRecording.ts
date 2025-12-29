@@ -30,7 +30,7 @@ export interface UseClipRecordingReturn {
   // Actions
   startRecording: () => Promise<void>;
   stopRecording: () => void;
-  transcribeRecording: (blobOverride?: Blob) => Promise<void>;
+  transcribeRecording: (blobOverride?: Blob) => Promise<string>;
   forceRetry: () => void;  // Allows tap-to-skip wait periods
   reset: () => void;
 }
@@ -255,7 +255,7 @@ export function useClipRecording(): UseClipRecordingReturn {
   // TRANSCRIBE RECORDING
   // ============================================
 
-  const transcribeRecording = useCallback(async (blobOverride?: Blob) => {
+  const transcribeRecording = useCallback(async (blobOverride?: Blob): Promise<string> => {
     // Cancel any pending retry timer (prevents clash with external calls)
     if (retryTimerRef.current) {
       clearTimeout(retryTimerRef.current);
@@ -268,14 +268,14 @@ export function useClipRecording(): UseClipRecordingReturn {
     if (!blobToUse) {
       log.warn('No audio blob to transcribe');
       setTranscriptionError('No audio to transcribe');
-      return;
+      return '';
     }
 
     // Validate audio blob size
     if (blobToUse.size < 100) {
       log.warn('Audio blob too small', { size: blobToUse.size });
       setTranscriptionError('Recording is too short. Please record at least 1 second of audio.');
-      return;
+      return '';
     }
 
     // Check if online before attempting
@@ -283,7 +283,7 @@ export function useClipRecording(): UseClipRecordingReturn {
       log.info('Offline - transcription will retry when online');
       setTranscriptionError('offline');
       setIsTranscribing(false);
-      return;
+      return '';
     }
 
     setIsTranscribing(true);
@@ -337,6 +337,9 @@ export function useClipRecording(): UseClipRecordingReturn {
         textLength: data.transcript.length,
         preview: data.transcript.substring(0, 50) + '...'
       });
+      
+      // PHASE 1A FIX: Return the transcription text directly
+      return data.transcript;
 
     } catch (error) {
       // console.timeEnd('⏱️ TRANSCRIPTION (Deepgram)');
@@ -361,7 +364,7 @@ export function useClipRecording(): UseClipRecordingReturn {
             reason: isTimeout ? 'timeout' : 'network error'
           });
           retryTimerRef.current = setTimeout(() => transcribeRecording(), 0);
-          return; // Don't set isTranscribing to false yet
+          return ''; // Don't set isTranscribing to false yet, return empty for now
         } else {
           // Interval phase: wait before retry (attempts 4+)
           // Formula: nextRetryCount=3 schedules attempt 4 with index 0 (1min)
@@ -383,7 +386,7 @@ export function useClipRecording(): UseClipRecordingReturn {
             setTranscriptionError(null);  // Clear error before retry
             transcribeRecording();
           }, waitTime);
-          return; // Don't set isTranscribing to false yet
+          return ''; // Don't set isTranscribing to false yet, return empty for now
         }
       } else {
         // Definitive failure - non-retryable error
@@ -392,6 +395,7 @@ export function useClipRecording(): UseClipRecordingReturn {
         setRetryCount(0);
         setIsActiveRequest(false);
         log.error('Definitive transcription failure', { errorMessage, retriesAttempted: retryCount + 1 });
+        return ''; // Return empty string on definitive failure
       }
     } finally {
       // Only set to false if we're not retrying

@@ -5,7 +5,7 @@ import { ClipOffline } from './ClipOffline';
 import { PortalContainerProvider } from './PortalContainerContext';
 import { useScrollToBottom } from '../../hooks/useScrollToBottom';
 import { ScrollButton } from './clipbuttons';
-import { Clip } from './ClipHomeScreen';
+import { Clip } from '../../store/clipStore';
 
 // ClipRecordScreen Component
 // Screen for recording and viewing transcriptions

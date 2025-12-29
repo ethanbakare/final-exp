@@ -9,6 +9,7 @@ import { ClipModalOverlay } from './ClipModalOverlay';
 import { ClipDeleteModalFull, ClipRenameModalFull } from './clipModal';
 import { ToastNotification } from './ClipToast';
 import { deleteClip as deleteClipFromStorage, updateClip, getClips } from '../../services/clipStorage';
+import { Clip } from '../../store/clipStore';
 
 // ClipHomeScreen Component
 // Home screen with iOS-style collapsing search header on scroll
@@ -21,28 +22,11 @@ import { deleteClip as deleteClipFromStorage, updateClip, getClips } from '../..
    INTERFACES
    ============================================ */
 
-export interface Clip {
-  id: string;
-  title: string;
-  date: string;
-  status: 'pending' | 'pending-child' | 'transcribing' | 'failed' | null;  // null = completed (no status shown)
-  isActiveRequest?: boolean; // NEW: Controls icon spinning when status='transcribing' (default: false)
-  content?: string;  // Transcribed text (null if pending) - DEPRECATED, kept for backward compatibility
-  rawText?: string; // Combined raw transcriptions
-  formattedText?: string; // Combined formatted text
-  currentView?: 'formatted' | 'raw'; // User's current view preference
-  audioId?: string; // Reference to IndexedDB audio blob
-  transcriptionError?: string; // Error message for failed transcriptions
-  parentId?: string; // PHASE 2.3.1: Links child clips to parent recording
-  createdAt?: number; // timestamp for sorting
-}
-
 interface ClipHomeScreenProps {
   clips: Clip[];
   onClipClick?: (id: string) => void;          // Navigate to clip's record screen
   onRecordClick?: () => void;                   // Start new recording
   onSearchActiveChange?: (isActive: boolean) => void;  // Notify parent of search state (for RecordBar)
-  onClipsChange?: () => void;                   // Called after delete/rename to refresh clips
   className?: string;
   
   // v2.5.3 FIX: For status derivation (parent-based tracking)
@@ -60,7 +44,6 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   onClipClick,
   // onRecordClick, // Reserved for future direct record button
   onSearchActiveChange: externalSearchActiveChange,
-  onClipsChange,
   className = '',
   activeTranscriptionParentId = null,  // v2.5.3 FIX (renamed)
   activeHttpClipId = null,  // v2.5.4 FIX: Add default value
@@ -253,12 +236,11 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
     // After animation completes (200ms), remove from storage
     setTimeout(() => {
       deleteClipFromStorage(selectedClip.id);
-      // Notify parent to refresh clips from storage
-      onClipsChange?.();
+      // Zustand will automatically update all subscribers
       setDeletingClipId(null);
       setSelectedClip(null);
     }, 1000);  // Slightly longer than CSS animation (200ms) for smooth transition
-  }, [selectedClip, onClipsChange]);
+  }, [selectedClip]);
 
   // Open rename modal with current title pre-filled
   const handleRenameClick = useCallback((clipId: string, currentTitle: string) => {
@@ -273,16 +255,13 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
 
     // Update clip title in storage
     const updated = updateClip(selectedClip.id, { title: renameValue.trim() });
-    if (updated) {
-      // Notify parent to refresh clips from storage
-      onClipsChange?.();
-    }
+    // Zustand will automatically update all subscribers
 
     // Close modal and reset
     setActiveModal(null);
     setSelectedClip(null);
     setRenameValue('');
-  }, [selectedClip, renameValue, onClipsChange]);
+  }, [selectedClip, renameValue]);
 
   // Handle copy - copies transcribed text and shows toast
   const handleCopyClick = useCallback((clipId: string) => {
@@ -377,20 +356,20 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
                 );
 
                 return (
-                  <ClipListItem
-                    key={clip.id}
-                    id={clip.id}
+                <ClipListItem
+                  key={clip.id}
+                  id={clip.id}
                     title={displayClip.title}
                     date={displayClip.date}
                     status={displayClip.status as 'pending' | 'transcribing' | 'failed' | null}
                     isActiveRequest={displayClip.isActiveRequest}
-                    fullWidth={true}  /* Responsive: fills VN_List container */
-                    onClick={onClipClick}
-                    onRename={handleRenameClick}
-                    onCopy={handleCopyClick}
-                    onDelete={handleDeleteClick}
-                    isDeleting={deletingClipId === clip.id}
-                  />
+                  fullWidth={true}  /* Responsive: fills VN_List container */
+                  onClick={onClipClick}
+                  onRename={handleRenameClick}
+                  onCopy={handleCopyClick}
+                  onDelete={handleDeleteClick}
+                  isDeleting={deletingClipId === clip.id}
+                />
                 );
               })}
             </div>

@@ -3,7 +3,8 @@
 // Extracted from ClipMasterScreen.tsx Phase 2.5
 
 import { useCallback } from 'react';
-import { Clip, getClips, createClip, getNextRecordingNumber } from '../services/clipStorage';
+import { Clip } from '../store/clipStore';
+import { getNextRecordingNumber } from '../services/clipStorage';
 import { PendingClip } from '../components/ui/ClipRecordScreen';
 import { logger } from '../utils/logger';
 
@@ -13,11 +14,14 @@ export interface UseOfflineRecordingParams {
   // Callbacks to update parent component state
   setCurrentClipId: (id: string) => void;
   setSelectedPendingClips: React.Dispatch<React.SetStateAction<PendingClip[]>>;
-  refreshClips: () => void;
 
   // Helper functions from parent
   formatDuration: (seconds: number) => string;
   clipToPendingClip: (clip: Clip) => PendingClip;
+
+  // Zustand store actions (v2.6.1)
+  addClip: (clip: Clip) => void;
+  getClips: () => Clip[];
 }
 
 export interface UseOfflineRecordingReturn {
@@ -32,9 +36,10 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
   const {
     setCurrentClipId,
     setSelectedPendingClips,
-    refreshClips,
     formatDuration,
-    clipToPendingClip
+    clipToPendingClip,
+    addClip,
+    getClips
   } = params;
 
   const handleOfflineRecording = useCallback((recordingParams: {
@@ -104,7 +109,19 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
       // v2.4: Create PARENT (container only) + FIRST CHILD (Clip 001) separately
       // Step 1: Create PARENT (container only)
       const nextNumber = getNextRecordingNumber(getClips());
-      const parentClip = createClip('', nextNumber, '');
+      
+      const parentClip: Clip = {
+        id: `clip-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        title: nextNumber,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        status: null,
+        content: '',
+        rawText: '',
+        currentView: 'formatted',
+        createdAt: Date.now()
+      };
+
+      addClip(parentClip);
 
       log.info('Created PARENT container for offline recording', {
         parentId: parentClip.id,
@@ -133,10 +150,8 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
         createdAt: Date.now()
       };
 
-      // Save child to storage
-      const allClipsBeforeUpdate = getClips();
-      allClipsBeforeUpdate.push(firstChild);
-      sessionStorage.setItem('clipstream_clips', JSON.stringify(allClipsBeforeUpdate));
+      // Save child to Zustand
+      addClip(firstChild);
 
       log.info('Created FIRST CHILD for offline recording', {
         childId: firstChild.id,
@@ -144,8 +159,6 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
         parentTitle: parentClip.title,
         childTitle: firstChild.pendingClipTitle
       });
-
-      refreshClips();
 
       // Set currentClipId to PARENT (not child)
       // This allows subsequent recordings to append as children
@@ -199,10 +212,8 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
         createdAt: Date.now()
       };
 
-      // Save child to storage
-      const allClipsBeforeUpdate = getClips();
-      allClipsBeforeUpdate.push(childClip);
-      sessionStorage.setItem('clipstream_clips', JSON.stringify(allClipsBeforeUpdate));
+      // Save child to Zustand
+      addClip(childClip);
 
       log.info('Created CHILD for offline recording', {
         childId: childId,
@@ -212,14 +223,12 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
         childTitle: nextPendingTitle
       });
 
-      refreshClips();
-
       // Add to selectedPendingClips array
       const pendingClip = clipToPendingClip(childClip);
       setSelectedPendingClips(prev => [...prev, pendingClip]);
       log.debug('Added child to selectedPendingClips', { pendingClip });
     }
-  }, [setCurrentClipId, setSelectedPendingClips, refreshClips, formatDuration, clipToPendingClip]);
+  }, [setCurrentClipId, setSelectedPendingClips, formatDuration, clipToPendingClip, addClip, getClips]);
 
   return {
     handleOfflineRecording

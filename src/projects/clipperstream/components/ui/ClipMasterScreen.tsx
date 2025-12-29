@@ -6,12 +6,10 @@ import { RecordNavBarVarMorphing, RecordNavState } from './mainvarmorph';
 import { ToastNotification } from './ClipToast';
 import { useClipRecording } from '../../hooks/useClipRecording';
 // PHASE 4 (v2.6.0): Replace useClipState with Zustand
-import { useClipStore } from '../../store/clipStore';
+import { useClipStore, Clip, ClipStatus } from '../../store/clipStore';
 import { useOfflineRecording } from '../../hooks/useOfflineRecording';
-import { useTranscriptionHandler } from '../../hooks/useTranscriptionHandler';
 // PHASE 6 (v2.6.0): Auto-generate parent titles
 import { useParentTitleGenerator } from '../../hooks/useParentTitleGenerator';
-import { Clip, initializeClips, getNextClipNumber, getNextRecordingNumber } from '../../services/clipStorage';
 import { deleteAudio, clearAllAudio, getAudio } from '../../services/audioStorage';
 import { logger } from '../../utils/logger';
 
@@ -68,7 +66,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   const updateClip = useClipStore((state) => state.updateClip);
   const deleteClip = useClipStore((state) => state.deleteClip);
   const getClipById = useClipStore((state) => state.getClipById);
-  const refreshClips = useClipStore((state) => state.refreshClips);
   
   // Wrapper functions to match old API (backwards compat)
   const createNewClip = useCallback((content: string, title: string, formattedText: string) => {
@@ -375,7 +372,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         const updatedClip = updateClipById(selectedClip.id, { currentView: 'formatted' });
         if (updatedClip) {
           setSelectedClip(updatedClip);
-          refreshClips();
           // Update contentBlocks to show formatted text immediately
           setContentBlocks([{
             id: 'formatted-view',
@@ -562,7 +558,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // After v2.4, children have status='pending-child' instead of 'pending'
     const pendingClips = allClips.filter(c =>
       c.audioId && (
-        c.status === 'pending' ||
+        c.status === 'pending-retry' ||
         c.status === 'pending-child' ||  // ✅ Include children
         c.status === 'failed'
       )
@@ -600,7 +596,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           status: 'transcribing',
           transcriptionError: undefined
         });
-        refreshClips();
 
         // DON'T set currentClipId, isAppendMode, or recordNavState
         // These belong to the current user session, not background retries
@@ -625,8 +620,18 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         setActiveHttpClipId(clip.id);
 
         try {
-          // Transcribe using retrieved blob (HTTP happens here)
-          await transcribeRecording(audioBlob);
+          // FIX 1A: Get transcription text directly from return value (bypasses React state timing)
+          const rawText = await transcribeRecording(audioBlob);
+
+          // Store rawText immediately in Zustand
+          updateClipById(clip.id, {
+            rawText: rawText  // Use returned value, not global state
+            // Status stays 'transcribing' until formatting completes (Fix 1B clears it)
+          });
+          log.debug('Stored rawText for clip', {
+            clipId: clip.id,
+            rawTextLength: rawText.length  // Should now show correct length
+          });
 
           // v2.5.7 OPTION C: Wait for formatting to complete before next clip
           // This prevents race conditions with global isFormatting and transcription state
@@ -645,7 +650,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
                 status: 'failed',
                 transcriptionError: 'Formatting timed out after 30 seconds'
               });
-              refreshClips();
             }
           }
 
@@ -677,7 +681,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           status: 'failed',
           transcriptionError: error instanceof Error ? error.message : 'Auto-retry failed'
         });
-        refreshClips();
       }
       // v2.5.3 FIX: DON'T clear activeTranscriptionParentId here
       // Let it carry forward to next clip (might be same parent)
@@ -687,7 +690,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     setActiveTranscriptionParentId(null);
     // v2.5.4 FIX: Also clear HTTP tracking (should already be null, but be explicit)
     setActiveHttpClipId(null);
-  }, [isRecording, refreshClips, transcribeRecording, waitForClipToComplete]);
+  }, [isRecording, transcribeRecording, waitForClipToComplete]);
 
   // Listen for online/offline events
   useEffect(() => {
@@ -725,7 +728,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
     if (updatedClip) {
       setSelectedClip(updatedClip);
-      refreshClips();
 
       log.info('View toggled', {
         clipId: selectedClip.id,
@@ -734,7 +736,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     }
 
     // NO auto-copy on toggle (per requirements)
-  }, [selectedClip, refreshClips]);
+  }, [selectedClip]);
 
   // Manual retry transcription for failed clips
   const handleRetryTranscription = useCallback(async (clipId: string) => {
@@ -761,7 +763,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           status: 'transcribing',
           transcriptionError: undefined
         });
-    refreshClips();
 
     // Set context for transcription completion
     setCurrentClipId(clip.id);
@@ -824,13 +825,12 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         status: 'failed',
         transcriptionError: error instanceof Error ? error.message : 'Retry failed'
       });
-      refreshClips();
       setRecordNavState('record');
     } finally {
       // v2.5.3 FIX: Clear parent tracking
       setActiveTranscriptionParentId(null);
     }
-  }, [clips, refreshClips]);
+  }, [clips]);
 
   // Smart retry handler - routes to forceRetry or handleRetryTranscription
   const handleSmartRetry = useCallback((clipId: string) => {
@@ -844,8 +844,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     if (clip.status === 'transcribing' && !isActiveRequest && currentClipId === clipId) {
       log.info('Tap-to-skip wait period', { clipId });
       forceRetry();
-    } else if (clip.status === 'failed' || clip.status === 'pending') {
-      // Failed or pending clip - retry from IndexedDB
+    } else if (clip.status === 'failed' || clip.status === 'pending-retry') {
+      // Failed or pending-retry clip - retry from IndexedDB
       log.info('Manual retry from IndexedDB', { clipId, status: clip.status });
       handleRetryTranscription(clipId);
     } else {
@@ -909,7 +909,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       // ClipListItem's opacity transition handles the fade automatically
       const updatedClip = updateClipById(clipId, { title });
       if (updatedClip) {
-        refreshClips();
         // If still viewing this clip, update selectedClip
         if (currentClipId === clipId) {
           setSelectedClip(updatedClip);
@@ -920,7 +919,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       log.warn('Title generation failed', error);
       // Keep the "Clip 001" fallback title - app continues working
     }
-  }, [currentClipId, refreshClips]);
+  }, [currentClipId]);
 
   // Background text formatting with AI
   // NOW: This function also updates contentBlocks and transitions to complete state
@@ -973,7 +972,12 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           hasShownTranscriptionToast.current = true;
         }
 
-        // Transcription succeeded even though formatting failed - clean up audio and status
+        // Transcription succeeded even though formatting failed - clean up audio and clear status
+        // FIX 1B: Clear status immediately (clip is complete even though formatting failed)
+        updateClipById(clipIdToUpdate, {
+          status: null  // Mark as complete
+        });
+        
         if (clip?.audioId) {
           try {
             await deleteAudio(clip.audioId);
@@ -987,18 +991,14 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
             });
 
             updateClipById(clipIdToUpdate, {
-              audioId: undefined,
-              status: null
+              audioId: undefined
             });
-            refreshClips();
           } catch (error) {
             log.error('Failed to delete audio after formatting fallback', { error });
-            // Still clear status even if audio deletion fails
+            // Still clear audioId even if audio deletion fails
             updateClipById(clipIdToUpdate, {
-              audioId: undefined,
-              status: null
+              audioId: undefined
             });
-            refreshClips();
           }
         }
 
@@ -1025,24 +1025,41 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           updatedFormattedText = formattedText;
         }
 
+        // FIX 1B: Store formattedText in Zustand AND clear status (completed)
         const updatedClip = updateClipById(clipIdToUpdate, {
-          formattedText: updatedFormattedText
+          formattedText: updatedFormattedText,
+          status: null  // ✅ Clear status immediately when formatting completes
         });
-        refreshClips();
 
         // Update selectedClip if still viewing
         if (updatedClip) {
           setSelectedClip(updatedClip);
         }
 
-        // NOW update contentBlocks with FORMATTED text and show to user
-        // CRITICAL: Always use the FULL combined text to preserve AI's paragraph decisions
-        // If we used separate blocks, <div> wrappers would force line breaks
-        setContentBlocks([{
-          id: `formatted-full-${Date.now()}`,
-          text: updatedFormattedText, // Full combined text - AI's formatting preserved
-          animate: false // No animation for formatting updates (happens after transcription)
-        }]);
+        // FIX 1B: Only update contentBlocks if this is the ACTIVE clip being viewed
+        // This prevents concurrent formatting from overwriting the displayed content
+        const isActiveClip = selectedClip?.id === clipIdToUpdate || currentClipId === clipIdToUpdate;
+        
+        if (isActiveClip) {
+          // NOW update contentBlocks with FORMATTED text and show to user
+          // CRITICAL: Always use the FULL combined text to preserve AI's paragraph decisions
+          // If we used separate blocks, <div> wrappers would force line breaks
+          setContentBlocks([{
+            id: `formatted-full-${Date.now()}`,
+            text: updatedFormattedText, // Full combined text - AI's formatting preserved
+            animate: shouldAnimate  // Use the shouldAnimate parameter passed in
+          }]);
+          log.debug('Updated contentBlocks for active clip', { 
+            clipId: clipIdToUpdate,
+            textLength: updatedFormattedText.length
+          });
+        } else {
+          log.debug('Skipped contentBlocks update (not active clip)', { 
+            clipId: clipIdToUpdate,
+            selectedClipId: selectedClip?.id,
+            currentClipId
+          });
+        }
 
         // Auto-copy FORMATTED text to clipboard (moved here from transcription useEffect)
         // This ensures user gets formatted text in clipboard that matches what's on screen
@@ -1055,10 +1072,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           hasShownTranscriptionToast.current = true;
         }
 
-        // Transcription succeeded - clean up audio and status immediately
-        // NOTE: Previously used 10-second delay, but that caused status to remain stuck at 'transcribing'
-        // when user navigated away before timeout completed. Once transcription succeeds, we have the
-        // text (rawText + formattedText), so audio blob is no longer needed.
+        // Transcription succeeded - clean up audio immediately
+        // NOTE: Status is already cleared above when formattedText was stored (Fix 1B)
+        // Once transcription succeeds, we have the text (rawText + formattedText), so audio blob is no longer needed.
         if (clip.audioId) {
           try {
             await deleteAudio(clip.audioId);
@@ -1067,31 +1083,20 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
               clipId: clipIdToUpdate
             });
 
-            log.info('Status transition', {
-              clipId: clipIdToUpdate,
-              from: 'transcribing',
-              to: null,
-              trigger: 'transcription-complete'
-            });
-
-            // Clear audioId and status from clip
+            // Clear audioId from clip (status already null from above)
             updateClipById(clipIdToUpdate, {
-              audioId: undefined,
-              status: null
+              audioId: undefined
             });
-            refreshClips();
           } catch (error) {
             log.error('Failed to delete audio after transcription', {
               audioId: clip.audioId,
               clipId: clipIdToUpdate,
               error
             });
-            // Still clear status even if audio deletion fails
+            // Still clear audioId even if audio deletion fails
             updateClipById(clipIdToUpdate, {
-              audioId: undefined,
-              status: null
+              audioId: undefined
             });
-            refreshClips();
           }
         }
       }
@@ -1106,23 +1111,34 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       // v2.6.0: Use Zustand getState() for fresh data
       const clip = useClipStore.getState().getClipById(clipIdToUpdate);
       const fullRawText = clip?.rawText || rawText;
-      setContentBlocks([{
-        id: `error-${Date.now()}`,
-        text: fullRawText,
-        animate: false
-      }]);
-
-      // Auto-copy raw text (fallback - formatting threw error but transcription succeeded)
-      navigator.clipboard.writeText(fullRawText).catch(() => { });
-
-      // Show toast once per session with custom message indicating formatting failed
-      if (!hasShownTranscriptionToast.current) {
-        setCopyToastText('Copied without formatting');
-        setShowCopyToast(true);
-        hasShownTranscriptionToast.current = true;
+      
+      // FIX 1B: Clear status immediately (clip is complete even though formatting failed)
+      updateClipById(clipIdToUpdate, {
+        status: null  // Mark as complete
+      });
+      
+      // FIX 1B: Only update contentBlocks if this is the active clip
+      const isActiveClip = selectedClip?.id === clipIdToUpdate || currentClipId === clipIdToUpdate;
+      
+      if (isActiveClip) {
+        setContentBlocks([{
+          id: `error-${Date.now()}`,
+          text: fullRawText,
+          animate: false
+        }]);
+        
+        // Auto-copy raw text (fallback - formatting threw error but transcription succeeded)
+        navigator.clipboard.writeText(fullRawText).catch(() => { });
+        
+        // Show toast once per session with custom message indicating formatting failed
+        if (!hasShownTranscriptionToast.current) {
+          setCopyToastText('Copied without formatting');
+          setShowCopyToast(true);
+          hasShownTranscriptionToast.current = true;
+        }
       }
-
-      // Transcription succeeded even though formatting failed - clean up audio and status
+      
+      // Transcription succeeded even though formatting failed - clean up audio
       if (clip?.audioId) {
         try {
           await deleteAudio(clip.audioId);
@@ -1136,18 +1152,14 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           });
 
           updateClipById(clipIdToUpdate, {
-            audioId: undefined,
-            status: null
+            audioId: undefined
           });
-          refreshClips();
         } catch (deleteError) {
           log.error('Failed to delete audio after formatting error', { error: deleteError });
-          // Still clear status even if audio deletion fails
+          // Still clear audioId even if audio deletion fails
           updateClipById(clipIdToUpdate, {
-            audioId: undefined,
-            status: null
+            audioId: undefined
           });
-          refreshClips();
         }
       }
 
@@ -1155,7 +1167,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     } finally {
       setIsFormatting(false);
     }
-  }, [selectedClip, refreshClips]);
+  }, [selectedClip]);
 
   // ============================================
   // TRANSCRIPTION & OFFLINE HANDLERS
@@ -1166,35 +1178,10 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   const { handleOfflineRecording } = useOfflineRecording({
     setCurrentClipId,
     setSelectedPendingClips,
-    refreshClips,
     formatDuration,
-    clipToPendingClip
-  });
-
-  // PHASE 2.5: Transcription handler (extracted)
-  const { pendingBatch } = useTranscriptionHandler({
-    transcription,
-    isTranscribing,
-    audioId,
-    recordNavState,
-    currentClipId,
-    isAppendMode,
-    appendBaseContent,
-    selectedClip,
-    clips,
-    selectedPendingClips,
-    isFormatting,
-    setRecordNavState,
-    setCurrentClipId,
-    setSelectedClip,
-    setSelectedPendingClips,
-    setIsFirstTranscription,
-    createNewClip,
-    updateClipById,
-    refreshClips,
-    resetRecording,
-    formatTranscriptionInBackground,
-    generateTitleInBackground
+    clipToPendingClip,
+    addClip,
+    getClips: () => useClipStore.getState().clips
   });
 
   // PHASE 6 (v2.6.0): Auto-generate parent titles when all children complete
@@ -1224,7 +1211,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           status: 'failed',
           transcriptionError: transcriptionError
         });
-        refreshClips();
       }
 
       setShowErrorToast(true);
@@ -1270,7 +1256,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // NOTE: 'currentClipId' is also excluded - the effect calls setCurrentClipId() inside,
     // which would cause the effect to re-run and overwrite the pending clip name.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transcriptionError, audioId, duration, isAppendMode, appendBaseContent, refreshClips, formatDuration, clipToPendingClip]);
+  }, [transcriptionError, audioId, duration, isAppendMode, appendBaseContent, formatDuration, clipToPendingClip]);
 
   // NOTE: Audio deletion and status cleanup now happens immediately in formatTranscriptionInBackground
   // Previously used a 10-second delay here, but that caused status to remain stuck at 'transcribing'
@@ -1361,7 +1347,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
               onClipClick={handleClipClick}
               onRecordClick={handleRecordClick}
               onSearchActiveChange={setIsSearchActive}
-              onClipsChange={refreshClips}
               activeTranscriptionParentId={activeTranscriptionParentId}  // ✅ v2.5.3 FIX (renamed)
               activeHttpClipId={activeHttpClipId}  // ✅ v2.5.4 CRITICAL FIX
               isActiveRequest={isActiveRequest}
