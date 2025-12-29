@@ -94,6 +94,22 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     deleteClip(clipId);
   }, [deleteClip]);
 
+  // PHASE 5 (v2.6.0): Move global flags to Zustand store
+  const activeHttpClipId = useClipStore((state) => state.activeHttpClipId);
+  const setActiveHttpClipId = useClipStore((state) => state.setActiveHttpClipId);
+  const activeTranscriptionParentId = useClipStore((state) => state.activeTranscriptionParentId);
+  const setActiveTranscriptionParentId = useClipStore((state) => state.setActiveTranscriptionParentId);
+  const activeFormattingClipId = useClipStore((state) => state.activeFormattingClipId);
+  const setActiveFormattingClipId = useClipStore((state) => state.setActiveFormattingClipId);
+  
+  // Derived: isFormatting (for backwards compat with existing code)
+  const isFormatting = activeFormattingClipId !== null;
+  const setIsFormatting = useCallback((value: boolean) => {
+    // When setting true, we don't know which clip, so just use a placeholder
+    // When setting false, clear it
+    setActiveFormattingClipId(value ? 'formatting' : null);
+  }, [setActiveFormattingClipId]);
+
   // PHASE 2: Smart counter - reads from storage (survives page refresh)
   const getNextPendingClipNumber = useCallback(() => {
     // v2.6.0: Use Zustand getState() for fresh data without re-creating callback
@@ -159,18 +175,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // Track if this is the first transcription in the clip (for animation control)
   // First transcription gets fade-in animation, subsequent transcriptions appear instantly
   const [isFirstTranscription, setIsFirstTranscription] = useState(true);
-
-  // Track if formatting is in progress (keeps processing state visible)
-  const [isFormatting, setIsFormatting] = useState(false);
-
-  // v2.5.3 FIX: Track which PARENT should show spinner (not which child)
-  // This prevents timing issues when children complete processing asynchronously
-  const [activeTranscriptionParentId, setActiveTranscriptionParentId] = useState<string | null>(null);
-
-  // v2.5.4 CRITICAL FIX: Track which SPECIFIC CLIP is currently doing HTTP
-  // This survives resetRecording() calls from other clips finishing their formatting
-  // Parent's spinner = "Do I have a child where child.id === activeHttpClipId?"
-  const [activeHttpClipId, setActiveHttpClipId] = useState<string | null>(null);
 
   // Recording hook - handles audio recording and transcription
   const {
