@@ -379,19 +379,17 @@ export const useTranscriptionHandler = (
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    transcription,      // Triggers when transcription ready
-    isTranscribing,     // Prevents running during transcription
-    isFormatting,       // Prevents running during formatting
-    recordNavState,     // Tracks active recording state
-    // clips,           // REMOVED: Causes infinite loop when clip created
-    currentClipId,      // Tracks which clip is active
-    isAppendMode,       // Determines append vs new clip
-    appendBaseContent,  // Content to append to
-    selectedClip,       // Current selected clip
-    audioId,            // Audio file reference
-    // NOTE: Removed callback functions (formatTranscriptionInBackground, generateTitleInBackground,
-    // resetRecording, refreshClips, createNewClip, updateClipById, etc.) - they're stable references
-    // from parent/Zustand and don't need to trigger re-runs
+    transcription,      // ✅ Trigger: New transcription arrived
+    isTranscribing,     // ✅ Guard: Don't run during transcription
+    isFormatting,       // ✅ Guard: Don't run during formatting
+    recordNavState,     // ✅ Context: Active recording vs background
+    isAppendMode,       // ✅ User setting: New clip vs append mode
+    // REMOVED self-triggering deps (Fix 7):
+    // - currentClipId    (WE set it inside effect at line 219)
+    // - selectedClip     (WE set it inside effect at lines 324, 364)
+    // - audioId          (Changes during effect execution)
+    // - appendBaseContent (Derived from selectedClip, cascading trigger)
+    // - clips            (Already removed in Fix 6)
   ]);
 
   return {
