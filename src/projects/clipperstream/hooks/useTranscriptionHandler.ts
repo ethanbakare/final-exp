@@ -377,32 +377,21 @@ export const useTranscriptionHandler = (
         }
       })();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    transcription,
-    isTranscribing,
-    isFormatting,
-    recordNavState,
-    clips,
-    currentClipId,
-    isAppendMode,
-    appendBaseContent,
-    selectedClip,
-    audioId,
-    pendingBatch,
-    selectedPendingClips,
-    isFirstPendingForClip,
-    countRemainingPending,
-    formatTranscriptionInBackground,
-    generateTitleInBackground,
-    resetRecording,
-    refreshClips,
-    createNewClip,
-    updateClipById,
-    setIsFirstTranscription,
-    setCurrentClipId,
-    setRecordNavState,
-    setSelectedClip,
-    setSelectedPendingClips
+    transcription,      // Triggers when transcription ready
+    isTranscribing,     // Prevents running during transcription
+    isFormatting,       // Prevents running during formatting
+    recordNavState,     // Tracks active recording state
+    // clips,           // REMOVED: Causes infinite loop when clip created
+    currentClipId,      // Tracks which clip is active
+    isAppendMode,       // Determines append vs new clip
+    appendBaseContent,  // Content to append to
+    selectedClip,       // Current selected clip
+    audioId,            // Audio file reference
+    // NOTE: Removed callback functions (formatTranscriptionInBackground, generateTitleInBackground,
+    // resetRecording, refreshClips, createNewClip, updateClipById, etc.) - they're stable references
+    // from parent/Zustand and don't need to trigger re-runs
   ]);
 
   return {
