@@ -1064,120 +1064,332 @@ const {
 
 ### 4.4 RecordBar State Machine
 
-**Purpose**: Document RecordBar (navbar) state transitions and mode changes
+**Purpose**: Document RecordBar (navbar) state transitions and animation behavior
 
 **State Machine Diagram** (Mermaid):
 
 ```mermaid
 stateDiagram-v2
-    [*] --> idle: App starts
-    idle --> recording: User clicks Record
+    [*] --> record: App starts
+    record --> recording: User clicks Record
     recording --> processing: User clicks Done
     processing --> complete: Formatting finishes
-    complete --> idle: Auto-transition (1s)
-    recording --> idle: User clicks Cancel
-    processing --> idle: Error occurs
+    complete --> record: User clicks Close or navigates
+    recording --> record: User clicks Cancel
 
-    note right of idle: Navbar Mode: Minimal
-    note right of recording: Navbar Mode: Recording (mic active)
+    note right of record: Navbar Mode: Minimal (mic button only)
+    note right of recording: Navbar Mode: Recording (mic active, Done/Cancel)
     note right of processing: Navbar Mode: Processing (spinner)
-    note right of complete: Navbar Mode: Complete (checkmark)
+    note right of complete: Navbar Mode: Complete (Copy/Structure buttons)
 ```
 
-**State Type & Transitions**:
+**State Type Definition**:
 
 ```typescript
-type RecordNavState = 'idle' | 'recording' | 'processing' | 'complete' | 'error';
+// From mainvarmorph.tsx:26
+type RecordNavState = 'record' | 'recording' | 'processing' | 'complete';
 
-interface RecordBarModeMap {
-  idle: 'minimal';           // Only mic button
-  recording: 'recording';    // Mic button (active), Cancel button
-  processing: 'processing';  // Spinner, no buttons
-  complete: 'complete';      // Checkmark, auto-close
-  error: 'error';           // Error icon, Retry button
-}
+// NOTE: No 'idle' state (uses 'record' instead)
+// NOTE: No 'error' state (errors shown via toast notifications, not navbar)
+```
+
+**Animation Variants**:
+
+```typescript
+// From mainvarmorph.tsx:29
+type AnimationVariant = 'morph' | 'fade';
+
+// 'morph': Full expansion animation for recording flow (slower, morphing layout)
+// 'fade': Instant layout for viewing existing clips (faster, just opacity change)
 ```
 
 **Button Visibility Matrix**:
 
-| State | Mic Button | Done Button | Cancel Button | Copy Button | Spinner | Checkmark |
-|-------|-----------|-------------|---------------|-------------|---------|-----------|
-| idle | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| State | Mic Button | Done Button | Cancel Button | Copy Button | Structure Button | Spinner |
+|-------|-----------|-------------|---------------|-------------|------------------|---------|
+| record | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | recording | 🔴 (active) | ✅ | ✅ | ❌ | ❌ | ❌ |
-| processing | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| complete | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
-| error | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| processing | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| complete | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
 
-**Implementation**:
+**State & Variant Management**:
 
 ```typescript
-const [recordNavState, setRecordNavState] = useState<RecordNavState>('idle');
+// From ClipMasterScreen.tsx:137,150
+const [recordNavState, setRecordNavState] = useState<RecordNavState>('record');
+const [animationVariant, setAnimationVariant] = useState<'morph' | 'fade'>('morph');
 
-// Derive navbar mode from state
-const getNavbarMode = (state: RecordNavState): string => {
-  const modeMap: RecordBarModeMap = {
-    idle: 'minimal',
-    recording: 'recording',
-    processing: 'processing',
-    complete: 'complete',
-    error: 'error'
-  };
-  return modeMap[state];
-};
-
-// State transitions
+// State transitions during recording flow
 const handleRecordClick = () => {
   setRecordNavState('recording');
+  setAnimationVariant('morph');  // Full expansion animation
   startRecording();
 };
 
 const handleDoneClick = async () => {
   setRecordNavState('processing');
-  // ... transcription logic
+  // ... transcription + formatting logic
 
+  // When complete:
   setRecordNavState('complete');
-
-  // Auto-transition back to idle
-  setTimeout(() => setRecordNavState('idle'), 1000);
+  // Variant stays 'morph' - user continues in recording flow
 };
 
 const handleCancelClick = () => {
   stopRecording();
-  setRecordNavState('idle');
+  setRecordNavState('record');
 };
 
-const handleError = (error: Error) => {
-  console.error(error);
-  setRecordNavState('error');
+const handleCloseClick = () => {
+  setActiveScreen('home');
+  setRecordNavState('record');
+  setSelectedClip(null);
+};
+```
+
+**Screen-Dependent Navbar Logic**:
+
+The navbar state depends on which screen is active and whether the user is viewing an existing clip or in active recording flow:
+
+```typescript
+// Clicking into existing TRANSCRIBED clip (from home screen)
+const handleClipClick = (clip: Clip) => {
+  setSelectedClip(clip);
+  setActiveScreen('record');
+
+  if (clip.status === null && clip.formattedText) {
+    // Transcribed clip - show Copy/Structure buttons immediately
+    setRecordNavState('complete');
+    setAnimationVariant('fade');  // Instant layout, no expansion
+  } else if (clip.status === 'pending-child' || clip.status === 'pending-retry') {
+    // Pending clip - show minimal navbar
+    setRecordNavState('record');
+    setAnimationVariant('fade');
+  }
+};
+
+// Starting new recording from home screen
+const handleNewClipFromHome = () => {
+  setSelectedClip(null);
+  setActiveScreen('record');
+  setRecordNavState('record');
+  setAnimationVariant('morph');  // Full expansion when they click Record
+};
+
+// Clicking into clip currently being transcribed
+// (rare edge case - usually processing happens too fast)
+const handleProcessingClipClick = (clip: Clip) => {
+  setSelectedClip(clip);
+  setActiveScreen('record');
+  setRecordNavState('processing');
+  setAnimationVariant('fade');  // Instant layout
+};
+```
+
+**Animation Variant Usage Patterns**:
+
+| User Action | Screen Transition | recordNavState | animationVariant | Reason |
+|-------------|------------------|----------------|------------------|--------|
+| Click "New Clip" button | home → record | 'record' | 'fade' | Quick transition to empty record screen |
+| Click Record button | (stays on record) | 'recording' | 'morph' | Full expansion with waveform animation |
+| Click existing transcribed clip | home → record | 'complete' | 'fade' | Instantly show Copy/Structure buttons |
+| Click pending clip | home → record | 'record' | 'fade' | Instantly show mic button (ready to transcribe) |
+| Recording flow completes | (stays on record) | 'complete' | 'morph' | Morphs from processing → complete |
+
+**Structure Button** (Raw/Formatted Toggle):
+
+```typescript
+// From ClipMasterScreen.tsx:711-739
+const handleStructureClick = useCallback(() => {
+  if (!selectedClip) return;
+
+  // Toggle between formatted ↔ raw
+  const newView = selectedClip.currentView === 'formatted' ? 'raw' : 'formatted';
+
+  const updatedClip = updateClipById(selectedClip.id, {
+    currentView: newView
+  });
+
+  if (updatedClip) {
+    setSelectedClip(updatedClip);
+  }
+
+  // NOTE: No auto-copy on toggle (only Copy button triggers copy)
+}, [selectedClip]);
+```
+
+**Copy Button Behavior**:
+
+The Copy button is ONLY visible in `'complete'` state and copies the currently visible text (formatted or raw based on `clip.currentView`):
+
+```typescript
+const handleCopyClick = () => {
+  if (!selectedClip) return;
+
+  const textToCopy = selectedClip.currentView === 'formatted'
+    ? selectedClip.formattedText
+    : selectedClip.rawText;
+
+  navigator.clipboard.writeText(textToCopy);
+  // Show toast notification
 };
 ```
 
 **Edge Cases**:
 
-1. **User clicks into different clip while processing**:
-   - Keep navbar state as 'processing' if user is viewing the processing clip
-   - Switch to 'minimal' if user navigated away
+1. **User clicks into different clip while one is processing**:
+   - Background processing continues (Zustand handles this)
+   - Navbar switches to reflect the newly selected clip's state
+   - No need to track "which clip is processing" - read from Zustand
 
 ```typescript
-const shouldShowProcessingState = (navState: RecordNavState, selectedClipId: string, processingClipId: string): boolean => {
-  return navState === 'processing' && selectedClipId === processingClipId;
+// Reading state from Zustand ensures correctness
+const isAnyClipProcessing = clips.some(c =>
+  c.status === 'transcribing' || c.status === 'formatting'
+);
+
+// Navbar state reflects SELECTED clip, not all clips
+const getNavStateForClip = (clip: Clip | null): RecordNavState => {
+  if (!clip) return 'record';
+
+  if (clip.status === 'transcribing' || clip.status === 'formatting') {
+    return 'processing';
+  }
+
+  if (clip.status === null && clip.formattedText) {
+    return 'complete';
+  }
+
+  return 'record';  // Pending clips or empty state
 };
 ```
 
 2. **User starts new recording while old one formatting**:
-   - Allow new recording (background formatting continues)
-   - Navbar switches to new recording state
+   - Allowed (background formatting continues)
+   - Navbar switches to 'recording' state for new clip
+   - Old clip continues processing in background via Zustand
 
-3. **Context parameter** (Fix 2 from original issues):
-   - Pass `context` parameter to indicate whether user is actively recording
-   - Prevents navbar showing full mode during background tasks
+3. **Errors during transcription/formatting**:
+   - NOT shown in navbar (no error state exists)
+   - Shown via toast notifications only
+   - Navbar returns to 'record' state if error occurs
+
+**Close Button Behavior (Context-Dependent)**:
+
+The Close button behavior depends on the current navbar state and what the user is doing:
 
 ```typescript
-const determineNavbarContext = (): 'active' | 'background' => {
-  // Active: User is currently interacting with recording
-  // Background: Auto-retry or background formatting
-  return isRecording || isTranscribing ? 'active' : 'background';
+const handleCloseClick = () => {
+  // Context 1: User is actively recording
+  if (recordNavState === 'recording') {
+    stopRecording();  // Stop recording immediately
+    discardAudio();   // Don't save audio blob
+    setActiveScreen('home');
+    setRecordNavState('record');
+    setSelectedClip(null);
+    // Result: Recording canceled, nothing saved
+    return;
+  }
+
+  // Context 2: Clip is processing (transcribing or formatting)
+  if (recordNavState === 'processing') {
+    // Cancel the processing
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();  // Cancel HTTP requests
+    }
+
+    // If clip was created (has ID), mark as failed or pending
+    if (selectedClip) {
+      updateClip(selectedClip.id, {
+        status: 'failed',  // Or 'pending-retry' if you want to retry later
+      });
+    }
+
+    setActiveScreen('home');
+    setRecordNavState('record');
+    setSelectedClip(null);
+    // Result: Processing canceled, clip saved as failed/pending
+    return;
+  }
+
+  // Context 3: Viewing completed clip (has text)
+  if (recordNavState === 'complete' && selectedClip) {
+    setActiveScreen('home');
+    setRecordNavState('record');
+    setSelectedClip(null);
+    // Result: Just closes, clip state preserved in Zustand
+    // When user clicks this clip again, they'll see Copy/Structure buttons
+    return;
+  }
+
+  // Context 4: Empty record screen (no clip selected, not recording)
+  if (recordNavState === 'record' && !selectedClip) {
+    setActiveScreen('home');
+    // Result: Just closes, nothing to save
+    return;
+  }
+
+  // Context 5: Viewing pending clip (no text yet)
+  if (recordNavState === 'record' && selectedClip &&
+      (selectedClip.status === 'pending-child' || selectedClip.status === 'pending-retry')) {
+    setActiveScreen('home');
+    setRecordNavState('record');
+    setSelectedClip(null);
+    // Result: Just closes, pending clip preserved in Zustand
+    return;
+  }
+
+  // Default: Just close
+  setActiveScreen('home');
+  setRecordNavState('record');
+  setSelectedClip(null);
 };
+```
+
+**Close Button State Preservation Summary**:
+
+| Current State | What Happens on Close | What User Sees When They Re-open |
+|---------------|----------------------|----------------------------------|
+| `'recording'` (active recording) | Recording stopped, audio discarded | Nothing - no clip saved |
+| `'processing'` (transcribing/formatting) | Processing canceled, marked as failed/pending | Pending clip in list (can retry) |
+| `'complete'` (viewing transcribed clip) | Just closes, clip preserved | Same clip with Copy/Structure buttons (`'complete'` state) |
+| `'record'` (new empty clip) | Just closes, nothing saved | Back to home screen |
+| `'record'` (viewing pending clip) | Just closes, clip preserved | Pending clip with mic button (`'record'` state) |
+
+**Key Behaviors**:
+- ✅ Close during recording = **Cancel** (same as Cancel button)
+- ✅ Close during processing = **Abort** (mark as failed/pending)
+- ✅ Close on completed clip = **Preserve** (clip shows Copy/Structure buttons when re-opened)
+- ✅ Close on pending clip = **Preserve** (clip shows mic button when re-opened)
+- ✅ Close on empty = **Just close** (nothing to save)
+
+**RecordNavBarVarMorphing Props**:
+
+```typescript
+// From mainvarmorph.tsx:31-41
+interface RecordNavBarVarMorphingProps {
+  navState: RecordNavState;
+  variant?: AnimationVariant;  // Defaults to 'morph' if not provided
+  onRecordClick?: () => void;
+  onCloseClick?: () => void;
+  onCopyClick?: () => void;
+  onDoneClick?: () => void;
+  onStructureClick?: () => void;
+  audioAnalyser?: AnalyserNode | null;
+  className?: string;
+}
+
+// Usage in ClipMasterScreen (lines 1373-1382):
+<RecordNavBarVarMorphing
+  navState={recordNavState}
+  variant={animationVariant}
+  onRecordClick={handleRecordClick}
+  onCloseClick={handleCloseClick}
+  onCopyClick={handleCopyClick}
+  onDoneClick={handleDoneClick}
+  onStructureClick={handleStructureClick}
+  audioAnalyser={audioAnalyser}
+/>
 ```
 
 ---
