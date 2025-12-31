@@ -816,6 +816,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       return;
     }
 
+    console.info('[Formatting] Starting formatting for clip:', clipId, '| isAppending:', isAppending);
+
     try {
       // Get context if appending
       const context = isAppending ? clip.formattedText : undefined;
@@ -835,6 +837,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       const data = await response.json();
       const formattedText = data.formattedText || data.formatted || rawText;
 
+      console.info('[Formatting] Received formatted text for clip:', clipId);
+
       // Update Zustand
       updateClip(clipId, {
         formattedText: isAppending
@@ -846,9 +850,14 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         status: null  // Done!
       });
 
+      console.info('[Formatting] Updated clip content in Zustand for clip:', clipId);
+
       // Switch nav bar to complete state now that formatted text is ready
       if (selectedClip?.id === clipId) {
+        console.info('[Formatting] Calling setRecordNavState(complete) for clip:', clipId);
         setRecordNavState('complete');
+      } else {
+        console.warn('[Formatting] NOT calling setRecordNavState - selectedClip mismatch. selectedClip?.id:', selectedClip?.id, '| clipId:', clipId);
       }
 
       // Delete audio from IndexedDB
@@ -870,7 +879,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       }
 
     } catch (error) {
-      console.error('[Formatting] Error:', error);
+      console.error('[Formatting] Error formatting clip:', clipId, '| Error:', error);
       // Fallback: use raw text as formatted
       updateClip(clipId, {
         formattedText: clip.rawText,
@@ -878,12 +887,17 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         status: null
       });
 
+      console.info('[Formatting] Using fallback (raw text) for clip:', clipId);
+
       // Switch nav bar to complete state (fallback text is displayed)
       if (selectedClip?.id === clipId) {
+        console.info('[Formatting] Calling setRecordNavState(complete) after fallback for clip:', clipId);
         setRecordNavState('complete');
+      } else {
+        console.warn('[Formatting] NOT calling setRecordNavState after fallback - selectedClip mismatch. selectedClip?.id:', selectedClip?.id, '| clipId:', clipId);
       }
     }
-  }, [getClipById, updateClip, selectedClip, setShowCopyToast]);
+  }, [getClipById, updateClip, selectedClip, setShowCopyToast, setRecordNavState, deleteAudio]);
 
   // Auto-retry pending clips when network comes online
   useEffect(() => {

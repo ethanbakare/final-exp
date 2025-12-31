@@ -11,6 +11,11 @@ import { ToastNotification } from './ClipToast';
 import { deleteClip as deleteClipFromStorage, updateClip, getClips } from '../../services/clipStorage';
 import { Clip } from '../../store/clipStore';
 
+// Display-specific clip type with derived properties
+type DisplayClip = Clip & {
+  isActiveRequest: boolean;
+};
+
 // ClipHomeScreen Component
 // Home screen with iOS-style collapsing search header on scroll
 // Contains: TransHeader (with collapse), VN_List (scrollable)
@@ -132,13 +137,16 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
     allClips: Clip[],
     activeTranscriptionParentId: string | null,  // ✅ FIX: parent ID instead of child ID
     activeHttpClipId: string | null  // v2.5.4 FIX: Use this instead of global isActiveRequest
-  ): Clip => {
+  ): DisplayClip => {
     // Find children for this parent
     const children = allClips.filter(c => c.parentId === clip.id);
 
     if (children.length === 0) {
-      // No children - show clip as-is
-      return clip;
+      // No children - show clip as-is, with isActiveRequest false
+      return {
+        ...clip,
+        isActiveRequest: false
+      };
     }
 
     // Derive status from children's states
@@ -152,7 +160,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
       derivedStatus = 'transcribing';
     } else if (hasPendingChildren) {
       // Children waiting to transcribe
-      derivedStatus = 'pending';
+      derivedStatus = 'pending-child';
     }
 
     // v2.5.4 CRITICAL FIX: Derive isActiveRequest from activeHttpClipId
@@ -170,10 +178,13 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
     };
   }, []);
 
-  // Filter clips based on search query
-  const filteredClips = clips.filter(clip =>
-    clip.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter and sort clips (most recently created first, parents only)
+  const filteredClips = clips
+    .filter(clip => !clip.parentId)  // Only show parent clips (not pending children)
+    .filter(clip =>
+      clip.title.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => b.createdAt - a.createdAt);  // Newest clips first
 
   // Determine which state we're in
   const hasClips = clips.length > 0;
@@ -355,13 +366,24 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
                   activeHttpClipId  // v2.5.4 FIX: Use per-clip HTTP tracking instead of global flag
                 );
 
+                // Map ClipStatus to ClipListItem status prop
+                // ClipListItem expects 'pending' but ClipStatus uses 'pending-child'
+                const listItemStatus: 'pending' | 'transcribing' | 'failed' | null =
+                  displayClip.status === 'pending-child' || displayClip.status === 'pending-retry'
+                    ? 'pending'
+                    : displayClip.status === 'transcribing'
+                    ? 'transcribing'
+                    : displayClip.status === 'failed'
+                    ? 'failed'
+                    : null;
+
                 return (
                 <ClipListItem
                   key={clip.id}
                   id={clip.id}
                     title={displayClip.title}
                     date={displayClip.date}
-                    status={displayClip.status as 'pending' | 'transcribing' | 'failed' | null}
+                    status={listItemStatus}
                     isActiveRequest={displayClip.isActiveRequest}
                   fullWidth={true}  /* Responsive: fills VN_List container */
                   onClick={onClipClick}
