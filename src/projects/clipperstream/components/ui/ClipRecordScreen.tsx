@@ -5,7 +5,7 @@ import { ClipOffline } from './ClipOffline';
 import { PortalContainerProvider } from './PortalContainerContext';
 import { useScrollToBottom } from '../../hooks/useScrollToBottom';
 import { ScrollButton } from './clipbuttons';
-import { Clip } from '../../store/clipStore';
+import { Clip, ClipStatus } from '../../store/clipStore';
 
 // ClipRecordScreen Component
 // Screen for recording and viewing transcriptions
@@ -39,7 +39,7 @@ export interface ContentBlock {
 
 interface ClipRecordScreenProps {
   state?: RecordScreenState;              // Current screen state
-  contentBlocks?: ContentBlock[];          // Content blocks to render (industry standard list pattern)
+  // ✅ REMOVED: contentBlocks - Never passed, was zombie prop from old architecture
   selectedClip?: Clip;                    // Full clip for formatted/raw view toggle
   pendingClips?: PendingClip[];           // Offline clips (D4 state)
   onBackClick?: () => void;               // Navigate back to home
@@ -56,7 +56,7 @@ interface ClipRecordScreenProps {
 
 export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   state = 'recording',
-  contentBlocks = [],
+  // ✅ REMOVED: contentBlocks (zombie prop)
   selectedClip,
   pendingClips = [],
   onBackClick,
@@ -70,8 +70,8 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   const portalContainerRef = React.useRef<HTMLDivElement>(null);
   const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
 
-  // Fix Bug 2A: Track which clips have been displayed (to control animation)
-  const displayedClipsRef = React.useRef<Set<string>>(new Set());
+  // Track previous status for each clip (to detect formatting completion)
+  const prevClipStatusRef = React.useRef<{ [clipId: string]: ClipStatus }>({});
 
   // Scroll-to-bottom hook for transcription content
   const {
@@ -93,44 +93,47 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   // Determine which text to display based on clip's currentView preference
   const displayText = useMemo(() => {
     if (!selectedClip) {
-      // No clip selected, show contentBlocks (raw transcription during recording)
-      return contentBlocks;
+      // No clip selected - show empty (recording state shows empty content area)
+      return [];
     }
 
-    // Fix Bug 2B: Check if this is the first time showing this clip
-    const isFirstView = !displayedClipsRef.current.has(selectedClip.id);
+    // ✅ STATUS-BASED ANIMATION DETECTION (Superior approach from 033_v2)
+    // Detect status transition: 'formatting' → null (formatting just completed)
+    const clipId = selectedClip.id;
+    const prevStatus = prevClipStatusRef.current[clipId];
+    const currentStatus = selectedClip.status;
 
-    // Mark as displayed for next time
-    if (isFirstView && selectedClip.content) {
-      // Only mark if there's actual content (not empty/pending clip)
-      displayedClipsRef.current.add(selectedClip.id);
-    }
+    // Formatting just completed if previous status was 'formatting' and current is null
+    const justFinishedFormatting = prevStatus === 'formatting' && currentStatus === null;
 
-    // Clip selected - check currentView preference
+    // Update tracking for next render
+    prevClipStatusRef.current[clipId] = currentStatus;
+
+    // Determine which text to show based on currentView toggle
     if (selectedClip.currentView === 'raw') {
       // Show raw text
       return [{
         id: 'raw-view',
         text: selectedClip.rawText || selectedClip.content || '',
-        animate: isFirstView  // Animate only on first view
+        animate: justFinishedFormatting  // ✅ Triggers ONLY when formatting completes
       }];
     } else {
       // Show formatted text (default)
       return [{
         id: 'formatted-view',
         text: selectedClip.formattedText || selectedClip.content || '',
-        animate: isFirstView  // Animate only on first view
+        animate: justFinishedFormatting  // ✅ Triggers at exact moment formatted text ready
       }];
     }
-  }, [selectedClip, contentBlocks]);
+  }, [selectedClip]);  // ✅ Only depends on selectedClip (which auto-updates via Zustand selector)
 
   // Track previous text length to detect when NEW content is added
   // We now use a single block with full combined text, so track text length instead of block count
   const prevTextLengthRef = React.useRef(0);
 
-  // Auto-scroll logic based on contentBlocks changes
+  // Auto-scroll logic based on displayText changes
   useEffect(() => {
-    if (contentBlocks.length === 0) {
+    if (displayText.length === 0) {
       prevTextLengthRef.current = 0;
       return;
     }
@@ -154,7 +157,7 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
     setTimeout(() => {
       scrollToBottom();
     }, 100);
-  }, [contentBlocks, displayText, scrollToPosition, scrollToBottom]);
+  }, [displayText, scrollToPosition, scrollToBottom]);  // ✅ Only displayText dependency
 
   // Re-check scroll button visibility when content or state changes
   // This ensures button state is correct when navigating between clips
@@ -165,13 +168,13 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [contentBlocks, pendingClips, state, checkIfAtBottom]);
+  }, [displayText, pendingClips, state, checkIfAtBottom]);  // ✅ displayText dependency
 
   // Reset scroll tracking when switching clips
   // This hides the scroll button initially when opening a new clip
   useEffect(() => {
     resetScrollTracking();
-  }, [contentBlocks, resetScrollTracking]);
+  }, [displayText, resetScrollTracking]);  // ✅ displayText dependency
 
   return (
     <>

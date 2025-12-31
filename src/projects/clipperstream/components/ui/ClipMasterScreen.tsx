@@ -62,8 +62,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // PHASE 4 (v2.6.0): Zustand store replaces useClipState hook
   const clips = useClipStore((state) => state.clips);
-  const selectedClip = useClipStore((state) => state.selectedClip);
-  const setSelectedClip = useClipStore((state) => state.setSelectedClip);
+  // Industry standard: Derive selectedClip from currentClipId + clips array
+  const selectedClip = useClipStore(state =>
+    currentClipId ? state.clips.find(c => c.id === currentClipId) : null
+  );
+  // REMOVED: setSelectedClip (no longer needed - selector handles updates)
   const addClip = useClipStore((state) => state.addClip);
   const updateClip = useClipStore((state) => state.updateClip);
   const deleteClip = useClipStore((state) => state.deleteClip);
@@ -258,7 +261,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
     if (clip.content) {
       // Transcribed clip - show in complete state
-      setSelectedClip(clip);
+      // ✅ REMOVED: setSelectedClip(clip) - selector auto-fetches via currentClipId
       setIsAppendMode(false);
       setAppendBaseContent('');
       resetRecording();
@@ -267,7 +270,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       setActiveScreen('record');
     } else {
       // Pending clip - show in waiting state
-      setSelectedClip(null);
+      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
       setAnimationVariant('fade');
       setRecordNavState('record');
       setActiveScreen('record');
@@ -282,7 +285,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     setIsAppendMode(false);
     setCurrentClipId(null);  // v2.3.1: Clear parent-child context
     setAppendBaseContent('');
-    setSelectedClip(null);
+    // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
     setSelectedPendingClips([]);  // v2.3.1: Clear pending clips array
     resetRecording(); // This clears transcription from the hook
     setRecordNavState('record'); // Reset to default record state for next time
@@ -299,7 +302,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     setIsAppendMode(false);
     setCurrentClipId(null);  // v2.3.1: Clear any existing parent-child context
     setAppendBaseContent('');
-    setSelectedClip(null);
+    // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
     setSelectedPendingClips([]);  // v2.3.1: Clear pending clips array
     resetRecording();
     setAnimationVariant('fade');  // Use fade for direct transition back to record
@@ -344,10 +347,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       // If currently viewing raw text, switch back to formatted view
       // Recording always produces formatted output, so switch view to match
       if (selectedClip.currentView === 'raw') {
-        const updatedClip = updateClipById(selectedClip.id, { currentView: 'formatted' });
-        if (updatedClip) {
-          setSelectedClip(updatedClip);
-        }
+        updateClipById(selectedClip.id, { currentView: 'formatted' });
+        // ✅ REMOVED: setSelectedClip(updatedClip) - selector will pick up the change automatically
       }
 
       setTimeout(() => startRecordingHook(), 200);
@@ -385,7 +386,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       resetRecording();     // Discard audio blob
       setActiveScreen('home');
       setRecordNavState('record');
-      setSelectedClip(null);
+      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
       setCurrentClipId(null);
       // Result: Recording canceled, nothing saved
       return;
@@ -408,7 +409,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
       setActiveScreen('home');
       setRecordNavState('record');
-      setSelectedClip(null);
+      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
       setCurrentClipId(null);
       resetRecording();
       // Result: Processing canceled, clip saved as failed
@@ -419,7 +420,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     if (recordNavState === 'complete' && selectedClip) {
       setActiveScreen('home');
       setRecordNavState('record');
-      setSelectedClip(null);
+      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
       setCurrentClipId(null);
       // Result: Just closes, clip state preserved in Zustand
       return;
@@ -437,7 +438,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         (selectedClip.status === 'pending-child' || selectedClip.status === 'pending-retry')) {
       setActiveScreen('home');
       setRecordNavState('record');
-      setSelectedClip(null);
+      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
       // Result: Just closes, pending clip preserved in Zustand
       return;
     }
@@ -445,7 +446,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // Default: Just close
     setActiveScreen('home');
     setRecordNavState('record');
-    setSelectedClip(null);
+    // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
     setCurrentClipId(null);
   }, [recordNavState, currentClipId, selectedClip, stopRecordingHook, resetRecording, getClipById, updateClip]);
 
@@ -517,17 +518,15 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     if (isAppendMode && currentClipId) {
       const existingClip = getClipById(currentClipId);
       if (existingClip) {
-        // Update Zustand
+        // Update Zustand - CRITICAL: Update both rawText AND content
         updateClip(currentClipId, {
           rawText: existingClip.rawText + '\n\n' + rawText,
+          content: existingClip.content + '\n\n' + rawText,  // ✅ CRITICAL FIX: Shows text immediately
           status: 'formatting'
         });
 
-        // Fix Bug 1: Get updated clip and sync to local state
-        const updatedClip = getClipById(currentClipId);
-        if (updatedClip) {
-          setSelectedClip(updatedClip);
-        }
+        // ✅ REMOVED: Manual sync - selector will automatically pick up changes
+        // The selector pattern eliminates the race condition from 032_v2
 
         formatTranscriptionInBackground(currentClipId, rawText, true);
       }
@@ -545,7 +544,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       };
 
       addClip(newClip);
-      setSelectedClip(newClip);
+      // ✅ REMOVED: setSelectedClip(newClip) - selector will auto-find via currentClipId
       setCurrentClipId(newClip.id);
 
       // Background jobs
@@ -616,18 +615,15 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // Toggle between formatted ↔ raw
     const newView = selectedClip.currentView === 'formatted' ? 'raw' : 'formatted';
 
-    const updatedClip = updateClipById(selectedClip.id, {
+    updateClipById(selectedClip.id, {
       currentView: newView
     });
 
-    if (updatedClip) {
-      setSelectedClip(updatedClip);
-
-      log.info('View toggled', {
-        clipId: selectedClip.id,
-        newView
-      });
-    }
+    // ✅ REMOVED: setSelectedClip(updatedClip) - selector will pick up the change
+    log.info('View toggled', {
+      clipId: selectedClip.id,
+      newView
+    });
 
     // NO auto-copy on toggle (per requirements)
   }, [selectedClip]);
@@ -794,13 +790,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
       // Update clip with AI-generated title
       // ClipListItem's opacity transition handles the fade automatically
-      const updatedClip = updateClipById(clipId, { title });
-      if (updatedClip) {
-        // If still viewing this clip, update selectedClip
-        if (currentClipId === clipId) {
-          setSelectedClip(updatedClip);
-        }
-      }
+      updateClipById(clipId, { title });
+      // ✅ REMOVED: Manual sync - if viewing this clip, selector will auto-update
     } catch (error) {
       // console.timeEnd('⏱️ TITLE GENERATION');
       log.warn('Title generation failed', error);

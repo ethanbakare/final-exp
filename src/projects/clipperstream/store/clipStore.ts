@@ -59,7 +59,7 @@ export interface ClipStore {
   clips: Clip[];
 
   // VIEW STATE (not persisted - ephemeral)
-  selectedClip: Clip | null;  // Which clip is user viewing?
+  // ✅ REMOVED: selectedClip - Now derived via selector in components
 
   // TRACKING STATE (for concurrency management - ephemeral)
   activeHttpClipId: string | null;
@@ -70,7 +70,7 @@ export interface ClipStore {
   addClip: (clip: Clip) => void;
   updateClip: (id: string, updates: Partial<Clip>) => void;
   deleteClip: (id: string) => void;
-  setSelectedClip: (clip: Clip | null) => void;
+  // ✅ REMOVED: setSelectedClip - No longer needed with selector pattern
   setActiveHttpClipId: (id: string | null) => void;
   setActiveTranscriptionParentId: (id: string | null) => void;
   setActiveFormattingClipId: (id: string | null) => void;
@@ -119,7 +119,7 @@ export const useClipStore = create<ClipStore>()(
     (set, get) => ({
       // Initial state
       clips: [],
-      selectedClip: null,
+      // ✅ REMOVED: selectedClip - Now derived via selector in components
       activeHttpClipId: null,
       activeTranscriptionParentId: null,
       activeFormattingClipId: null,
@@ -142,7 +142,7 @@ export const useClipStore = create<ClipStore>()(
         clips: state.clips.filter(c => c.id !== id)
       })),
 
-      setSelectedClip: (clip) => set({ selectedClip: clip }),
+      // ✅ REMOVED: setSelectedClip - No longer needed with selector pattern
 
       setActiveHttpClipId: (id) => set({ activeHttpClipId: id }),
 
@@ -268,7 +268,7 @@ export const useClipStore = create<ClipStore>()(
     {
       name: 'clipstream-storage',
       storage: createJSONStorage(() => getStorage()),
-      partialize: (state) => ({ clips: state.clips })  // Only persist clips, not selectedClip
+      partialize: (state) => ({ clips: state.clips })  // Only persist clips (selectedClip is now derived)
     }
   )
 );
