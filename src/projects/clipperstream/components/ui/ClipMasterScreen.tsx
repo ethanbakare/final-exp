@@ -60,6 +60,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // STATE
   // ============================================
 
+  // Recording mode tracking - MUST be declared before Zustand selector that uses it
+  const [currentClipId, setCurrentClipId] = useState<string | null>(null);
+  const [isAppendMode, setIsAppendMode] = useState(false);
+  const [appendBaseContent, setAppendBaseContent] = useState<string>('');
+
   // PHASE 4 (v2.6.0): Zustand store replaces useClipState hook
   const clips = useClipStore((state) => state.clips);
   // Industry standard: Derive selectedClip from currentClipId + clips array
@@ -164,11 +169,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   const [errorToastMessage, setErrorToastMessage] = useState('No audio detected');
   const [showAudioToast, setShowAudioToast] = useState(false);
   const hasShownTranscriptionToast = useRef(false);
-
-  // Recording mode tracking
-  const [currentClipId, setCurrentClipId] = useState<string | null>(null);
-  const [isAppendMode, setIsAppendMode] = useState(false);
-  const [appendBaseContent, setAppendBaseContent] = useState<string>('');
 
   // Recording hook - handles audio recording and transcription
   const {
