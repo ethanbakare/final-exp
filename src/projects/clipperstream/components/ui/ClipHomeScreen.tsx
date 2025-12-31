@@ -8,8 +8,7 @@ import { NoClipsFrameIcon, EmptyClipFrameIcon } from './midClipButtons';
 import { ClipModalOverlay } from './ClipModalOverlay';
 import { ClipDeleteModalFull, ClipRenameModalFull } from './clipModal';
 import { ToastNotification } from './ClipToast';
-import { deleteClip as deleteClipFromStorage, updateClip, getClips } from '../../services/clipStorage';
-import { Clip } from '../../store/clipStore';
+import { Clip, useClipStore } from '../../store/clipStore';
 
 // Display-specific clip type with derived properties
 type DisplayClip = Clip & {
@@ -54,6 +53,10 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   activeHttpClipId = null,  // v2.5.4 FIX: Add default value
   isActiveRequest = false
 }) => {
+  // Zustand actions for delete and rename
+  const updateClip = useClipStore((state) => state.updateClip);
+  const deleteClip = useClipStore((state) => state.deleteClip);
+  
   // No local clips state - use props.clips directly (managed by parent)
 
   // Search query for filtering clips
@@ -180,6 +183,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
 
   // Filter clips based on search query, then sort newest first
   const filteredClips = clips
+    .filter(clip => !clip.parentId)  // Only show parent clips (clip files), not pending children
     .filter(clip =>
       clip.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -243,14 +247,14 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
     // Start fade-out animation
     setDeletingClipId(selectedClip.id);
 
-    // After animation completes (200ms), remove from storage
+    // After animation completes (200ms), remove from Zustand
     setTimeout(() => {
-      deleteClipFromStorage(selectedClip.id);
+      deleteClip(selectedClip.id);
       // Zustand will automatically update all subscribers
       setDeletingClipId(null);
       setSelectedClip(null);
     }, 1000);  // Slightly longer than CSS animation (200ms) for smooth transition
-  }, [selectedClip]);
+  }, [selectedClip, deleteClip]);
 
   // Open rename modal with current title pre-filled
   const handleRenameClick = useCallback((clipId: string, currentTitle: string) => {
@@ -263,15 +267,15 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   const handleConfirmRename = useCallback(() => {
     if (!selectedClip || !renameValue.trim()) return;
 
-    // Update clip title in storage
-    const updated = updateClip(selectedClip.id, { title: renameValue.trim() });
+    // Update clip title in Zustand
+    updateClip(selectedClip.id, { title: renameValue.trim() });
     // Zustand will automatically update all subscribers
 
     // Close modal and reset
     setActiveModal(null);
     setSelectedClip(null);
     setRenameValue('');
-  }, [selectedClip, renameValue]);
+  }, [selectedClip, renameValue, updateClip]);
 
   // Handle copy - copies transcribed text and shows toast
   const handleCopyClick = useCallback((clipId: string) => {

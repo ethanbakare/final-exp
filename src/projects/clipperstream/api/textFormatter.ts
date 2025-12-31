@@ -91,7 +91,7 @@ export async function formatTranscription(
     if (existingFormattedContext) {
       // Include last ~500 chars of existing formatted text for context
       const contextWindow = existingFormattedContext.slice(-500);
-      userPrompt = `Existing formatted text (for context only, DO NOT reformat):\n${contextWindow}\n\nNew raw text to format:\n${rawText}`;
+      userPrompt = `Existing formatted text (for context only, DO NOT include this in your response):\n${contextWindow}\n\n---END OF CONTEXT---\n\nNew raw text to format (return ONLY the formatted version of THIS text, nothing else):\n${rawText}\n\nREMINDER: Return ONLY the formatted version of the new text above. Do NOT include the existing context in your response.`;
     } else {
       userPrompt = `Text to format:\n${rawText}`;
     }
@@ -128,6 +128,17 @@ export async function formatTranscription(
         rawWordCount,
         formattedWordCount,
         difference: rawWordCount - formattedWordCount
+      });
+      return rawText;
+    }
+
+    // Validate AI didn't include context in response (append mode only)
+    if (existingFormattedContext && formattedWordCount > rawWordCount * 2) {
+      // AI returned way more text than expected - likely included context
+      log.warn('AI may have included context in response, falling back to raw text', {
+        rawWordCount,
+        formattedWordCount,
+        expectedMax: rawWordCount * 1.5
       });
       return rawText;
     }

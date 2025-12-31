@@ -384,11 +384,19 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     if (recordNavState === 'recording') {
       stopRecordingHook();  // Stop recording immediately
       resetRecording();     // Discard audio blob
-      setActiveScreen('home');
-      setRecordNavState('record');
-      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
-      setCurrentClipId(null);
-      // Result: Recording canceled, nothing saved
+      
+      // If appending to existing clip, stay on record screen viewing that clip
+      if (isAppendMode && currentClipId) {
+        setRecordNavState('record');
+        // Keep currentClipId - user stays viewing the clip they were appending to
+        // Result: Recording canceled, stays on record screen
+      } else {
+        // New recording - go back to home screen
+        setActiveScreen('home');
+        setRecordNavState('record');
+        setCurrentClipId(null);
+        // Result: Recording canceled, nothing saved, return to home
+      }
       return;
     }
 
@@ -407,12 +415,20 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         }
       }
 
-      setActiveScreen('home');
-      setRecordNavState('record');
-      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
-      setCurrentClipId(null);
-      resetRecording();
-      // Result: Processing canceled, clip saved as failed
+      // If appending to existing clip, stay on record screen viewing that clip
+      if (isAppendMode && currentClipId) {
+        setRecordNavState('record');
+        resetRecording();
+        // Keep currentClipId - user stays viewing the clip they were appending to
+        // Result: Processing canceled, stays on record screen
+      } else {
+        // New recording - go back to home screen
+        setActiveScreen('home');
+        setRecordNavState('record');
+        setCurrentClipId(null);
+        resetRecording();
+        // Result: Processing canceled, clip saved as failed, return to home
+      }
       return;
     }
 
@@ -448,7 +464,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     setRecordNavState('record');
     // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
     setCurrentClipId(null);
-  }, [recordNavState, currentClipId, selectedClip, stopRecordingHook, resetRecording, getClipById, updateClip]);
+  }, [recordNavState, currentClipId, selectedClip, isAppendMode, stopRecordingHook, resetRecording, getClipById, updateClip]);
 
   const handleDoneClick = async () => {
     setRecordNavState('processing');
@@ -529,7 +545,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         // Update Zustand - only update rawText, content updated when formatting completes
         updateClip(currentClipId, {
           rawText: existingClip.rawText + ' ' + rawText,
-          status: 'formatting'
+          status: 'formatting',
+          createdAt: Date.now()  // Update timestamp so clip moves to top on home screen
         });
 
         formatTranscriptionInBackground(currentClipId, rawText, true);
@@ -853,12 +870,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       console.info('[Formatting] Updated clip content in Zustand for clip:', clipId);
 
       // Switch nav bar to complete state now that formatted text is ready
-      if (selectedClip?.id === clipId) {
-        console.info('[Formatting] Calling setRecordNavState(complete) for clip:', clipId);
-        setRecordNavState('complete');
-      } else {
-        console.warn('[Formatting] NOT calling setRecordNavState - selectedClip mismatch. selectedClip?.id:', selectedClip?.id, '| clipId:', clipId);
-      }
+      console.info('[Formatting] Calling setRecordNavState(complete) for clip:', clipId);
+      setRecordNavState('complete');
 
       // Delete audio from IndexedDB
       if (clip.audioId) {
@@ -866,16 +879,14 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         updateClip(clipId, { audioId: undefined });
       }
 
-      // Auto-copy if this is the selected clip
-      if (selectedClip?.id === clipId) {
-        const updatedClip = getClipById(clipId);
-        if (updatedClip) {
-          const textToCopy = updatedClip.currentView === 'raw'
-            ? updatedClip.rawText
-            : updatedClip.formattedText;
-          navigator.clipboard.writeText(textToCopy);
-          setShowCopyToast(true);
-        }
+      // Auto-copy formatted text to clipboard
+      const updatedClip = getClipById(clipId);
+      if (updatedClip) {
+        const textToCopy = updatedClip.currentView === 'raw'
+          ? updatedClip.rawText
+          : updatedClip.formattedText;
+        navigator.clipboard.writeText(textToCopy);
+        setShowCopyToast(true);
       }
 
     } catch (error) {
@@ -890,12 +901,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       console.info('[Formatting] Using fallback (raw text) for clip:', clipId);
 
       // Switch nav bar to complete state (fallback text is displayed)
-      if (selectedClip?.id === clipId) {
-        console.info('[Formatting] Calling setRecordNavState(complete) after fallback for clip:', clipId);
-        setRecordNavState('complete');
-      } else {
-        console.warn('[Formatting] NOT calling setRecordNavState after fallback - selectedClip mismatch. selectedClip?.id:', selectedClip?.id, '| clipId:', clipId);
-      }
+      console.info('[Formatting] Calling setRecordNavState(complete) after fallback for clip:', clipId);
+      setRecordNavState('complete');
     }
   }, [getClipById, updateClip, selectedClip, setShowCopyToast, setRecordNavState, deleteAudio]);
 
