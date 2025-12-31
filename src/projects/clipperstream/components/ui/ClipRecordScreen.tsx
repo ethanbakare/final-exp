@@ -70,6 +70,9 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   const portalContainerRef = React.useRef<HTMLDivElement>(null);
   const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
 
+  // Fix Bug 2A: Track which clips have been displayed (to control animation)
+  const displayedClipsRef = React.useRef<Set<string>>(new Set());
+
   // Scroll-to-bottom hook for transcription content
   const {
     scrollRef,
@@ -94,20 +97,29 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
       return contentBlocks;
     }
 
+    // Fix Bug 2B: Check if this is the first time showing this clip
+    const isFirstView = !displayedClipsRef.current.has(selectedClip.id);
+
+    // Mark as displayed for next time
+    if (isFirstView && selectedClip.content) {
+      // Only mark if there's actual content (not empty/pending clip)
+      displayedClipsRef.current.add(selectedClip.id);
+    }
+
     // Clip selected - check currentView preference
     if (selectedClip.currentView === 'raw') {
       // Show raw text
       return [{
         id: 'raw-view',
         text: selectedClip.rawText || selectedClip.content || '',
-        animate: false
+        animate: isFirstView  // Animate only on first view
       }];
     } else {
       // Show formatted text (default)
       return [{
         id: 'formatted-view',
         text: selectedClip.formattedText || selectedClip.content || '',
-        animate: false
+        animate: isFirstView  // Animate only on first view
       }];
     }
   }, [selectedClip, contentBlocks]);

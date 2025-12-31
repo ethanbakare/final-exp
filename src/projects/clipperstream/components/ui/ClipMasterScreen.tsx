@@ -4,7 +4,7 @@ import { ClipHomeScreen } from './ClipHomeScreen';
 import { ClipRecordScreen, PendingClip } from './ClipRecordScreen';
 import { RecordNavBarVarMorphing, RecordNavState } from './mainvarmorph';
 import { ToastNotification } from './ClipToast';
-import { useClipRecording } from '../../hooks/useClipRecording';
+import { useClipRecording, TranscriptionResult } from '../../hooks/useClipRecording';
 // PHASE 4 (v2.6.0): Replace useClipState with Zustand
 import { useClipStore, Clip, ClipStatus } from '../../store/clipStore';
 import { useOfflineRecording } from '../../hooks/useOfflineRecording';
@@ -158,6 +158,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   const [showCopyToast, setShowCopyToast] = useState(false);
   const [copyToastText, setCopyToastText] = useState<string | undefined>(undefined);
   const [showErrorToast, setShowErrorToast] = useState(false);
+  const [errorToastMessage, setErrorToastMessage] = useState('No audio detected');
   const [showAudioToast, setShowAudioToast] = useState(false);
   const hasShownTranscriptionToast = useRef(false);
 
@@ -451,52 +452,86 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   const handleDoneClick = async () => {
     setRecordNavState('processing');
 
-    // 1. Stop recording
-    stopRecordingHook();
-    const currentAudioId = audioId;
-    const currentDuration = duration;
+    // 1. Stop recording and wait for result
+    const { audioBlob: recordedBlob, audioId: recordedAudioId, duration: recordedDuration } = await stopRecordingHook();
 
-    // 2. Check network
+    // 2. Validate audio (Bug 3 fix: added duration check)
+    if (!recordedBlob || recordedBlob.size < 100 || recordedDuration < 1) {
+      setShowErrorToast(true);
+      setRecordNavState('record');
+      return;
+    }
+
+    // 3. Check network status
     const isOnline = navigator.onLine;
 
     if (!isOnline) {
-      // Use existing handleOfflineRecording
-      handleOfflineRecording({ 
-        audioId: currentAudioId!, 
-        duration: currentDuration,
-        currentClipId 
+      handleOfflineRecording({
+        audioId: recordedAudioId!,
+        duration: recordedDuration,
+        currentClipId
       });
       setRecordNavState('record');
       return;
     }
 
-    // 3. Transcribe (returns rawText directly)
-    const rawText = await transcribeRecording(audioBlob!);
-    
+    // 4. Transcribe and classify error (Bug 4 fix: use TranscriptionResult)
+    let transcriptionResult: TranscriptionResult;
+    try {
+      transcriptionResult = await transcribeRecording(recordedBlob);
+    } catch (error) {
+      console.error('Transcription error:', error);
+      // Fallback to validation error if hook throws unexpectedly
+      transcriptionResult = { text: '', error: 'validation' };
+    }
+
+    const { text: rawText, error: transcriptionError } = transcriptionResult;
+
+    // 5. Route based on error type (Bug 4 fix: classify errors)
     if (!rawText || rawText.length === 0) {
-      // Failed - save as pending
-      handleOfflineRecording({ 
-        audioId: currentAudioId!, 
-        duration: currentDuration,
-        currentClipId 
-      });
+      // Network or offline errors → Create pending clip
+      if (transcriptionError === 'network' || transcriptionError === 'offline') {
+        handleOfflineRecording({
+          audioId: recordedAudioId!,
+          duration: recordedDuration,
+          currentClipId
+        });
+        setRecordNavState('record');
+        return;
+      }
+
+      // Validation or server errors → Show error toast, stay in record state
+      if (transcriptionError === 'validation' || transcriptionError === 'server-error') {
+        setShowErrorToast(true);
+        setRecordNavState('record');
+        return;
+      }
+
+      // Fallback: treat as validation error
+      setShowErrorToast(true);
       setRecordNavState('record');
       return;
     }
 
-    // 4. Create clip or append
+    // 6. Create clip or append (rawText is now guaranteed non-empty)
     if (isAppendMode && currentClipId) {
-      // Appending to existing clip
       const existingClip = getClipById(currentClipId);
       if (existingClip) {
+        // Update Zustand
         updateClip(currentClipId, {
           rawText: existingClip.rawText + '\n\n' + rawText,
           status: 'formatting'
         });
+
+        // Fix Bug 1: Get updated clip and sync to local state
+        const updatedClip = getClipById(currentClipId);
+        if (updatedClip) {
+          setSelectedClip(updatedClip);
+        }
+
         formatTranscriptionInBackground(currentClipId, rawText, true);
       }
     } else {
-      // New clip
       const newClip: Clip = {
         id: generateClipId(),
         createdAt: Date.now(),
@@ -508,12 +543,12 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         status: 'formatting',
         currentView: 'formatted'
       };
-      
+
       addClip(newClip);
       setSelectedClip(newClip);
       setCurrentClipId(newClip.id);
-      
-      // Start background jobs
+
+      // Background jobs
       formatTranscriptionInBackground(newClip.id, rawText, false);
       generateTitleInBackground(newClip.id, rawText);
     }
@@ -730,13 +765,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // Auto-trigger transcription when audioBlob is ready
   // GUARD: Don't re-trigger after definitive failure (transcriptionError set)
-  // Uses stable ref to avoid function recreation triggering re-runs
-  useEffect(() => {
-    if (audioBlob && !isTranscribing && !transcriptionError && recordNavState === 'processing') {
-      transcribeRef.current();
-    }
-  }, [audioBlob, isTranscribing, transcriptionError, recordNavState]);
-
   // Background title generation with opacity fade
   const generateTitleInBackground = useCallback(async (clipId: string, transcriptionText: string) => {
     const startTime = performance.now();
@@ -884,12 +912,13 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           updateClip(clip.id, { status: 'transcribing' });
 
           // Transcribe
-          const rawText = await transcribeRecording(audioBlob);
+          const transcriptionResult = await transcribeRecording(audioBlob);
+          const { text: rawText, error: transcriptionError } = transcriptionResult;
 
           if (!rawText || rawText.length === 0) {
             updateClip(clip.id, {
               status: 'failed',
-              transcriptionError: 'Transcription failed'
+              transcriptionError: transcriptionError === 'server-error' ? 'Server rejected audio' : 'Transcription failed'
             });
             continue;
           }
@@ -1081,7 +1110,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           isVisible={showErrorToast}
           onDismiss={() => setShowErrorToast(false)}
           type="error"
-          text={transcriptionError || 'No audio recorded'}
+          text={errorToastMessage}
         />
 
         <ToastNotification
