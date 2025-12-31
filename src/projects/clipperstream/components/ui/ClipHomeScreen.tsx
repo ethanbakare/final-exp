@@ -178,9 +178,8 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
     };
   }, []);
 
-  // Filter and sort clips (most recently created first, parents only)
+  // Filter clips based on search query, then sort newest first
   const filteredClips = clips
-    .filter(clip => !clip.parentId)  // Only show parent clips (not pending children)
     .filter(clip =>
       clip.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
