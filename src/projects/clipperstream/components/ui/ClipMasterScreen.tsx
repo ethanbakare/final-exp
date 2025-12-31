@@ -288,6 +288,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
     setSelectedPendingClips([]);  // v2.3.1: Clear pending clips array
     resetRecording(); // This clears transcription from the hook
+    setAnimationVariant('fade');  // Use fade for smooth transition to home
     setRecordNavState('record'); // Reset to default record state for next time
     setActiveScreen('home');
     
