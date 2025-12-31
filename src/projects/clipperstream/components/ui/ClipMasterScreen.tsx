@@ -528,7 +528,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       if (existingClip) {
         // Update Zustand - only update rawText, content updated when formatting completes
         updateClip(currentClipId, {
-          rawText: existingClip.rawText + '\n\n' + rawText,
+          rawText: existingClip.rawText + ' ' + rawText,
           status: 'formatting'
         });
 
@@ -551,14 +551,14 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       // ✅ REMOVED: setSelectedClip(newClip) - selector will auto-find via currentClipId
       setCurrentClipId(newClip.id);
 
-      // Background jobs
-      formatTranscriptionInBackground(newClip.id, rawText, false);
-      generateTitleInBackground(newClip.id, rawText);
-    }
+    // Background jobs
+    formatTranscriptionInBackground(newClip.id, rawText, false);
+    generateTitleInBackground(newClip.id, rawText);
+  }
 
-    setRecordNavState('complete');
-    resetRecording();
-  };
+  // ✅ REMOVED: setRecordNavState('complete') - moved to formatTranscriptionInBackground
+  resetRecording();
+};
 
   const handleCopyClick = () => {
     // Copy displayedcontent to clipboard - uses derived copyableContent
@@ -837,14 +837,19 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
       // Update Zustand
       updateClip(clipId, {
-        formattedText: isAppending 
-          ? clip.formattedText + '\n\n' + formattedText
+        formattedText: isAppending
+          ? clip.formattedText + ' ' + formattedText
           : formattedText,
         content: isAppending
-          ? clip.content + '\n\n' + formattedText
+          ? clip.content + ' ' + formattedText
           : formattedText,
         status: null  // Done!
       });
+
+      // Switch nav bar to complete state now that formatted text is ready
+      if (selectedClip?.id === clipId) {
+        setRecordNavState('complete');
+      }
 
       // Delete audio from IndexedDB
       if (clip.audioId) {
@@ -872,6 +877,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         content: clip.rawText,
         status: null
       });
+
+      // Switch nav bar to complete state (fallback text is displayed)
+      if (selectedClip?.id === clipId) {
+        setRecordNavState('complete');
+      }
     }
   }, [getClipById, updateClip, selectedClip, setShowCopyToast]);
 
