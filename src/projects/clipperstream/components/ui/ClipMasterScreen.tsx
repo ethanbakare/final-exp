@@ -472,7 +472,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         duration: recordedDuration,
         currentClipId
       });
-      setRecordNavState('record');
+
+      // Check if viewing clip with content
+      const currentClip = currentClipId ? getClipById(currentClipId) : null;
+      const hasContent = currentClip && currentClip.content && currentClip.content.length > 0;
+      setRecordNavState(hasContent ? 'complete' : 'record');
       return;
     }
 
@@ -497,7 +501,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           duration: recordedDuration,
           currentClipId
         });
-        setRecordNavState('record');
+
+        // Check if viewing clip with content
+        const currentClip = currentClipId ? getClipById(currentClipId) : null;
+        const hasContent = currentClip && currentClip.content && currentClip.content.length > 0;
+        setRecordNavState(hasContent ? 'complete' : 'record');
         return;
       }
 
@@ -518,15 +526,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     if (isAppendMode && currentClipId) {
       const existingClip = getClipById(currentClipId);
       if (existingClip) {
-        // Update Zustand - CRITICAL: Update both rawText AND content
+        // Update Zustand - only update rawText, content updated when formatting completes
         updateClip(currentClipId, {
           rawText: existingClip.rawText + '\n\n' + rawText,
-          content: existingClip.content + '\n\n' + rawText,  // ✅ CRITICAL FIX: Shows text immediately
           status: 'formatting'
         });
-
-        // ✅ REMOVED: Manual sync - selector will automatically pick up changes
-        // The selector pattern eliminates the race condition from 032_v2
 
         formatTranscriptionInBackground(currentClipId, rawText, true);
       }
@@ -538,7 +542,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         date: today(),
         rawText: rawText,
         formattedText: '',
-        content: rawText,
+        content: '',  // Empty until formatting completes
         status: 'formatting',
         currentView: 'formatted'
       };

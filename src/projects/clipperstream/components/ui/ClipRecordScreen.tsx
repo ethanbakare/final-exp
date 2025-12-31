@@ -5,7 +5,7 @@ import { ClipOffline } from './ClipOffline';
 import { PortalContainerProvider } from './PortalContainerContext';
 import { useScrollToBottom } from '../../hooks/useScrollToBottom';
 import { ScrollButton } from './clipbuttons';
-import { Clip, ClipStatus } from '../../store/clipStore';
+import { Clip } from '../../store/clipStore';
 
 // ClipRecordScreen Component
 // Screen for recording and viewing transcriptions
@@ -70,8 +70,8 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   const portalContainerRef = React.useRef<HTMLDivElement>(null);
   const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
 
-  // Track previous status for each clip (to detect formatting completion)
-  const prevClipStatusRef = React.useRef<{ [clipId: string]: ClipStatus }>({});
+  // Track previous content length for each clip (to detect first appearance)
+  const prevContentLengthRef = React.useRef<{ [clipId: string]: number }>({});
 
   // Scroll-to-bottom hook for transcription content
   const {
@@ -93,39 +93,32 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   // Determine which text to display based on clip's currentView preference
   const displayText = useMemo(() => {
     if (!selectedClip) {
-      // No clip selected - show empty (recording state shows empty content area)
       return [];
     }
 
-    // ✅ STATUS-BASED ANIMATION DETECTION (Superior approach from 033_v2)
-    // Detect status transition: 'formatting' → null (formatting just completed)
     const clipId = selectedClip.id;
-    const prevStatus = prevClipStatusRef.current[clipId];
-    const currentStatus = selectedClip.status;
-
-    // Formatting just completed if previous status was 'formatting' and current is null
-    const justFinishedFormatting = prevStatus === 'formatting' && currentStatus === null;
-
-    // Update tracking for next render
-    prevClipStatusRef.current[clipId] = currentStatus;
 
     // Determine which text to show based on currentView toggle
-    if (selectedClip.currentView === 'raw') {
-      // Show raw text
-      return [{
-        id: 'raw-view',
-        text: selectedClip.rawText || selectedClip.content || '',
-        animate: justFinishedFormatting  // ✅ Triggers ONLY when formatting completes
-      }];
-    } else {
-      // Show formatted text (default)
-      return [{
-        id: 'formatted-view',
-        text: selectedClip.formattedText || selectedClip.content || '',
-        animate: justFinishedFormatting  // ✅ Triggers at exact moment formatted text ready
-      }];
-    }
-  }, [selectedClip]);  // ✅ Only depends on selectedClip (which auto-updates via Zustand selector)
+    const currentText = selectedClip.currentView === 'raw'
+      ? (selectedClip.rawText || selectedClip.content || '')
+      : (selectedClip.formattedText || selectedClip.content || '');
+
+    // Get previous content length for this clip
+    const prevLength = prevContentLengthRef.current[clipId] || 0;
+    const currentLength = currentText.length;
+
+    // ✅ SIMPLE RULE: Animate ONLY when content first appears (0 → non-zero)
+    const shouldAnimate = prevLength === 0 && currentLength > 0;
+
+    // Update tracking for next render
+    prevContentLengthRef.current[clipId] = currentLength;
+
+    return [{
+      id: selectedClip.currentView === 'raw' ? 'raw-view' : 'formatted-view',
+      text: currentText,
+      animate: shouldAnimate
+    }];
+  }, [selectedClip]);
 
   // Track previous text length to detect when NEW content is added
   // We now use a single block with full combined text, so track text length instead of block count
