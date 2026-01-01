@@ -82,7 +82,7 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
           parentId: currentClipId,
           parentStatus: currentClip.status
         });
-      } else if (currentClip.status === 'pending' || currentClip.status === 'pending-child') {
+      } else if (currentClip.status === 'pending-child') {
         // Parent is still pending → create child
         // If current is a child, find its parent
         const actualParent = currentClip.parentId
@@ -109,7 +109,7 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
     if (shouldCreateParent) {
       // v2.4: Create PARENT (container only) + FIRST CHILD (Clip 001) separately
       // Step 1: Create PARENT (container only)
-      const nextNumber = getNextRecordingNumber(getClips());
+      const nextNumber = getNextRecordingNumber(getClips() as any);
       
       const parentClip: Clip = {
         id: `clip-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
