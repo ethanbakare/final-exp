@@ -13,12 +13,8 @@ const log = logger.scope('useOfflineRecording');
 export interface UseOfflineRecordingParams {
   // Callbacks to update parent component state
   setCurrentClipId: (id: string) => void;
-  setSelectedPendingClips: React.Dispatch<React.SetStateAction<PendingClip[]>>;
-
-  // Helper functions from parent
-  formatDuration: (seconds: number) => string;
-  clipToPendingClip: (clip: Clip) => PendingClip;
-
+  // v2.7.0: Removed setSelectedPendingClips, formatDuration, clipToPendingClip
+  
   // Zustand store actions (v2.6.1)
   addClip: (clip: Clip) => void;
   getClips: () => Clip[];
@@ -35,9 +31,7 @@ export interface UseOfflineRecordingReturn {
 export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOfflineRecordingReturn => {
   const {
     setCurrentClipId,
-    setSelectedPendingClips,
-    formatDuration,
-    clipToPendingClip,
+    // v2.7.0: Removed setSelectedPendingClips, formatDuration, clipToPendingClip
     addClip,
     getClips
   } = params;
@@ -165,10 +159,10 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
       setCurrentClipId(parentClip.id);
       clipIdToUpdate = firstChild.id;  // For selectedPendingClips update below
 
-      // Add first child to selectedPendingClips
-      const pendingClip = clipToPendingClip(firstChild);
-      setSelectedPendingClips([pendingClip]);
-      log.debug('Set selectedPendingClips to first child', { pendingClip });
+      // v2.7.0: selectedPendingClips auto-updates via Zustand selector
+      log.debug('First child created, Zustand selector will auto-update', { 
+        firstChildId: firstChild.id 
+      });
 
     } else {
       // v2.4: Create CHILD recording linked to parent
@@ -223,12 +217,12 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
         childTitle: nextPendingTitle
       });
 
-      // Add to selectedPendingClips array
-      const pendingClip = clipToPendingClip(childClip);
-      setSelectedPendingClips(prev => [...prev, pendingClip]);
-      log.debug('Added child to selectedPendingClips', { pendingClip });
+      // v2.7.0: selectedPendingClips auto-updates via Zustand selector
+      log.debug('Child clip added, Zustand selector will auto-update', { 
+        childId: childClip.id 
+      });
     }
-  }, [setCurrentClipId, setSelectedPendingClips, formatDuration, clipToPendingClip, addClip, getClips]);
+  }, [setCurrentClipId, addClip, getClips]);
 
   return {
     handleOfflineRecording

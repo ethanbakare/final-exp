@@ -148,8 +148,31 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // DELETED - now returned from useClipState hook
 
-  // PHASE 2: Selected pending clips array (multiple clips can be pending)
-  const [selectedPendingClips, setSelectedPendingClips] = useState<PendingClip[]>([]);
+  // v2.7.0: Zustand selector for selectedPendingClips (replaces useState)
+  // Auto-updates when children change, no manual sync needed
+  const selectedPendingClips = useClipStore((state) => {
+    // If no parent selected, return empty array
+    if (!currentClipId) return [];
+
+    // Find all children of current parent
+    const children = state.clips
+      .filter(c => c.parentId === currentClipId)
+      .sort((a, b) => {
+        // Sort by creation time (oldest first = recording order)
+        const timestampA = parseInt(a.id.split('-')[1], 10) || 0;
+        const timestampB = parseInt(b.id.split('-')[1], 10) || 0;
+        return timestampA - timestampB;
+      });
+
+    // Convert Clip → PendingClip format (matches PendingClip interface)
+    return children.map(child => ({
+      id: child.id,
+      title: child.pendingClipTitle || 'Pending',
+      time: child.duration || '0:00',
+      status: (child.status === 'transcribing' ? 'transcribing' : 'waiting') as 'waiting' | 'transcribing',
+      isActiveRequest: state.activeHttpClipId === child.id
+    }));
+  });
 
   // Track if search is active (to hide RecordBar)
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -231,32 +254,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     const children = clips.filter(c => c.parentId === clipId);
 
     if (children.length > 0) {
-      // v2.3.2 FIX: Sort children by creation time (timestamp in ID)
-      // IDs are like "clip-1766868716300-random" where middle part is timestamp
-      const sortedChildren = children.sort((a, b) => {
-        const timestampA = parseInt(a.id.split('-')[1], 10) || 0;
-        const timestampB = parseInt(b.id.split('-')[1], 10) || 0;
-        return timestampA - timestampB;  // Ascending (oldest first)
-      });
-
-      // Convert to pending clip format
-      const pendingClips = sortedChildren.map(child => ({
-        id: child.id,
-        title: child.pendingClipTitle || 'Pending',
-        time: child.duration || '0:00',
-        status: child.status === 'transcribing' ? 'transcribing' as const : 'waiting' as const,
-        isActiveRequest: isActiveRequest && currentClipId === child.id
-      }));
-
-      setSelectedPendingClips(pendingClips);
-
+      // v2.7.0: selectedPendingClips now uses Zustand selector, no manual set needed
       log.info('Loaded parent with children', {
         parentId: clipId,
-        childCount: children.length,
-        childOrder: pendingClips.map(p => p.title)
+        childCount: children.length
       });
-    } else {
-      setSelectedPendingClips([]);
     }
 
     if (clip.content) {
@@ -283,10 +285,10 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // Navigate back from record to home screen (via "Clips" button only)
     // Reset all recording state and return to home
     setIsAppendMode(false);
-    setCurrentClipId(null);  // v2.3.1: Clear parent-child context
+    setCurrentClipId(null);  // v2.3.1: Clear parent-child context (selector auto-clears)
     setAppendBaseContent('');
+    // v2.7.0: selectedPendingClips cleared automatically when currentClipId = null
     // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
-    setSelectedPendingClips([]);  // v2.3.1: Clear pending clips array
     resetRecording(); // This clears transcription from the hook
     setAnimationVariant('fade');  // Use fade for smooth transition to home
     setRecordNavState('record'); // Reset to default record state for next time
@@ -301,10 +303,10 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // Stays on ClipRecordScreen, just resets to record state
   const handleNewClipClick = useCallback(() => {
     setIsAppendMode(false);
-    setCurrentClipId(null);  // v2.3.1: Clear any existing parent-child context
+    setCurrentClipId(null);  // v2.3.1: Clear context (selector auto-clears)
     setAppendBaseContent('');
+    // v2.7.0: selectedPendingClips cleared automatically when currentClipId = null
     // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
-    setSelectedPendingClips([]);  // v2.3.1: Clear pending clips array
     resetRecording();
     setAnimationVariant('fade');  // Use fade for direct transition back to record
     setRecordNavState('record');
@@ -985,9 +987,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // PHASE 2.5: Offline recording handler (extracted)
   const { handleOfflineRecording } = useOfflineRecording({
     setCurrentClipId,
-    setSelectedPendingClips,
-    formatDuration,
-    clipToPendingClip,
+    // v2.7.0: setSelectedPendingClips removed (Zustand selector handles it)
     addClip,
     getClips: () => useClipStore.getState().clips
   });
