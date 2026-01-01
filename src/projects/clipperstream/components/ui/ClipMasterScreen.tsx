@@ -909,76 +909,338 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     }
   }, [getClipById, updateClip, selectedClip, setShowCopyToast, setRecordNavState, deleteAudio]);
 
-  // Auto-retry pending clips when network comes online
-  useEffect(() => {
-    const handleOnline = async () => {
-      console.log('[Auto-retry] Going online, checking for pending clips');
-      
-      const allClips = useClipStore.getState().clips;
-      const pendingClips = allClips.filter(c =>
-        c.audioId && (
-          c.status === 'pending-retry' ||
-          c.status === 'pending-child' ||
-          c.status === 'failed'
-        )
-      );
+  /**
+   * Format child clip transcription (for auto-retry)
+   * NO clipboard copy, NO nav state changes
+   * WITH context support for smart paragraph breaks
+   */
+  const formatChildTranscription = useCallback(async (
+    clipId: string,
+    rawText: string,
+    context?: string  // ← Accumulated formatted text for AI context (API slices last 500 chars)
+  ): Promise<string> => {
+    const clip = getClipById(clipId);
+    if (!clip) {
+      console.warn('[FormatChild] Clip not found:', clipId);
+      return rawText;  // Fallback
+    }
 
-      if (pendingClips.length === 0) return;
+    console.log('[FormatChild] Starting for:', clip.pendingClipTitle, '| Has context:', !!context);
 
-      console.log('[Auto-retry] Processing', pendingClips.length, 'pending clips');
+    try {
+      // Call formatting API
+      // Context auto-sliced to last 500 chars by API (see textFormatter.ts line 93)
+      // AI uses this for smart paragraph breaks and pronoun resolution
+      const response = await fetch('/api/clipperstream/format-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rawText,
+          existingFormattedContext: context  // ← Pass full context (API slices last 500)
+        })
+      });
 
-      // Process sequentially (one at a time)
-      for (const clip of pendingClips) {
-        try {
-          // Get audio from IndexedDB
-          const audioBlob = await getAudio(clip.audioId!);
-          if (!audioBlob) {
-            console.warn('[Auto-retry] Audio not found for clip', clip.id);
-            continue;
-          }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
-          // Update status: transcribing
-          updateClip(clip.id, { status: 'transcribing' });
+      const data = await response.json();
+      const formattedText = data.formattedText || data.formatted || rawText;
 
-          // Transcribe
-          const transcriptionResult = await transcribeRecording(audioBlob);
-          const { text: rawText, error: transcriptionError } = transcriptionResult;
+      console.log('[FormatChild] Success:', clip.pendingClipTitle);
 
-          if (!rawText || rawText.length === 0) {
-            updateClip(clip.id, {
-              status: 'failed',
-              transcriptionError: transcriptionError === 'server-error' ? 'Server rejected audio' : 'Transcription failed'
-            });
-            continue;
-          }
+      // Update child with formatted text
+      updateClip(clipId, {
+        formattedText: formattedText,
+        content: formattedText,
+        status: null  // Complete
+      });
 
-          // Store raw text, set status: formatting
-          updateClip(clip.id, {
-            rawText: rawText,
-            content: rawText,
-            status: 'formatting'
-          });
+      // ⚠️ NO clipboard copy (per user requirement - document not focused during auto-retry)
+      // ⚠️ NO setRecordNavState (not relevant for auto-retry)
 
-          // Format
-          await formatTranscriptionInBackground(clip.id, rawText, false);
+      return formattedText;
 
-          // Now clip has: status: null, rawText, formattedText
+    } catch (error) {
+      console.error('[FormatChild] Failed:', clip.pendingClipTitle, error);
 
-        } catch (error) {
-          console.error('[Auto-retry] Error processing clip', clip.id, error);
-          updateClip(clip.id, {
-            status: 'failed',
-            transcriptionError: error instanceof Error ? error.message : 'Unknown error'
-          });
+      // Fallback: use raw text
+      updateClip(clipId, {
+        formattedText: rawText,
+        content: rawText,
+        status: null
+      });
+
+      return rawText;
+    }
+  }, [getClipById, updateClip]);
+
+  /**
+   * Process single child clip (transcribe + format)
+   * Returns formatted text for accumulation
+   */
+  const processChild = useCallback(async (
+    child: Clip,
+    context?: string  // ← Accumulated formatted text for AI context
+  ): Promise<{
+    success: boolean;
+    rawText: string;
+    formattedText: string;
+  }> => {
+    console.log('[ProcessChild] Starting:', child.pendingClipTitle);
+
+    try {
+      // Step 1: Get audio from IndexedDB
+      const audioBlob = await getAudio(child.audioId!);
+      if (!audioBlob) {
+        console.warn('[ProcessChild] Audio not found for:', child.id);
+        updateClip(child.id, {
+          status: 'failed',
+          transcriptionError: 'Audio not found in storage'
+        });
+        return { success: false, rawText: '', formattedText: '' };
+      }
+
+      // Step 2: Update status to transcribing
+      updateClip(child.id, { status: 'transcribing' });
+
+      // Step 3: Transcribe (uses existing retry mechanism)
+      // Retry implementation in useClipRecording.ts lines 410-444:
+      //   - Attempts 1-3: Rapid fire (no waits between attempts)
+      //   - Attempts 4+: Interval waits (1min, 2min, 4min, 5min cycle repeats)
+      // TODO Phase 4: Extract retry logic to shared function for auto-retry
+      //   - Track clip.retryCount and clip.nextRetryTime for UI
+      //   - Coordinate spinner state (stops during interval waits)
+      const transcriptionResult = await transcribeRecording(audioBlob);
+      const { text: rawText, error: transcriptionError } = transcriptionResult;
+
+      if (!rawText || rawText.length === 0) {
+        console.warn('[ProcessChild] Transcription failed:', child.pendingClipTitle);
+        updateClip(child.id, {
+          status: 'failed',
+          transcriptionError: transcriptionError === 'validation'
+            ? `No audio detected in ${child.pendingClipTitle}`
+            : 'Transcription failed'
+        });
+        return { success: false, rawText: '', formattedText: '' };
+      }
+
+      // Step 4: Store raw text
+      updateClip(child.id, {
+        rawText: rawText,
+        content: rawText,  // Temporary (will be replaced with formatted)
+        status: 'formatting'
+      });
+
+      // Step 5: Format with context (returns formatted text)
+      const formattedText = await formatChildTranscription(child.id, rawText, context);
+
+      // Step 6: Delete audio from IndexedDB
+      if (child.audioId) {
+        await deleteAudio(child.audioId);
+        updateClip(child.id, { audioId: undefined });
+      }
+
+      console.log('[ProcessChild] Success:', child.pendingClipTitle);
+
+      return {
+        success: true,
+        rawText: rawText,
+        formattedText: formattedText
+      };
+
+    } catch (error) {
+      console.error('[ProcessChild] Error:', child.pendingClipTitle, error);
+      updateClip(child.id, {
+        status: 'failed',
+        transcriptionError: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return { success: false, rawText: '', formattedText: '' };
+    }
+  }, [getAudio, updateClip, transcribeRecording, deleteAudio, formatChildTranscription]);
+
+  /**
+   * Process all children for a parent (implements user's batch strategy)
+   * Strategy:
+   *   - 1 child: Show immediately
+   *   - 2 children: Show first, show second
+   *   - 3+ children: Show first, accumulate rest, show batch
+   */
+  const processParentChildren = useCallback(async (
+    parentId: string,
+    children: Clip[]
+  ) => {
+    // Check if parent exists (orphaned children cleanup)
+    const parent = getClipById(parentId);
+    if (!parent) {
+      console.warn('[ProcessChildren] Parent deleted during processing, cleaning up orphaned children');
+
+      // Clean up orphaned children (parent was deleted while they were pending)
+      for (const child of children) {
+        console.log('[ProcessChildren] Deleting orphaned child:', child.id);
+        deleteClip(child.id);
+
+        // Delete associated audio blob
+        if (child.audioId) {
+          await deleteAudio(child.audioId);
         }
       }
 
-      console.log('[Auto-retry] Completed');
+      return;
+    }
+
+    console.log('[ProcessChildren] Starting for parent:', parentId, '| Children:', children.length);
+
+    // Base content (in case parent already has content from previous sessions)
+    let accumulatedRawText = parent.rawText || '';
+    let accumulatedFormattedText = parent.formattedText || '';
+    let accumulatedContent = parent.content || '';
+
+    // Separate first child from rest
+    const [firstChild, ...restChildren] = children;
+
+    // STEP 1: Process first child (show immediately)
+    if (firstChild) {
+      console.log('[ProcessChildren] Processing FIRST child:', firstChild.pendingClipTitle);
+
+      // No context for first child (it's the beginning)
+      const result = await processChild(firstChild, undefined);
+
+      if (result.success) {
+        // Merge first child into parent
+        accumulatedRawText += (accumulatedRawText ? ' ' : '') + result.rawText;
+        accumulatedFormattedText += (accumulatedFormattedText ? ' ' : '') + result.formattedText;
+        accumulatedContent += (accumulatedContent ? ' ' : '') + result.formattedText;
+
+        // Update parent with first child content (shows immediately)
+        updateClip(parentId, {
+          rawText: accumulatedRawText,
+          formattedText: accumulatedFormattedText,
+          content: accumulatedContent,
+          createdAt: Date.now()  // Move to top
+        });
+
+        console.log('[ProcessChildren] First child merged into parent:', firstChild.pendingClipTitle);
+
+        // Delete first child
+        deleteClip(firstChild.id);
+
+        // Generate title after first clip (fire-and-forget, appears in background)
+        // This matches online behavior: title from first clip's content
+        // Robust for edge case: user goes offline after first clip completes
+        const currentParent = getClipById(parentId);  // Refetch to avoid stale data
+        if (currentParent && currentParent.title.startsWith('Recording ')) {
+          console.log('[ProcessChildren] Generating title from first clip (background)');
+          generateTitleInBackground(parentId, result.formattedText).catch(err => {
+            console.error('[ProcessChildren] Title generation failed:', err);
+          });
+          // Don't await - title appears separately while rest of clips process
+          // User sees: Title + Clip 001 text (remaining clips append later)
+        }
+      }
+    }
+
+    // STEP 2: Process remaining children (accumulate in memory, show batch)
+    if (restChildren.length > 0) {
+      console.log('[ProcessChildren] Processing BATCH of', restChildren.length, 'children');
+
+      // Accumulate batch in memory (user's strategy)
+      let batchRawText = '';
+      let batchFormattedText = '';
+
+      for (const child of restChildren) {
+        console.log('[ProcessChildren] Processing batch child:', child.pendingClipTitle);
+
+        // Pass accumulated formatted text as context (API slices last 500 chars)
+        // Context = first child + previously processed batch children
+        const contextForThisChild = accumulatedFormattedText + (batchFormattedText ? ' ' + batchFormattedText : '');
+        const result = await processChild(child, contextForThisChild);
+
+        if (result.success) {
+          // Accumulate in memory (don't update parent yet)
+          batchRawText += (batchRawText ? ' ' : '') + result.rawText;
+          batchFormattedText += (batchFormattedText ? ' ' : '') + result.formattedText;
+
+          console.log('[ProcessChildren] Accumulated:', child.pendingClipTitle);
+
+          // Delete child after processing
+          deleteClip(child.id);
+        }
+      }
+
+      // Merge entire accumulated batch to parent at once
+      accumulatedRawText += (accumulatedRawText ? ' ' : '') + batchRawText;
+      accumulatedFormattedText += (accumulatedFormattedText ? ' ' : '') + batchFormattedText;
+      accumulatedContent += (accumulatedContent ? ' ' : '') + batchFormattedText;
+
+      updateClip(parentId, {
+        rawText: accumulatedRawText,
+        formattedText: accumulatedFormattedText,
+        content: accumulatedContent,
+        status: null,  // Complete
+        createdAt: Date.now()
+      });
+
+      console.log('[ProcessChildren] Batch merged into parent');
+    }
+
+    console.log('[ProcessChildren] Completed parent:', parentId);
+  }, [getClipById, updateClip, deleteClip, deleteAudio, generateTitleInBackground, processChild]);
+
+  // v2.7.0: Auto-retry pending clips when network comes online
+  useEffect(() => {
+    const handleOnline = async () => {
+      console.log('[Auto-retry] Going online, checking for pending clips');
+
+      const allClips = useClipStore.getState().clips;
+
+      // Find all pending children
+      const pendingChildren = allClips.filter(c =>
+        c.audioId && c.status === 'pending-child'
+      );
+
+      if (pendingChildren.length === 0) {
+        console.log('[Auto-retry] No pending clips to process');
+        return;
+      }
+
+      // Group by parent ID
+      const childrenByParent = new Map<string, Clip[]>();
+      for (const child of pendingChildren) {
+        if (!child.parentId) continue;
+        const existing = childrenByParent.get(child.parentId) || [];
+        childrenByParent.set(child.parentId, [...existing, child]);
+      }
+
+      console.log('[Auto-retry] Processing', childrenByParent.size, 'parents with pending clips');
+
+      // Process each parent sequentially
+      for (const [parentId, children] of childrenByParent.entries()) {
+        const parent = allClips.find(c => c.id === parentId);
+        if (!parent) {
+          console.warn('[Auto-retry] Parent not found:', parentId);
+          continue;
+        }
+
+        // Sort children by creation time (oldest first)
+        const sortedChildren = children.sort((a, b) => {
+          const timestampA = parseInt(a.id.split('-')[1], 10) || 0;
+          const timestampB = parseInt(b.id.split('-')[1], 10) || 0;
+          return timestampA - timestampB;
+        });
+
+        console.log('[Auto-retry] Processing parent:', parent.title, '| Children:', sortedChildren.length);
+
+        // Process children for this parent
+        await processParentChildren(parentId, sortedChildren);
+      }
+
+      console.log('[Auto-retry] Completed all parents');
     };
 
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
-  }, [transcribeRecording, updateClip, formatTranscriptionInBackground]);
+  }, [processParentChildren]);
 
   // ============================================================================
   // TRANSCRIPTION & OFFLINE HANDLERS
