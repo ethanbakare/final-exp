@@ -1,71 +1,191 @@
-[{
-	"resource": "/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/hooks/useOfflineRecording.ts",
-	"owner": "typescript",
-	"code": "2367",
-	"severity": 8,
-	"message": "This comparison appears to be unintentional because the types '\"transcribing\" | \"formatting\" | \"pending-child\" | \"pending-retry\" | \"failed\"' and '\"pending\"' have no overlap.",
-	"source": "ts",
-	"startLineNumber": 85,
-	"startColumn": 18,
-	"endLineNumber": 85,
-	"endColumn": 50,
-	"modelVersionId": 48
-},{
-	"resource": "/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/hooks/useOfflineRecording.ts",
-	"owner": "typescript",
-	"code": "2345",
-	"severity": 8,
-	"message": "Argument of type 'import(\"/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/store/clipStore\").Clip[]' is not assignable to parameter of type 'import(\"/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/clipStorage\").Clip[]'.\n  Type 'import(\"/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/store/clipStore\").Clip' is not assignable to type 'import(\"/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/clipStorage\").Clip'.\n    Types of property 'status' are incompatible.\n      Type 'ClipStatus' is not assignable to type '\"transcribing\" | \"pending-child\" | \"failed\" | \"pending\" | null'.\n        Type '\"formatting\"' is not assignable to type '\"transcribing\" | \"pending-child\" | \"failed\" | \"pending\" | null'.",
-	"source": "ts",
-	"startLineNumber": 112,
-	"startColumn": 49,
-	"endLineNumber": 112,
-	"endColumn": 59,
-	"modelVersionId": 48
-},{
-	"resource": "/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/hooks/useOfflineRecording.ts",
-	"owner": "typescript",
-	"code": "2741",
-	"severity": 8,
-	"message": "Property 'formattedText' is missing in type '{ id: string; title: string; date: string; status: null; content: string; rawText: string; currentView: \"formatted\"; createdAt: number; }' but required in type 'Clip'.",
-	"source": "ts",
-	"startLineNumber": 114,
-	"startColumn": 13,
-	"endLineNumber": 114,
-	"endColumn": 23,
-	"relatedInformation": [
-		{
-			"startLineNumber": 32,
-			"startColumn": 3,
-			"endLineNumber": 32,
-			"endColumn": 16,
-			"message": "'formattedText' is declared here.",
-			"resource": "/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/store/clipStore.ts"
-		}
-	],
-	"modelVersionId": 48
-},{
-	"resource": "/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/hooks/useOfflineRecording.ts",
-	"owner": "typescript",
-	"code": "2739",
-	"severity": 8,
-	"message": "Type '{ id: string; title: string; date: string; status: \"pending-child\"; content: string; pendingClipTitle: string; audioId: string; duration: string; parentId: string; currentView: \"formatted\"; createdAt: number; }' is missing the following properties from type 'Clip': rawText, formattedText",
-	"source": "ts",
-	"startLineNumber": 140,
-	"startColumn": 13,
-	"endLineNumber": 140,
-	"endColumn": 23,
-	"modelVersionId": 48
-},{
-	"resource": "/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/hooks/useOfflineRecording.ts",
-	"owner": "typescript",
-	"code": "2739",
-	"severity": 8,
-	"message": "Type '{ id: string; title: string; date: string; status: \"pending-child\"; content: string; pendingClipTitle: string; audioId: string; duration: string; parentId: string; currentView: \"formatted\"; createdAt: number; }' is missing the following properties from type 'Clip': rawText, formattedText",
-	"source": "ts",
-	"startLineNumber": 202,
-	"startColumn": 13,
-	"endLineNumber": 202,
-	"endColumn": 22,
-	"modelVersionId": 48
-}]
+▲ Next.js 15.5.7
+   - Local:        http://localhost:3000
+   - Network:      http://127.57.134.204:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 5.4s
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ✓ Compiled /clipperstream/showcase/clipscreencomponents in 435ms (378 modules)
+ GET /clipperstream/showcase/clipscreencomponents 200 in 725ms
+ GET /clipperstream/showcase/clipscreencomponents 200 in 793ms
+ GET /clipperstream/showcase/clipscreencomponents 200 in 231ms
+ ⨯ ./src/projects/clipperstream/services/audioStorage.ts
+Error:   × await isn't allowed in non-async function
+     ╭─[/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/audioStorage.ts:169:1]
+ 166 │       // ========================================
+ 167 │       // DIAGNOSTIC LOGGING: Verify WebM content
+ 168 │       // ========================================
+ 169 │       const verifyBuffer = await blob.arrayBuffer();
+     ·                            ─────
+ 170 │       const verifyBytes = new Uint8Array(verifyBuffer);
+ 171 │       const isValidWebM = verifyBytes.length >= 4 &&
+ 172 │                          verifyBytes[0] === 0x1A &&
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/projects/clipperstream/services/audioStorage.ts
+./src/projects/clipperstream/components/ui/ClipMasterScreen.tsx
+ ⨯ ./src/projects/clipperstream/services/audioStorage.ts
+Error:   × await isn't allowed in non-async function
+     ╭─[/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/audioStorage.ts:169:1]
+ 166 │       // ========================================
+ 167 │       // DIAGNOSTIC LOGGING: Verify WebM content
+ 168 │       // ========================================
+ 169 │       const verifyBuffer = await blob.arrayBuffer();
+     ·                            ─────
+ 170 │       const verifyBytes = new Uint8Array(verifyBuffer);
+ 171 │       const isValidWebM = verifyBytes.length >= 4 &&
+ 172 │                          verifyBytes[0] === 0x1A &&
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/projects/clipperstream/services/audioStorage.ts
+./src/projects/clipperstream/components/ui/ClipMasterScreen.tsx
+ ⨯ ./src/projects/clipperstream/services/audioStorage.ts
+Error:   × await isn't allowed in non-async function
+     ╭─[/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/audioStorage.ts:169:1]
+ 166 │       // ========================================
+ 167 │       // DIAGNOSTIC LOGGING: Verify WebM content
+ 168 │       // ========================================
+ 169 │       const verifyBuffer = await blob.arrayBuffer();
+     ·                            ─────
+ 170 │       const verifyBytes = new Uint8Array(verifyBuffer);
+ 171 │       const isValidWebM = verifyBytes.length >= 4 &&
+ 172 │                          verifyBytes[0] === 0x1A &&
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/projects/clipperstream/services/audioStorage.ts
+./src/projects/clipperstream/components/ui/ClipMasterScreen.tsx
+ ⨯ ./src/projects/clipperstream/services/audioStorage.ts
+Error:   × await isn't allowed in non-async function
+     ╭─[/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/audioStorage.ts:169:1]
+ 166 │       // ========================================
+ 167 │       // DIAGNOSTIC LOGGING: Verify WebM content
+ 168 │       // ========================================
+ 169 │       const verifyBuffer = await blob.arrayBuffer();
+     ·                            ─────
+ 170 │       const verifyBytes = new Uint8Array(verifyBuffer);
+ 171 │       const isValidWebM = verifyBytes.length >= 4 &&
+ 172 │                          verifyBytes[0] === 0x1A &&
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/projects/clipperstream/services/audioStorage.ts
+./src/projects/clipperstream/components/ui/ClipMasterScreen.tsx
+^[[1;2B^[[1;2B^C
+~/Documents/projects/final-exp (feature/offline-auto-retry-v2.7.0)  > npm run dev
+
+> final-exp@0.1.0 dev
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/ethan/Documents/projects/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /Users/ethan/Documents/projects/final-exp/package-lock.json
+
+   ▲ Next.js 15.5.7
+   - Local:        http://localhost:3000
+   - Network:      http://127.57.134.204:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 5.5s
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ ⨯ ./src/projects/clipperstream/services/audioStorage.ts
+Error:   × await isn't allowed in non-async function
+     ╭─[/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/audioStorage.ts:169:1]
+ 166 │       // ========================================
+ 167 │       // DIAGNOSTIC LOGGING: Verify WebM content
+ 168 │       // ========================================
+ 169 │       const verifyBuffer = await blob.arrayBuffer();
+     ·                            ─────
+ 170 │       const verifyBytes = new Uint8Array(verifyBuffer);
+ 171 │       const isValidWebM = verifyBytes.length >= 4 &&
+ 172 │                          verifyBytes[0] === 0x1A &&
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/projects/clipperstream/services/audioStorage.ts
+./src/projects/clipperstream/components/ui/ClipMasterScreen.tsx
+ ○ Compiling /_not-found ...
+ ⨯ ./src/projects/clipperstream/services/audioStorage.ts
+Error:   × await isn't allowed in non-async function
+     ╭─[/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/audioStorage.ts:169:1]
+ 166 │       // ========================================
+ 167 │       // DIAGNOSTIC LOGGING: Verify WebM content
+ 168 │       // ========================================
+ 169 │       const verifyBuffer = await blob.arrayBuffer();
+     ·                            ─────
+ 170 │       const verifyBytes = new Uint8Array(verifyBuffer);
+ 171 │       const isValidWebM = verifyBytes.length >= 4 &&
+ 172 │                          verifyBytes[0] === 0x1A &&
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/projects/clipperstream/services/audioStorage.ts
+./src/projects/clipperstream/components/ui/ClipMasterScreen.tsx
+ ⨯ ./src/projects/clipperstream/services/audioStorage.ts
+Error:   × await isn't allowed in non-async function
+     ╭─[/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/audioStorage.ts:169:1]
+ 166 │       // ========================================
+ 167 │       // DIAGNOSTIC LOGGING: Verify WebM content
+ 168 │       // ========================================
+ 169 │       const verifyBuffer = await blob.arrayBuffer();
+     ·                            ─────
+ 170 │       const verifyBytes = new Uint8Array(verifyBuffer);
+ 171 │       const isValidWebM = verifyBytes.length >= 4 &&
+ 172 │                          verifyBytes[0] === 0x1A &&
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/projects/clipperstream/services/audioStorage.ts
+./src/projects/clipperstream/components/ui/ClipMasterScreen.tsx
+ GET /clipperstream/showcase/clipscreencomponents 500 in 1318ms
+ GET /clipperstream/showcase/clipscreencomponents 500 in 1308ms
+
+ ⨯ ./src/projects/clipperstream/services/audioStorage.ts
+Error:   × await isn't allowed in non-async function
+     ╭─[/Users/ethan/Documents/projects/final-exp/src/projects/clipperstream/services/audioStorage.ts:169:1]
+ 166 │       // ========================================
+ 167 │       // DIAGNOSTIC LOGGING: Verify WebM content
+ 168 │       // ========================================
+ 169 │       const verifyBuffer = await blob.arrayBuffer();
+     ·                            ─────
+ 170 │       const verifyBytes = new Uint8Array(verifyBuffer);
+ 171 │       const isValidWebM = verifyBytes.length >= 4 &&
+ 172 │                          verifyBytes[0] === 0x1A &&
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/projects/clipperstream/services/audioStorage.ts
+./src/projects/clipperstream/components/ui/ClipMasterScreen.tsx
