@@ -118,6 +118,7 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
         status: null,
         content: '',
         rawText: '',
+        formattedText: '',
         currentView: 'formatted',
         createdAt: Date.now()
       };
