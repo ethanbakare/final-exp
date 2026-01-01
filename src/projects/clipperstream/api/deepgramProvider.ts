@@ -76,6 +76,54 @@ export async function transcribeAudio(
     };
     
   } catch (err) {
+    // ========================================
+    // DIAGNOSTIC LOGGING: Full error details
+    // ========================================
+    console.error('=== 🔬 DEEPGRAM API ERROR DETAILS ===');
+    console.error('Error object:', err);
+    console.error('Error type:', err?.constructor?.name);
+    console.error('Error message:', err instanceof Error ? err.message : String(err));
+
+    // Try to extract all possible error properties
+    if (typeof err === 'object' && err !== null) {
+      console.error('Error properties:', {
+        code: (err as any).code,
+        status: (err as any).status,
+        statusCode: (err as any).statusCode,
+        errno: (err as any).errno,
+        syscall: (err as any).syscall,
+        cause: (err as any).cause,
+      });
+
+      // Log response if it exists
+      if ((err as any).response) {
+        console.error('Error response:', (err as any).response);
+      }
+
+      // Log data if it exists
+      if ((err as any).data) {
+        console.error('Error data:', (err as any).data);
+      }
+    }
+
+    // Deepgram SDK specific error format
+    if (err && typeof err === 'object' && 'error' in err) {
+      console.error('Deepgram SDK error:', JSON.stringify((err as any).error, null, 2));
+    }
+
+    // If it's a fetch error, log fetch-specific details
+    if (err instanceof Error && err.message.includes('fetch failed')) {
+      console.error('This is a FETCH error - network or request failed');
+      console.error('Possible causes:');
+      console.error('  1. Network connectivity issue');
+      console.error('  2. Invalid audio format rejected by Deepgram');
+      console.error('  3. CORS or request configuration issue');
+      console.error('  4. Deepgram API endpoint unreachable');
+    }
+
+    console.error('=====================================');
+    // ========================================
+
     // Handle various error types
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
     

@@ -134,6 +134,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
     
+    // ========================================
+    // DIAGNOSTIC LOGGING: Verify WebM format
+    // ========================================
+    const isValidWebM = audioData.length >= 4 &&
+                       audioData[0] === 0x1A &&
+                       audioData[1] === 0x45 &&
+                       audioData[2] === 0xDF &&
+                       audioData[3] === 0xA3;
+
+    const hexDump = audioData.slice(0, 64)
+      .toString('hex')
+      .match(/.{1,2}/g)
+      ?.join(' ') || '';
+
+    console.log('=== 🔬 SERVER AUDIO VERIFICATION ===');
+    console.log('File path:', filePath);
+    console.log('Size:', audioData.length, 'bytes');
+    console.log('MIME type:', mimeType);
+    console.log('Is valid WebM:', isValidWebM ? '✅ YES' : '❌ NO');
+    console.log('First 64 bytes (hex):', hexDump);
+    console.log('Expected WebM header: 1a 45 df a3');
+    console.log('====================================');
+
+    if (!isValidWebM) {
+      console.error('❌ INVALID WEBM FILE - rejecting before sending to Deepgram');
+      console.error('First 4 bytes:', hexDump.split(' ').slice(0, 4).join(' '));
+      console.error('Expected:      1a 45 df a3');
+      fs.unlinkSync(filePath);
+      return res.status(400).json({
+        error: 'Invalid audio format',
+        details: 'File does not contain valid WebM data. Audio may be corrupted.',
+        hexDump: hexDump.substring(0, 50) + '...'
+      });
+    }
+    // ========================================
+    
     console.log(`Processing audio file: ${filePath}, size: ${audioData.length} bytes, type: ${mimeType}`);
 
     // Transcribe with Deepgram
