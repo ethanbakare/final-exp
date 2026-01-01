@@ -1,0 +1,300 @@
+# 045 - CRITICAL: Zustand Selector Infinite Loop Fix
+
+**Date**: December 31, 2025
+**Type**: 🚨 CRITICAL BUG FIX
+**Status**: ❌ BLOCKING - Page won't load
+
+---
+
+## Error Analysis
+
+### Error Message
+```
+Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+
+The result of getServerSnapshot should be cached to avoid an infinite loop
+```
+
+### Root Cause Found ✅
+
+**Location**: [ClipMasterScreen.tsx:153-175](ClipMasterScreen.tsx#L153-L175)
+
+**The Problem**:
+```typescript
+const selectedPendingClips = useClipStore((state) => {
+  if (!currentClipId) return [];  // ❌ NEW ARRAY REFERENCE
+
+  const children = state.clips
+    .filter(c => c.parentId === currentClipId)
+    .sort((a, b) => {
+      const timestampA = parseInt(a.id.split('-')[1], 10) || 0;
+      const timestampB = parseInt(b.id.split('-')[1], 10) || 0;
+      return timestampA - timestampB;
+    });
+
+  return children.map(child => ({  // ❌ NEW ARRAY REFERENCE
+    id: child.id,
+    title: child.pendingClipTitle || 'Pending',
+    time: child.duration || '0:00',
+    status: (child.status === 'transcribing' ? 'transcribing' : 'waiting') as 'waiting' | 'transcribing',
+    isActiveRequest: state.activeHttpClipId === child.id
+  }));
+});
+```
+
+---
+
+## Why This Causes Infinite Loop
+
+### The Infinite Loop Cycle
+
+1. **Selector runs** → Creates new array `[]` or `children.map(...)` → **NEW REFERENCE**
+2. **React compares references** → Previous array vs new array → **DIFFERENT REFERENCES**
+3. **React sees change** → Triggers re-render of component
+4. **Re-render triggers selector** → Selector runs again (step 1)
+5. **INFINITE LOOP** 🔁
+
+### Visual Diagram
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Component renders                                       │
+│   ↓                                                     │
+│ Zustand selector runs                                  │
+│   ↓                                                     │
+│ Creates NEW array reference (even if content same)     │
+│   ↓                                                     │
+│ React compares: newArray !== oldArray                  │
+│   ↓                                                     │
+│ React re-renders component (sees new reference)        │
+│   ↓                                                     │
+│ ┌─────────────────────────────────────────────────┐    │
+│ │ Component renders (LOOP BACK TO TOP)            │    │
+│ └─────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## The Fix: Use useMemo for Array Derivation
+
+### Why useMemo Works
+
+`useMemo` caches the result and only recomputes when dependencies change:
+- **Same dependencies** → Returns cached array (SAME REFERENCE) → No re-render
+- **Different dependencies** → Recomputes new array (NEW REFERENCE) → Re-render (expected)
+
+### Implementation
+
+**Location**: [ClipMasterScreen.tsx:153-175](ClipMasterScreen.tsx#L153-L175)
+
+**REPLACE THIS** (Lines 151-175):
+```typescript
+// PHASE 2: Selected pending clips array (multiple clips can be pending)
+const [selectedPendingClips, setSelectedPendingClips] = useState<PendingClip[]>([]);
+
+// v2.7.0: Zustand selector for selectedPendingClips (replaces useState)
+// Auto-updates when children change, no manual sync needed
+const selectedPendingClips = useClipStore((state) => {
+  // If no parent selected, return empty array
+  if (!currentClipId) return [];
+
+  // Find all children of current parent
+  const children = state.clips
+    .filter(c => c.parentId === currentClipId)
+    .sort((a, b) => {
+      // Sort by creation time (oldest first = recording order)
+      const timestampA = parseInt(a.id.split('-')[1], 10) || 0;
+      const timestampB = parseInt(b.id.split('-')[1], 10) || 0;
+      return timestampA - timestampB;
+    });
+
+  // Convert Clip → PendingClip format (matches PendingClip interface)
+  return children.map(child => ({
+    id: child.id,
+    title: child.pendingClipTitle || 'Pending',
+    time: child.duration || '0:00',
+    status: (child.status === 'transcribing' ? 'transcribing' : 'waiting') as 'waiting' | 'transcribing',
+    isActiveRequest: state.activeHttpClipId === child.id
+  }));
+});
+```
+
+**WITH THIS**:
+```typescript
+// v2.7.0: Zustand selector for selectedPendingClips (replaces useState)
+// Subscribe to clips array and activeHttpClipId from Zustand
+const clips = useClipStore((state) => state.clips);
+const activeHttpClipId = useClipStore((state) => state.activeHttpClipId);
+
+// Derive selectedPendingClips using useMemo (prevents infinite loop)
+// Only recomputes when currentClipId, clips, or activeHttpClipId change
+const selectedPendingClips = useMemo(() => {
+  // If no parent selected, return empty array
+  if (!currentClipId) return [];
+
+  // Find all children of current parent
+  const children = clips
+    .filter(c => c.parentId === currentClipId)
+    .sort((a, b) => {
+      // Sort by creation time (oldest first = recording order)
+      const timestampA = parseInt(a.id.split('-')[1], 10) || 0;
+      const timestampB = parseInt(b.id.split('-')[1], 10) || 0;
+      return timestampA - timestampB;
+    });
+
+  // Convert Clip → PendingClip format (matches PendingClip interface)
+  return children.map(child => ({
+    id: child.id,
+    title: child.pendingClipTitle || 'Pending',
+    time: child.duration || '0:00',
+    status: (child.status === 'transcribing' ? 'transcribing' : 'waiting') as 'waiting' | 'transcribing',
+    isActiveRequest: activeHttpClipId === child.id
+  }));
+}, [currentClipId, clips, activeHttpClipId]);
+```
+
+---
+
+## Delete Duplicate Line
+
+**CRITICAL**: There are TWO lines declaring `activeHttpClipId` now!
+
+**Location**: Line 106 (existing declaration)
+
+**FIND THIS** (Line 106):
+```typescript
+const activeHttpClipId = useClipStore((state) => state.activeHttpClipId);
+```
+
+**ACTION**: ❌ **DELETE THIS LINE** (it's now declared at line 154 in the fix above)
+
+---
+
+## Why This Fix Works
+
+### Before (Infinite Loop)
+```typescript
+// Every render creates NEW array reference
+const selectedPendingClips = useClipStore((state) => {
+  return [];  // New reference every time
+});
+
+// React compares:
+render1: selectedPendingClips = Array#1
+render2: selectedPendingClips = Array#2  // Different reference!
+// → Re-render → Array#3 → Re-render → Array#4 → ∞
+```
+
+### After (Memoized)
+```typescript
+// useMemo caches result, only recomputes when dependencies change
+const selectedPendingClips = useMemo(() => {
+  return [];  // Cached if dependencies unchanged
+}, [currentClipId, clips, activeHttpClipId]);
+
+// React compares:
+render1: selectedPendingClips = Array#1
+render2: selectedPendingClips = Array#1  // SAME reference (cached)
+// → No re-render ✅
+```
+
+---
+
+## Verification Checklist
+
+After applying the fix, verify:
+
+- [ ] Page loads without error
+- [ ] Click a clip with pending children → Pending clips display
+- [ ] Click back button → Pending clips clear
+- [ ] Record offline → Pending clip appears
+- [ ] Go online → Auto-retry processes clips
+- [ ] No console errors about "Maximum update depth"
+- [ ] No console warnings about "getServerSnapshot should be cached"
+
+---
+
+## Alternative Fix (Not Recommended)
+
+**Alternative**: Use `shallow` from zustand/shallow
+
+```typescript
+import { shallow } from 'zustand/shallow';
+
+const selectedPendingClips = useClipStore((state) => {
+  // ... selector logic
+}, shallow);  // ← Shallow comparison
+```
+
+**Why Not Recommended**:
+- `shallow` only compares array elements by reference, not deep object equality
+- If any child property changes (e.g., `status`), still triggers re-render
+- `useMemo` is more predictable and explicit about dependencies
+
+---
+
+## Technical Explanation: React's Reference Equality
+
+### JavaScript Array Creation
+
+```javascript
+// These are DIFFERENT arrays (different references)
+[] === []  // false
+[1, 2, 3] === [1, 2, 3]  // false
+
+// Same reference
+const arr = [1, 2, 3];
+arr === arr  // true
+```
+
+### React's Comparison
+
+React uses `Object.is()` to compare values (reference equality for objects/arrays):
+
+```typescript
+// Render 1
+const arr1 = [{ id: 'a' }];
+
+// Render 2
+const arr2 = [{ id: 'a' }];
+
+// React compares
+Object.is(arr1, arr2)  // false → Triggers re-render
+
+// With useMemo
+const arr1 = useMemo(() => [{ id: 'a' }], []);  // Render 1
+const arr2 = arr1;  // Render 2 (cached, same reference)
+Object.is(arr1, arr2)  // true → No re-render ✅
+```
+
+---
+
+## Summary
+
+**Problem**: Zustand selector creates new array reference on every render → Infinite loop
+
+**Root Cause**:
+- `return []` creates new empty array
+- `children.map()` creates new array
+- React sees different reference → Re-renders → Loop
+
+**Solution**: Use `useMemo` to cache array and only recompute when dependencies change
+
+**Files Changed**:
+1. ClipMasterScreen.tsx (lines 106, 151-175)
+
+**Impact**:
+- ✅ Fixes infinite loop
+- ✅ Page loads correctly
+- ✅ Pending clips display/update work
+- ✅ No performance impact (useMemo is standard pattern)
+
+---
+
+**Status**: 📋 **READY TO APPLY**
+**Next**: Apply fix, test page load, verify all pending clip interactions work
+
+---
+
+**End of Document**

@@ -104,7 +104,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   }, [deleteClip]);
 
   // PHASE 5 (v2.6.0): Move global flags to Zustand store
-  const activeHttpClipId = useClipStore((state) => state.activeHttpClipId);
+  // v2.7.0: activeHttpClipId moved to line 154 (used in useMemo for selectedPendingClips)
   const setActiveHttpClipId = useClipStore((state) => state.setActiveHttpClipId);
   const activeTranscriptionParentId = useClipStore((state) => state.activeTranscriptionParentId);
   const setActiveTranscriptionParentId = useClipStore((state) => state.setActiveTranscriptionParentId);
@@ -149,13 +149,18 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // DELETED - now returned from useClipState hook
 
   // v2.7.0: Zustand selector for selectedPendingClips (replaces useState)
-  // Auto-updates when children change, no manual sync needed
-  const selectedPendingClips = useClipStore((state) => {
+  // Subscribe to clips array and activeHttpClipId from Zustand
+  const clips = useClipStore((state) => state.clips);
+  const activeHttpClipId = useClipStore((state) => state.activeHttpClipId);
+
+  // Derive selectedPendingClips using useMemo (prevents infinite loop)
+  // Only recomputes when currentClipId, clips, or activeHttpClipId change
+  const selectedPendingClips = useMemo(() => {
     // If no parent selected, return empty array
     if (!currentClipId) return [];
 
     // Find all children of current parent
-    const children = state.clips
+    const children = clips
       .filter(c => c.parentId === currentClipId)
       .sort((a, b) => {
         // Sort by creation time (oldest first = recording order)
@@ -170,9 +175,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       title: child.pendingClipTitle || 'Pending',
       time: child.duration || '0:00',
       status: (child.status === 'transcribing' ? 'transcribing' : 'waiting') as 'waiting' | 'transcribing',
-      isActiveRequest: state.activeHttpClipId === child.id
+      isActiveRequest: activeHttpClipId === child.id
     }));
-  });
+  }, [currentClipId, clips, activeHttpClipId]);
 
   // Track if search is active (to hide RecordBar)
   const [isSearchActive, setIsSearchActive] = useState(false);
