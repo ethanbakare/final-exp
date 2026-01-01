@@ -36,6 +36,13 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
     getClips
   } = params;
 
+  // Helper: Format duration in seconds to "M:SS" format
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleOfflineRecording = useCallback((recordingParams: {
     audioId: string;
     duration: number;
@@ -136,6 +143,8 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
         date: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         status: 'pending-child',            // Child status (filtered from home)
         content: '',                        // No content yet (pending transcription)
+        rawText: '',                        // Empty until transcribed
+        formattedText: '',                  // Empty until formatted
         pendingClipTitle: 'Clip 001',       // First pending clip
         audioId: audioId,                   // Link to IndexedDB audio
         duration: formatDuration(duration), // Recording duration
@@ -198,6 +207,8 @@ export const useOfflineRecording = (params: UseOfflineRecordingParams): UseOffli
         date: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         status: 'pending-child',            // Child status (filtered from home)
         content: '',                        // No content yet (pending transcription)
+        rawText: '',                        // Empty until transcribed
+        formattedText: '',                  // Empty until formatted
         pendingClipTitle: nextPendingTitle, // "Clip 002", "Clip 003", etc.
         audioId: audioId,                   // Link to IndexedDB audio
         duration: formatDuration(duration), // Recording duration

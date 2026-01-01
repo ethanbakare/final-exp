@@ -1,4 +1,4 @@
-# 042 - Final Fixes for 037_v1 Based on User Feedback
+# 037_02 - Final Fixes for 037_v1 Based on User Feedback
 
 **Date**: December 31, 2025
 **Type**: Implementation-Ready Corrections
@@ -55,7 +55,7 @@ Then merge batch to parent:
 
 **User**: "If you delete a parent file, all the children should be deleted as well."
 
-**Fix**: Add cleanup in `processParentChildren` (already planned in 041).
+**Fix**: Add cleanup in `processParentChildren` (already planned in 037_01).
 
 ---
 

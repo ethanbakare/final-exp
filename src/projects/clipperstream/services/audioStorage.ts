@@ -66,6 +66,7 @@ export async function storeAudio(blob: Blob): Promise<string> {
     const request = store.add({
       id: audioId,
       blob,
+      mimeType: blob.type || 'audio/webm',  // Store MIME type separately
       timestamp: Date.now()
     });
 
@@ -101,11 +102,23 @@ export async function getAudio(audioId: string): Promise<Blob | null> {
     request.onsuccess = () => {
       const result = request.result;
       if (result) {
+        // Recreate blob with correct MIME type if lost during IndexedDB round-trip
+        // This fixes a browser bug where Blob.type becomes empty string after deserialization
+        const mimeType = result.mimeType || 'audio/webm';
+        const correctedBlob = result.blob.type === ''
+          ? new Blob([result.blob], { type: mimeType })  // Recreate with stored type
+          : result.blob;  // Use original if type was preserved
+
         log.debug('Audio retrieved from IndexedDB', {
           audioId,
-          size: result.blob.size
+          size: correctedBlob.size,
+          originalType: result.blob.type,
+          storedMimeType: result.mimeType,
+          finalType: correctedBlob.type,
+          wasRecreated: result.blob.type === ''
         });
-        resolve(result.blob);
+
+        resolve(correctedBlob);
       } else {
         log.warn('Audio not found in IndexedDB', { audioId });
         resolve(null);

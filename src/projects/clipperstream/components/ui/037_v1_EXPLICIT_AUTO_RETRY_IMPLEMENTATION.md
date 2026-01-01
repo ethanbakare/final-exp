@@ -1009,7 +1009,7 @@ FAILURE INDICATORS:
 
 ## 📝 CHANGELOG - Corrections from User Feedback
 
-**Based on**: Documents 041, 042, 043 (User feedback and clarifications)
+**Based on**: Documents 037_01, 037_02, 037_03 (User feedback and clarifications)
 
 ### Change #1: Context Parameter for AI Formatting ✅
 

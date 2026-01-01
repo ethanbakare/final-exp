@@ -1,4 +1,4 @@
-# 043 - Clarifications: Title Generation & Retry Mechanism
+# 037_03 - Clarifications: Title Generation & Retry Mechanism
 
 **Date**: December 31, 2025
 **Type**: User Feedback Clarification

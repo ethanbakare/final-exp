@@ -149,8 +149,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // DELETED - now returned from useClipState hook
 
   // v2.7.0: Zustand selector for selectedPendingClips (replaces useState)
-  // Subscribe to clips array and activeHttpClipId from Zustand
-  const clips = useClipStore((state) => state.clips);
+  // Subscribe to activeHttpClipId from Zustand (clips already declared at line 69)
   const activeHttpClipId = useClipStore((state) => state.activeHttpClipId);
 
   // Derive selectedPendingClips using useMemo (prevents infinite loop)
