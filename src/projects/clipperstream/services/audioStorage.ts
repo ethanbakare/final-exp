@@ -145,6 +145,51 @@ export async function getAudio(audioId: string): Promise<Blob | null> {
         return;
       }
 
+      // ========================================
+      // DIAGNOSTIC LOGGING: Verify WebM content
+      // Verify BEFORE converting to blob (more efficient)
+      // ========================================
+      const verifyBytes = new Uint8Array(result.data);
+      const isValidWebM = verifyBytes.length >= 4 &&
+                         verifyBytes[0] === 0x1A &&
+                         verifyBytes[1] === 0x45 &&
+                         verifyBytes[2] === 0xDF &&
+                         verifyBytes[3] === 0xA3;
+
+      const first16Bytes = verifyBytes.length >= 16
+        ? Array.from(verifyBytes.slice(0, 16))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join(' ')
+        : 'insufficient data';
+
+      log.debug('🔬 ARRAYBUFFER CONTENT VERIFICATION', {
+        audioId,
+        isValidWebM,
+        first16Bytes,
+        expectedHeader: '1a 45 df a3 ...',
+        totalBytes: verifyBytes.length,
+        storedSize: result.size
+      });
+
+      if (!isValidWebM) {
+        log.error('❌ INVALID WEBM DATA - ArrayBuffer does not contain valid WebM audio', {
+          audioId,
+          first16Bytes,
+          expectedBytes: '1a 45 df a3',
+          actualBytes: verifyBytes.length >= 4
+            ? Array.from(verifyBytes.slice(0, 4))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join(' ')
+            : 'insufficient data'
+        });
+      } else {
+        log.info('✅ VALID WEBM DATA - ArrayBuffer contains valid WebM magic bytes', {
+          audioId,
+          first4Bytes: first16Bytes.split(' ').slice(0, 4).join(' ')
+        });
+      }
+      // ========================================
+
       // Get MIME type (with fallback to codec-included default)
       const mimeType = result.mimeType || 'audio/webm;codecs=opus';
 
@@ -162,51 +207,6 @@ export async function getAudio(audioId: string): Promise<Blob | null> {
         resolve(null);
         return;
       }
-
-      // ========================================
-      // DIAGNOSTIC LOGGING: Verify WebM content
-      // ========================================
-      const verifyBuffer = await blob.arrayBuffer();
-      const verifyBytes = new Uint8Array(verifyBuffer);
-      const isValidWebM = verifyBytes.length >= 4 &&
-                         verifyBytes[0] === 0x1A &&
-                         verifyBytes[1] === 0x45 &&
-                         verifyBytes[2] === 0xDF &&
-                         verifyBytes[3] === 0xA3;
-
-      const first16Bytes = verifyBytes.length >= 16
-        ? Array.from(verifyBytes.slice(0, 16))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join(' ')
-        : 'insufficient data';
-
-      log.debug('🔬 BLOB CONTENT VERIFICATION', {
-        audioId,
-        isValidWebM,
-        first16Bytes,
-        expectedHeader: '1a 45 df a3 ...',
-        totalBytes: verifyBytes.length,
-        blobSize: blob.size
-      });
-
-      if (!isValidWebM) {
-        log.error('❌ INVALID WEBM DATA - blob does not contain valid WebM audio', {
-          audioId,
-          first16Bytes,
-          expectedBytes: '1a 45 df a3',
-          actualBytes: verifyBytes.length >= 4
-            ? Array.from(verifyBytes.slice(0, 4))
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join(' ')
-            : 'insufficient data'
-        });
-      } else {
-        log.info('✅ VALID WEBM DATA - blob contains valid WebM magic bytes', {
-          audioId,
-          first4Bytes: first16Bytes.split(' ').slice(0, 4).join(' ')
-        });
-      }
-      // ========================================
 
       log.debug('Audio retrieved from IndexedDB', {
         audioId,
