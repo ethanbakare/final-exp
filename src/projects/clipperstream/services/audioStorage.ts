@@ -8,7 +8,7 @@ const log = logger.scope('AudioStorage');
 
 const DB_NAME = 'clipstream_audio';
 const STORE_NAME = 'audio_blobs';
-const DB_VERSION = 1;
+const DB_VERSION = 2;  // Incremented from 1 to 2 for ArrayBuffer migration
 
 let dbInstance: IDBDatabase | null = null;
 
@@ -39,9 +39,23 @@ async function initDB(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        log.info('Created IndexedDB object store', { storeName: STORE_NAME });
+      const oldVersion = event.oldVersion;
+      
+      // Version 0 → 1: Create store
+      if (oldVersion < 1) {
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          log.info('Created IndexedDB object store', { storeName: STORE_NAME });
+        }
+      }
+      
+      // Version 1 → 2: Clear old audio blobs (they use blob format, not ArrayBuffer)
+      if (oldVersion === 1) {
+        log.info('Migrating IndexedDB from v1 to v2: clearing old audio blobs');
+        const transaction = (event.target as IDBOpenDBRequest).transaction!;
+        const store = transaction.objectStore(STORE_NAME);
+        store.clear();  // Delete all old audio blobs stored in legacy format
+        log.info('Migration complete: old audio blobs cleared, new recordings will use ArrayBuffer format');
       }
     };
   });
@@ -59,22 +73,29 @@ async function initDB(): Promise<IDBDatabase> {
 export async function storeAudio(blob: Blob): Promise<string> {
   const db = await initDB();
   const audioId = `audio-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  // CRITICAL FIX: Convert Blob to ArrayBuffer before storing
+  // This prevents browser bugs where Blob internal structure gets corrupted in IndexedDB
+  const arrayBuffer = await blob.arrayBuffer();
+  const mimeType = blob.type || 'audio/webm';
 
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.add({
       id: audioId,
-      blob,
-      mimeType: blob.type || 'audio/webm',  // Store MIME type separately
+      data: arrayBuffer,  // Store raw binary data, not Blob
+      mimeType: mimeType,
+      size: arrayBuffer.byteLength,  // Store size for validation
       timestamp: Date.now()
     });
 
     request.onsuccess = () => {
       log.info('Audio stored in IndexedDB', {
         audioId,
-        size: blob.size,
-        type: blob.type
+        size: arrayBuffer.byteLength,
+        mimeType: mimeType,
+        format: 'ArrayBuffer'
       });
       resolve(audioId);
     };
@@ -101,28 +122,83 @@ export async function getAudio(audioId: string): Promise<Blob | null> {
 
     request.onsuccess = () => {
       const result = request.result;
-      if (result) {
-        // Recreate blob with correct MIME type if lost during IndexedDB round-trip
-        // This fixes a browser bug where Blob.type becomes empty string after deserialization
-        const mimeType = result.mimeType || 'audio/webm';
-        const correctedBlob = result.blob.type === ''
-          ? new Blob([result.blob], { type: mimeType })  // Recreate with stored type
-          : result.blob;  // Use original if type was preserved
-
-        log.debug('Audio retrieved from IndexedDB', {
-          audioId,
-          size: correctedBlob.size,
-          originalType: result.blob.type,
-          storedMimeType: result.mimeType,
-          finalType: correctedBlob.type,
-          wasRecreated: result.blob.type === ''
-        });
-
-        resolve(correctedBlob);
-      } else {
+      
+      // Defensive validation
+      if (!result) {
         log.warn('Audio not found in IndexedDB', { audioId });
         resolve(null);
+        return;
       }
+      
+      // Handle both new format (data as ArrayBuffer) and old format (blob)
+      let arrayBuffer: ArrayBuffer;
+      let mimeType: string;
+      
+      if (result.data) {
+        // New format: data stored as ArrayBuffer
+        if (!(result.data instanceof ArrayBuffer)) {
+          log.error('Invalid data format in IndexedDB', {
+            audioId,
+            dataType: typeof result.data,
+            hasBlob: !!result.blob
+          });
+          resolve(null);
+          return;
+        }
+        
+        if (result.data.byteLength === 0) {
+          log.error('Empty ArrayBuffer in IndexedDB', { audioId });
+          resolve(null);
+          return;
+        }
+        
+        arrayBuffer = result.data;
+        mimeType = result.mimeType || 'audio/webm';
+        
+      } else if (result.blob) {
+        // Old format: blob stored directly (legacy, might be corrupted)
+        log.warn('Found legacy blob format, attempting to use', { audioId });
+        
+        const legacyBlob = result.blob;
+        if (legacyBlob.size === 0) {
+          log.error('Empty legacy blob in IndexedDB', { audioId });
+          resolve(null);
+          return;
+        }
+        
+        // Recreate with stored MIME type to fix browser bug
+        mimeType = result.mimeType || legacyBlob.type || 'audio/webm';
+        const correctedBlob = new Blob([legacyBlob], { type: mimeType });
+        
+        log.debug('Audio retrieved from IndexedDB (legacy format)', {
+          audioId,
+          size: correctedBlob.size,
+          finalType: correctedBlob.type,
+          isLegacy: true
+        });
+        
+        resolve(correctedBlob);
+        return;
+        
+      } else {
+        log.error('No data or blob found in IndexedDB result', { audioId });
+        resolve(null);
+        return;
+      }
+      
+      // Create fresh Blob from ArrayBuffer
+      const blob = new Blob([arrayBuffer], { type: mimeType });
+      
+      log.debug('Audio retrieved from IndexedDB', {
+        audioId,
+        size: blob.size,
+        type: blob.type,
+        arrayBufferSize: arrayBuffer.byteLength,
+        mimeType: mimeType,
+        format: 'ArrayBuffer'
+      });
+      
+      resolve(blob);
     };
 
     request.onerror = () => {
