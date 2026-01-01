@@ -33,36 +33,26 @@ export const useParentTitleGenerator = ({
   const generatedTitles = useRef(new Set<string>());
 
   useEffect(() => {
-    // Find parents with all children completed
+    // v2.7.0: Trigger on parent content (children are deleted after merge)
     const parents = clips.filter(c => !c.parentId);
 
     for (const parent of parents) {
-      // Skip if already has AI title (not "Recording XX")
+      // Skip if already has AI title
       if (!parent.title.startsWith('Recording ')) continue;
 
       // Prevent duplicate calls
       if (generatedTitles.current.has(parent.id)) continue;
 
-      // Get children
-      const children = clips.filter(c => c.parentId === parent.id);
-      if (children.length === 0) continue;
+      // Only generate if parent has content (from merged children)
+      if (parent.content && parent.content.length > 0) {
+        generatedTitles.current.add(parent.id);
 
-      // Check if all children complete (formatted and no longer pending)
-      const allComplete = children.every(c => c.status === null && c.formattedText);
-
-      if (allComplete && children.length > 0) {
-        // Generate title from first child's content
-        const firstChild = children[0];
-        if (firstChild.rawText) {
-          generatedTitles.current.add(parent.id);
-          // Fire and forget - don't await
-          generateTitleInBackground(parent.id, firstChild.rawText).catch(err => {
-            console.error('Failed to generate parent title:', err);
-            generatedTitles.current.delete(parent.id); // Allow retry on error
-          });
-        }
+        // Use parent's rawText for title generation
+        generateTitleInBackground(parent.id, parent.rawText || parent.content).catch(err => {
+          console.error('Failed to generate parent title:', err);
+          generatedTitles.current.delete(parent.id);  // Allow retry on error
+        });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clips]); // Only depend on clips
+  }, [clips, generateTitleInBackground]);
 };
