@@ -2,6 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import formidable, { Fields, Files } from 'formidable';
 import fs from 'fs';
 import { transcribeAudio } from '../../../projects/clipperstream/api/deepgramProvider';
+// TEMPORARY: For VPN testing
+import { transcribeWithWhisper } from '../../../projects/clipperstream/api/whisperProvider';
 
 // Clipperstream Transcription API Route
 // Handles audio file uploads and transcription using Deepgram Nova 3
@@ -68,18 +70,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Check for Deepgram API key
-    const apiKey = process.env.DEEPGRAM_API_KEY;
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    // TEMPORARY: Check for provider parameter (for VPN testing)
+    const { files, fields } = await parseForm(req);
+    
+    // Handle provider parameter (formidable returns arrays for fields)
+    const providerField = fields.provider;
+    const provider = Array.isArray(providerField) 
+      ? providerField[0] 
+      : (providerField || 'deepgram');
+    
+    console.log('Transcription request', { provider, providerField });
+    
+    // Check for API keys
+    const deepgramKey = process.env.DEEPGRAM_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    
+    if (!deepgramKey || deepgramKey === 'your_api_key_here') {
       console.error('Missing or invalid Deepgram API key');
       return res.status(500).json({ 
         error: 'Configuration error',
-        details: 'Deepgram API key is not properly configured. Please add a valid API key to your .env.local file.'
+        details: 'Deepgram API key is not properly configured.'
       });
     }
 
     // Parse the incoming form data
-    const { files } = await parseForm(req);
     
     console.log('Files received:', Object.keys(files));
     
@@ -172,12 +186,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     console.log(`Processing audio file: ${filePath}, size: ${audioData.length} bytes, type: ${mimeType}`);
 
-    // Transcribe with Deepgram
-    const result = await transcribeAudio(
-      audioData,
-      mimeType,
-      apiKey
-    );
+    // TEMPORARY: Route to correct provider based on parameter
+    let result;
+    
+    if (provider === 'whisper') {
+      console.log('[API] Using Whisper provider (VPN test)');
+      if (!openaiKey || openaiKey === 'your_api_key_here') {
+        throw new Error('OpenAI API key is not configured');
+      }
+      result = await transcribeWithWhisper(audioData, mimeType, openaiKey);
+    } else {
+      console.log('[API] Using Deepgram provider');
+      result = await transcribeAudio(audioData, mimeType, deepgramKey);
+    }
 
     // Clean up temporary file
     try {

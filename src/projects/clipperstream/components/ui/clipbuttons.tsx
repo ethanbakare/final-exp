@@ -889,6 +889,117 @@ export const RetryButton: React.FC<ButtonProps> = ({
 };
 
 /* ============================================
+   VPN ISSUE BUTTON - Red warning button with icon and text (130×38px)
+   Used to indicate VPN/network issues
+   ============================================ */
+
+export const VpnIssueButton: React.FC<ButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <button 
+        className={`vpn-issue-button ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="VPN Issue"
+      >
+        <svg 
+          className="vpn-issue-icon"
+          width="24" 
+          height="24" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* Warning circle */}
+          <circle 
+            cx="12" 
+            cy="12" 
+            r="9" 
+            stroke="#EF4444" 
+            strokeWidth="1.8" 
+            fill="none"
+          />
+          {/* Exclamation mark line */}
+          <path 
+            d="M12 7V13" 
+            stroke="#EF4444" 
+            strokeWidth="2" 
+            strokeLinecap="round"
+          />
+          {/* Exclamation mark dot */}
+          <circle 
+            cx="12" 
+            cy="16" 
+            r="1" 
+            fill="#EF4444"
+          />
+        </svg>
+        <span className={`vpn-issue-text ${styles.InterMedium16}`}>
+          VPN issue
+        </span>
+      </button>
+      
+      <style jsx>{`
+        .vpn-issue-button {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px 12px 0px 10px;
+          gap: 8px;
+          
+          width: 130px;
+          height: 38px;
+          
+          background: var(--ClipRetryRed);
+          border-radius: 32px;
+          border: none;
+          cursor: pointer;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+        
+        .vpn-issue-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .vpn-issue-icon {
+          width: 24px;
+          height: 24px;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+        
+        .vpn-issue-text {
+          width: 76px;
+          height: 23px;
+          
+          text-align: center;
+          color: var(--RecRed);
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
    SCROLL BUTTON - Scroll down arrow button (38×38px)
    Used for scroll-to-bottom or scroll navigation features
    ============================================ */
@@ -1097,3 +1208,157 @@ export const TranscribeBig: React.FC<TranscribeBigProps> = ({
     </>
   );
 };
+
+/* ============================================
+   DELETE ICON - Trash bin icon (24×24px)
+   Used to indicate permanent deletion action
+   ============================================ */
+
+export const DeleteIcon: React.FC<ButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <button 
+        className={`delete-icon-button ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Delete"
+      >
+        <svg 
+          className="delete-svg"
+          width="24" 
+          height="24" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M14 10V17M10 10L10 17M4 6H20M18 6V17.8C18 18.9201 18.0002 19.4802 17.7822 19.908C17.5905 20.2844 17.2841 20.5902 16.9078 20.782C16.48 21 15.9203 21 14.8002 21H9.2002C8.08009 21 7.51962 21 7.0918 20.782C6.71547 20.5902 6.40973 20.2844 6.21799 19.908C6 19.4802 6 18.9201 6 17.8V6H18ZM16 6H8C8 5.06812 8 4.60216 8.15224 4.23462C8.35523 3.74456 8.74432 3.35523 9.23438 3.15224C9.60192 3 10.0681 3 11 3H13C13.9319 3 14.3978 3 14.7654 3.15224C15.2554 3.35523 15.6447 3.74456 15.8477 4.23462C15.9999 4.60216 16 5.06812 16 6Z" 
+            stroke="white" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      
+      <style jsx>{`
+        .delete-icon-button {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 3px;
+          
+          width: 24px;
+          height: 24px;
+          
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+        
+        .delete-icon-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .delete-svg {
+          width: 24px;
+          height: 24px;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   WARNING ICON - Warning triangle icon (24×24px)
+   Used to indicate errors, warnings, or VPN issues
+   ============================================ */
+
+export const WarningIcon: React.FC<ButtonProps> = ({ 
+  onClick, 
+  disabled = false,
+  className = '' 
+}) => {
+  return (
+    <>
+      <button 
+        className={`warning-icon ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Warning"
+      >
+        <svg 
+          className="warning-svg"
+          width="24" 
+          height="24" 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path 
+            d="M4.37891 15.2001L5.24493 15.7001L4.37891 15.2001ZM9.22865 6.80011L8.36262 6.30011L8.36262 6.30011L9.22865 6.80011ZM14.7715 6.80011L15.6375 6.30011L15.6375 6.30011L14.7715 6.80011ZM19.6212 15.2001L20.4873 14.7001L20.4873 14.7001L19.6212 15.2001ZM11.1863 4.17291L11.5931 5.08645L11.5931 5.08645L11.1863 4.17291ZM12.8135 4.17291L12.4067 5.08645L12.4067 5.08645L12.8135 4.17291ZM3.89649 19.6181L3.3087 20.4271L3.3087 20.4271L3.89649 19.6181ZM3.08281 18.2091L4.07734 18.1045L3.08281 18.2091ZM20.1036 19.6181L20.6914 20.4271L20.6914 20.4271L20.1036 19.6181ZM20.9173 18.2091L21.9118 18.3136L21.9118 18.3136L20.9173 18.2091ZM12.0498 16.0001H13.0498C13.0498 15.4478 12.6021 15.0001 12.0498 15.0001V16.0001ZM12.0498 16.1001L12.0496 17.1001C12.3148 17.1001 12.5692 16.9948 12.7568 16.8073C12.9444 16.6197 13.0498 16.3653 13.0498 16.1001H12.0498ZM11.9502 16.1H10.9502C10.9502 16.6522 11.3978 17.0999 11.9499 17.1L11.9502 16.1ZM11.9502 16.0001V15.0001C11.3979 15.0001 10.9502 15.4478 10.9502 16.0001H11.9502ZM13 9.00006C13 8.44777 12.5523 8.00006 12 8.00006C11.4477 8.00006 11 8.44777 11 9.00006H12H13ZM11 13.0001C11 13.5523 11.4477 14.0001 12 14.0001C12.5523 14.0001 13 13.5523 13 13.0001H12H11ZM16.8499 20.0001V19.0001H7.15039V20.0001V21.0001H16.8499V20.0001ZM4.37891 15.2001L5.24493 15.7001L10.0947 7.30011L9.22865 6.80011L8.36262 6.30011L3.51288 14.7001L4.37891 15.2001ZM14.7715 6.80011L13.9055 7.30011L18.7552 15.7001L19.6212 15.2001L20.4873 14.7001L15.6375 6.30011L14.7715 6.80011ZM9.22865 6.80011L10.0947 7.30011C10.5593 6.4954 10.8739 5.95241 11.1427 5.57189C11.4145 5.1871 11.548 5.10653 11.5931 5.08645L11.1863 4.17291L10.7796 3.25936C10.231 3.5036 9.84039 3.94903 9.50913 4.41797C9.17486 4.89117 8.80746 5.52963 8.36262 6.30011L9.22865 6.80011ZM14.7715 6.80011L15.6375 6.30011C15.1926 5.52955 14.8252 4.89111 14.4908 4.41786C14.1594 3.9489 13.7687 3.50356 13.2202 3.25936L12.8135 4.17291L12.4067 5.08645C12.4519 5.10657 12.5855 5.18724 12.8574 5.572C13.1262 5.95248 13.4409 6.49548 13.9055 7.30011L14.7715 6.80011ZM11.1863 4.17291L11.5931 5.08645C11.852 4.97118 12.1478 4.97118 12.4067 5.08645L12.8135 4.17291L13.2202 3.25936C12.4435 2.91355 11.5563 2.91355 10.7796 3.25936L11.1863 4.17291ZM7.15039 20.0001V19.0001C6.22124 19.0001 5.59374 18.9991 5.12987 18.9565C4.66083 18.9135 4.52428 18.8381 4.48427 18.8091L3.89649 19.6181L3.3087 20.4271C3.79443 20.78 4.37539 20.8957 4.94715 20.9481C5.52409 21.0011 6.26068 21.0001 7.15039 21.0001V20.0001ZM4.37891 15.2001L3.51288 14.7001C3.06801 15.4706 2.69887 16.108 2.45625 16.6342C2.21581 17.1556 2.02554 17.7165 2.08829 18.3136L3.08281 18.2091L4.07734 18.1045C4.07216 18.0553 4.07522 17.8994 4.27245 17.4717C4.4675 17.0487 4.78037 16.5048 5.24493 15.7001L4.37891 15.2001ZM3.89649 19.6181L4.48427 18.8091C4.25484 18.6424 4.10694 18.3862 4.07734 18.1045L3.08281 18.2091L2.08829 18.3136C2.17718 19.1594 2.62101 19.9275 3.3087 20.4271L3.89649 19.6181ZM16.8499 20.0001V21.0001C17.7396 21.0001 18.4761 21.0011 19.0531 20.9481C19.6248 20.8957 20.2057 20.78 20.6914 20.4271L20.1036 19.6181L19.5159 18.8091C19.4758 18.8382 19.3393 18.9135 18.8703 18.9565C18.4065 18.9991 17.779 19.0001 16.8499 19.0001V20.0001ZM19.6212 15.2001L18.7552 15.7001C19.2198 16.5048 19.5326 17.0487 19.7277 17.4717C19.9249 17.8994 19.928 18.0553 19.9228 18.1045L20.9173 18.2091L21.9118 18.3136C21.9746 17.7165 21.7843 17.1556 21.5439 16.6342C21.3013 16.108 20.9321 15.4706 20.4873 14.7001L19.6212 15.2001ZM20.1036 19.6181L20.6914 20.4271C21.3791 19.9275 21.8229 19.1594 21.9118 18.3136L20.9173 18.2091L19.9228 18.1045C19.8932 18.3862 19.7453 18.6424 19.5159 18.8091L20.1036 19.6181ZM12.0498 16.0001H11.0498V16.1001H12.0498H13.0498V16.0001H12.0498ZM12.0498 16.1001L12.0501 15.1001L11.9504 15.1L11.9502 16.1L11.9499 17.1L12.0496 17.1001L12.0498 16.1001ZM11.9502 16.1H12.9502V16.0001H11.9502H10.9502V16.1H11.9502ZM11.9502 16.0001V17.0001H12.0498V16.0001V15.0001H11.9502V16.0001ZM12 9.00006H11V13.0001H12H13V9.00006H12Z" 
+            fill="white"
+          />
+        </svg>
+      </button>
+      
+      <style jsx>{`
+        .warning-icon {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 3px;
+          
+          width: 24px;
+          height: 24px;
+          
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+        
+        .warning-icon:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .warning-svg {
+          width: 24px;
+          height: 24px;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+

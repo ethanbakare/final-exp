@@ -1,1 +1,350 @@
-Okay, I'm going to just basically talk about everything myself. You can confirm if what I've talked about aligns with what you said so far. We'll take it from scratch. So we need to have maybe it's equivalent to Mermaid diagrams to sort of show how things work or blocks like flows. This app is basically to help you make transcriptions so you can copy and paste them anywhere, right? And it works whether you're offline or online. The most basic flow you can do on the app is from the home screen. You press record, when you finish it takes you to the record screen. You start talking, when you finish your fresh done it transcribes the text and the text appears on the screen with a slide in animation, opacity wise simple as that. You do another recording, it does the exact same thing, only this time it depends on the recording or the previous text the transcription. You can toggle between raw and formatted text. The text you will always see on first instance is your formatted text. If you toggle to raw text, right, and then you press record again, it would move you back to the formatted text that shows whilst it started the recording. Okay, this is very very simple. I've talked about everything with Augusta on how to successfully complete an online recording, the different ways we handle network issues if you happen to be online, right? Let's say for instance you go offline whilst you're recording, that's going to be a pending clip as long as you're still offline. When you press done, you're going to see your pending clip there. The clips have their numbers. We talked about the syntax or how the numbering of the clips work, and this is referring to the pending clips. We have clip files and we have pending clips inside clip files. The clip file and the pending clips have a relationship. You can only have numbers like you have like clip 001, 002, and so forth inside an existing clip file. Right, and obviously files that are you can have two types of clip files: literally a clip file is any file that has you know that contains your bucket wise transcription or pending clips. Right, so basically a clip file can already have like a normal name and it gets an order when you've successfully completed a transcription because of our title generator. Right, so if you're offline for some reason or at the point of pressing "done," you're offline. What happens is you automatically get your clip as a pending clip right for later transcription when you're back online. When you're back online, it automatically triggers and it transcribes right. So when you're offline, your clip file would have the name like "recording01," "recording02" based on the number of recorded files that we have now. The only exception to this is when you already have a title already assigned to said clip file because you've had some text transcribed from there already. Those are the details with regards to online. I've now talked very briefly about offline. You can record as many clips as you want within a file if you're offline, that's fine, it transcribes on your back online. Now, how does the naming work when you're going back from offline to online? We talked about it already. We have state changes for record screen and state changes for the home screen. On the home screen, you can move from waiting to transcribe to transcribing where the spinner is literally spinning, and then you can go to where that disappears, and then the actual name of the file shows because basically the name has been passed on. To be really honest with you, I think this is a common sense thing, in the sense that once you have your raw text, the name of the file can be given instantly right? It's as simple as that. On the other end, for when you're in, I've just been talking about the clip home screen. On the other end, when you were talking about the record screen right inside there, when transcription is actively happening, you have in the spinner actually spin right? And when the formatted text is ready, then you swap that out. It's as simple as that, okay? And if it's a first pending clips, it slides in. If it is like extra pending clips, they literally just show all together, so we don't need to literally show it like a million times. Like if they're like 10 pending clips, you don't need to start showing pending clip after pending clip inside. We just batch everything together at once. Obviously, in the true sense of things, we're literally transcribing them one after the other, but we literally just show them at once for simplicity sake. If we want to keep it simple and maybe just show them one by one to see how it even works because we haven't even been able to even make it bloody work, we can also do that as well. So like I said, basically, if you have a recording that has like 5 to 6 different clips inside, after the transcription of the very first clip inside, we can just basically easily assign a name. We can easily assign a name to the clip file itself like I've already explained. First one animates in slides in right, and obviously, the other pending clips have to be pushed down to make space. Then, obviously, we just try to show all clips done together if we can, but again, for simplicity sake, let's even get them done one by the others actually see it works, and then we can talk about that later on. So, I think I basically talked about everything. You can let me know if I missed something. We already know how that cancel button works or the close button works, and we also know how the new clip button works that takes you to a new interface to record a new clip. We also know how the back button works as well too. Please note I've also talked about how the retry feature works and how that is tied to the states we use for both the home screen and the record screen. In the case where if you're online and you have a bad network, after it's tried like three times and it fails, you slip into that special mode which is basically being between attempts. In that sort of interval, like case that is when you can leverage that that's where you see the state like transcribing with a spinner that is not spinning. That's when obviously the pending clip has a similarity to waiting to transcribe whether spinner is not spinning okay that's the big transcriber icon for pending clip.
+General
+Errors
+
+Copy page
+
+Errors you might encounter when making requests to the Deepgram API
+A record of errors and reasons you will receive them when using the Deepgram API.
+
+General API errors
+
+Errors that could be returned on any endpoint.
+
+400 Invalid JSON submitted
+
+When making a POST request with JSON data, you must include all required fields. If required filed are missing, or the submitted JSON is invalid, a 400 Bad Request will be returned. The response will be similar to the below, depending on the endpoint and how the JSON is malformed.
+
+{
+  "category": "INVALID_JSON",
+  "message": "Invalid JSON submitted.",
+  "details": "Json deserialize error: missing field `xxx` at line 7 column 1",
+  "request_id": "uuid"
+}
+---
+{
+  "err_code": "Bad Request",
+  "err_msg": "Content-type was application/json, but we could not process the JSON payload.",
+  "request_id": "uuid"
+}
+---
+{
+  "category": "INVALID_JSON",
+  "message": "Invalid JSON submitted.",
+  "details": "Json deserialize error: expected `:` at line 3 column 13",
+  "request_id": "uuid"
+}
+
+
+400 Unknown request body format
+
+If you receive the following error:
+
+{
+  "err_code": "Bad Request",
+  "err_msg": "Bad Request: failed to process audio: corrupt or unsupported data",
+  "request_id": "uuid"
+}
+
+
+Often, this is caused by sending Deepgram a URL to transcribe, but failing to set a Content-Type: application/json header. When sending Deepgram a JSON payload containing a URL, the Content-Type: application/json must be set in the request.
+
+If you are sending an audio file and not a URL, you may be sending corrupted audio. You can use tools such as ffprobe or Audacity to confirm that your audio file is valid.
+
+401 Incorrect API key
+
+Providing an invalid API key will return 401 Unauthorized with the following error.
+
+{
+  "err_code": "INVALID_AUTH",
+  "err_msg": "Invalid credentials.",
+  "request_id": "uuid"
+}
+
+
+401 Insufficient permissions
+
+Making a request that you do not have sufficient permissions for will return 401 Unauthorized with this error.
+
+{
+ "err_code":"INSUFFICIENT_PERMISSIONS",
+ "err_msg":"User does not have sufficient permissions.",
+ "request_id":"uuid"
+}
+
+
+403 Insufficient permissions
+
+Making a request for a model that you do not have access to will return 403 Forbidden with this error.
+
+{
+ "err_code":"INSUFFICIENT_PERMISSIONS",
+ "err_msg":"Project does not have access to the requested model.",
+ "request_id":"uuid"
+}
+
+
+404 UUID parsing failed
+
+Providing an invalid Project ID will fail parsing and return 404 Not Found and this response.
+
+UUID parsing failed: invalid character: expected an optional prefix of `urn:uuid:` followed by [0-9a-zA-Z], found `p` at 1
+
+
+404 Project not found
+
+When a project isn’t found it will result in 404 Not Found. It may be because;
+
+the Project ID is incorrect
+the Project ID is for a project that has been deleted
+the Project ID is not associated with the API key used to make the request
+{
+  "err_code": "PROJECT_NOT_FOUND",
+  "err_msg": "Project not found."
+}
+
+
+Speech to Text errors
+
+402 Insufficient credits
+
+When attempting to transcribe a file, you may not have sufficient funds to complete the request. This will result in a 402 Payment Required error with this error.
+
+{
+  "err_code": "ASR_PAYMENT_REQUIRED",
+  "err_msg": "Project does not have enough credits for an ASR request and does not have an overage agreement.",
+  "request_id": "uuid"
+}
+
+
+429 Rate limit exceeded
+
+When requests are made in excess of Deepgram’s rate limits, a 429 Too Many Requests is returned with the following error. An exponential-backoff retry strategy is recommended to accommodate rate-limiting when submitting a large volume of concurrent requests.
+
+json
+
+
+{
+  "err_code": "TOO_MANY_REQUESTS",
+  "err_msg": "Too many requests. Please try again later",
+  "request_id": "uuid"
+}
+Text to Speech Errors
+
+400 Unknown Model. Query parameters specify a model that does not exist.
+
+The model requested is not one of Deepgram’s voice models.
+
+{
+  "err_code": "Bad Request",
+  "err_msg": "Bad Request: No such model/language/tier combination found.",
+  "request_id": "[unique_request_id]"
+}
+
+
+400 Failure to Parse Query Parameters
+
+The query parameters were invalid. The message can be anything describing a failure to parse an invalid query string.
+
+{
+  "err_code": "INVALID_QUERY_PARAMETER",
+  "err_msg": "Failed to deserialize query parameters: [message]",
+  "request_id": "[unique_request_id]"
+}
+
+
+400 Input Text Contained No Characters
+
+The text payload contained no characters, resulting in Deepgram being unable to synthesize text into audio.
+
+{
+  "err_code": "Bad Request",
+  "err_msg": "Input text contains no characters.",
+  "request_id": "[unique_request_id]"
+}
+
+
+400 Unsupported Output Audio Format Requested in Query Parameters
+
+The request provides a query string containing any combination of query parameters that describes an unsupported output audio format.
+
+{
+  "err_code": "INVALID_QUERY_PARAMETER",
+  "err_msg": "Unsupported audio format: [message]",
+  "request_id": "[unique_request_id]"
+}
+
+
+One or more of the following query parameters is unsupported:
+
+encoding=[encoding]
+container=[container]
+sample_rate=[sample_rate]
+bit_rate=[bit_rate]
+message may be any one of:
+
+“container is not applicable when encoding=[encoding]”
+“container=[container] is invalid when encoding=[encoding]”
+“sample_rate is not applicable when encoding=[encoding]”
+“sample_rate must be [list of valid sample rates] when encoding=[encoding]”
+“bit_rate is not applicable when encoding=[encoding]”
+“bit_rate must be [list of valid bit rates] when encoding=[encoding]”
+400 Failure to Parse Request Body as JSON
+
+The request body did not deserialize as JSON successfully. The request body must specify exactly one of text or url in the body.
+
+{
+  "err_code": "PAYLOAD_ERROR",
+  "err_msg": "Failed to deserialize JSON payload. Please specify exactly one of `text` or `url` in the JSON body.",
+  "request_id": "[unique_request_id]"
+}
+
+
+400 Failure to Parse Remote Text URL Provide in JSON
+
+There was a failure to parse a remote text URL provided within the JSON body.
+
+{
+  "err_code": "PAYLOAD_ERROR",
+  "err_msg": "Failed to parse URL in JSON body.",
+  "request_id": "[unique_request_id]"
+}
+
+
+400 Failure to Fetch Remote Text from URL
+
+There was a failure to retrieve remote text content from the specified URL.
+
+{
+  "err_code": "REMOTE_CONTENT_ERROR",
+  "err_msg": "[message]",
+  "request_id": "[unique_request_id]"
+}
+
+
+message may be any of:
+
+“Failed to deserialize remote text data. Please provide application/json with a text field or text/plain.”
+“URL for media download must be publicly routable.”
+“Could not determine if URL for media download is publicly routable.”
+“Could not parse URL as a URI.”
+“The remote server hosting the media failed to include a location header in its redirect response.”
+“Could not parse remote media server’s redirect location as a valid UTF-8 string.”
+“Could not parse remote media server’s redirect location as a URL.”
+“The remote server hosting the media returned a client error: [HTTP status].”
+“The remote server hosting the media failed to return valid data.”
+“The remote server hosting the media returned too many redirects.”
+400 Invalid Callback
+
+The provided callback url was invalid.
+
+{
+  "err_code": "INVALID_QUERY_PARAMETER",
+  "err_msg": "Invalid callback url.",
+  "request_id": "[unique_request_id]"
+}
+
+
+413 Request Body Exceeded 2MB
+
+The request body exceeded the 2MB limit, indicating that the payload size is too large to be processed.
+
+{
+  "err_code": "PAYLOAD_TOO_LARGE",
+  "err_msg": "Payload size exceeds limit of 2 MB.",
+  "request_id": "[unique_request_id]"
+}
+
+
+413 Input Text Exceeded Character Limit
+
+The text payload contained more than the maximum number of characters allowed.
+
+{
+  "err_code": "Payload Too Large",
+  "err_msg": "Input text exceeds maximum character limit of [max_characters].",
+  "request_id": "[unique_request_id]"
+}
+
+
+400 Failure to Decode Request Body as UTF-8
+
+The payload cannot be decoded because it is not encoded as UTF-8.
+
+{
+  "err_code": "PAYLOAD_ERROR",
+  "err_msg": "Failed to decode payload as UTF-8.",
+  "request_id": "[unique_request_id]"
+}
+
+
+415 Unsupported Content Type in Request
+
+The Content-Type header in the request is not supported, requiring it to be either text/plain or application/json.
+
+{
+  "err_code": "UNSUPPORTED_MEDIA_TYPE",
+  "err_msg": "`Content-Type` header is not supported. `Content-Type` must be either `text/plain` or `application/json`.",
+  "request_id": "[unique_request_id]"
+}
+
+
+422 Unprocessable Content
+
+The model failed to process the request.
+
+{
+  "err_code": "UNPROCESSABLE_ENTITY",
+  "err_msg": "Failed to handle request.",
+  "request_id": "[unique_request_id]"
+}
+
+
+429 Rate Limit Exceeded
+
+When requests are made in excess of Deepgram’s rate limits.
+
+{
+  "err_code": "Too Many Requests",
+  "err_msg": "Please try again later.",
+  "request_id": "[unique_request_id]"
+}
+
+
+Learn about strategies for handling 429 errors in our Help Center.
+503 Service Unavailable
+
+{
+  "error_code":"Service Unavailable",
+  "err_msg": "Please try again later",
+  "request_id": "[unique_request_id]"
+}
+
+
+Handling HTTP Errors
+
+Production
+
+Some error codes, such as 400: Bad Request errors, can be prevented in your production code by careful testing and development. However, others, such as 503: Service Unavailable, can occur regardless of your implementation.
+
+Below is a list of HTTP error codes that your production code should handle gracefully. Some of these errors may succeed if retried, while others (such as 414: URI Too Long) need to be handled by modifying the request.
+
+408 Request Timeout: The server timed out waiting for the request.
+411 Length Required: The server refuses to accept the request without a defined Content-Length.
+413 Request Entity Too Large: The request is larger than the server is willing or able to process.
+414 URI Too Long: The server is refusing to service the request because the request-target is longer than the server is willing to interpret.
+429 Too Many Requests: The user has sent too many requests in a given amount of time.
+499 Client Closed Request: A non-standard status code indicating that the client closed the connection.
+500 Internal Server Error: A generic error message indicating that the server has encountered a situation it doesn’t know how to handle.
+502 Bad Gateway: The server, while acting as a gateway or proxy, received an invalid response from the upstream server it accessed in attempting to fulfill the request.
+503 Service Unavailable: The server is not ready to handle the request. Common causes include a server that is down for maintenance or is overloaded.
+504 Gateway Timeout: The server, while acting as a gateway or proxy, did not receive a timely response from the upstream server or some other auxiliary server it needed to access in order to complete the request.
+Development
+
+The following errors are more likely to be encountered in a development environment. You may want to add error handling in your production code to gracefully handle these error codes as well.
+
+400 Bad Request: The server could not understand the request due to invalid syntax.
+401 Insufficient permissions: The project does not have permissions to access the requested features or model.
+401 Unauthorized: The API key is invalid or unauthorized.
+402 Payment Required: The project has insufficient funds to complete the request.
+403 Forbidden: The server understood the request but refuses to authorize it.
+404 Not Found: The specified entity ID could not be found.

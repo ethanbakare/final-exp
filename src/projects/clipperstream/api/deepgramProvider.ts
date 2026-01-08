@@ -105,7 +105,7 @@ export async function transcribeAudio(
           'Authorization': `Token ${apiKey}`,
           'Content-Type': mimeType,
         },
-        body: audioBuffer,
+        body: audioBuffer as any, // Node.js fetch accepts Buffer, but TS types don't reflect this
         signal: controller.signal, // ← Timeout support
       }
     );

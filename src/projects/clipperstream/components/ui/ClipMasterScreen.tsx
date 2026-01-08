@@ -265,21 +265,21 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       });
     }
 
-    if (clip.content) {
-      // Transcribed clip - show in complete state
+      if (clip.content) {
+        // Transcribed clip - show in complete state
       // ✅ REMOVED: setSelectedClip(clip) - selector auto-fetches via currentClipId
-      setIsAppendMode(false);
-      setAppendBaseContent('');
+        setIsAppendMode(false);
+        setAppendBaseContent('');
       resetRecording();
       setAnimationVariant('fade');
       setRecordNavState('complete');
-      setActiveScreen('record');
-    } else {
+        setActiveScreen('record');
+      } else {
       // Pending clip - show in waiting state
       // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
-      setAnimationVariant('fade');
+        setAnimationVariant('fade');
       setRecordNavState('record');
-      setActiveScreen('record');
+        setActiveScreen('record');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clips, isActiveRequest, currentClipId, resetRecording]); // Only run when clips change
@@ -428,10 +428,10 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         resetRecording();
         // Keep currentClipId - user stays viewing the clip they were appending to
         // Result: Processing canceled, stays on record screen
-      } else {
+    } else {
         // New recording - go back to home screen
         setActiveScreen('home');
-        setRecordNavState('record');
+      setRecordNavState('record');
         setCurrentClipId(null);
         resetRecording();
         // Result: Processing canceled, clip saved as failed, return to home
@@ -582,7 +582,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // ✅ REMOVED: setRecordNavState('complete') - moved to formatTranscriptionInBackground
   resetRecording();
-};
+  };
 
   const handleCopyClick = () => {
     // Copy displayedcontent to clipboard - uses derived copyableContent
@@ -648,10 +648,10 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     });
 
     // ✅ REMOVED: setSelectedClip(updatedClip) - selector will pick up the change
-    log.info('View toggled', {
-      clipId: selectedClip.id,
-      newView
-    });
+      log.info('View toggled', {
+        clipId: selectedClip.id,
+        newView
+      });
 
     // NO auto-copy on toggle (per requirements)
   }, [selectedClip]);
@@ -678,9 +678,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     }        );
 
         updateClipById(clipId, {
-          status: 'transcribing',
-          transcriptionError: undefined
-        });
+      status: 'transcribing',
+      transcriptionError: undefined
+    });
 
     // Set context for transcription completion
     setCurrentClipId(clip.id);
@@ -712,13 +712,13 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
       try {
         // Transcribe using retrieved blob (HTTP happens here)
-        await transcribeRecording(audioBlob);
+      await transcribeRecording(audioBlob);
 
-        // Success - transcription will be handled by existing useEffect
-        log.info('Manual retry transcription initiated', {
-          clipId,
-          audioId: clip.audioId
-        });
+      // Success - transcription will be handled by existing useEffect
+      log.info('Manual retry transcription initiated', {
+        clipId,
+        audioId: clip.audioId
+      });
 
       } finally {
         // v2.5.4 CRITICAL FIX: Clear HTTP tracking immediately after HTTP completes
@@ -850,8 +850,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       const response = await fetch('/api/clipperstream/format-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          rawText, 
+        body: JSON.stringify({
+          rawText,
           existingFormattedContext: context 
         })
       });
@@ -882,7 +882,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
       // Delete audio from IndexedDB
       if (clip.audioId) {
-        await deleteAudio(clip.audioId);
+            await deleteAudio(clip.audioId);
         updateClip(clipId, { audioId: undefined });
       }
 
@@ -896,20 +896,20 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         setShowCopyToast(true);
       }
 
-    } catch (error) {
+          } catch (error) {
       console.error('[Formatting] Error formatting clip:', clipId, '| Error:', error);
       // Fallback: use raw text as formatted
       updateClip(clipId, {
         formattedText: clip.rawText,
         content: clip.rawText,
-        status: null
-      });
+              status: null
+            });
 
       console.info('[Formatting] Using fallback (raw text) for clip:', clipId);
 
       // Switch nav bar to complete state (fallback text is displayed)
       console.info('[Formatting] Calling setRecordNavState(complete) after fallback for clip:', clipId);
-      setRecordNavState('complete');
+        setRecordNavState('complete');
     }
   }, [getClipById, updateClip, selectedClip, setShowCopyToast, setRecordNavState, deleteAudio]);
 

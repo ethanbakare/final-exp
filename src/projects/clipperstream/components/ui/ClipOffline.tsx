@@ -1,17 +1,17 @@
 import React from 'react';
 import styles from '@/projects/clipperstream/styles/clipper.module.css';
-import { TranscribeBig, RetryButton } from './clipbuttons';
+import { TranscribeBig, RetryButton, WarningIcon, DeleteIcon } from './clipbuttons';
 
 // ClipOffline Component (PendingClip)
 // Offline clip item with persistent background
-// Three states: waiting (static icon), transcribing (spinning icon), failed (caution + retry button)
+// Seven states: waiting, retry-pending, transcribing, vpn-blocked, audio-corrupted, no-audio-detected, extra-component
 // Uses Search.tsx slide-in pattern for RetryButton animation
 
 /* ============================================
    INTERFACES
    ============================================ */
 
-type ClipOfflineStatus = 'waiting' | 'transcribing' | 'failed';
+type ClipOfflineStatus = 'waiting' | 'retry-pending' | 'transcribing' | 'vpn-blocked' | 'audio-corrupted' | 'no-audio-detected' | 'extra-component';
 
 interface ClipOfflineProps {
   title?: string;            // Default: "Clip 001" (format: "Clip 00X")
@@ -26,8 +26,11 @@ interface ClipOfflineProps {
 }
 
 /* ============================================
+   ⚠️ DANGER: DO NOT TOUCH THIS COMPONENT ⚠️
    CAUTION ICON - Warning triangle (18×18px)
-   Shown in failed state
+   Shown in extra-component state ONLY
+   This is a legacy demo component - DO NOT USE IN PRODUCTION
+   ⚠️ DO NOT MODIFY OR REFERENCE THIS COMPONENT ⚠️
    ============================================ */
 
 const CautionIcon: React.FC = () => {
@@ -73,6 +76,13 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
   // Both TranscribeBig and CautionIcon are always rendered, stacked absolutely
   // When status changes: one fades out (opacity 1→0) while other fades in (opacity 0→1)
   
+  // Compute display title: append error description for permanent failure states
+  const displayTitle = status === 'audio-corrupted' 
+    ? `${title} - Audio corrupted`
+    : status === 'no-audio-detected'
+    ? `${title} - No audio detected`
+    : title;
+  
   return (
     <>
       {/* Master Container - 361px or 100% width based on fullWidth prop */}
@@ -87,7 +97,7 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
           {/* Title */}
           <div className="pending-clip-title">
             <span className={styles.InterMedium16}>
-              {title}
+              {displayTitle}
             </span>
           </div>
           
@@ -98,16 +108,31 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
               {time}
             </span>
             
-            {/* Icon Crossfade Container - Both icons stacked, swap via opacity */}
+            {/* Icon Crossfade Container - All icons stacked, swap via opacity */}
             <div className="icon-crossfade-wrapper">
-              {/* TranscribeBig Layer - Visible in waiting/transcribing, hidden in failed */}
-              <div className={`icon-layer transcribe-layer ${status !== 'failed' ? 'active' : ''} ${status === 'waiting' || (status === 'transcribing' && isActiveRequest === false) ? 'waiting-opacity' : ''}`}>
+              {/* TranscribeBig Layer - Visible in waiting/retry-pending/transcribing, hidden in other states */}
+              <div className={`icon-layer transcribe-layer ${status !== 'extra-component' && status !== 'vpn-blocked' && status !== 'audio-corrupted' && status !== 'no-audio-detected' ? 'active' : ''} ${status === 'waiting' || status === 'retry-pending' || (status === 'transcribing' && isActiveRequest === false) ? 'waiting-opacity' : ''}`}>
                 <TranscribeBig spinning={status === 'transcribing' && isActiveRequest !== false} />
               </div>
               
-              {/* CautionIcon Layer - Hidden in waiting/transcribing, visible in failed */}
-              <div className={`icon-layer caution-layer ${status === 'failed' ? 'active' : ''}`}>
+              {/* ⚠️ DANGER - CautionIcon Layer - Visible in extra-component state ONLY - DO NOT USE ⚠️ */}
+              <div className={`icon-layer caution-layer ${status === 'extra-component' ? 'active' : ''}`}>
                 <CautionIcon />
+              </div>
+              
+              {/* WarningIcon Layer - Visible in vpn-blocked state */}
+              <div className={`icon-layer warning-layer ${status === 'vpn-blocked' ? 'active' : ''}`}>
+                <WarningIcon />
+              </div>
+              
+              {/* DeleteIcon Layer - Visible in audio-corrupted state (DUPLICATE of no-audio-detected) */}
+              <div className={`icon-layer delete-layer ${status === 'audio-corrupted' ? 'active' : ''}`}>
+                <DeleteIcon />
+              </div>
+              
+              {/* DeleteIcon Layer - Visible in no-audio-detected state */}
+              <div className={`icon-layer delete-layer ${status === 'no-audio-detected' ? 'active' : ''}`}>
+                <DeleteIcon />
               </div>
             </div>
           </div>
@@ -182,17 +207,22 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
           height: 40px;
           min-height: 40px;
           
-          /* Persistent background */
-          background: var(--ClipGrey); /* #252525 */
-          border-radius: 8px;
-          
-          /* Smooth shrink animation (like search-bar-tracker) */
-          transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          
-          /* Inside auto layout */
-          flex: 1;
-          order: 0;
-          flex-grow: 1;
+        /* Persistent background */
+        background: var(--ClipGrey); /* #252525 */
+        border-radius: 8px;
+        
+        /* Smooth shrink animation (like search-bar-tracker) */
+        transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        /* Inside auto layout */
+        flex: 1;
+        order: 0;
+        flex-grow: 1;
+        }
+        
+        /* Audio-corrupted state: Red background at 15% opacity */
+        .pending-master-clip.status-audio-corrupted .pending-clip {
+          background: var(--RecRed_15); /* rgba(239, 68, 68, 0.15) */
         }
         
         /* ============================================
@@ -224,6 +254,11 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+        
+        /* Audio-corrupted state: Title text uses FlamingoRed */
+        .pending-master-clip.status-audio-corrupted .pending-clip-title span {
+          color: var(--ClipFlamingoRed); /* #F58080 */
         }
         
         /* ============================================
@@ -275,8 +310,11 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
           flex-grow: 0;
         }
         
-        /* Hide time text in failed state - fade out */
-        .pending-master-clip.status-failed .time-text {
+        /* Hide time text in extra-component, vpn-blocked, audio-corrupted, or no-audio-detected state - fade out */
+        .pending-master-clip.status-extra-component .time-text,
+        .pending-master-clip.status-vpn-blocked .time-text,
+        .pending-master-clip.status-audio-corrupted .time-text,
+        .pending-master-clip.status-no-audio-detected .time-text {
           opacity: 0;
           pointer-events: none;
         }
@@ -339,6 +377,17 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
           /* Icon centers itself via flexbox */
         }
         
+        /* Delete and Warning icons are 24×24, perfectly centered via flexbox */
+        .delete-layer,
+        .warning-layer {
+          /* Icons center themselves via flexbox */
+        }
+        
+        /* Audio-corrupted state: DeleteIcon uses FlamingoRed - Direct hex override */
+        .pending-master-clip.status-audio-corrupted .delete-layer :global(.delete-svg path) {
+          stroke: #F58080 !important; /* Direct hex code from --ClipFlamingoRed */
+        }
+        
         /* ============================================
            RETRY WRAPPER - Creates space for RetryButton
            Follows Search.tsx cancel-wrapper pattern
@@ -368,8 +417,8 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
           flex-grow: 0;
         }
         
-        /* Failed state: Wrapper expands to create space */
-        .pending-master-clip.status-failed .retry-wrapper {
+        /* ⚠️ DANGER - Extra-component state ONLY: Wrapper expands to create space for RetryButton - DO NOT ADD OTHER STATES ⚠️ */
+        .pending-master-clip.status-extra-component .retry-wrapper {
           width: 106px;  /* 10px gap + 96px button (RetryButton is 96px wide) */
         }
         
@@ -401,8 +450,8 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
           pointer-events: none;
         }
         
-        /* Failed state: Button SLIDES IN from right to left */
-        .pending-master-clip.status-failed .retry-button-container {
+        /* ⚠️ DANGER - Extra-component state ONLY: Button SLIDES IN from right to left - DO NOT ADD OTHER STATES ⚠️ */
+        .pending-master-clip.status-extra-component .retry-button-container {
           transform: translateX(0);  /* Slides to natural position */
           opacity: 1;
           pointer-events: auto;

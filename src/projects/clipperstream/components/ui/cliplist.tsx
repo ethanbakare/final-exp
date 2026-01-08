@@ -17,8 +17,8 @@ interface ClipListItemProps {
   id?: string;                              // Unique identifier for the clip
   title?: string;                           // Default: "Teach me to love myself"
   date?: string;                            // Default: "May 13, 2025" - Format: "Mon DD, YYYY"
-  status?: 'pending' | 'transcribing' | 'failed' | null; // Default: null (completed, no status shown)
-  isActiveRequest?: boolean;                // NEW: Controls icon spinning (default: false) - Only applies when status='transcribing'
+  status?: 'pending' | 'transcribing' | 'retry-pending' | 'vpn-blocked' | 'audio-corrupted' | null; // Default: null (completed, no status shown)
+  isActiveRequest?: boolean;                // Controls icon spinning (default: false) - Only applies when status='transcribing'
   onClick?: (id: string) => void;                  // Called when item is clicked (navigate to clip)
   onDotMenuClick?: () => void;
   onRename?: (id: string, title: string) => void;  // Called when rename is clicked
@@ -344,6 +344,33 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
               </div>
             )}
 
+            {status === 'retry-pending' && (
+              <div className="status-frame retry-pending">
+                <div className="status-icon-wrapper">
+                  {/* Static icon - waiting between automatic retry attempts */}
+                  <svg
+                    className="pending-icon"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5.05613 7.88726H2.69677V10.2466M6.94361 4.11229H9.30297V1.75293M2.5 4.58565C2.76457 3.93081 3.20754 3.36333 3.77856 2.9477C4.34957 2.53207 5.02593 2.28497 5.73039 2.23448C6.43485 2.18398 7.13924 2.33211 7.7637 2.66204C8.38816 2.99198 8.90723 3.49049 9.2625 4.1009M9.5 7.41389C9.23543 8.06873 8.79246 8.63621 8.22144 9.05184C7.65043 9.46747 6.97436 9.71458 6.2699 9.76508C5.56545 9.81558 4.8608 9.66743 4.23634 9.33749C3.61188 9.00756 3.09258 8.50907 2.73732 7.89867"
+                      stroke="white"
+                      strokeOpacity="0.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <span className={`status-text ${styles.InterRegular13}`}>
+                  Retrying soon...
+                </span>
+              </div>
+            )}
+
             {status === 'transcribing' && (
               <div className="status-frame transcribing">
                 <div className={`status-icon-wrapper ${isActiveRequest ? 'spinning-wrapper' : ''}`}>
@@ -367,6 +394,62 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
                 </div>
                 <span className={`status-text ${styles.InterRegular13}`}>
                   Transcribing...
+                </span>
+              </div>
+            )}
+
+            {status === 'vpn-blocked' && (
+              <div className="status-frame vpn-blocked">
+                <div className="status-icon-wrapper">
+                  {/* Static pending icon with orange color */}
+                  <svg
+                    className="vpn-blocked-icon"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M5.05613 7.88726H2.69677V10.2466M6.94361 4.11229H9.30297V1.75293M2.5 4.58565C2.76457 3.93081 3.20754 3.36333 3.77856 2.9477C4.34957 2.53207 5.02593 2.28497 5.73039 2.23448C6.43485 2.18398 7.13924 2.33211 7.7637 2.66204C8.38816 2.99198 8.90723 3.49049 9.2625 4.1009M9.5 7.41389C9.23543 8.06873 8.79246 8.63621 8.22144 9.05184C7.65043 9.46747 6.97436 9.71458 6.2699 9.76508C5.56545 9.81558 4.8608 9.66743 4.23634 9.33749C3.61188 9.00756 3.09258 8.50907 2.73732 7.89867"
+                      stroke="var(--ClipOfflineOrange_60)"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <span className={`status-text-vpn ${styles.InterRegular13}`}>
+                  Blocked by VPN
+                </span>
+              </div>
+            )}
+
+            {status === 'audio-corrupted' && (
+              <div className="status-frame audio-corrupted">
+                <div className="status-icon-wrapper">
+                  {/* Red caution/warning icon - uses currentColor for 60% opacity red */}
+                  <svg
+                    className="audio-corrupted-icon"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M6 4.5V6.5Z"
+                      fill="currentColor"
+                    />
+                    <path
+                      d="M2.18913 7.60006L2.52688 7.79506L2.18913 7.60006ZM4.61399 3.40005L4.27624 3.20505L4.27624 3.20505L4.61399 3.40005ZM7.38539 3.40005L7.72314 3.20505L7.72314 3.20505L7.38539 3.40005ZM9.81025 7.60006L10.148 7.40506L10.148 7.40506L9.81025 7.60006ZM5.59284 2.08645L5.75147 2.44274L5.75147 2.44274L5.59284 2.08645ZM6.40641 2.08645L6.24779 2.44274L6.24779 2.44274L6.40641 2.08645ZM1.94792 9.80907L1.71868 10.1245L1.71868 10.1245L1.94792 9.80907ZM1.54108 9.10454L1.92895 9.06371L1.54108 9.10454ZM10.0515 9.80907L10.2807 10.1245L10.2807 10.1245L10.0515 9.80907ZM10.4583 9.10454L10.8462 9.14537L10.8462 9.14537L10.4583 9.10454ZM6.02458 8H6.41458C6.41458 7.78133 6.2433 7.61 6.02458 7.61V8ZM6.02458 8.05L6.02448 8.44C6.12793 8.44007 6.22716 8.39898 6.29698 8.32584C6.3668 8.2527 6.40458 8.15345 6.41458 8.05H6.02458ZM5.97477 8.05H5.58477C5.58477 8.26873 5.75599 8.43993 5.97467 8.44L5.97477 8.05ZM5.97477 8V7.61C5.75605 7.61 5.58477 7.78131 5.58477 8H5.97477ZM6.38968 4.5C6.38968 4.28131 6.239 4.10336 6.039 4.10336C5.839 4.10336 5.68968 4.28131 5.68968 4.5H6.039H6.38968ZM5.68968 6.5C5.68968 6.71873 5.839 6.89668 6.039 6.89668C6.239 6.89668 6.38968 6.71873 6.38968 6.5H6.039H5.68968ZM8.42459 10V9.61H3.57488V10V10.39H8.42459V10ZM2.18913 7.60006L2.52688 7.79506L4.95174 3.60505L4.61399 3.40005L4.27624 3.20505L1.85137 7.39506L2.18913 7.60006ZM7.38539 3.40005L7.04764 3.60505L9.47251 7.79506L9.81025 7.60006L10.148 7.40506L7.72314 3.20505L7.38539 3.40005ZM4.61399 3.40005L4.95174 3.60505C5.18296 3.19458 5.34317 2.91784 5.48117 2.72248C5.62034 2.52546 5.70123 2.46511 5.75147 2.44274L5.59284 2.08645L5.43421 1.73017C5.18762 1.83996 5.00644 2.04261 4.84409 2.27245C4.68055 2.50396 4.49975 2.81793 4.27624 3.20505L4.61399 3.40005ZM7.38539 3.40005L7.72314 3.20505C7.49963 2.81793 7.31881 2.50393 7.15526 2.27241C6.99291 2.04256 6.81173 1.83994 6.56504 1.73017L6.40641 2.08645L6.24779 2.44274C6.29806 2.46512 6.37899 2.52551 6.51819 2.72252C6.65621 2.9178 6.81648 3.19461 7.04764 3.60505L7.38539 3.40005ZM5.59284 2.08645L5.75147 2.44274C5.90939 2.37242 6.08986 2.37242 6.24779 2.44274L6.40641 2.08645L6.56504 1.73017C6.20516 1.56994 5.79409 1.56994 5.43421 1.73017L5.59284 2.08645ZM3.57488 10V9.61C3.1125 9.61 2.79271 9.60968 2.5545 9.58778C2.31439 9.56573 2.22167 9.52587 2.17716 9.49353L1.94792 9.80907L1.71868 10.1245C1.93703 10.2832 2.20307 10.3388 2.48331 10.3645C2.76555 10.3904 3.12785 10.39 3.57488 10.39V10ZM2.18913 7.60006L1.85137 7.39506C1.62786 7.79221 1.44639 8.10576 1.32769 8.36313C1.21051 8.61867 1.12501 8.87687 1.15322 9.14526L1.54108 9.10454L1.92895 9.06371C1.92319 9.00903 1.93502 8.90881 2.03601 8.69011C2.13615 8.47325 2.29568 8.19552 2.52688 7.79506L2.18913 7.60006ZM1.94792 9.80907L2.17716 9.49353C2.03724 9.39186 1.94701 9.23559 1.92895 9.06371L1.54108 9.10454L1.15322 9.14526C1.19439 9.53712 1.40004 9.89306 1.71868 10.1245L1.94792 9.80907ZM8.42459 10V10.39C8.87163 10.39 9.23392 10.3904 9.51614 10.3645C9.79638 10.3388 10.0624 10.2832 10.2807 10.1245L10.0515 9.80907L9.82227 9.49353C9.77776 9.52587 9.68504 9.56573 9.44493 9.58778C9.20673 9.60968 8.88693 9.61 8.42459 9.61V10ZM9.81025 7.60006L9.47251 7.79506C9.70371 8.19552 9.86324 8.47325 9.96338 8.69011C10.0644 8.90881 10.0762 9.00903 10.0704 9.06371L10.4583 9.10454L10.8462 9.14537C10.8744 8.87687 10.7889 8.61867 10.6717 8.36313C10.553 8.10576 10.3715 7.79221 10.148 7.39506L9.81025 7.60006ZM10.0515 9.80907L10.2807 10.1245C10.5994 9.89306 10.805 9.53712 10.8462 9.14537L10.4583 9.10454L10.0704 9.06371C10.0524 9.23559 9.96214 9.39186 9.82227 9.49353L10.0515 9.80907ZM6.02458 8H5.63458V8.05H6.02458H6.41458V8H6.02458ZM6.02458 8.05L6.02467 7.66L5.97487 7.66L5.97477 8.05L5.97467 8.44L6.02448 8.44L6.02458 8.05ZM5.97477 8.05H6.36477V8H5.97477H5.58477V8.05H5.97477ZM5.97477 8V8.39H6.02458V8V7.61H5.97477V8ZM6.039 4.5H5.68968V6.5H6.039H6.38968V4.5H6.039Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </div>
+                <span className={`status-text-audio-corrupted ${styles.InterRegular13}`}>
+                  Audio corrupted
                 </span>
               </div>
             )}
@@ -714,6 +797,49 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
           flex: none;
           order: 1;
           flex-grow: 0;
+        }
+        
+        /* VPN Blocked status text - orange 60% opacity */
+        .status-text-vpn {
+          /* Typography - InterRegular13 from styles */
+          color: var(--ClipOfflineOrange_60); /* rgba(251, 114, 50, 0.6) */
+          
+          /* Layout */
+          display: flex;
+          align-items: center;
+          height: 16px;
+          
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+        
+        /* VPN Blocked icon styling */
+        .vpn-blocked-icon {
+          width: 12px;
+          height: 12px;
+        }
+        
+        /* Status text for audio-corrupted state - red color */
+        .status-text-audio-corrupted {
+          /* Typography - InterRegular13 from styles */
+          color: var(--RecRed_60); /* Red color at 60% opacity for corrupted audio warning */
+          
+          /* Layout */
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+        
+        /* Audio corrupted icon sizing and color */
+        .audio-corrupted-icon {
+          width: 12px;
+          height: 12px;
+          color: var(--RecRed_60); /* SVG uses currentColor for 60% opacity red */
         }
         
         /* ============================================
