@@ -9,7 +9,13 @@ import {
   CopyButton,
   ClearButton,
   TimeCountButton,
-  RecordingWaveButton
+  RecordingWaveButton,
+  ProcessingButtonDark,
+  ProcessingButtonOutlined,
+  ProcessingButtonBigDark,
+  VoicePillWave,
+  VoicePillConfirm,
+  VoiceDockCenter
 } from '@/projects/voiceinterface/components/ui/voicebuttons';
 
 // Voice Interface Component Showcase
@@ -154,6 +160,11 @@ const VoiceComponents: React.FC = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isSecondsTimerActive, setIsSecondsTimerActive] = useState(false);
   const [isRecordingWave, setIsRecordingWave] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(true);
+  const [isProcessingOutlined, setIsProcessingOutlined] = useState(true);
+  const [isProcessingBig, setIsProcessingBig] = useState(true);
+  const [isPillWaveActive, setIsPillWaveActive] = useState(false);
+  const [isPillConfirmActive, setIsPillConfirmActive] = useState(false);
 
   return (
     <>
@@ -259,6 +270,55 @@ const VoiceComponents: React.FC = () => {
               onToggle={() => setIsRecordingWave(!isRecordingWave)}
             >
               <RecordingWaveButton isRecording={isRecordingWave} />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="PROCESSING BUTTON DARK - 64PX"
+              showToggle={true}
+              toggleState={isProcessing}
+              onToggle={() => setIsProcessing(!isProcessing)}
+            >
+              <ProcessingButtonDark isProcessing={isProcessing} />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="PROCESSING BUTTON OUTLINED - 72PX"
+              showToggle={true}
+              toggleState={isProcessingOutlined}
+              onToggle={() => setIsProcessingOutlined(!isProcessingOutlined)}
+            >
+              <ProcessingButtonOutlined isProcessing={isProcessingOutlined} />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="PROCESSING BUTTON BIG DARK - 112PX"
+              showToggle={true}
+              toggleState={isProcessingBig}
+              onToggle={() => setIsProcessingBig(!isProcessingBig)}
+            >
+              <ProcessingButtonBigDark isProcessing={isProcessingBig} />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="VOICE PILL WAVE - 114PX"
+              showToggle={true}
+              toggleState={isPillWaveActive}
+              onToggle={() => setIsPillWaveActive(!isPillWaveActive)}
+            >
+              <VoicePillWave isActive={isPillWaveActive} />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="VOICE PILL CONFIRM - 140PX"
+              showToggle={true}
+              toggleState={isPillConfirmActive}
+              onToggle={() => setIsPillConfirmActive(!isPillConfirmActive)}
+            >
+              <VoicePillConfirm isTimerRunning={isPillConfirmActive} />
+            </ButtonGrid>
+
+            <ButtonGrid label="VOICE DOCK CENTER">
+              <VoiceDockCenter />
             </ButtonGrid>
           </div>
         </div>

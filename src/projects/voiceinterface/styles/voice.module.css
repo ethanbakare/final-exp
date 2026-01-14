@@ -147,6 +147,14 @@
   line-height: 143.75%;
 }
 
+.OpenRundeMedium16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
 .OpenRundeRegular14 {
   font-family: 'Open Runde', 'Inter', sans-serif;
   font-size: 14px;
@@ -265,6 +273,8 @@
   /* Dark Grey Variations */
   --VoiceDarkGrey_95: rgba(38, 36, 36, 0.95);
   --VoiceDarkGrey_90: rgba(38, 36, 36, 0.9);
+  --VoiceDarkGrey_80: rgba(38, 36, 36, 0.8);
+  --VoiceDarkGrey_30: rgba(38, 36, 36, 0.3);
   --VoiceDarkGrey_20: rgba(38, 36, 36, 0.2);
   --VoiceDarkGrey_15: rgba(38, 36, 36, 0.15);
   --VoiceDarkGrey_5: rgba(38, 36, 36, 0.05);

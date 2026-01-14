@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 interface VoiceLiveTimerSecondsProps {
   isRunning?: boolean;
@@ -26,24 +27,31 @@ export const VoiceLiveTimerSeconds: React.FC<VoiceLiveTimerSecondsProps> = ({ is
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Calculate container width based on minute value (sticky breakpoints)
+  const getContainerWidth = (totalSeconds: number): number => {
+    const mins = Math.floor(totalSeconds / 60);
+    if (mins < 10) return 40;   // Single-digit minutes: 0:00 → 9:59
+    if (mins < 20) return 48;   // Double-digit start: 10:00 → 19:59
+    return 52;                   // Wider double-digits: 20:00 → 59:59
+  };
+
+  const containerWidth = getContainerWidth(seconds);
+
   return (
     <>
-      <div className="timer-text">{formatTime(seconds)}</div>
+      <div
+        className={`timer-text ${styles.OpenRundeMedium18}`}
+        style={{ width: `${containerWidth}px` }}
+      >
+        {formatTime(seconds)}
+      </div>
 
       <style jsx>{`
         .timer-text {
-          width: auto;
-          min-width: 55px;
+          /* Width set via inline style (sticky breakpoints: 40px, 48px, 52px) */
           height: 26px;
-
-          font-family: 'Open Runde', sans-serif;
-          font-style: normal;
-          font-weight: 500;
-          font-size: 18px;
-          line-height: 143.75%;
           text-align: left;
-
-          color: rgba(38, 36, 36, 0.9);
+          color: var(--VoiceDarkGrey_90);
 
           /* Inside auto layout */
           flex: none;

@@ -909,16 +909,16 @@ export const TimeCountButton: React.FC<TimeCountButtonProps> = ({
 
       <style jsx>{`
         .time-count-button {
-          /* Auto layout */
+          /* Auto layout - natural flex like StopRecordButton */
           display: flex;
           flex-direction: row;
           justify-content: center;
           align-items: center;
           padding: 0px;
 
-          /* Size */
+          /* Size - auto width with minimum */
           width: auto;
-          min-width: 73px;
+          min-width: 58px;
           height: 26px;
 
           /* Inside auto layout */
@@ -1021,6 +1021,620 @@ export const RecordingWaveButton: React.FC<RecordingWaveButtonProps> = ({
         .recording-wave-button:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   PROCESSING BUTTON DARK
+   64×34px button with rotating processing spinner
+   ============================================ */
+
+interface ProcessingButtonDarkProps {
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+  isProcessing?: boolean;  // Controls spinner animation state
+}
+
+export const ProcessingButtonDark: React.FC<ProcessingButtonDarkProps> = ({
+  onClick,
+  disabled = false,
+  className = '',
+  isProcessing = true  // Default to spinning for processing state
+}) => {
+  return (
+    <>
+      <button
+        className={`processing-button-dark ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Processing"
+      >
+        <div className={`spinner-container ${isProcessing ? 'spinning' : ''}`}>
+          <svg
+            className="processing-spinner"
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Vertical bottom spoke */}
+            <path d="M10 15.5V18.5" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Horizontal left spoke */}
+            <path d="M4.5 10L1.5 10" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Vertical top spoke */}
+            <path d="M10 1.5V4.5" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Horizontal right spoke */}
+            <path d="M18.5 10L15.5 10" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Diagonal bottom-left spoke */}
+            <path d="M6.11 13.89L3.99 16.01" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Diagonal top-left spoke */}
+            <path d="M6.11 6.11L3.99 3.99" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Diagonal top-right spoke */}
+            <path d="M16.01 3.99L13.89 6.11" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Diagonal bottom-right spoke */}
+            <path d="M16.01 16.01L13.89 13.89" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </button>
+
+      <style jsx>{`
+        .processing-button-dark {
+          /* Layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 10px 16px;
+          gap: 11.25px;
+
+          /* Size - matches RecordingWaveButton */
+          width: 64px;
+          height: 34px;
+
+          /* Style */
+          background: var(--VoiceDarkGrey_90);
+          border: none;
+          border-radius: 24px;
+          cursor: pointer;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+
+        .processing-button-dark:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .spinner-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 20px;
+          height: 20px;
+        }
+
+        .processing-spinner {
+          width: 20px;
+          height: 20px;
+          transform-origin: center center;
+        }
+
+        /* Spinning state - apply rotation animation */
+        .spinner-container.spinning .processing-spinner {
+          animation: rotate-processing-spinner-dark 1.5s linear infinite;
+        }
+
+        /* Rotation animation keyframes */
+        @keyframes rotate-processing-spinner-dark {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* Pause animation when button is disabled */
+        .processing-button-dark:disabled .processing-spinner {
+          animation-play-state: paused;
+        }
+
+        /* Respect user's motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+          .processing-spinner {
+            animation: none !important;
+          }
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   PROCESSING BUTTON OUTLINED
+   72×34px button with rotating processing spinner in outlined style
+   ============================================ */
+
+interface ProcessingButtonOutlinedProps {
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+  isProcessing?: boolean;  // Controls spinner animation state
+}
+
+export const ProcessingButtonOutlined: React.FC<ProcessingButtonOutlinedProps> = ({
+  onClick,
+  disabled = false,
+  className = '',
+  isProcessing = true  // Default to spinning for processing state
+}) => {
+  return (
+    <>
+      <button
+        className={`processing-button-outlined ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Processing"
+      >
+        <div className={`spinner-container-outlined ${isProcessing ? 'spinning' : ''}`}>
+          <svg
+            className="processing-spinner-outlined"
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Vertical bottom spoke */}
+            <path d="M10 15.5V18.5" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Horizontal left spoke */}
+            <path d="M4.5 10L1.5 10" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Vertical top spoke */}
+            <path d="M10 1.5V4.5" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Horizontal right spoke */}
+            <path d="M18.5 10L15.5 10" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Diagonal bottom-left spoke */}
+            <path d="M6.11 13.89L3.99 16.01" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Diagonal top-left spoke */}
+            <path d="M6.11 6.11L3.99 3.99" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Diagonal top-right spoke */}
+            <path d="M16.01 3.99L13.89 6.11" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            {/* Diagonal bottom-right spoke */}
+            <path d="M16.01 16.01L13.89 13.89" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </button>
+
+      <style jsx>{`
+        .processing-button-outlined {
+          /* Box model */
+          box-sizing: content-box;
+
+          /* Layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 4px;
+
+          /* Size - matches CheckAndCloseButton */
+          width: 64px;
+          height: 26px;
+
+          /* Style */
+          border: 1.13px solid var(--VoiceDarkGrey_20);
+          border-radius: 24px;
+          background: transparent;
+          cursor: pointer;
+          transition: border-color 0.2s ease;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+
+        .processing-button-outlined:hover {
+          border-color: var(--VoiceDarkGrey_15);
+        }
+
+        .processing-button-outlined:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .spinner-container-outlined {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 20px;
+          height: 20px;
+        }
+
+        .processing-spinner-outlined {
+          width: 20px;
+          height: 20px;
+          transform-origin: center center;
+        }
+
+        /* Spinning state - apply rotation animation */
+        .spinner-container-outlined.spinning .processing-spinner-outlined {
+          animation: rotate-processing-spinner-outlined 1.5s linear infinite;
+        }
+
+        /* Rotation animation keyframes */
+        @keyframes rotate-processing-spinner-outlined {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* Pause animation when button is disabled */
+        .processing-button-outlined:disabled .processing-spinner-outlined {
+          animation-play-state: paused;
+        }
+
+        /* Respect user's motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+          .processing-spinner-outlined {
+            animation: none !important;
+          }
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   PROCESSING BUTTON BIG DARK
+   112×46px button with processing spinner and static timer
+   ============================================ */
+
+interface ProcessingButtonBigDarkProps {
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+  isProcessing?: boolean;  // Controls spinner animation state
+  timeDisplay?: string;    // Static time display (default: "00:26")
+}
+
+export const ProcessingButtonBigDark: React.FC<ProcessingButtonBigDarkProps> = ({
+  onClick,
+  disabled = false,
+  className = '',
+  isProcessing = true,  // Default to spinning
+  timeDisplay = '00:26'  // Default static time
+}) => {
+  return (
+    <>
+      <button
+        className={`processing-button-big-dark ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Processing"
+      >
+        <div className="time-count-processing">
+          {/* Processing Spinner */}
+          <div className={`spinner-big-container ${isProcessing ? 'spinning' : ''}`}>
+            <svg
+              className="processing-spinner-big"
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* Vertical bottom spoke */}
+              <path d="M9 13.95V16.65" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              {/* Horizontal left spoke */}
+              <path d="M4.05 9L1.35 9" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              {/* Vertical top spoke */}
+              <path d="M9 1.35V4.05" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              {/* Horizontal right spoke */}
+              <path d="M16.65 9L13.95 9" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              {/* Diagonal bottom-left spoke */}
+              <path d="M5.499 12.501L3.591 14.409" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              {/* Diagonal top-left spoke */}
+              <path d="M5.499 5.499L3.591 3.591" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              {/* Diagonal top-right spoke */}
+              <path d="M14.409 3.591L12.501 5.499" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              {/* Diagonal bottom-right spoke */}
+              <path d="M14.409 14.409L12.501 12.501" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+            </svg>
+          </div>
+
+          {/* Static Timer Display */}
+          <div className="static-timer">
+            <span className={`timer-text ${styles.OpenRundeMedium18}`}>
+              {timeDisplay}
+            </span>
+          </div>
+        </div>
+      </button>
+
+      <style jsx>{`
+        .processing-button-big-dark {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 10px 16px;
+          gap: 11.25px;
+
+          /* Size - matches StopRecordButton */
+          position: relative;
+          width: 112px;
+          height: 46px;
+
+          /* Style */
+          background: var(--VoiceDarkGrey_95);
+          border: none;
+          border-radius: 24px;
+          cursor: pointer;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+
+        .processing-button-big-dark:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .time-count-processing {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          padding: 0px;
+          gap: 9px;
+
+          /* Hug content - auto width */
+          width: auto;
+          height: 26px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          align-self: stretch;
+          flex-grow: 0;
+        }
+
+        .spinner-big-container {
+          /* Auto layout - EXACT MATCH to stop-square */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+
+          width: 18px;
+          height: 18px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+
+        .processing-spinner-big {
+          width: 18px;
+          height: 18px;
+          transform-origin: center center;
+        }
+
+        /* Spinning state - apply rotation animation */
+        .spinner-big-container.spinning .processing-spinner-big {
+          animation: rotate-processing-spinner-big 2s linear infinite;
+        }
+
+        /* Rotation animation keyframes */
+        @keyframes rotate-processing-spinner-big {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* Pause animation when button is disabled */
+        .processing-button-big-dark:disabled .processing-spinner-big {
+          animation-play-state: paused;
+        }
+
+        /* Respect user's motion preferences */
+        @media (prefers-reduced-motion: reduce) {
+          .processing-spinner-big {
+            animation: none !important;
+          }
+        }
+
+        .static-timer {
+          /* Auto layout - EXACT MATCH to VoiceLiveTimer */
+          display: flex;
+          align-items: center;
+          padding: 0px;
+
+          /* Auto width with min-width to prevent collapse */
+          min-width: 51px;
+          width: auto;
+          height: 26px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+
+        .timer-text {
+          /* EXACT MATCH to VoiceLiveTimer */
+          min-width: 51px;
+          width: auto;
+          height: 26px;
+
+          /* LEFT-ALIGNED like VoiceLiveTimer (for consistency with live timer) */
+          text-align: left;
+          color: var(--VoiceWhite);
+          white-space: nowrap;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+
+/* ============================================
+   VOICE PILL WAVE (Combo Component)
+   114×34px component - Timer text + RecordingWaveButton
+   ============================================ */
+
+interface VoicePillWaveProps {
+  isActive?: boolean;  // Controls both timer counting and waveform animation
+}
+
+export const VoicePillWave: React.FC<VoicePillWaveProps> = ({
+  isActive = false
+}) => {
+  return (
+    <>
+      <div className={`voice-pill-wave ${styles.container}`}>
+        {/* Timer Text - Reusing existing VoiceLiveTimerSeconds component */}
+        <VoiceLiveTimerSeconds isRunning={isActive} />
+
+        {/* Recording Wave Button */}
+        <RecordingWaveButton isRecording={isActive} />
+      </div>
+
+      <style jsx>{`
+        .voice-pill-wave {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+
+          /* Size - auto width to fit children */
+          margin: 0 auto;
+          width: auto;
+          height: 34px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   VOICE PILL CONFIRM (Combo Component)
+   140×34px component - TimeCountButton + CheckAndCloseButton
+   ============================================ */
+
+interface VoicePillConfirmProps {
+  isTimerRunning?: boolean;  // Controls timer counting only
+}
+
+export const VoicePillConfirm: React.FC<VoicePillConfirmProps> = ({
+  isTimerRunning = false
+}) => {
+  return (
+    <>
+      <div className={`voice-pill-confirm ${styles.container}`}>
+        {/* Time Count Button (with red dot + timer) */}
+        <TimeCountButton isTimerRunning={isTimerRunning} />
+
+        {/* Check and Close Button */}
+        <CheckAndCloseButton />
+      </div>
+
+      <style jsx>{`
+        .voice-pill-confirm {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+
+          /* Size - auto width to fit children */
+          margin: 0 auto;
+          width: auto;
+          height: 34px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   VOICE DOCK CENTER (Combo Component)
+   Auto width × 44px component - CopyButton + RecordWideButton + ClearButton
+   ============================================ */
+
+export const VoiceDockCenter: React.FC = () => {
+  return (
+    <>
+      <div className={`voice-dock-center ${styles.container}`}>
+        {/* Copy Button */}
+        <CopyButton />
+
+        {/* Record Wide Button */}
+        <RecordWideButton />
+
+        {/* Clear Button */}
+        <ClearButton />
+      </div>
+
+      <style jsx>{`
+        .voice-dock-center {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          padding: 0px;
+          gap: 6px;
+
+          /* Size */
+          position: relative;
+          width: auto;
+          height: 44px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
         }
       `}</style>
     </>
