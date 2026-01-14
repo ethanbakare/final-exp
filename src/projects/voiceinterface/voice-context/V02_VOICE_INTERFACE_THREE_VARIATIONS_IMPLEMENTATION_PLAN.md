@@ -43,6 +43,109 @@ Implement three voice interface variations for the Voice Interface project, each
 
 ---
 
+### Development Strategy: Incremental "Walking Skeleton" Approach
+
+**Philosophy**: Build properly from the start, but add sophistication incrementally with checkpoints.
+
+This is a **demo project** with a 3-hour implementation target. We'll use the "Walking Skeleton" approach - building the thinnest possible end-to-end version first, then iterating.
+
+#### Phase 0: Walking Skeleton (Simple State) - 1 Hour
+
+**Goal**: Get Variation 1 working end-to-end with full structure but simple implementation
+
+**What We Build**:
+1. ✅ **Full nested container structure** (TextBox → TxtBox → TxtTranscriptBox + TxtNavBar)
+   - All layers present from the start
+   - Proper dimensions and spacing per A03 specs
+   - No shortcuts on structure
+
+2. ✅ **Local `useState` for state management**
+   - Simple enum: `'idle' | 'recording' | 'processing' | 'results'`
+   - State changes trigger button swaps
+   - No context provider yet (add later if needed)
+
+3. ✅ **Instant button swaps** (no morphing animations)
+   - Buttons swap via `opacity: 0/1` or conditional rendering
+   - Fixed container prevents layout shifts
+   - TxtNavBar uses `justify-content: space-between` for alignment
+
+4. ✅ **Mock API endpoint**
+   - Returns hardcoded transcription
+   - Simulates processing delay
+   - Tests full data flow
+
+5. ✅ **Text state component**
+   - Shows different text based on state prop
+   - No animation yet (plain text)
+   - Proper styling from voice.module.css
+
+**Checkpoint**: Click mic → "Listening..." → "Processing..." → Transcription appears
+
+**What We DON'T Build Yet**:
+- ❌ Button morphing animations (add Phase 2)
+- ❌ Word-by-word text animation (add Phase 2)
+- ❌ Context provider / Zustand (add if needed)
+- ❌ Real audio recording (add Phase 3)
+- ❌ Real transcription API (add Phase 3)
+
+---
+
+#### Phase 1: Add Polish & Animations - 1 Hour
+
+**Goal**: Make it look professional with ClipStream-style morphing
+
+**What We Add**:
+1. ✅ Button morphing animations
+   - Fixed container with opacity crossfades
+   - ClipStream timing hierarchy (0.3s / 0.2s / 0.15s)
+
+2. ✅ Word-by-word text animation
+   - Horizontal fade-in (Deep Library pattern)
+   - Staggered timing (70ms between words)
+
+3. ✅ Scrollable text with fade overlay
+   - Custom scrollbar
+   - Bottom gradient fade
+
+**Checkpoint**: Animations smooth, no layout shifts, text animates in nicely
+
+---
+
+#### Phase 2: Add Real Functionality - 30 Minutes
+
+**Goal**: Replace mocks with real implementation
+
+**What We Add**:
+1. ✅ Real browser audio recording (MediaRecorder API)
+2. ✅ Real transcription API endpoint
+3. ✅ Error handling and retry logic
+
+**Checkpoint**: Record real audio → real transcription appears
+
+---
+
+#### Phase 3: Clone to Other Variations - 30 Minutes
+
+**Goal**: Create Variations 2 & 3 based on working Variation 1
+
+**What We Do**:
+1. ✅ Copy Variation 1 → Variation 2 (swap buttons to outlined versions)
+2. ✅ Copy Variation 1 → Variation 3 (different container, button outside, add VoiceDocker)
+3. ✅ Create showcase page with all 3 variations
+
+**Checkpoint**: All 3 variations work identically with correct styling
+
+---
+
+#### Key Principles
+
+1. **Build structure properly from the start** - No throwaway containers
+2. **Add complexity incrementally** - Simple state → animations → real APIs
+3. **Test at each checkpoint** - Verify before moving forward
+4. **No refactoring** - Each phase builds on the previous (additive, not replacement)
+
+---
+
 ## 2. Architecture Overview
 
 ### 2.1 Architectural Layers
