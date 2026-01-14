@@ -111,8 +111,8 @@ export const ClipOffline: React.FC<ClipOfflineProps> = ({
             {/* Icon Crossfade Container - All icons stacked, swap via opacity */}
             <div className="icon-crossfade-wrapper">
               {/* TranscribeBig Layer - Visible in waiting/retry-pending/transcribing, hidden in other states */}
-              <div className={`icon-layer transcribe-layer ${status !== 'extra-component' && status !== 'vpn-blocked' && status !== 'audio-corrupted' && status !== 'no-audio-detected' ? 'active' : ''} ${status === 'waiting' || status === 'retry-pending' || (status === 'transcribing' && isActiveRequest === false) ? 'waiting-opacity' : ''}`}>
-                <TranscribeBig spinning={status === 'transcribing' && isActiveRequest !== false} />
+              <div className={`icon-layer transcribe-layer ${status !== 'extra-component' && status !== 'vpn-blocked' && status !== 'audio-corrupted' && status !== 'no-audio-detected' ? 'active' : ''} ${status === 'waiting' || status === 'retry-pending' ? 'waiting-opacity' : ''}`}>
+                <TranscribeBig spinning={status === 'transcribing'} />
               </div>
               
               {/* ⚠️ DANGER - CautionIcon Layer - Visible in extra-component state ONLY - DO NOT USE ⚠️ */}

@@ -2,6 +2,8 @@
 // Centralized clip CRUD operations with sessionStorage persistence
 // Includes incognito mode fallback (memory-only storage)
 
+import { ClipStatus } from '../store/clipStore';
+
 /* ============================================
    INTERFACES
    ============================================ */
@@ -10,7 +12,7 @@ export interface Clip {
   id: string;
   title: string;
   date: string; // Format: "Dec 10, 2024" (US style)
-  status: 'pending' | 'pending-child' | 'transcribing' | 'failed' | null;
+  status: ClipStatus;
   content?: string; // DEPRECATED - keep for backward compatibility
   rawText?: string; // NEW: Combined raw transcriptions
   formattedText?: string; // NEW: Combined formatted text

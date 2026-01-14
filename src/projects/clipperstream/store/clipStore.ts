@@ -13,7 +13,8 @@ export type ClipStatus =
   | 'formatting'  // Formatting API in progress
   | 'pending-child'  // Offline recording waiting to transcribe
   | 'pending-retry'  // Online but retrying after failures
-  | 'failed';  // Permanent failure (after retries exhausted)
+  | 'audio-corrupted'  // ✅ NEW: Audio retrieval failed from IndexedDB (permanent)
+  | 'no-audio-detected';  // ✅ NEW: No speech detected (permanent)
 
 export interface Clip {
   // Identity
@@ -42,10 +43,14 @@ export interface Clip {
 
   // Errors
   transcriptionError?: string;
+  lastError?: 'dns-block' | 'api-down' | 'network' | 'validation' | null;  // ✅ NEW: Track error type for UI
 
   // Retry tracking (for UI)
   nextRetryTime?: number;  // Unix timestamp for countdown timer
   retryCount?: number;     // Current attempt number for retry interval calculation
+
+  // Animation tracking (for text sliding animation)
+  hasAnimated?: boolean;  // ✅ NEW: Has text animation already played? (prevents re-animation on re-renders/unmounts)
 
   // View preferences (per-clip)
   currentView: 'raw' | 'formatted';
@@ -65,6 +70,10 @@ export interface ClipStore {
   activeHttpClipId: string | null;
   activeTranscriptionParentId: string | null;
   activeFormattingClipId: string | null;
+  
+  // Module-level state migration (from ClipMasterScreen)
+  isProcessingPending: boolean;
+  audioRetrievalAttempts: Map<string, number>;
 
   // ACTIONS (methods to mutate state)
   addClip: (clip: Clip) => void;
@@ -74,6 +83,12 @@ export interface ClipStore {
   setActiveHttpClipId: (id: string | null) => void;
   setActiveTranscriptionParentId: (id: string | null) => void;
   setActiveFormattingClipId: (id: string | null) => void;
+  
+  // Module-level state actions
+  setIsProcessingPending: (value: boolean) => void;
+  setAudioRetrievalAttempt: (clipId: string, attempts: number) => void;
+  deleteAudioRetrievalAttempt: (clipId: string) => void;
+  clearAudioRetrievalAttempts: () => void;
 
   // QUERIES (derived state)
   getClipById: (id: string) => Clip | undefined;
@@ -90,6 +105,9 @@ export interface ClipStore {
   appendPendingChild: (parentId: string, audioId: string, duration: string) => {
     childId: string;
   };
+
+  // ✅ NEW: Auto-retry orchestration
+  processAllPendingClips: () => Promise<void>;
 }
 
 // ============================================================================
@@ -123,6 +141,10 @@ export const useClipStore = create<ClipStore>()(
       activeHttpClipId: null,
       activeTranscriptionParentId: null,
       activeFormattingClipId: null,
+      
+      // Module-level state migration
+      isProcessingPending: false,
+      audioRetrievalAttempts: new Map<string, number>(),
 
       // ======================================================================
       // ACTIONS
@@ -149,6 +171,32 @@ export const useClipStore = create<ClipStore>()(
       setActiveTranscriptionParentId: (id) => set({ activeTranscriptionParentId: id }),
 
       setActiveFormattingClipId: (id) => set({ activeFormattingClipId: id }),
+      
+      // Module-level state actions
+      setIsProcessingPending: (value) => set({ isProcessingPending: value }),
+      
+      setAudioRetrievalAttempt: (clipId, attempts) => set((state) => {
+        const newMap = new Map(state.audioRetrievalAttempts);
+        newMap.set(clipId, attempts);
+        return { audioRetrievalAttempts: newMap };
+      }),
+      
+      deleteAudioRetrievalAttempt: (clipId) => set((state) => {
+        const newMap = new Map(state.audioRetrievalAttempts);
+        newMap.delete(clipId);
+        return { audioRetrievalAttempts: newMap };
+      }),
+      
+      clearAudioRetrievalAttempts: () => set({ audioRetrievalAttempts: new Map() }),
+
+      // ======================================================================
+      // AUTO-RETRY ORCHESTRATION
+      // ======================================================================
+
+      // ✅ NEW: Set by ClipMasterScreen on mount
+      processAllPendingClips: async () => {
+        console.warn('processAllPendingClips not initialized yet');
+      },
 
       // ======================================================================
       // QUERIES

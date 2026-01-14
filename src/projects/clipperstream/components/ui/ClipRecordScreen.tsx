@@ -5,7 +5,7 @@ import { ClipOffline } from './ClipOffline';
 import { PortalContainerProvider } from './PortalContainerContext';
 import { useScrollToBottom } from '../../hooks/useScrollToBottom';
 import { ScrollButton } from './clipbuttons';
-import { Clip } from '../../store/clipStore';
+import { Clip, useClipStore } from '../../store/clipStore';
 
 // ClipRecordScreen Component
 // Screen for recording and viewing transcriptions
@@ -25,7 +25,7 @@ export interface PendingClip {
   id: string;
   title: string;  // Default format: "Clip 001", "Clip 002", etc.
   time: string;
-  status?: 'waiting' | 'transcribing' | 'failed';
+  status?: 'waiting' | 'retry-pending' | 'transcribing' | 'vpn-blocked' | 'audio-corrupted' | 'no-audio-detected';
   isActiveRequest?: boolean;  // Controls icon spinning during retry attempts
 }
 
@@ -70,9 +70,6 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   const portalContainerRef = React.useRef<HTMLDivElement>(null);
   const [portalContainer, setPortalContainer] = React.useState<HTMLElement | null>(null);
 
-  // Track previous content length for each clip (to detect first appearance)
-  const prevContentLengthRef = React.useRef<{ [clipId: string]: number }>({});
-
   // Scroll-to-bottom hook for transcription content
   const {
     scrollRef,
@@ -103,15 +100,14 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
       ? (selectedClip.rawText || selectedClip.content || '')
       : (selectedClip.formattedText || selectedClip.content || '');
 
-    // Get previous content length for this clip
-    const prevLength = prevContentLengthRef.current[clipId] || 0;
+    // ✅ ANIMATION FIX: Use Zustand state instead of component ref (persists across unmounts)
     const currentLength = currentText.length;
+    const hasAlreadyAnimated = selectedClip.hasAnimated || false;
 
-    // ✅ SIMPLE RULE: Animate ONLY when content first appears (0 → non-zero)
-    const shouldAnimate = prevLength === 0 && currentLength > 0;
-
-    // Update tracking for next render
-    prevContentLengthRef.current[clipId] = currentLength;
+    // Animation triggers ONLY if:
+    // 1. Text exists (currentLength > 0)
+    // 2. Haven't animated before (!hasAlreadyAnimated)
+    const shouldAnimate = currentLength > 0 && !hasAlreadyAnimated;
 
     return [{
       id: selectedClip.currentView === 'raw' ? 'raw-view' : 'formatted-view',
@@ -119,6 +115,24 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
       animate: shouldAnimate
     }];
   }, [selectedClip]);
+
+  // ✅ ANIMATION FIX: Mark animation as played after it triggers
+  const updateClip = useClipStore((state) => state.updateClip);
+  
+  useEffect(() => {
+    if (!selectedClip) return;
+    
+    const shouldAnimate = displayText.length > 0 && displayText[0]?.animate;
+    
+    if (shouldAnimate && !selectedClip.hasAnimated) {
+      // Wait for animation to start, then mark as complete
+      const timer = setTimeout(() => {
+        updateClip(selectedClip.id, { hasAnimated: true });
+      }, 100);  // Small delay to ensure animation starts
+      
+      return () => clearTimeout(timer);
+    }
+  }, [displayText, selectedClip, updateClip]);
 
   // Track previous text length to detect when NEW content is added
   // We now use a single block with full combined text, so track text length instead of block count

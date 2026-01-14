@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { storeAudio } from '../services/audioStorage';
 import { logger } from '../utils/logger';
+// ✅ CRITICAL: Import from transcriptionRetry to share type definition
+import { TranscriptionResult } from '../utils/transcriptionRetry';
 
 const log = logger.scope('useClipRecording');
 
@@ -13,10 +15,7 @@ const log = logger.scope('useClipRecording');
    ============================================ */
 
 // Transcription result with error classification
-export interface TranscriptionResult {
-  text: string;
-  error: 'network' | 'validation' | 'server-error' | 'offline' | null;
-}
+// ✅ NOW IMPORTED from transcriptionRetry.ts instead of defined here
 
 export interface StopRecordingResult {
   audioBlob: Blob | null;
@@ -322,9 +321,9 @@ export function useClipRecording(): UseClipRecordingReturn {
     // Check if online before attempting
     if (!navigator.onLine) {
       log.info('Offline - transcription will retry when online');
-      setTranscriptionError('offline');
+      setTranscriptionError('network');
       setIsTranscribing(false);
-      return { text: '', error: 'offline' };
+      return { text: '', error: 'network' };
     }
 
     setIsTranscribing(true);
@@ -403,7 +402,7 @@ export function useClipRecording(): UseClipRecordingReturn {
           errorMessage: error instanceof Error ? error.message : 'Unknown',
           retriesAttempted: retryCount + 1
         });
-        return { text: '', error: 'server-error' };
+        return { text: '', error: 'api-down' };
       }
 
       // Network errors (timeout, connection failed) should retry
@@ -449,7 +448,7 @@ export function useClipRecording(): UseClipRecordingReturn {
         setRetryCount(0);
         setIsActiveRequest(false);
         log.error('Unknown transcription failure', { errorMessage, retriesAttempted: retryCount + 1 });
-        return { text: '', error: 'server-error' };
+        return { text: '', error: 'api-down' };
       }
     } finally {
       // Only set to false if we're not retrying

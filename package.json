@@ -21,6 +21,7 @@
     "@types/body-scroll-lock": "^3.1.2",
     "ai": "^5.0.108",
     "body-scroll-lock": "^4.0.0-beta.0",
+    "clsx": "^2.1.1",
     "dotenv": "^16.4.5",
     "framer-motion": "^12.6.2",
     "lightningcss": "^1.30.2",
@@ -35,6 +36,7 @@
     "sanity": "^3.83.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "tailwind-merge": "^3.4.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

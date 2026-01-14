@@ -216,6 +216,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '';
+
+    // ✅ NEW: Detect DNS errors on server (VPN blocking)
+    if (
+      errorMessage.includes('ENOTFOUND') ||
+      errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('getaddrinfo') ||
+      errorMessage.includes('DNS')
+    ) {
+      console.error('[API] DNS error - VPN or network blocking Deepgram:', errorMessage);
+
+      // Return 503 with specific error type
+      return res.status(503).json({
+        error: 'dns-block',
+        message: 'Cannot reach transcription API. Check VPN or network settings.'
+      });
+    }
+
+    // API key issues (from Deepgram)
+    if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+      return res.status(401).json({
+        error: 'api-key-issue',
+        message: 'Invalid API key'
+      });
+    }
+
     console.error('Error processing audio:', error);
     
     // Provide more specific error messages based on the error type

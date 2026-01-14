@@ -373,10 +373,10 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
 
             {status === 'transcribing' && (
               <div className="status-frame transcribing">
-                <div className={`status-icon-wrapper ${isActiveRequest ? 'spinning-wrapper' : ''}`}>
+                <div className={`status-icon-wrapper ${status === 'transcribing' ? 'spinning-wrapper' : ''}`}>
                   {/* Inline SVG - NOT a separate component, so styled-jsx can reach it */}
                   <svg
-                    className={`pending-icon ${isActiveRequest ? 'spinning-icon' : ''}`}
+                    className={`pending-icon ${status === 'transcribing' ? 'spinning-icon' : ''}`}
                     width="12"
                     height="12"
                     viewBox="0 0 12 12"

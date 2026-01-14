@@ -152,23 +152,37 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
       };
     }
 
-    // Derive status from children's states
+    // ✅ ENHANCED: Check all child statuses
     const hasTranscribingChildren = children.some(c => c.status === 'transcribing');
     const hasPendingChildren = children.some(c => c.status === 'pending-child');
+    const hasRetryPendingChildren = children.some(c => c.status === 'pending-retry');
+    const hasAudioCorruptedChildren = children.some(c => c.status === 'audio-corrupted');
+    const hasVpnBlockedChildren = children.some(c =>
+      c.status === 'pending-retry' && c.lastError === 'dns-block'
+    );
+    const hasNoAudioDetectedChildren = children.some(c => c.status === 'no-audio-detected');
 
     let derivedStatus: Clip['status'] = clip.status;
+    let derivedLastError: Clip['lastError'] = clip.lastError;
 
+    // ✅ PRIORITY ORDER (highest to lowest)
     if (hasTranscribingChildren) {
-      // At least one child is transcribing
       derivedStatus = 'transcribing';
+    } else if (hasVpnBlockedChildren) {
+      derivedStatus = 'pending-retry';
+      derivedLastError = 'dns-block';  // Propagate VPN error to parent
+    } else if (hasRetryPendingChildren) {
+      derivedStatus = 'pending-retry';
+    } else if (hasAudioCorruptedChildren) {
+      derivedStatus = 'audio-corrupted';
     } else if (hasPendingChildren) {
-      // Children waiting to transcribe
       derivedStatus = 'pending-child';
+    } else if (hasNoAudioDetectedChildren) {
+      // No other active/pending children - show as completed
+      derivedStatus = null;
     }
 
-    // v2.5.4 CRITICAL FIX: Derive isActiveRequest from activeHttpClipId
-    // Parent's spinner = "Do I have a child currently doing HTTP?"
-    // This is IMMUNE to resetRecording() calls from other clips
+    // ✅ KEEP EXISTING: Derive spinner state from HTTP activity
     const derivedIsActiveRequest =
       activeTranscriptionParentId !== null &&
       clip.id === activeTranscriptionParentId &&
@@ -177,6 +191,7 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
     return {
       ...clip,
       status: derivedStatus,
+      lastError: derivedLastError,  // ✅ NEW: Include derived lastError
       isActiveRequest: derivedIsActiveRequest
     };
   }, []);
@@ -369,16 +384,20 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
                   activeHttpClipId  // v2.5.4 FIX: Use per-clip HTTP tracking instead of global flag
                 );
 
-                // Map ClipStatus to ClipListItem status prop
-                // ClipListItem expects 'pending' but ClipStatus uses 'pending-child'
-                const listItemStatus: 'pending' | 'transcribing' | 'failed' | null =
-                  displayClip.status === 'pending-child' || displayClip.status === 'pending-retry'
-                    ? 'pending'
-                    : displayClip.status === 'transcribing'
+                // ✅ Map Zustand status to ClipListItem status
+                const listItemStatus: 'pending' | 'transcribing' | 'retry-pending' | 'vpn-blocked' | 'audio-corrupted' | null =
+                  displayClip.status === 'transcribing'
                     ? 'transcribing'
-                    : displayClip.status === 'failed'
-                    ? 'failed'
-                    : null;
+                  : displayClip.status === 'pending-retry' && displayClip.lastError === 'dns-block'
+                    ? 'vpn-blocked'  // VPN blocking (orange)
+                  : displayClip.status === 'pending-retry'
+                    ? 'retry-pending'  // Normal retry (white, "Retrying soon...")
+                  : displayClip.status === 'audio-corrupted'
+                    ? 'audio-corrupted'  // Permanent error (red)
+                  : displayClip.status === 'pending-child'
+                    ? 'pending'  // Waiting to transcribe
+                  : null;
+
 
                 return (
                 <ClipListItem
