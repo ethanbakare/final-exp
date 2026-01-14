@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
 import {
-  MicButton,
+  RecordButton,
   VoicePillWave,
-  ProcessingButton,
+  ProcessingButtonDark,
   CloseButton
 } from './ui/voicebuttons';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
@@ -101,9 +101,9 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
             {/* Right Slot: Main button (mic → recordWave → processing) */}
             <div className="nav-right">
-              {/* IDLE: Mic Button */}
+              {/* IDLE: Record Button */}
               {appState === 'idle' && (
-                <MicButton onClick={handleStartRecording} />
+                <RecordButton onClick={handleStartRecording} />
               )}
 
               {/* RECORDING: VoicePillWave (combo button) */}
@@ -113,7 +113,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
               {/* PROCESSING: Processing Button */}
               {appState === 'processing' && (
-                <ProcessingButton />
+                <ProcessingButtonDark />
               )}
 
               {/* RESULTS: Hidden (could show VoiceDocker later) */}
