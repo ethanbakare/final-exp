@@ -111,23 +111,25 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           justify-content: flex-end;  /* CRITICAL: Right-align so timer gets pushed into view */
           padding: 0px;
 
-          /* IDLE STATE: No gap */
+          /* IDLE STATE: Just button size, no gap */
           gap: 0px;
-
-          /* Fixed width - Timer (42px) + gap (10px) + Button (64px) = 116px */
-          width: 114px;
+          width: 38px;
           height: 38px;
 
           /* Debug border */
           border: 0.5px solid red;
 
-          /* Smooth gap transition */
-          transition: gap 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          /* Smooth transitions */
+          transition: gap 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                      width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                      height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* RECORDING STATE: Add gap */
+        /* RECORDING STATE: Full size with gap */
         .record-pill-container.state-recording {
           gap: 10px;
+          width: 114px;  /* Timer (42px) + gap (10px) + Button (64px) = 116px, but using 114px */
+          height: 38px;
         }
 
         /* ========================================
