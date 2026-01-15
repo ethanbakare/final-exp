@@ -110,6 +110,7 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           align-items: center;
           justify-content: flex-end;  /* CRITICAL: Right-align so timer gets pushed into view */
           padding: 0px;
+          box-sizing: border-box;  /* Include border in width */
 
           /* IDLE STATE: Just button size, no gap */
           gap: 0px;
@@ -141,6 +142,7 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           display: flex;
           align-items: center;
           height: 34px;
+          box-sizing: border-box;  /* Include border in width */
 
           /* IDLE STATE: Hidden with no width */
           width: 0;
@@ -171,6 +173,7 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           /* Tracks button's morphing width */
           width: 38px;         /* Idle width - matches RecordButton */
           height: 38px;
+          box-sizing: border-box;  /* Include border in width */
           transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
                       height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           overflow: hidden;    /* CRITICAL: Clips content during morph */
@@ -199,6 +202,7 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           align-items: center;
           padding: 0px;
           cursor: pointer;
+          box-sizing: border-box;  /* Include border in width */
 
           /* IDLE STATE - RecordButtonFilled (light grey circle) */
           width: 38px;
