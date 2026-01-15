@@ -112,7 +112,17 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           padding: 0px;
           gap: 10px;
 
-          /* Fixed width - Timer (42px) + gap (10px) + Button (64px) = 116px */
+          /* IDLE STATE: Just button (38px) */
+          width: 38px;
+          height: 38px;
+
+          /* Smooth width transition */
+          transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                      height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* RECORDING STATE: Timer (42px) + gap (10px) + Button (64px) = 116px */
+        .record-pill-container.state-recording {
           width: 114px;
           height: 38px;
         }
@@ -125,19 +135,21 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           /* Layout */
           display: flex;
           align-items: center;
-          width: 42px;       /* Fixed width for timer */
           height: 34px;
 
-          /* Hidden in idle state */
+          /* Hidden in idle state - NO WIDTH */
+          width: 0;
           opacity: 0;
           pointer-events: none;
+          overflow: hidden;
 
-          /* Fade timing - Half the button morph duration */
-          transition: opacity 0.1s ease;
+          /* Transitions */
+          transition: opacity 0.1s ease, width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Timer visible in recording state */
+        /* Timer visible in recording state - expands to full width */
         .record-pill-container.state-recording .timer-text-wrapper {
+          width: 42px;       /* Expands to timer width */
           opacity: 1;
           pointer-events: auto;
         }
@@ -177,10 +189,10 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           border: none;
           cursor: pointer;
 
-          /* IDLE STATE - RecordButton (circle) */
+          /* IDLE STATE - RecordButtonFilled (light grey circle) */
           width: 38px;
           height: 38px;
-          background: var(--RecWhite);
+          background: var(--VoiceDarkGrey_5);
           border-radius: 19px;
 
           /* Morphing animation */
