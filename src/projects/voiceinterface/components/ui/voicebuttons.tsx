@@ -1510,10 +1510,12 @@ export const ProcessingButtonBigDark: React.FC<ProcessingButtonBigDarkProps> = (
    ============================================ */
 
 interface VoicePillWaveProps {
+  onClick?: () => void;  // Click handler passed to RecordingWaveButton
   isActive?: boolean;  // Controls both timer counting and waveform animation
 }
 
 export const VoicePillWave: React.FC<VoicePillWaveProps> = ({
+  onClick,
   isActive = false
 }) => {
   return (
@@ -1523,7 +1525,7 @@ export const VoicePillWave: React.FC<VoicePillWaveProps> = ({
         <VoiceLiveTimerSeconds isRunning={isActive} />
 
         {/* Recording Wave Button */}
-        <RecordingWaveButton isRecording={isActive} />
+        <RecordingWaveButton onClick={onClick} isRecording={isActive} />
       </div>
 
       <style jsx>{`

@@ -47,16 +47,16 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           </div>
         )}
 
-        {/* RECORDING STATE - Show placeholder (button morph shows recording state) */}
+        {/* RECORDING STATE - Show nothing (button morph indicates recording) */}
         {textState === 'recording' && (
           <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
-            {getPlaceholder()}
+            {/* Empty - no text during recording */}
           </div>
         )}
 
         {/* PROCESSING STATE */}
         {textState === 'processing' && (
-          <div className={`status-text ${styles.OpenRundeMedium16}`}>
+          <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
             Processing...
           </div>
         )}
@@ -83,10 +83,6 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
 
         .placeholder-text {
           color: var(--VoiceDarkGrey_30);
-        }
-
-        .status-text {
-          color: var(--VoiceDarkGrey_80);
         }
 
         .result-text {

@@ -29,6 +29,9 @@ export const VoiceTextBoxStandard: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
 
+  // Ref to track and cancel ongoing API requests
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
   // Map app state to text state
   const getTextState = (): VoiceTextState => {
     return appState as VoiceTextState;
@@ -48,18 +51,27 @@ export const VoiceTextBoxStandard: React.FC = () => {
   const handleStopRecording = async () => {
     setAppState('processing');
 
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+
     // Call mock API
     try {
       const response = await fetch('/api/voice-interface/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mock: true })
+        body: JSON.stringify({ mock: true }),
+        signal: abortControllerRef.current.signal
       });
 
       const data = await response.json();
       setTranscription(data.text || 'Mock transcription result');
       setAppState('results');
     } catch (error) {
+      // Don't show error if request was aborted (user clicked Close)
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
       console.error('Transcription error:', error);
       setTranscription('This is a mock transcription result for testing.');
       setAppState('results');
@@ -67,9 +79,15 @@ export const VoiceTextBoxStandard: React.FC = () => {
   };
 
   /**
-   * Clear/Close - return to idle
+   * Clear/Close - return to idle and cancel any ongoing requests
    */
   const handleClear = () => {
+    // Cancel ongoing API request if exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
     setAppState('idle');
     setTranscription('');
   };
@@ -89,9 +107,9 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
           {/* Navigation Bar */}
           <div className="txt-nav-bar">
-            {/* Left Slot: Close button (only during recording) */}
+            {/* Left Slot: Close button (during recording and processing) */}
             <div className="nav-left">
-              {appState === 'recording' && (
+              {(appState === 'recording' || appState === 'processing') && (
                 <CloseButton onClick={handleClear} />
               )}
             </div>
@@ -105,7 +123,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
               {/* RECORDING: VoicePillWave (combo button) */}
               {appState === 'recording' && (
-                <VoicePillWave onClick={handleStopRecording} />
+                <VoicePillWave onClick={handleStopRecording} isActive={true} />
               )}
 
               {/* PROCESSING: Processing Button */}
@@ -135,6 +153,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
           position: relative;
           width: 398px;
+          max-width: 100%;
           height: 213px;
 
           background: var(--VoiceBoxBg);
@@ -151,7 +170,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           padding: 0px;
           gap: 10px;
 
-          width: 368px;
+          width: 100%;
           height: 173px;
 
           flex: none;
@@ -168,7 +187,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           padding: 12px;
           gap: 10px;
 
-          width: 368px;
+          width: 100%;
           height: 125px;
 
           border-radius: 6px;
@@ -188,7 +207,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           padding: 0px 12px;
           gap: 10px;
 
-          width: 368px;
+          width: 100%;
           height: 38px;
 
           border-radius: 6px;

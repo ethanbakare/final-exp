@@ -58,35 +58,48 @@ This is a **demo project** with a 3-hour implementation target. We'll use the "W
    - All layers present from the start
    - Proper dimensions and spacing per A03 specs
    - No shortcuts on structure
+   - **Responsive layout**: Outer container uses `width: 398px; max-width: 100%`, inner containers use `width: 100%` to fill parent
 
 2. ✅ **Local `useState` for state management**
    - Simple enum: `'idle' | 'recording' | 'processing' | 'results'`
    - State changes trigger button swaps
    - No context provider yet (add later if needed)
+   - **AbortController ref** for cancelling API requests when user clicks Close
 
 3. ✅ **Instant button swaps** (no morphing animations)
-   - Buttons swap via `opacity: 0/1` or conditional rendering
+   - Buttons swap via conditional rendering
    - Fixed container prevents layout shifts
    - TxtNavBar uses `justify-content: space-between` for alignment
+   - **Close button** visible during BOTH recording and processing states
+   - **VoicePillWave** requires `onClick` prop to pass through to RecordingWaveButton
+   - **ClearButton** from voicebuttons.tsx (not a temporary implementation)
 
 4. ✅ **Mock API endpoint**
    - Returns hardcoded transcription
-   - Simulates processing delay
+   - Simulates processing delay (1-2 seconds)
    - Tests full data flow
+   - Can be cancelled via AbortController
 
 5. ✅ **Text state component**
    - Shows different text based on state prop
    - No animation yet (plain text)
    - Proper styling from voice.module.css
+   - **Text states**:
+     - **IDLE**: "Tap to speak" (light gray - `--VoiceDarkGrey_30`)
+     - **RECORDING**: Empty/nothing (button morph indicates recording)
+     - **PROCESSING**: "Processing..." (light gray - `--VoiceDarkGrey_30`, same as placeholder)
+     - **RESULTS**: Transcription text (darker - `--VoiceDarkGrey_90`)
 
-**Checkpoint**: Click mic → "Listening..." → "Processing..." → Transcription appears
+**Checkpoint**: Click mic → Recording (empty text) → "Processing..." → Transcription appears
+
+**Cancel Flow**: Close button works during recording and processing, properly aborts API request
 
 **What We DON'T Build Yet**:
-- ❌ Button morphing animations (add Phase 2)
-- ❌ Word-by-word text animation (add Phase 2)
+- ❌ Button morphing animations (add Phase 1)
+- ❌ Word-by-word text animation (add Phase 1)
 - ❌ Context provider / Zustand (add if needed)
-- ❌ Real audio recording (add Phase 3)
-- ❌ Real transcription API (add Phase 3)
+- ❌ Real audio recording (add Phase 2)
+- ❌ Real transcription API (add Phase 2)
 
 ---
 
@@ -419,7 +432,7 @@ This is covered in detail in section 3.1.C below.
 
 ```typescript
 // VoiceTextStates.tsx
-export type VoiceTextState = 'idle' | 'listening' | 'processing' | 'results' | 'error';
+export type VoiceTextState = 'idle' | 'recording' | 'processing' | 'results' | 'error';
 
 interface VoiceTextStatesProps {
   textState: VoiceTextState;
@@ -434,20 +447,6 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
   placeholderText,
   variation
 }) => {
-  const [dotCount, setDotCount] = useState(1);
-
-  // Animated dots for processing states
-  useEffect(() => {
-    if (textState === 'listening' || textState === 'processing') {
-      const interval = setInterval(() => {
-        setDotCount(prev => prev >= 3 ? 1 : prev + 1);
-      }, 500);
-      return () => clearInterval(interval);
-    }
-  }, [textState]);
-
-  const renderDots = () => '.'.repeat(dotCount);
-
   // Default placeholder text based on variation
   const getPlaceholder = () => {
     if (placeholderText) return placeholderText;
@@ -473,17 +472,17 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
             </div>
           )}
 
-          {/* LISTENING STATE */}
-          {textState === 'listening' && (
-            <div className={`status-text ${styles.OpenRundeMedium16}`}>
-              Listening{renderDots()}
+          {/* RECORDING STATE - Show nothing (button morph indicates recording) */}
+          {textState === 'recording' && (
+            <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
+              {/* Empty - no text during recording */}
             </div>
           )}
 
           {/* PROCESSING STATE */}
           {textState === 'processing' && (
-            <div className={`status-text ${styles.OpenRundeMedium16}`}>
-              Processing{renderDots()}
+            <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
+              Processing...
             </div>
           )}
 
@@ -974,7 +973,7 @@ export function useVoiceTranscription(): UseVoiceTranscriptionReturn {
  */
 export enum VoiceAppState {
   IDLE = 'idle',
-  LISTENING = 'listening',
+  RECORDING = 'recording',
   PROCESSING = 'processing',
   RESULTS = 'results',
   ERROR = 'error'
@@ -2522,26 +2521,26 @@ export const VoiceTextWrapperLive: React.FC = () => {
 **Variation 1 & 2 (Standard Recording)**:
 ```
 ┌─────────┐
-│  IDLE   │ Placeholder: "Tap to speak"
-│         │ Button: Mic (V1) / MicOutline (V2)
+│  IDLE   │ Text: "Tap to speak" (light gray)
+│         │ Button: RecordButton
 └────┬────┘
      │ startRecording()
      ↓
 ┌─────────┐
-│LISTENING│ Status: "Listening..."
-│         │ Buttons: Close (V1) / CheckClose (V2) + RecordWave + Timer
+│RECORDING│ Text: (empty - button morph indicates state)
+│         │ Buttons: Close + VoicePillWave (RecordWave + Timer)
 └────┬────┘
      │ stopRecording()
      ↓
 ┌─────────┐
-│PROCESSING Status: "Processing..."
-│         │ Button: Processing (V1) / ProcessingOutline (V2)
+│PROCESSING Text: "Processing..." (light gray)
+│         │ Buttons: Close (still visible) + ProcessingButtonDark
 └────┬────┘
      │ transcribeAudio() → complete
      ↓
 ┌─────────┐
-│ RESULTS │ Text: [Transcription with animation]
-│         │ Actions: Copy, Clear (via context menu or buttons)
+│ RESULTS │ Text: [Transcription] (darker gray)
+│         │ Button: ClearButton
 └─────────┘
 ```
 
