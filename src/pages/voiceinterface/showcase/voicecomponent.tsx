@@ -151,6 +151,70 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
         .toggle-switch.active .toggle-slider {
           left: 14px;
         }
+
+        /* ========================================
+           WIDE BUTTON GRID - Double width for morphing buttons
+           ======================================== */
+
+        .button-grid-wide {
+          /* Size - Double width */
+          width: 400px;
+          height: 200px;
+
+          /* Layout */
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+
+          /* Style */
+          border: 0.8px solid rgba(38, 36, 36, 0.05);
+          border-radius: 0px;
+          background: transparent;
+
+          /* Inside auto layout */
+          flex: none;
+        }
+
+        .button-grid-wide .toggle-container {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          opacity: 0.3;
+          cursor: pointer;
+          transition: opacity 0.2s ease;
+          z-index: 10;
+        }
+
+        .button-grid-wide .toggle-container:hover {
+          opacity: 0.6;
+        }
+
+        .button-grid-wide .button-center {
+          /* Centered content */
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex: 1;
+        }
+
+        .button-grid-wide .button-label {
+          /* Bottom label text */
+          position: absolute;
+          bottom: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 0.375rem;
+          font-weight: 400;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+          color: rgba(94, 94, 94, 0.5);
+
+          white-space: nowrap;
+        }
       `}</style>
     </>
   );
@@ -332,18 +396,25 @@ const VoiceComponents: React.FC = () => {
 
           {/* Seamless grid layout */}
           <div className="seamless-grid">
-            <ButtonGrid
-              label="MORPHING RECORD TO PILL WAVE - 38PX ↔ 114PX"
-              showToggle={true}
-              toggleState={morphingRecordState === 'recording'}
-              onToggle={() => setMorphingRecordState(morphingRecordState === 'idle' ? 'recording' : 'idle')}
-            >
-              <MorphingRecordToPillWave
-                state={morphingRecordState}
-                onRecordClick={() => setMorphingRecordState('recording')}
-                onStopRecordingClick={() => setMorphingRecordState('idle')}
-              />
-            </ButtonGrid>
+            <div className="button-grid-wide">
+              <div className="toggle-container" onClick={() => setMorphingRecordState(morphingRecordState === 'idle' ? 'recording' : 'idle')}>
+                <div className={`toggle-switch ${morphingRecordState === 'recording' ? 'active' : ''}`}>
+                  <div className="toggle-slider"></div>
+                </div>
+              </div>
+
+              <div className="button-center">
+                <MorphingRecordToPillWave
+                  state={morphingRecordState}
+                  onRecordClick={() => setMorphingRecordState('recording')}
+                  onStopRecordingClick={() => setMorphingRecordState('idle')}
+                />
+              </div>
+
+              <div className="button-label">
+                MORPHING RECORD TO PILL WAVE - 38PX ↔ 114PX
+              </div>
+            </div>
           </div>
         </div>
       </div>
