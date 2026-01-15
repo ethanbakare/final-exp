@@ -110,7 +110,9 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           align-items: center;
           justify-content: flex-end;  /* CRITICAL: Right-align so timer gets pushed into view */
           padding: 0px;
-          gap: 10px;
+
+          /* IDLE STATE: No gap */
+          gap: 0px;
 
           /* Fixed width - Timer (42px) + gap (10px) + Button (64px) = 116px */
           width: 114px;
@@ -118,6 +120,14 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
 
           /* Debug border */
           border: 0.5px solid red;
+
+          /* Smooth gap transition */
+          transition: gap 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* RECORDING STATE: Add gap */
+        .record-pill-container.state-recording {
+          gap: 10px;
         }
 
         /* ========================================
@@ -128,22 +138,25 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           /* Layout */
           display: flex;
           align-items: center;
-          width: 42px;       /* Fixed width for timer */
           height: 34px;
 
-          /* Hidden in idle state */
+          /* IDLE STATE: Hidden with no width */
+          width: 0;
           opacity: 0;
           pointer-events: none;
+          overflow: hidden;
 
-          /* Fade timing - Half the button morph duration */
-          transition: opacity 0.1s ease;
+          /* Transitions */
+          transition: opacity 0.1s ease,
+                      width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
           /* Debug border */
           border: 0.5px solid blue;
         }
 
-        /* Timer visible in recording state */
+        /* RECORDING STATE: Visible with full width */
         .record-pill-container.state-recording .timer-text-wrapper {
+          width: 42px;       /* Expands to timer width */
           opacity: 1;
           pointer-events: auto;
         }
