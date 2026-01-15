@@ -1,11 +1,12 @@
 import React from 'react';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
+import { VoiceTextAnimation } from './VoiceTextAnimation';
 
 /**
  * Voice Text States Component
  *
  * Displays different text based on the current application state.
- * No animations in Phase 0 - just plain text display.
+ * Phase 1: Added word-by-word text animation for results state.
  */
 
 export type VoiceTextState = 'idle' | 'recording' | 'processing' | 'results' | 'error';
@@ -61,10 +62,14 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           </div>
         )}
 
-        {/* RESULTS STATE */}
+        {/* RESULTS STATE - With word-by-word animation */}
         {textState === 'results' && transcriptText && (
-          <div className={`result-text ${styles.OpenRundeMedium16}`}>
-            {transcriptText}
+          <div className="result-text">
+            <VoiceTextAnimation
+              text={transcriptText}
+              animationDelay={0.07}      // 70ms between words
+              animationDuration={0.5}    // 500ms per word
+            />
           </div>
         )}
 

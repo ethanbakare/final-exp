@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
 import {
-  RecordButton,
-  VoicePillWave,
-  ProcessingButtonDark,
-  CloseButton,
-  ClearButton
+  CloseButton
 } from './ui/voicebuttons';
+import { VoiceMorphingMainButton, VoiceMainButtonState } from './ui/VoiceMorphingMainButton';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 /**
@@ -98,11 +95,18 @@ export const VoiceTextBoxStandard: React.FC = () => {
         <div className="txt-box">
           {/* Transcript Display Area */}
           <div className="txt-transcript-box">
-            <VoiceTextStates
-              textState={getTextState()}
-              transcriptText={transcription}
-              variation={1}
-            />
+            <div className="transcript-scroll-wrapper">
+              <VoiceTextStates
+                textState={getTextState()}
+                transcriptText={transcription}
+                variation={1}
+              />
+            </div>
+
+            {/* Fade overlay at bottom (only visible when text overflows) */}
+            {appState === 'results' && transcription && (
+              <div className="fade-overlay"></div>
+            )}
           </div>
 
           {/* Navigation Bar */}
@@ -114,27 +118,14 @@ export const VoiceTextBoxStandard: React.FC = () => {
               )}
             </div>
 
-            {/* Right Slot: Main button (mic → recordWave → processing) */}
+            {/* Right Slot: Morphing main button */}
             <div className="nav-right">
-              {/* IDLE: Record Button */}
-              {appState === 'idle' && (
-                <RecordButton onClick={handleStartRecording} />
-              )}
-
-              {/* RECORDING: VoicePillWave (combo button) */}
-              {appState === 'recording' && (
-                <VoicePillWave onClick={handleStopRecording} isActive={true} />
-              )}
-
-              {/* PROCESSING: Processing Button */}
-              {appState === 'processing' && (
-                <ProcessingButtonDark />
-              )}
-
-              {/* RESULTS: Clear button */}
-              {appState === 'results' && (
-                <ClearButton onClick={handleClear} />
-              )}
+              <VoiceMorphingMainButton
+                state={appState as VoiceMainButtonState}
+                onRecordClick={handleStartRecording}
+                onStopRecordingClick={handleStopRecording}
+                onClearClick={handleClear}
+              />
             </div>
           </div>
         </div>
@@ -181,6 +172,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
         /* TxtTranscriptBox - Text Display Area */
         .txt-transcript-box {
+          position: relative;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
@@ -196,6 +188,49 @@ export const VoiceTextBoxStandard: React.FC = () => {
           order: 0;
           align-self: stretch;
           flex-grow: 1;
+          overflow: hidden;  /* Clip fade overlay */
+        }
+
+        /* Scrollable wrapper for text content */
+        .transcript-scroll-wrapper {
+          width: 100%;
+          max-height: 100%;
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding-right: 4px;  /* Space for scrollbar */
+        }
+
+        /* Custom scrollbar styling */
+        .transcript-scroll-wrapper::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .transcript-scroll-wrapper::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .transcript-scroll-wrapper::-webkit-scrollbar-thumb {
+          background: var(--VoiceDarkGrey_30);
+          border-radius: 4px;
+        }
+
+        .transcript-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+          background: var(--VoiceDarkGrey_80);
+        }
+
+        /* Fade overlay at bottom */
+        .fade-overlay {
+          position: absolute;
+          bottom: 12px;
+          left: 12px;
+          right: 12px;
+          height: 24px;
+          background: linear-gradient(to bottom,
+            rgba(247, 246, 244, 0) 0%,
+            rgba(247, 246, 244, 1) 100%
+          );
+          pointer-events: none;
+          z-index: 10;
         }
 
         /* TxtNavBar - Navigation Controls */
@@ -223,6 +258,12 @@ export const VoiceTextBoxStandard: React.FC = () => {
           justify-content: flex-start;
           align-items: center;
           min-width: 38px;
+          opacity: 1;
+          transition: opacity 0.2s ease;
+        }
+
+        .nav-left:empty {
+          opacity: 0;
         }
 
         .nav-right {
