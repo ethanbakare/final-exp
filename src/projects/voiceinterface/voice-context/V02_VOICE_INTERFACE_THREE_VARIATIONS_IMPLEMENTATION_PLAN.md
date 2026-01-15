@@ -1051,9 +1051,9 @@ export function getVoiceStateConfig(
       canCopy: false,
       shouldAnimateTextEntry: false
     },
-    [VoiceAppState.LISTENING]: {
-      textState: 'listening',
-      navState: 'listening',
+    [VoiceAppState.RECORDING]: {
+      textState: 'recording',
+      navState: 'recording',
       canStartRecording: false,
       canStopRecording: true,
       canClear: false,
@@ -1094,9 +1094,9 @@ export function getVoiceStateConfig(
     [VoiceVariation.STANDARD]: {
       // Variation 1: TextBox Standard
       showMicButton: appState === VoiceAppState.IDLE,
-      showRecordWaveButton: appState === VoiceAppState.LISTENING,
+      showRecordWaveButton: appState === VoiceAppState.RECORDING,
       showProcessingButton: appState === VoiceAppState.PROCESSING,
-      showCloseButton: appState === VoiceAppState.LISTENING,
+      showCloseButton: appState === VoiceAppState.RECORDING,
       showCheckButton: false,
       showStopRecordButton: false,
       showVoiceDocker: appState === VoiceAppState.RESULTS
@@ -1104,10 +1104,10 @@ export function getVoiceStateConfig(
     [VoiceVariation.CHECK_CLOSE]: {
       // Variation 2: TextBox Check & Close
       showMicButton: appState === VoiceAppState.IDLE,
-      showRecordWaveButton: appState === VoiceAppState.LISTENING,
+      showRecordWaveButton: appState === VoiceAppState.RECORDING,
       showProcessingButton: appState === VoiceAppState.PROCESSING,
-      showCloseButton: appState === VoiceAppState.LISTENING,
-      showCheckButton: appState === VoiceAppState.LISTENING,
+      showCloseButton: appState === VoiceAppState.RECORDING,
+      showCheckButton: appState === VoiceAppState.RECORDING,
       showStopRecordButton: false,
       showVoiceDocker: appState === VoiceAppState.RESULTS
     },
@@ -1115,7 +1115,7 @@ export function getVoiceStateConfig(
       // Variation 3: TextWrapper Live Streaming
       showMicButton: false,
       showRecordWaveButton: appState === VoiceAppState.IDLE || appState === VoiceAppState.ERROR,
-      showStopRecordButton: appState === VoiceAppState.LISTENING,
+      showStopRecordButton: appState === VoiceAppState.RECORDING,
       showProcessingButton: appState === VoiceAppState.PROCESSING,
       showCloseButton: false,
       showCheckButton: false,
@@ -1220,7 +1220,7 @@ export const VoiceInterfaceProvider: React.FC<{ children: ReactNode }> = ({ chil
         startStreamingTranscription();
       }
 
-      setAppState(VoiceAppState.LISTENING);
+      setAppState(VoiceAppState.RECORDING);
     } catch (err) {
       setAppState(VoiceAppState.ERROR);
       console.error('Failed to start recording:', err);
@@ -1790,7 +1790,7 @@ TextBox
 ```
 IDLE (Mic Button)
   ↓ [User taps mic]
-LISTENING (RecordWave + Timer + Close button)
+RECORDING (RecordWave + Timer + Close button)
   ↓ [User taps RecordWave to stop]
 PROCESSING (Processing button)
   ↓ [Transcription complete]
@@ -1799,7 +1799,7 @@ RESULTS (Text appears with animation)
 
 **Button Positions**:
 - **IDLE**: Mic button (center-right of navbar)
-- **LISTENING**: Close button (left) + RecordWave + Timer (right, combo pill)
+- **RECORDING**: Close button (left) + RecordWave + Timer (right, combo pill)
 - **PROCESSING**: Processing button (center)
 - **RESULTS**: (navbar hidden or shows copy/clear options - TBD)
 
@@ -1836,7 +1836,7 @@ TextBox
 ```
 IDLE (Mic Button with Outline)
   ↓ [User taps mic]
-LISTENING (RecordWave + Timer + Check/Close button)
+RECORDING (RecordWave + Timer + Check/Close button)
   ↓ [User taps Check mark]
 PROCESSING (Processing button with Outline)
   ↓ [Transcription complete]
@@ -1850,7 +1850,7 @@ RESULTS (Text appears with animation)
 
 **Button Positions**:
 - **IDLE**: Mic button with outline (center-right)
-- **LISTENING**: CheckAndClose combo (left) + RecordWave + Timer (right, combo pill)
+- **RECORDING**: CheckAndClose combo (left) + RecordWave + Timer (right, combo pill)
 - **PROCESSING**: Processing button with outline (center)
 - **RESULTS**: (navbar hidden or shows copy/clear options - TBD)
 
@@ -1882,7 +1882,7 @@ TextWrapper
 ```
 IDLE (RecordWide button below TextBox)
   ↓ [User taps RecordWide]
-LISTENING (StopRecord + Timer - live transcription appears in real-time)
+RECORDING (StopRecord + Timer - live transcription appears in real-time)
   ↓ [User taps Stop]
 PROCESSING (if final chunks need processing - ProcessingDark button)
   ↓ [Complete]
@@ -1898,7 +1898,7 @@ RESULTS (VoiceDocker with Copy/Delete buttons)
 
 **Button States**:
 - **IDLE**: RecordWide button (dark, mic icon)
-- **LISTENING**: StopRecord button + Timer (above button, separate element)
+- **RECORDING**: StopRecord button + Timer (above button, separate element)
 - **PROCESSING**: ProcessingDark button (if needed)
 - **RESULTS**: VoiceDocker (copy + delete)
 
@@ -2005,7 +2005,7 @@ import styles from '@/projects/voiceinterface/styles/voice.module.css';
  *     - TxtNavBar (button controls)
  *
  * State Flow:
- * IDLE → LISTENING → PROCESSING → RESULTS
+ * IDLE → RECORDING → PROCESSING → RESULTS
  */
 export const VoiceTextBoxStandard: React.FC = () => {
   const {
@@ -2553,7 +2553,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
      │ startRecording() + startStreamingTranscription()
      ↓
 ┌─────────┐
-│LISTENING│ Text: [Live streaming - words appear as spoken]
+│RECORDING│ Text: [Live streaming - words appear as spoken]
 │         │ Button: StopRecord + Timer (above button)
 └────┬────┘
      │ stopRecording() + stopStreamingTranscription()
@@ -2585,7 +2585,7 @@ User Action (e.g., click mic button)
     ↓
 Callback in VoiceInterfaceContext
     ↓
-Update appState: setAppState(VoiceAppState.LISTENING)
+Update appState: setAppState(VoiceAppState.RECORDING)
     ↓
 Context triggers re-render with new stateConfig
     ↓
@@ -3021,8 +3021,8 @@ describe('getVoiceStateConfig', () => {
     expect(config.canStartRecording).toBe(true);
   });
 
-  test('LISTENING state - Variation 3 shows stopRecord button', () => {
-    const config = getVoiceStateConfig(VoiceAppState.LISTENING, VoiceVariation.LIVE_STREAMING);
+  test('RECORDING state - Variation 3 shows stopRecord button', () => {
+    const config = getVoiceStateConfig(VoiceAppState.RECORDING, VoiceVariation.LIVE_STREAMING);
 
     expect(config.showStopRecordButton).toBe(true);
     expect(config.showRecordWaveButton).toBe(false);
@@ -3036,7 +3036,7 @@ describe('getVoiceStateConfig', () => {
 ### 10.2 Integration Tests
 
 **State Transitions**:
-- User clicks mic → state changes to LISTENING
+- User clicks mic → state changes to RECORDING
 - User stops recording → state changes to PROCESSING
 - Transcription complete → state changes to RESULTS
 
@@ -3063,7 +3063,7 @@ const TestComponent = () => {
   );
 };
 
-test('state transitions from IDLE → LISTENING → PROCESSING', async () => {
+test('state transitions from IDLE → RECORDING → PROCESSING', async () => {
   render(
     <VoiceInterfaceProvider>
       <TestComponent />
@@ -3109,7 +3109,7 @@ test('state transitions from IDLE → LISTENING → PROCESSING', async () => {
 
 **Variation 1: TextBox Standard**
 - [ ] Mic button visible in IDLE state
-- [ ] Clicking mic starts recording (state → LISTENING)
+- [ ] Clicking mic starts recording (state → RECORDING)
 - [ ] RecordWave + Timer + Close button visible during recording
 - [ ] Clicking RecordWave stops recording (state → PROCESSING)
 - [ ] Processing button shows animated dots
@@ -3118,7 +3118,7 @@ test('state transitions from IDLE → LISTENING → PROCESSING', async () => {
 
 **Variation 2: TextBox Check & Close**
 - [ ] Mic button (outlined) visible in IDLE state
-- [ ] Clicking mic starts recording (state → LISTENING)
+- [ ] Clicking mic starts recording (state → RECORDING)
 - [ ] RecordWave + Timer + CheckAndClose button visible during recording
 - [ ] Clicking Check mark stops recording (state → PROCESSING)
 - [ ] Processing button (outlined) shows animated dots
@@ -3127,7 +3127,7 @@ test('state transitions from IDLE → LISTENING → PROCESSING', async () => {
 
 **Variation 3: TextWrapper Live Streaming**
 - [ ] RecordWide button visible below TextBox in IDLE state
-- [ ] Clicking RecordWide starts recording + streaming (state → LISTENING)
+- [ ] Clicking RecordWide starts recording + streaming (state → RECORDING)
 - [ ] StopRecord button + Timer visible during recording
 - [ ] Text appears word-by-word in real-time as user speaks
 - [ ] Clicking StopRecord stops recording (state → PROCESSING or RESULTS)
