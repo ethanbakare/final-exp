@@ -333,7 +333,7 @@ const VoiceComponents: React.FC = () => {
           {/* Seamless grid layout */}
           <div className="seamless-grid">
             <ButtonGrid
-              label="MORPHING RECORD TO PILL WAVE - 38PX → 114PX"
+              label="MORPHING RECORD TO PILL WAVE - 38PX ↔ 114PX"
               showToggle={true}
               toggleState={morphingRecordState === 'recording'}
               onToggle={() => setMorphingRecordState(morphingRecordState === 'idle' ? 'recording' : 'idle')}
