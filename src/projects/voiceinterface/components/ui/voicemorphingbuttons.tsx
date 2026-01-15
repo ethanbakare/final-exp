@@ -115,6 +115,9 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           /* Fixed width - Timer (42px) + gap (10px) + Button (64px) = 116px */
           width: 114px;
           height: 38px;
+
+          /* Debug border */
+          border: 0.5px solid red;
         }
 
         /* ========================================
@@ -134,6 +137,9 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
 
           /* Fade timing - Half the button morph duration */
           transition: opacity 0.1s ease;
+
+          /* Debug border */
+          border: 0.5px solid blue;
         }
 
         /* Timer visible in recording state */
@@ -156,6 +162,9 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           display: flex;
           align-items: center;
           justify-content: flex-end;  /* Keep button right-aligned */
+
+          /* Debug border */
+          border: 0.5px solid green;
         }
 
         /* Expand tracker to match recording button size */
@@ -174,7 +183,6 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           justify-content: center;
           align-items: center;
           padding: 0px;
-          border: none;
           cursor: pointer;
 
           /* IDLE STATE - RecordButtonFilled (light grey circle) */
@@ -187,6 +195,9 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           will-change: width, height, background, border-radius;
           overflow: hidden;
+
+          /* Debug border */
+          border: 0.5px solid orange;
         }
 
         /* RECORDING STATE - RecordingWaveButton (pill) */
