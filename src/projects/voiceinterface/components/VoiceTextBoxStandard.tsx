@@ -4,7 +4,8 @@ import {
   RecordButton,
   VoicePillWave,
   ProcessingButtonDark,
-  CloseButton
+  CloseButton,
+  ClearButton
 } from './ui/voicebuttons';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
@@ -116,11 +117,9 @@ export const VoiceTextBoxStandard: React.FC = () => {
                 <ProcessingButtonDark />
               )}
 
-              {/* RESULTS: Hidden (could show VoiceDocker later) */}
+              {/* RESULTS: Clear button */}
               {appState === 'results' && (
-                <button onClick={handleClear} className="clear-button">
-                  Clear
-                </button>
+                <ClearButton onClick={handleClear} />
               )}
             </div>
           </div>
@@ -217,23 +216,6 @@ export const VoiceTextBoxStandard: React.FC = () => {
           justify-content: flex-end;
           align-items: center;
           margin-left: auto;
-        }
-
-        /* Temporary clear button for results state */
-        .clear-button {
-          padding: 8px 16px;
-          background: var(--VoiceDarkGrey_5);
-          border: 1px solid var(--VoiceDarkGrey_20);
-          border-radius: 20px;
-          cursor: pointer;
-          font-family: 'Open Runde', sans-serif;
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--VoiceDarkGrey_90);
-        }
-
-        .clear-button:hover {
-          background: var(--VoiceDarkGrey_15);
         }
 
         /* Responsive */
