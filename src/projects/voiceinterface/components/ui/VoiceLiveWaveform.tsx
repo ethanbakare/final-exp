@@ -197,7 +197,7 @@ export const VoiceLiveWaveform = ({
                 processingValue * transitionProgressRef.current
             }
 
-            processingData.push(Math.max(0.05, Math.min(1, finalValue)))
+            processingData.push(Math.max(0.15, Math.min(1, finalValue)))
           }
         } else {
           for (let i = 0; i < barCount; i++) {
@@ -224,7 +224,7 @@ export const VoiceLiveWaveform = ({
                 processingValue * transitionProgressRef.current
             }
 
-            processingData.push(Math.max(0.05, Math.min(1, finalValue)))
+            processingData.push(Math.max(0.15, Math.min(1, finalValue)))
           }
         }
 
@@ -426,13 +426,15 @@ export const VoiceLiveWaveform = ({
             for (let i = leftHalf - 1; i >= 0; i--) {
               const dataIndex = Math.floor((i / Math.max(1, leftHalf)) * relevantData.length)
               const value = Math.min(1, (relevantData[dataIndex] / 255) * sensitivity)
-              newBars.push(Math.max(0.05, value))
+              // Use 0.15 minimum for visible baseline when active
+              newBars.push(Math.max(0.15, value))
             }
             // Right side
             for (let i = 0; i < rightHalf; i++) {
               const dataIndex = Math.floor((i / Math.max(1, rightHalf)) * relevantData.length)
               const value = Math.min(1, (relevantData[dataIndex] / 255) * sensitivity)
-              newBars.push(Math.max(0.05, value))
+              // Use 0.15 minimum for visible baseline when active
+              newBars.push(Math.max(0.15, value))
             }
             staticBarsRef.current = newBars
             lastActiveDataRef.current = newBars
@@ -448,8 +450,8 @@ export const VoiceLiveWaveform = ({
             }
             const average = (sum / relevantData.length / 255) * sensitivity
 
-            // Push to history
-            historyRef.current.push(Math.min(1, Math.max(0.05, average)))
+            // Push to history (0.15 minimum for visible baseline)
+            historyRef.current.push(Math.min(1, Math.max(0.15, average)))
             lastActiveDataRef.current = [...historyRef.current]
 
             // Pruning: Keep enough history to fill screen + buffer
@@ -492,7 +494,7 @@ export const VoiceLiveWaveform = ({
 
           // Only draw up to barCount
           for (let i = 0; i < barCount && i < dataToRender.length; i++) {
-            const value = dataToRender[i] || 0.1
+            const value = dataToRender[i] || 0.15
             const x = offsetX + (i * step)  // Apply centering offset
 
             // Ambient Wave Effect: Apply a traveling sine wave to modulate bar height
@@ -590,7 +592,7 @@ export const VoiceLiveWaveform = ({
           // Draw real data bars (NO ambient wave in scrolling mode for V3)
           for (let i = 0; i < history.length; i++) {
             const dataIndex = history.length - 1 - i
-            const value = history[dataIndex] || 0.1
+            const value = history[dataIndex] || 0.15
 
             // Base Position (CENTERED)
             const baseX = rect.width - offsetX - barWidth - (i * step)
