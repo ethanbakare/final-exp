@@ -253,30 +253,48 @@ export const VoiceLiveWaveform = ({
           : historyRef.current.length > 0
 
       if (hasData) {
+        // Fade to baseline (0.05) instead of 0, and keep bars populated
+        const baselineValue = 0.05
         let fadeProgress = 0
         const fadeToIdle = () => {
           fadeProgress += 0.03
           if (fadeProgress < 1) {
             if (mode === "static") {
               staticBarsRef.current = staticBarsRef.current.map(
-                (value) => value * (1 - fadeProgress)
+                (value) => value * (1 - fadeProgress) + baselineValue * fadeProgress
               )
             } else {
               historyRef.current = historyRef.current.map(
-                (value) => value * (1 - fadeProgress)
+                (value) => value * (1 - fadeProgress) + baselineValue * fadeProgress
               )
             }
             needsRedrawRef.current = true
             requestAnimationFrame(fadeToIdle)
           } else {
+            // Set all bars to baseline value (don't clear to empty)
             if (mode === "static") {
-              staticBarsRef.current = []
+              staticBarsRef.current = staticBarsRef.current.map(() => baselineValue)
             } else {
-              historyRef.current = []
+              historyRef.current = historyRef.current.map(() => baselineValue)
             }
+            needsRedrawRef.current = true
           }
         }
         fadeToIdle()
+      } else {
+        // No data yet - initialize with baseline bars
+        const rect = containerRef.current?.getBoundingClientRect()
+        if (rect) {
+          const barCount = Math.floor(rect.width / (barWidth + barGap))
+          const baselineBars = Array(barCount).fill(0.05)
+
+          if (mode === "static") {
+            staticBarsRef.current = baselineBars
+          } else {
+            historyRef.current = baselineBars
+          }
+          needsRedrawRef.current = true
+        }
       }
     }
   }, [processing, active, barWidth, barGap, mode])
