@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
 import {
-  CloseButton
+  RecordButton,
+  VoicePillWave,
+  ProcessingButtonDark,
+  CloseButton,
+  ClearButton
 } from './ui/voicebuttons';
-import { VoiceMorphingMainButton, VoiceMainButtonState } from './ui/VoiceMorphingMainButton';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 /**
@@ -118,14 +121,27 @@ export const VoiceTextBoxStandard: React.FC = () => {
               )}
             </div>
 
-            {/* Right Slot: Morphing main button */}
+            {/* Right Slot: Main button (mic → recordWave → processing) */}
             <div className="nav-right">
-              <VoiceMorphingMainButton
-                state={appState as VoiceMainButtonState}
-                onRecordClick={handleStartRecording}
-                onStopRecordingClick={handleStopRecording}
-                onClearClick={handleClear}
-              />
+              {/* IDLE: Record Button */}
+              {appState === 'idle' && (
+                <RecordButton onClick={handleStartRecording} />
+              )}
+
+              {/* RECORDING: VoicePillWave (combo button) */}
+              {appState === 'recording' && (
+                <VoicePillWave onClick={handleStopRecording} isActive={true} />
+              )}
+
+              {/* PROCESSING: Processing Button */}
+              {appState === 'processing' && (
+                <ProcessingButtonDark />
+              )}
+
+              {/* RESULTS: Clear button */}
+              {appState === 'results' && (
+                <ClearButton onClick={handleClear} />
+              )}
             </div>
           </div>
         </div>
@@ -258,12 +274,6 @@ export const VoiceTextBoxStandard: React.FC = () => {
           justify-content: flex-start;
           align-items: center;
           min-width: 38px;
-          opacity: 1;
-          transition: opacity 0.2s ease;
-        }
-
-        .nav-left:empty {
-          opacity: 0;
         }
 
         .nav-right {
