@@ -215,6 +215,11 @@ const VoiceComponents: React.FC = () => {
         .morphing-section .button-grid {
           width: 400px;
         }
+
+        /* Right-align morphing button content */
+        .morphing-section .button-center {
+          justify-content: flex-end;  /* Align to right */
+        }
       `}</style>
 
       <div className="showcase-container">
