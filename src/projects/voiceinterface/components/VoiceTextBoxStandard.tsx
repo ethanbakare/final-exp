@@ -142,9 +142,9 @@ export const VoiceTextBoxStandard: React.FC = () => {
           max-width: 600px;
           height: 213px;
 
-          background: #F7F6F4;
-          border: 1px solid #F2F2F2;
-          box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.06);
+          background: var(--VoiceBoxBg);
+          border: 1px solid var(--VoiceBoxOutline);
+          box-shadow: 0px 4px 12px var(--VoiceBoxShadow);
           border-radius: 16px;
         }
 
