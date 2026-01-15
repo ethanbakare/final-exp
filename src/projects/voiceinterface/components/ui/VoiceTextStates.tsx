@@ -47,10 +47,10 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           </div>
         )}
 
-        {/* RECORDING STATE */}
+        {/* RECORDING STATE - Show placeholder (button morph shows recording state) */}
         {textState === 'recording' && (
-          <div className={`status-text ${styles.OpenRundeMedium16}`}>
-            Listening...
+          <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
+            {getPlaceholder()}
           </div>
         )}
 

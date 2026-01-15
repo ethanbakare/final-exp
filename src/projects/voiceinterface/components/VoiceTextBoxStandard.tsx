@@ -39,11 +39,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
    */
   const handleStartRecording = () => {
     setAppState('recording');
-
-    // Simulate recording for 3 seconds, then auto-stop
-    setTimeout(() => {
-      handleStopRecording();
-    }, 3000);
+    // User clicks to stop - no auto-stop
   };
 
   /**
@@ -138,8 +134,8 @@ export const VoiceTextBoxStandard: React.FC = () => {
           gap: 10px;
 
           position: relative;
-          width: 398px;
-          max-width: 600px;
+          width: 100%;
+          max-width: 398px;
           height: 213px;
 
           background: var(--VoiceBoxBg);
@@ -156,7 +152,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           padding: 0px;
           gap: 10px;
 
-          width: 368px;
+          width: 100%;
           height: 173px;
 
           flex: none;
@@ -173,7 +169,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           padding: 12px;
           gap: 10px;
 
-          width: 368px;
+          width: 100%;
           height: 125px;
 
           border-radius: 6px;
@@ -193,7 +189,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           padding: 0px 12px;
           gap: 10px;
 
-          width: 368px;
+          width: 100%;
           height: 38px;
 
           border-radius: 6px;
@@ -216,14 +212,6 @@ export const VoiceTextBoxStandard: React.FC = () => {
           justify-content: flex-end;
           align-items: center;
           margin-left: auto;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-          .text-box {
-            width: 100%;
-            max-width: 398px;
-          }
         }
       `}</style>
     </>

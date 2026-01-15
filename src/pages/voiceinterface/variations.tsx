@@ -47,11 +47,12 @@ export default function VoiceInterfaceVariations() {
         <div className="instructions">
           <h3>Test Instructions:</h3>
           <ol>
-            <li>Click the mic button to start "recording"</li>
-            <li>Watch text change to "Listening..." (auto-stops after 3s)</li>
-            <li>Watch text change to "Processing..." (calls mock API)</li>
-            <li>See mock transcription appear</li>
-            <li>Click "Clear" to reset</li>
+            <li>Click the mic button to start recording</li>
+            <li>Button morphs to RecordWave + Timer + Close button</li>
+            <li>Click RecordWave (or Close to cancel) to stop recording</li>
+            <li>Processing button shows (calls mock API automatically)</li>
+            <li>Mock transcription appears with Clear button</li>
+            <li>Click "Clear" to reset to idle</li>
           </ol>
         </div>
       </div>
