@@ -134,8 +134,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           gap: 10px;
 
           position: relative;
-          width: 100%;
-          max-width: 398px;
+          width: 398px;
           height: 213px;
 
           background: var(--VoiceBoxBg);
@@ -152,7 +151,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           padding: 0px;
           gap: 10px;
 
-          width: 100%;
+          width: 368px;
           height: 173px;
 
           flex: none;
@@ -169,7 +168,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           padding: 12px;
           gap: 10px;
 
-          width: 100%;
+          width: 368px;
           height: 125px;
 
           border-radius: 6px;
@@ -189,7 +188,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           padding: 0px 12px;
           gap: 10px;
 
-          width: 100%;
+          width: 368px;
           height: 38px;
 
           border-radius: 6px;
