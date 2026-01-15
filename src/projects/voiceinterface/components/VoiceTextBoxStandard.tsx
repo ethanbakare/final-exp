@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
 import {
-  RecordButton,
-  VoicePillWave,
   ProcessingButtonDark,
   CloseButton,
   ClearButton
 } from './ui/voicebuttons';
+import { MorphingRecordToPillWave } from './ui/VoiceMorphingButtons';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 /**
@@ -121,24 +120,23 @@ export const VoiceTextBoxStandard: React.FC = () => {
               )}
             </div>
 
-            {/* Right Slot: Main button (mic → recordWave → processing) */}
+            {/* Right Slot: Main button with morphing animation */}
             <div className="nav-right">
-              {/* IDLE: Record Button */}
-              {appState === 'idle' && (
-                <RecordButton onClick={handleStartRecording} />
+              {/* IDLE + RECORDING: Morphing Record → Pill Wave */}
+              {(appState === 'idle' || appState === 'recording') && (
+                <MorphingRecordToPillWave
+                  state={appState === 'idle' ? 'idle' : 'recording'}
+                  onRecordClick={handleStartRecording}
+                  onStopRecordingClick={handleStopRecording}
+                />
               )}
 
-              {/* RECORDING: VoicePillWave (combo button) */}
-              {appState === 'recording' && (
-                <VoicePillWave onClick={handleStopRecording} isActive={true} />
-              )}
-
-              {/* PROCESSING: Processing Button */}
+              {/* PROCESSING: Processing Button (instant swap for now) */}
               {appState === 'processing' && (
                 <ProcessingButtonDark />
               )}
 
-              {/* RESULTS: Clear button */}
+              {/* RESULTS: Clear button (instant swap for now) */}
               {appState === 'results' && (
                 <ClearButton onClick={handleClear} />
               )}
