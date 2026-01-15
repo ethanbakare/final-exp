@@ -112,10 +112,10 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
           padding: 0px;
           box-sizing: border-box;  /* Include border in width */
 
-          /* IDLE STATE: Just button size, no gap */
+          /* IDLE STATE: Button size + border room */
           gap: 0px;
-          width: 38px;
-          height: 38px;
+          width: 40px;   /* 38px button + ~2px for borders */
+          height: 40px;  /* 38px button + ~2px for borders */
 
           /* Debug border */
           border: 0.5px solid red;
@@ -129,8 +129,8 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
         /* RECORDING STATE: Full size with gap */
         .record-pill-container.state-recording {
           gap: 10px;
-          width: 114px;  /* Timer (42px) + gap (10px) + Button (64px) = 116px, but using 114px */
-          height: 38px;
+          width: 116px;  /* Timer (42px) + gap (10px) + Button (64px) */
+          height: 40px;
         }
 
         /* ========================================
@@ -171,8 +171,8 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
 
         .button-width-tracker {
           /* Tracks button's morphing width */
-          width: 38px;         /* Idle width - matches RecordButton */
-          height: 38px;
+          width: 40px;         /* Idle width - button + border room */
+          height: 40px;
           box-sizing: border-box;  /* Include border in width */
           transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
                       height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -187,8 +187,8 @@ export const MorphingRecordToPillWave: React.FC<MorphingRecordToPillWaveProps> =
 
         /* Expand tracker to match recording button size */
         .record-pill-container.state-recording .button-width-tracker {
-          width: 64px;         /* Recording width - matches RecordingWaveButton */
-          height: 34px;
+          width: 66px;         /* Recording width - button + border room */
+          height: 36px;
         }
 
         /* ========================================
