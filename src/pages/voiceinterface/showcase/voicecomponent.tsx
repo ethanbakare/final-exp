@@ -17,6 +17,7 @@ import {
   VoicePillConfirm,
   VoiceDockCenter
 } from '@/projects/voiceinterface/components/ui/voicebuttons';
+import { MorphingRecordToPillWave } from '@/projects/voiceinterface/components/ui/voicemorphingbuttons';
 
 // Voice Interface Component Showcase
 // Displays individual UI components in isolation
@@ -165,6 +166,7 @@ const VoiceComponents: React.FC = () => {
   const [isProcessingBig, setIsProcessingBig] = useState(true);
   const [isPillWaveActive, setIsPillWaveActive] = useState(false);
   const [isPillConfirmActive, setIsPillConfirmActive] = useState(false);
+  const [morphingRecordState, setMorphingRecordState] = useState<'idle' | 'recording'>('idle');
 
   return (
     <>
@@ -319,6 +321,28 @@ const VoiceComponents: React.FC = () => {
 
             <ButtonGrid label="VOICE DOCK CENTER">
               <VoiceDockCenter />
+            </ButtonGrid>
+          </div>
+        </div>
+
+        {/* Morphing Buttons Section */}
+        <div className="section">
+          <h2 className="section-title">Morphing Buttons</h2>
+          <div className="file-label">📁 voicemorphingbuttons.tsx</div>
+
+          {/* Seamless grid layout */}
+          <div className="seamless-grid">
+            <ButtonGrid
+              label="MORPHING RECORD TO PILL WAVE - 38PX → 114PX"
+              showToggle={true}
+              toggleState={morphingRecordState === 'recording'}
+              onToggle={() => setMorphingRecordState(morphingRecordState === 'idle' ? 'recording' : 'idle')}
+            >
+              <MorphingRecordToPillWave
+                state={morphingRecordState}
+                onRecordClick={() => setMorphingRecordState('recording')}
+                onStopRecordingClick={() => setMorphingRecordState('idle')}
+              />
             </ButtonGrid>
           </div>
         </div>

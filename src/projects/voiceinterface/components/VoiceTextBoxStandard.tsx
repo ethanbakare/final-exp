@@ -5,7 +5,7 @@ import {
   CloseButton,
   ClearButton
 } from './ui/voicebuttons';
-import { MorphingRecordToPillWave } from './ui/VoiceMorphingButtons';
+import { MorphingRecordToPillWave } from './ui/voicemorphingbuttons';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 /**
