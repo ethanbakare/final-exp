@@ -6,6 +6,11 @@ import styles from '@/projects/voiceinterface/styles/voice.module.css';
 /**
  * Variation 3: TextWrapper Live Streaming
  *
+ * Architecture (from A03_IMPLEMENTATION_NOTES.md):
+ * - TextWrapper: 254px × 407px container with gap: 23px (NO border/shadow)
+ * - TextBox: 254px × 340px box with border/shadow (text container)
+ * - RecordWide button: 76px × 44px standalone button OUTSIDE the box
+ *
  * Phase 1 Implementation:
  * - Mobile-optimized 254px TextWrapper container
  * - Live text streaming during recording
@@ -119,68 +124,88 @@ export const VoiceTextWrapperLive: React.FC = () => {
   return (
     <>
       <div className={`text-wrapper ${styles.container}`}>
-        <div className="txt-wrapper-inner">
-          {/* Transcript Display Area */}
-          <div className="txt-transcript-area">
-            <div className="transcript-scroll-wrapper">
-              <VoiceTextStates
-                textState={getTextState()}
-                transcriptText={transcription}
-                variation={3}
-              />
+        {/* TextBox - The bordered box containing text */}
+        <div className="text-box">
+          <div className="txt-box">
+            {/* Transcript Display Area */}
+            <div className="txt-transcript-box">
+              <div className="transcript-scroll-wrapper">
+                <VoiceTextStates
+                  textState={getTextState()}
+                  transcriptText={transcription}
+                  variation={3}
+                />
+              </div>
+
+              {/* Fade overlay at bottom (only visible when text overflows) */}
+              {(appState === 'recording' || appState === 'complete') && transcription && (
+                <div className="fade-overlay"></div>
+              )}
             </div>
-
-            {/* Fade overlay at bottom (only visible when text overflows) */}
-            {(appState === 'recording' || appState === 'complete') && transcription && (
-              <div className="fade-overlay"></div>
-            )}
           </div>
+        </div>
 
-          {/* Navigation Dock - Morphing Button System */}
-          <div className="txt-nav-dock">
-            <MorphingRecordWideStopDock
-              state={appState}
-              onRecordClick={handleStartRecording}
-              onStopClick={handleStopRecording}
-              onCopyClick={handleCopy}
-              onClearClick={handleClear}
-            />
-          </div>
+        {/* RecordWide Button - Standalone button OUTSIDE the box */}
+        <div className="record-wide-wrapper">
+          <MorphingRecordWideStopDock
+            state={appState}
+            onRecordClick={handleStartRecording}
+            onStopClick={handleStopRecording}
+            onCopyClick={handleCopy}
+            onClearClick={handleClear}
+          />
         </div>
       </div>
 
       <style jsx>{`
-        /* TextWrapper - Mobile-Optimized Container */
+        /* TextWrapper - Outer container (NO border/shadow) */
         .text-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 0px;
+          gap: 23px;
+
+          position: relative;
+          width: 254px;
+          height: 407px;
+        }
+
+        /* TextBox - The bordered box with shadow */
+        .text-box {
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 16px 12px;
-          gap: 8px;
+          padding: 20px 15px;
+          gap: 10px;
 
-          position: relative;
           width: 254px;
-          max-width: 100%;
-          height: 280px;
+          max-width: 600px;
+          height: 340px;
 
           background: var(--VoiceBoxBg);
           border: 1px solid var(--VoiceBoxOutline);
           box-shadow: 0px 4px 12px var(--VoiceBoxShadow);
           border-radius: 16px;
+
+          flex: none;
+          order: 0;
+          align-self: stretch;
+          flex-grow: 0;
         }
 
-        /* Inner Container */
-        .txt-wrapper-inner {
+        /* TxtBox - Inner container */
+        .txt-box {
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
           padding: 0px;
-          gap: 12px;
+          gap: 10px;
 
-          width: 100%;
-          height: 100%;
+          width: 224px;
+          height: 300px;
 
           flex: none;
           order: 0;
@@ -188,23 +213,24 @@ export const VoiceTextWrapperLive: React.FC = () => {
           flex-grow: 1;
         }
 
-        /* Text Display Area */
-        .txt-transcript-area {
+        /* TxtTranscriptBox - Text display area with padding */
+        .txt-transcript-box {
           position: relative;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 10px;
-          gap: 8px;
+          padding: 12px;
+          gap: 10px;
 
-          width: 100%;
-          flex-grow: 1;
+          width: 224px;
+          height: 300px;
 
           border-radius: 6px;
 
           flex: none;
           order: 0;
           align-self: stretch;
+          flex-grow: 1;
           overflow: hidden;  /* Clip fade overlay */
         }
 
@@ -238,9 +264,9 @@ export const VoiceTextWrapperLive: React.FC = () => {
         /* Fade overlay at bottom */
         .fade-overlay {
           position: absolute;
-          bottom: 10px;
-          left: 10px;
-          right: 10px;
+          bottom: 12px;
+          left: 12px;
+          right: 12px;
           height: 20px;
           background: linear-gradient(to bottom,
             rgba(247, 246, 244, 0) 0%,
@@ -250,8 +276,8 @@ export const VoiceTextWrapperLive: React.FC = () => {
           z-index: 10;
         }
 
-        /* Navigation Dock - Centered */
-        .txt-nav-dock {
+        /* RecordWide Wrapper - Button container OUTSIDE the box */
+        .record-wide-wrapper {
           display: flex;
           flex-direction: row;
           justify-content: center;
@@ -260,13 +286,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
           gap: 0px;
 
           width: 100%;
-          height: 46px;
-
-          border-radius: 6px;
+          height: 44px;
 
           flex: none;
           order: 1;
-          align-self: stretch;
           flex-grow: 0;
         }
       `}</style>
