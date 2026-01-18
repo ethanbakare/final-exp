@@ -38,12 +38,9 @@ export const VoiceTextBoxStandard: React.FC = () => {
    * Start Recording
    */
   const handleStartRecording = () => {
-    // If starting from complete state (appending mode), move current to previous
+    // If starting from complete state (appending mode), move current to previous for display at idle opacity
     if (appState === 'complete' && transcription) {
-      setPreviousTranscription(prev => {
-        // Append current transcription to previous with spacing
-        return prev ? `${prev}\n\n${transcription}` : transcription;
-      });
+      setPreviousTranscription(transcription);
       setTranscription('');  // Clear current for new recording
     }
 
@@ -75,7 +72,16 @@ export const VoiceTextBoxStandard: React.FC = () => {
       }
 
       const data = await response.json();
-      setTranscription(data.text || 'Mock transcription result');
+      const newText = data.text || 'Mock transcription result';
+
+      // Append new text to previous transcription (if exists)
+      if (previousTranscription) {
+        setTranscription(`${previousTranscription}\n\n${newText}`);
+        setPreviousTranscription('');  // Clear previous - all text now in transcription at 90%
+      } else {
+        setTranscription(newText);
+      }
+
       setAppState('complete');
     } catch (error) {
       // Don't show error if request was aborted (user clicked Close)
@@ -84,13 +90,43 @@ export const VoiceTextBoxStandard: React.FC = () => {
       }
 
       console.error('Transcription error:', error);
-      setTranscription('This is a mock transcription result for testing.');
+      const fallbackText = 'This is a mock transcription result for testing.';
+
+      // Append fallback text to previous transcription (if exists)
+      if (previousTranscription) {
+        setTranscription(`${previousTranscription}\n\n${fallbackText}`);
+        setPreviousTranscription('');
+      } else {
+        setTranscription(fallbackText);
+      }
+
       setAppState('complete');
     }
   };
 
   /**
-   * Clear/Close - return to idle and cancel any ongoing requests
+   * Close - cancel current recording but preserve text
+   */
+  const handleClose = () => {
+    // Cancel ongoing API request if exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    // Restore previous text if we were appending
+    if (previousTranscription) {
+      setTranscription(previousTranscription);
+      setPreviousTranscription('');
+      setAppState('complete');  // Return to complete state with previous text
+    } else {
+      setAppState('idle');  // Return to idle if no previous text
+      setTranscription('');
+    }
+  };
+
+  /**
+   * Clear - return to idle and clear all text
    */
   const handleClear = () => {
     // Cancel ongoing API request if exists
@@ -132,7 +168,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
               onRecordClick={handleStartRecording}
               onStopRecordingClick={handleStopRecording}
               onProcessingComplete={() => setAppState('complete')}
-              onCloseClick={handleClear}
+              onCloseClick={handleClose}
               onClearClick={handleClear}
             />
           </div>

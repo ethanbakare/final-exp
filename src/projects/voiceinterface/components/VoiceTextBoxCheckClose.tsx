@@ -38,12 +38,9 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
    * Start Recording
    */
   const handleStartRecording = () => {
-    // If starting from combo state (appending mode), move current to previous
+    // If starting from combo state (appending mode), move current to previous for display at idle opacity
     if (appState === 'combo' && transcription) {
-      setPreviousTranscription(prev => {
-        // Append current transcription to previous with spacing
-        return prev ? `${prev}\n\n${transcription}` : transcription;
-      });
+      setPreviousTranscription(transcription);
       setTranscription('');  // Clear current for new recording
     }
 
@@ -74,7 +71,16 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
       }
 
       const data = await response.json();
-      setTranscription(data.text || 'Mock transcription result');
+      const newText = data.text || 'Mock transcription result';
+
+      // Append new text to previous transcription (if exists)
+      if (previousTranscription) {
+        setTranscription(`${previousTranscription}\n\n${newText}`);
+        setPreviousTranscription('');  // Clear previous - all text now in transcription at 90%
+      } else {
+        setTranscription(newText);
+      }
+
       setAppState('combo');
     } catch (error) {
       // Don't show error if request was aborted (user clicked Cancel)
@@ -83,7 +89,16 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
       }
 
       console.error('Transcription error:', error);
-      setTranscription('This is a mock transcription result for testing.');
+      const fallbackText = 'This is a mock transcription result for testing.';
+
+      // Append fallback text to previous transcription (if exists)
+      if (previousTranscription) {
+        setTranscription(`${previousTranscription}\n\n${fallbackText}`);
+        setPreviousTranscription('');
+      } else {
+        setTranscription(fallbackText);
+      }
+
       setAppState('combo');
     }
   };
@@ -98,9 +113,15 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
       abortControllerRef.current = null;
     }
 
-    setAppState('idle');
-    setTranscription('');
-    setPreviousTranscription('');  // Clear all text
+    // Restore previous text if we were appending
+    if (previousTranscription) {
+      setTranscription(previousTranscription);
+      setPreviousTranscription('');
+      setAppState('combo');  // Return to combo state with previous text
+    } else {
+      setAppState('idle');  // Return to idle if no previous text
+      setTranscription('');
+    }
   };
 
   /**
