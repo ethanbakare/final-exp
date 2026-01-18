@@ -38,9 +38,13 @@ export const VoiceTextBoxStandard: React.FC = () => {
    * Start Recording
    */
   const handleStartRecording = () => {
-    // If starting from complete state (appending mode), move current to previous for display at idle opacity
+    // If starting from complete state (appending mode), accumulate all text into previous
     if (appState === 'complete' && transcription) {
-      setPreviousTranscription(transcription);
+      // Combine any existing previous text with current transcription
+      const allPreviousText = previousTranscription 
+        ? `${previousTranscription}\n\n${transcription}`
+        : transcription;
+      setPreviousTranscription(allPreviousText);
       setTranscription('');  // Clear current for new recording
     }
 
@@ -74,13 +78,11 @@ export const VoiceTextBoxStandard: React.FC = () => {
       const data = await response.json();
       const newText = data.text || 'Mock transcription result';
 
-      // Append new text to previous transcription (if exists)
-      if (previousTranscription) {
-        setTranscription(`${previousTranscription}\n\n${newText}`);
-        setPreviousTranscription('');  // Clear previous - all text now in transcription at 90%
-      } else {
-        setTranscription(newText);
-      }
+      // Keep previous text separate - only animate the new portion
+      // Previous text stays in previousTranscription (shown at idle opacity)
+      // New text goes in transcription (animates in)
+      setTranscription(newText);
+      // Don't clear previousTranscription - keep it for display
 
       setAppState('complete');
     } catch (error) {
@@ -92,13 +94,9 @@ export const VoiceTextBoxStandard: React.FC = () => {
       console.error('Transcription error:', error);
       const fallbackText = 'This is a mock transcription result for testing.';
 
-      // Append fallback text to previous transcription (if exists)
-      if (previousTranscription) {
-        setTranscription(`${previousTranscription}\n\n${fallbackText}`);
-        setPreviousTranscription('');
-      } else {
-        setTranscription(fallbackText);
-      }
+      // Keep previous text separate - only animate the new portion
+      setTranscription(fallbackText);
+      // Don't clear previousTranscription - keep it for display
 
       setAppState('complete');
     }
@@ -114,10 +112,21 @@ export const VoiceTextBoxStandard: React.FC = () => {
       abortControllerRef.current = null;
     }
 
-    // Restore previous text if we were appending
+    // Restore to previous state if we were appending
     if (previousTranscription) {
-      setTranscription(previousTranscription);
-      setPreviousTranscription('');
+      // Split the accumulated previous text back into previous and current
+      // This maintains the separation for proper display
+      const parts = previousTranscription.split('\n\n');
+      if (parts.length > 1) {
+        // Multiple recordings - keep all but last in previous, last in current
+        const lastText = parts.pop() || '';
+        setPreviousTranscription(parts.join('\n\n'));
+        setTranscription(lastText);
+      } else {
+        // Only one previous recording
+        setPreviousTranscription('');
+        setTranscription(previousTranscription);
+      }
       setAppState('complete');  // Return to complete state with previous text
     } else {
       setAppState('idle');  // Return to idle if no previous text
