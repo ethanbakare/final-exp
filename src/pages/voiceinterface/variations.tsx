@@ -1,13 +1,12 @@
 import React from 'react';
 import { VoiceTextBoxStandard } from '@/projects/voiceinterface/components/VoiceTextBoxStandard';
+import { VoiceTextBoxCheckClose } from '@/projects/voiceinterface/components/VoiceTextBoxCheckClose';
+import { VoiceTextWrapperLive } from '@/projects/voiceinterface/components/VoiceTextWrapperLive';
 
 /**
  * Voice Interface Variations Test Page
  *
- * Phase 0: Testing Variation 1 (TextBox Standard)
- *
- * This page will eventually show all 3 variations side-by-side.
- * For now, we're testing the walking skeleton with Variation 1 only.
+ * Shows all 3 variations side-by-side for testing
  */
 
 export default function VoiceInterfaceVariations() {
@@ -16,7 +15,7 @@ export default function VoiceInterfaceVariations() {
       <div className="variations-page">
         <div className="header">
           <h1>Voice Interface Variations</h1>
-          <p className="subtitle">Phase 0: Walking Skeleton Test</p>
+          <p className="subtitle">All Three Variations</p>
         </div>
 
         <div className="variations-container">
@@ -31,29 +30,27 @@ export default function VoiceInterfaceVariations() {
             </div>
           </div>
 
-          {/* Variation 2: Coming in Phase 3 */}
-          <div className="variation-section coming-soon">
+          {/* Variation 2: Check & Close */}
+          <div className="variation-section">
             <h2>Variation 2: Check & Close</h2>
-            <p className="description">Coming in Phase 3</p>
+            <p className="description">
+              Outlined button → check/close controls → transcribe
+            </p>
+            <div className="variation-demo">
+              <VoiceTextBoxCheckClose />
+            </div>
           </div>
 
-          {/* Variation 3: Coming in Phase 3 */}
-          <div className="variation-section coming-soon">
+          {/* Variation 3: Live Streaming */}
+          <div className="variation-section">
             <h2>Variation 3: Live Streaming</h2>
-            <p className="description">Coming in Phase 3</p>
+            <p className="description">
+              Mobile-optimized → live streaming transcription
+            </p>
+            <div className="variation-demo">
+              <VoiceTextWrapperLive />
+            </div>
           </div>
-        </div>
-
-        <div className="instructions">
-          <h3>Test Instructions:</h3>
-          <ol>
-            <li>Click the mic button to start recording</li>
-            <li>Button morphs to RecordWave + Timer + Close button</li>
-            <li>Click RecordWave (or Close to cancel) to stop recording</li>
-            <li>Processing button shows (calls mock API automatically)</li>
-            <li>Mock transcription appears with Clear button</li>
-            <li>Click "Clear" to reset to idle</li>
-          </ol>
         </div>
       </div>
 
@@ -119,37 +116,6 @@ export default function VoiceInterfaceVariations() {
           align-items: center;
         }
 
-        .coming-soon {
-          opacity: 0.4;
-        }
-
-        .instructions {
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 24px;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .instructions h3 {
-          font-size: 18px;
-          font-weight: 600;
-          color: #262424;
-          margin-bottom: 16px;
-        }
-
-        .instructions ol {
-          margin: 0;
-          padding-left: 24px;
-        }
-
-        .instructions li {
-          font-size: 14px;
-          color: rgba(38, 36, 36, 0.8);
-          margin-bottom: 8px;
-          line-height: 1.6;
-        }
 
         @media (max-width: 768px) {
           .variations-container {

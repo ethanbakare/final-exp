@@ -3,13 +3,31 @@ import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 interface VoiceLiveTimerSecondsProps {
   isRunning?: boolean;
+  onWidthChange?: (width: number) => void; // Optional callback to report width changes
+  shouldReset?: boolean; // If false, timer freezes when stopped instead of resetting to 0. Default: true.
 }
 
-export const VoiceLiveTimerSeconds: React.FC<VoiceLiveTimerSecondsProps> = ({ isRunning = true }) => {
+export const VoiceLiveTimerSeconds: React.FC<VoiceLiveTimerSecondsProps> = ({
+  isRunning = true,
+  onWidthChange,
+  shouldReset = true
+}) => {
   const [seconds, setSeconds] = useState(0);
 
+  // Handle reset when shouldReset becomes true (e.g. state changes to 'idle')
   useEffect(() => {
-    if (!isRunning) return;
+    if (shouldReset && !isRunning) {
+      setSeconds(0);
+    }
+  }, [shouldReset, isRunning]);
+
+  useEffect(() => {
+    if (!isRunning) {
+      if (shouldReset) {
+        setSeconds(0);
+      }
+      return;
+    }
 
     const interval = setInterval(() => {
       setSeconds(prev => {
@@ -19,7 +37,7 @@ export const VoiceLiveTimerSeconds: React.FC<VoiceLiveTimerSecondsProps> = ({ is
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, shouldReset]);
 
   const formatTime = (totalSeconds: number): string => {
     const mins = Math.floor(totalSeconds / 60);
@@ -36,6 +54,11 @@ export const VoiceLiveTimerSeconds: React.FC<VoiceLiveTimerSecondsProps> = ({ is
   };
 
   const containerWidth = getContainerWidth(seconds);
+
+  // Report width changes to parent (if callback provided)
+  useEffect(() => {
+    onWidthChange?.(containerWidth);
+  }, [containerWidth, onWidthChange]);
 
   return (
     <>

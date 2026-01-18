@@ -1,30 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
-import { MorphingRecordDarkToPillWaveProcessing } from './ui/voicenavbar';
+import { MorphingRecordWideStopDock } from './ui/voicenavbar';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 /**
- * Variation 1: TextBox Standard
+ * Variation 3: TextWrapper Live Streaming
  *
- * Phase 0 Implementation (Walking Skeleton):
- * - Full nested container structure
- * - Simple useState for state management
- * - Instant button swaps (no morphing)
- * - Mock transcription flow
+ * Phase 1 Implementation:
+ * - Mobile-optimized 254px TextWrapper container
+ * - Live text streaming during recording
+ * - 3-state flow (NO processing state)
+ * - MorphingRecordWideStopDock component
  *
  * State Flow:
- * IDLE → RECORDING → PROCESSING → COMPLETE
+ * IDLE → RECORDING → COMPLETE
  */
 
-type AppState = 'idle' | 'recording' | 'processing' | 'complete';
+type AppState = 'idle' | 'recording' | 'complete';
 
-export const VoiceTextBoxStandard: React.FC = () => {
-  // Simple state management (Phase 0)
+export const VoiceTextWrapperLive: React.FC = () => {
+  // State management
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
 
-  // Ref to track and cancel ongoing API requests
-  const abortControllerRef = React.useRef<AbortController | null>(null);
+  // Refs for text streaming
+  const prevTextLengthRef = useRef(0);
+  const streamingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Map app state to text state
   const getTextState = (): VoiceTextState => {
@@ -34,88 +35,114 @@ export const VoiceTextBoxStandard: React.FC = () => {
   };
 
   /**
-   * Start Recording
+   * Start Recording & Streaming
    */
   const handleStartRecording = () => {
     setAppState('recording');
-    // User clicks to stop - no auto-stop
+    setTranscription('');
+    prevTextLengthRef.current = 0;
+
+    // Simulate live streaming transcription
+    // In production, this would be a WebSocket or SSE connection
+    simulateLiveStreaming();
   };
 
   /**
    * Stop Recording
    */
-  const handleStopRecording = async () => {
-    setAppState('processing');
+  const handleStopRecording = () => {
+    // Stop streaming simulation
+    if (streamingTimerRef.current) {
+      clearTimeout(streamingTimerRef.current);
+      streamingTimerRef.current = null;
+    }
 
-    // Create new AbortController for this request
-    abortControllerRef.current = new AbortController();
+    setAppState('complete');
+  };
 
-    // Call mock API
-    try {
-      const response = await fetch('/api/voice-interface/transcribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mock: true }),
-        signal: abortControllerRef.current.signal
+  /**
+   * Copy Transcription
+   */
+  const handleCopy = () => {
+    if (transcription) {
+      navigator.clipboard.writeText(transcription).then(() => {
+        console.log('Transcription copied to clipboard');
       });
-
-      const data = await response.json();
-      setTranscription(data.text || 'Mock transcription result');
-      setAppState('complete');
-    } catch (error) {
-      // Don't show error if request was aborted (user clicked Close)
-      if (error instanceof Error && error.name === 'AbortError') {
-        return;
-      }
-
-      console.error('Transcription error:', error);
-      setTranscription('This is a mock transcription result for testing.');
-      setAppState('complete');
     }
   };
 
   /**
-   * Clear/Close - return to idle and cancel any ongoing requests
+   * Clear (Start New Recording)
    */
   const handleClear = () => {
-    // Cancel ongoing API request if exists
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-
     setAppState('idle');
     setTranscription('');
+    prevTextLengthRef.current = 0;
   };
+
+  /**
+   * Simulate Live Streaming Transcription
+   * In production, this would receive real-time chunks from a streaming API
+   */
+  const simulateLiveStreaming = () => {
+    const mockText = "This is a simulated live transcription. Words appear incrementally as if being transcribed in real-time from streaming audio. This demonstrates how Variant 3 handles continuous text updates during recording.";
+    const words = mockText.split(' ');
+    let wordIndex = 0;
+
+    const addNextWord = () => {
+      if (wordIndex < words.length) {
+        setTranscription(prev => {
+          const newText = prev ? `${prev} ${words[wordIndex]}` : words[wordIndex];
+          prevTextLengthRef.current = newText.length;
+          return newText;
+        });
+        wordIndex++;
+
+        // Continue streaming every 200ms
+        streamingTimerRef.current = setTimeout(addNextWord, 200);
+      }
+    };
+
+    // Start streaming
+    addNextWord();
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (streamingTimerRef.current) {
+        clearTimeout(streamingTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
-      <div className={`text-box ${styles.container}`}>
-        <div className="txt-box">
+      <div className={`text-wrapper ${styles.container}`}>
+        <div className="txt-wrapper-inner">
           {/* Transcript Display Area */}
-          <div className="txt-transcript-box">
+          <div className="txt-transcript-area">
             <div className="transcript-scroll-wrapper">
               <VoiceTextStates
                 textState={getTextState()}
                 transcriptText={transcription}
-                variation={1}
+                variation={3}
               />
             </div>
 
             {/* Fade overlay at bottom (only visible when text overflows) */}
-            {appState === 'complete' && transcription && (
+            {(appState === 'recording' || appState === 'complete') && transcription && (
               <div className="fade-overlay"></div>
             )}
           </div>
 
-          {/* Navigation Bar - Morphing Button System */}
-          <div className="txt-nav-bar">
-            <MorphingRecordDarkToPillWaveProcessing
+          {/* Navigation Dock - Morphing Button System */}
+          <div className="txt-nav-dock">
+            <MorphingRecordWideStopDock
               state={appState}
               onRecordClick={handleStartRecording}
-              onStopRecordingClick={handleStopRecording}
-              onProcessingComplete={() => setAppState('complete')}
-              onCloseClick={handleClear}
+              onStopClick={handleStopRecording}
+              onCopyClick={handleCopy}
               onClearClick={handleClear}
             />
           </div>
@@ -123,20 +150,20 @@ export const VoiceTextBoxStandard: React.FC = () => {
       </div>
 
       <style jsx>{`
-        /* TextBox - Outermost Container */
-        .text-box {
+        /* TextWrapper - Mobile-Optimized Container */
+        .text-wrapper {
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 20px 15px;
-          gap: 10px;
+          padding: 16px 12px;
+          gap: 8px;
 
           position: relative;
-          width: 398px;
+          width: 254px;
           max-width: 100%;
-          height: 213px;
+          height: 280px;
 
           background: var(--VoiceBoxBg);
           border: 1px solid var(--VoiceBoxOutline);
@@ -144,16 +171,16 @@ export const VoiceTextBoxStandard: React.FC = () => {
           border-radius: 16px;
         }
 
-        /* TxtBox - Inner Container */
-        .txt-box {
+        /* Inner Container */
+        .txt-wrapper-inner {
           display: flex;
           flex-direction: column;
-          align-items: flex-start;
+          align-items: center;
           padding: 0px;
-          gap: 10px;
+          gap: 12px;
 
           width: 100%;
-          height: 173px;
+          height: 100%;
 
           flex: none;
           order: 0;
@@ -161,24 +188,23 @@ export const VoiceTextBoxStandard: React.FC = () => {
           flex-grow: 1;
         }
 
-        /* TxtTranscriptBox - Text Display Area */
-        .txt-transcript-box {
+        /* Text Display Area */
+        .txt-transcript-area {
           position: relative;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 12px;
-          gap: 10px;
+          padding: 10px;
+          gap: 8px;
 
           width: 100%;
-          height: 125px;
+          flex-grow: 1;
 
           border-radius: 6px;
 
           flex: none;
           order: 0;
           align-self: stretch;
-          flex-grow: 1;
           overflow: hidden;  /* Clip fade overlay */
         }
 
@@ -193,7 +219,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
         /* Custom scrollbar styling */
         .transcript-scroll-wrapper::-webkit-scrollbar {
-          width: 8px;
+          width: 6px;
         }
 
         .transcript-scroll-wrapper::-webkit-scrollbar-track {
@@ -202,7 +228,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
         .transcript-scroll-wrapper::-webkit-scrollbar-thumb {
           background: var(--VoiceDarkGrey_30);
-          border-radius: 4px;
+          border-radius: 3px;
         }
 
         .transcript-scroll-wrapper::-webkit-scrollbar-thumb:hover {
@@ -212,10 +238,10 @@ export const VoiceTextBoxStandard: React.FC = () => {
         /* Fade overlay at bottom */
         .fade-overlay {
           position: absolute;
-          bottom: 12px;
-          left: 12px;
-          right: 12px;
-          height: 24px;
+          bottom: 10px;
+          left: 10px;
+          right: 10px;
+          height: 20px;
           background: linear-gradient(to bottom,
             rgba(247, 246, 244, 0) 0%,
             rgba(247, 246, 244, 1) 100%
@@ -224,8 +250,8 @@ export const VoiceTextBoxStandard: React.FC = () => {
           z-index: 10;
         }
 
-        /* TxtNavBar - Navigation Controls */
-        .txt-nav-bar {
+        /* Navigation Dock - Centered */
+        .txt-nav-dock {
           display: flex;
           flex-direction: row;
           justify-content: center;
@@ -234,7 +260,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           gap: 0px;
 
           width: 100%;
-          height: 38px;
+          height: 46px;
 
           border-radius: 6px;
 

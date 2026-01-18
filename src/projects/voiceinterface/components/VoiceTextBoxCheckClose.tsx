@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
 import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
-import { MorphingRecordDarkToPillWaveProcessing } from './ui/voicenavbar';
+import { MorphingProcessingToCombo } from './ui/voicenavbar';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 /**
- * Variation 1: TextBox Standard
+ * Variation 2: TextBox Check & Close
  *
- * Phase 0 Implementation (Walking Skeleton):
+ * Phase 1 Implementation:
  * - Full nested container structure
- * - Simple useState for state management
- * - Instant button swaps (no morphing)
+ * - Morphing button with check/close controls
+ * - Same 398px TextBox as Variation 1
  * - Mock transcription flow
  *
  * State Flow:
- * IDLE → RECORDING → PROCESSING → COMPLETE
+ * IDLE → RECORDING → PROCESSING → COMBO
  */
 
-type AppState = 'idle' | 'recording' | 'processing' | 'complete';
+type AppState = 'idle' | 'recording' | 'processing' | 'combo';
 
-export const VoiceTextBoxStandard: React.FC = () => {
-  // Simple state management (Phase 0)
+export const VoiceTextBoxCheckClose: React.FC = () => {
+  // State management
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
 
@@ -28,8 +28,8 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
   // Map app state to text state
   const getTextState = (): VoiceTextState => {
-    // Map 'complete' to 'results' for VoiceTextStates component
-    if (appState === 'complete') return 'results';
+    // Map 'combo' to 'results' for VoiceTextStates component
+    if (appState === 'combo') return 'results';
     return appState as VoiceTextState;
   };
 
@@ -38,13 +38,12 @@ export const VoiceTextBoxStandard: React.FC = () => {
    */
   const handleStartRecording = () => {
     setAppState('recording');
-    // User clicks to stop - no auto-stop
   };
 
   /**
-   * Stop Recording
+   * Confirm Recording (Check button clicked)
    */
-  const handleStopRecording = async () => {
+  const handleConfirmRecording = async () => {
     setAppState('processing');
 
     // Create new AbortController for this request
@@ -61,29 +60,37 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
       const data = await response.json();
       setTranscription(data.text || 'Mock transcription result');
-      setAppState('complete');
+      setAppState('combo');
     } catch (error) {
-      // Don't show error if request was aborted (user clicked Close)
+      // Don't show error if request was aborted (user clicked Cancel)
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
 
       console.error('Transcription error:', error);
       setTranscription('This is a mock transcription result for testing.');
-      setAppState('complete');
+      setAppState('combo');
     }
   };
 
   /**
-   * Clear/Close - return to idle and cancel any ongoing requests
+   * Cancel Recording (Close button clicked during recording)
    */
-  const handleClear = () => {
+  const handleCancelRecording = () => {
     // Cancel ongoing API request if exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
 
+    setAppState('idle');
+    setTranscription('');
+  };
+
+  /**
+   * Clear (ClearButton clicked in combo state)
+   */
+  const handleClear = () => {
     setAppState('idle');
     setTranscription('');
   };
@@ -98,25 +105,25 @@ export const VoiceTextBoxStandard: React.FC = () => {
               <VoiceTextStates
                 textState={getTextState()}
                 transcriptText={transcription}
-                variation={1}
+                variation={2}
               />
             </div>
 
             {/* Fade overlay at bottom (only visible when text overflows) */}
-            {appState === 'complete' && transcription && (
+            {appState === 'combo' && transcription && (
               <div className="fade-overlay"></div>
             )}
           </div>
 
           {/* Navigation Bar - Morphing Button System */}
           <div className="txt-nav-bar">
-            <MorphingRecordDarkToPillWaveProcessing
+            <MorphingProcessingToCombo
               state={appState}
               onRecordClick={handleStartRecording}
-              onStopRecordingClick={handleStopRecording}
-              onProcessingComplete={() => setAppState('complete')}
-              onCloseClick={handleClear}
+              onConfirmClick={handleConfirmRecording}
+              onCancelClick={handleCancelRecording}
               onClearClick={handleClear}
+              onProcessingComplete={() => setAppState('combo')}
             />
           </div>
         </div>
@@ -228,7 +235,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
         .txt-nav-bar {
           display: flex;
           flex-direction: row;
-          justify-content: center;
+          justify-content: flex-end;
           align-items: center;
           padding: 0px;
           gap: 0px;

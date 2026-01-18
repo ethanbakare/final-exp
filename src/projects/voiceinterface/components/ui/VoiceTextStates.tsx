@@ -55,10 +55,10 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           </div>
         )}
 
-        {/* PROCESSING STATE */}
+        {/* PROCESSING STATE - Keep empty, button spinner indicates processing */}
         {textState === 'processing' && (
           <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
-            Processing...
+            {/* Empty - button shows spinner during processing */}
           </div>
         )}
 

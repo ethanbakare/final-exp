@@ -17,11 +17,12 @@ interface ButtonProps {
   className?: string;
   fullWidth?: boolean;
   children?: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
 /* ============================================
    CHECK AND CLOSE BUTTON (Complex - Two Icons)
-   72×34px button with checkmark and close icons separated by divider
+   72×38px button with checkmark and close icons separated by divider
    ============================================ */
 
 export const CheckAndCloseButton: React.FC<ButtonProps> = ({
@@ -413,6 +414,84 @@ export const RecordButtonFilled: React.FC<ButtonProps> = ({
           flex: none;
           order: 0;
           flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   RECORD BUTTON DARK (Dark Background Variant)
+   38×38px circular button with white microphone icon and dark grey background
+   ============================================ */
+
+export const RecordButtonDark: React.FC<ButtonProps> = ({
+  onClick,
+  disabled = false,
+  className = '',
+  style
+}) => {
+  return (
+    <>
+      <button
+        className={`record-button-dark ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Record"
+        style={style}
+      >
+        <svg
+          className="record-mic-icon"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M18.3971 12.2769C17.8972 15.3597 15.223 17.7133 11.9991 17.7133C8.77602 17.7133 6.10239 15.3609 5.60156 12.2793M11.9986 20.9999V17.8829M13.9334 20.9999H10.1002M12.0021 13.9198C10.1696 13.9198 8.68411 12.4343 8.68411 10.6018V6.31787C8.68411 4.48539 10.1696 2.99988 12.0021 2.99988C13.8346 2.99988 15.3201 4.48539 15.3201 6.31786V10.6018C15.3201 12.4343 13.8346 13.9198 12.0021 13.9198Z"
+            stroke="#FFFFFF"
+            strokeOpacity="1"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+
+      <style jsx>{`
+        .record-button-dark {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+
+          /* Size */
+          margin: 0 auto;
+          width: 38px;
+          height: 38px;
+
+          /* Style */
+          background: var(--VoiceDarkGrey_90);
+          border: none;
+          border-radius: 20px;
+          cursor: pointer;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+
+        .record-button-dark:hover {
+           background: var(--VoiceDarkGrey);
+        }
+
+        .record-button-dark:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       `}</style>
     </>
@@ -884,17 +963,112 @@ export const ClearButton: React.FC<ButtonProps> = ({
 };
 
 /* ============================================
+   CLEAR BUTTON FADED
+   38×38px circular button with clear/delete icon at 60% opacity
+   ============================================ */
+
+export const ClearButtonFaded: React.FC<ButtonProps> = ({
+  onClick,
+  disabled = false,
+  className = ''
+}) => {
+  return (
+    <>
+      <button
+        className={`clear-button-faded ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Clear"
+      >
+        <svg
+          className="clear-icon-faded"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M14 10V17M10 10L10 17M4 6H20M18 6V17.8C18 18.9201 18.0002 19.4802 17.7822 19.908C17.5905 20.2844 17.2841 20.5902 16.9078 20.782C16.48 21 15.9203 21 14.8002 21H9.20019C8.08009 21 7.51962 21 7.0918 20.782C6.71547 20.5902 6.40973 20.2844 6.21799 19.908C6 19.4802 6 18.9201 6 17.8V6H18ZM16 6H8C8 5.06812 8 4.60216 8.15224 4.23462C8.35523 3.74456 8.74432 3.35523 9.23437 3.15224C9.60192 3 10.0681 3 11 3H13C13.9319 3 14.3978 3 14.7654 3.15224C15.2554 3.35523 15.6447 3.74456 15.8477 4.23462C15.9999 4.60216 16 5.06812 16 6Z"
+            stroke="#262424"
+            strokeOpacity="0.6"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      <style jsx>{`
+        .clear-button-faded {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+
+          /* Size */
+          width: 38px;
+          height: 38px;
+
+          /* Style */
+          background: var(--VoiceDarkGrey_5);
+          border: none;
+          border-radius: 32px;
+          cursor: pointer;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 2;
+          flex-grow: 0;
+        }
+
+        .clear-button-faded:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* Clear Icon - Faded */
+        .clear-icon-faded {
+          width: 24px;
+          height: 24px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
    TIME COUNT BUTTON (Seconds Timer with Red Dot)
    58×26px component with red circle indicator and seconds timer
+
    ============================================ */
 
 interface TimeCountButtonProps {
   isTimerRunning?: boolean;
+  onWidthChange?: (width: number) => void; // Reports total width (red dot + timer)
+  shouldReset?: boolean; // Controls whether timer resets when stopped
 }
 
 export const TimeCountButton: React.FC<TimeCountButtonProps> = ({
-  isTimerRunning = true
+  isTimerRunning = true,
+  onWidthChange,
+  shouldReset = true
 }) => {
+  const RED_DOT_WIDTH = 18;
+
+  // Handle timer width changes and report total width to parent
+  const handleTimerWidthChange = (timerWidth: number) => {
+    onWidthChange?.(RED_DOT_WIDTH + timerWidth);
+  };
+
   return (
     <>
       <div className={`time-count-button ${styles.container}`}>
@@ -903,8 +1077,12 @@ export const TimeCountButton: React.FC<TimeCountButtonProps> = ({
           <div className="stop-circle-icon"></div>
         </div>
 
-        {/* Seconds Timer */}
-        <VoiceLiveTimerSeconds isRunning={isTimerRunning} />
+        {/* Seconds Timer - pass through width callback */}
+        <VoiceLiveTimerSeconds
+          isRunning={isTimerRunning}
+          onWidthChange={handleTimerWidthChange}
+          shouldReset={shouldReset}
+        />
       </div>
 
       <style jsx>{`
@@ -964,7 +1142,7 @@ export const TimeCountButton: React.FC<TimeCountButtonProps> = ({
 
 /* ============================================
    RECORDING WAVE BUTTON
-   64×34px button with live waveform visualization
+   64×38px button with live waveform visualization
    ============================================ */
 
 interface RecordingWaveButtonProps {
@@ -1004,7 +1182,7 @@ export const RecordingWaveButton: React.FC<RecordingWaveButtonProps> = ({
 
           /* Size - matches A02 spec */
           width: 64px;
-          height: 34px;
+          height: 38px;
 
           /* Style */
           background: var(--VoiceDarkGrey_90);
@@ -1029,7 +1207,7 @@ export const RecordingWaveButton: React.FC<RecordingWaveButtonProps> = ({
 
 /* ============================================
    PROCESSING BUTTON DARK
-   64×34px button with rotating processing spinner
+   64×38px button with rotating processing spinner
    ============================================ */
 
 interface ProcessingButtonDarkProps {
@@ -1063,21 +1241,21 @@ export const ProcessingButtonDark: React.FC<ProcessingButtonDarkProps> = ({
             xmlns="http://www.w3.org/2000/svg"
           >
             {/* Vertical bottom spoke */}
-            <path d="M10 15.5V18.5" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M10 15.5V18.5" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round" />
             {/* Horizontal left spoke */}
-            <path d="M4.5 10L1.5 10" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M4.5 10L1.5 10" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round" />
             {/* Vertical top spoke */}
-            <path d="M10 1.5V4.5" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M10 1.5V4.5" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round" />
             {/* Horizontal right spoke */}
-            <path d="M18.5 10L15.5 10" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M18.5 10L15.5 10" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round" />
             {/* Diagonal bottom-left spoke */}
-            <path d="M6.11 13.89L3.99 16.01" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M6.11 13.89L3.99 16.01" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round" />
             {/* Diagonal top-left spoke */}
-            <path d="M6.11 6.11L3.99 3.99" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M6.11 6.11L3.99 3.99" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round" />
             {/* Diagonal top-right spoke */}
-            <path d="M16.01 3.99L13.89 6.11" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M16.01 3.99L13.89 6.11" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round" />
             {/* Diagonal bottom-right spoke */}
-            <path d="M16.01 16.01L13.89 13.89" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M16.01 16.01L13.89 13.89" stroke="var(--VoiceWhite)" strokeWidth="1.75" strokeLinecap="round" />
           </svg>
         </div>
       </button>
@@ -1094,7 +1272,7 @@ export const ProcessingButtonDark: React.FC<ProcessingButtonDarkProps> = ({
 
           /* Size - matches RecordingWaveButton */
           width: 64px;
-          height: 34px;
+          height: 38px;
 
           /* Style */
           background: var(--VoiceDarkGrey_90);
@@ -1160,7 +1338,7 @@ export const ProcessingButtonDark: React.FC<ProcessingButtonDarkProps> = ({
 
 /* ============================================
    PROCESSING BUTTON OUTLINED
-   72×34px button with rotating processing spinner in outlined style
+   72×38px button with rotating processing spinner in outlined style
    ============================================ */
 
 interface ProcessingButtonOutlinedProps {
@@ -1194,21 +1372,21 @@ export const ProcessingButtonOutlined: React.FC<ProcessingButtonOutlinedProps> =
             xmlns="http://www.w3.org/2000/svg"
           >
             {/* Vertical bottom spoke */}
-            <path d="M10 15.5V18.5" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M10 15.5V18.5" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round" />
             {/* Horizontal left spoke */}
-            <path d="M4.5 10L1.5 10" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M4.5 10L1.5 10" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round" />
             {/* Vertical top spoke */}
-            <path d="M10 1.5V4.5" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M10 1.5V4.5" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round" />
             {/* Horizontal right spoke */}
-            <path d="M18.5 10L15.5 10" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M18.5 10L15.5 10" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round" />
             {/* Diagonal bottom-left spoke */}
-            <path d="M6.11 13.89L3.99 16.01" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M6.11 13.89L3.99 16.01" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round" />
             {/* Diagonal top-left spoke */}
-            <path d="M6.11 6.11L3.99 3.99" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M6.11 6.11L3.99 3.99" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round" />
             {/* Diagonal top-right spoke */}
-            <path d="M16.01 3.99L13.89 6.11" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M16.01 3.99L13.89 6.11" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round" />
             {/* Diagonal bottom-right spoke */}
-            <path d="M16.01 16.01L13.89 13.89" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M16.01 16.01L13.89 13.89" stroke="#262424" strokeOpacity="0.9" strokeWidth="1.75" strokeLinecap="round" />
           </svg>
         </div>
       </button>
@@ -1336,21 +1514,21 @@ export const ProcessingButtonBigDark: React.FC<ProcessingButtonBigDarkProps> = (
               xmlns="http://www.w3.org/2000/svg"
             >
               {/* Vertical bottom spoke */}
-              <path d="M9 13.95V16.65" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              <path d="M9 13.95V16.65" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round" />
               {/* Horizontal left spoke */}
-              <path d="M4.05 9L1.35 9" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              <path d="M4.05 9L1.35 9" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round" />
               {/* Vertical top spoke */}
-              <path d="M9 1.35V4.05" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              <path d="M9 1.35V4.05" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round" />
               {/* Horizontal right spoke */}
-              <path d="M16.65 9L13.95 9" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              <path d="M16.65 9L13.95 9" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round" />
               {/* Diagonal bottom-left spoke */}
-              <path d="M5.499 12.501L3.591 14.409" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              <path d="M5.499 12.501L3.591 14.409" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round" />
               {/* Diagonal top-left spoke */}
-              <path d="M5.499 5.499L3.591 3.591" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              <path d="M5.499 5.499L3.591 3.591" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round" />
               {/* Diagonal top-right spoke */}
-              <path d="M14.409 3.591L12.501 5.499" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              <path d="M14.409 3.591L12.501 5.499" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round" />
               {/* Diagonal bottom-right spoke */}
-              <path d="M14.409 14.409L12.501 12.501" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round"/>
+              <path d="M14.409 14.409L12.501 12.501" stroke="var(--VoiceWhite)" strokeWidth="1.575" strokeLinecap="round" />
             </svg>
           </div>
 
@@ -1506,7 +1684,7 @@ export const ProcessingButtonBigDark: React.FC<ProcessingButtonBigDarkProps> = (
 
 /* ============================================
    VOICE PILL WAVE (Combo Component)
-   114×34px component - Timer text + RecordingWaveButton
+   114×38px component - Timer text + RecordingWaveButton
    ============================================ */
 
 interface VoicePillWaveProps {
@@ -1541,7 +1719,7 @@ export const VoicePillWave: React.FC<VoicePillWaveProps> = ({
           /* Size - auto width to fit children */
           margin: 0 auto;
           width: auto;
-          height: 34px;
+          height: 38px;
 
           /* Inside auto layout */
           flex: none;
@@ -1555,7 +1733,7 @@ export const VoicePillWave: React.FC<VoicePillWaveProps> = ({
 
 /* ============================================
    VOICE PILL CONFIRM (Combo Component)
-   140×34px component - TimeCountButton + CheckAndCloseButton
+   140×38px component - TimeCountButton + CheckAndCloseButton
    ============================================ */
 
 interface VoicePillConfirmProps {
@@ -1588,7 +1766,7 @@ export const VoicePillConfirm: React.FC<VoicePillConfirmProps> = ({
           /* Size - auto width to fit children */
           margin: 0 auto;
           width: auto;
-          height: 34px;
+          height: 38px;
 
           /* Inside auto layout */
           flex: none;
@@ -1637,6 +1815,46 @@ export const VoiceDockCenter: React.FC = () => {
           flex: none;
           order: 1;
           flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   RECORD DELETE COMBO
+   Combines ClearButtonFaded and RecordButton with 10px gap
+   ============================================ */
+
+export const RecordDeleteCombo: React.FC = () => {
+  return (
+    <>
+      <div className={`record-delete-combo ${styles.container}`}>
+        <div className="combo-item-clear">
+          <ClearButtonFaded />
+        </div>
+        <div className="combo-item-record">
+          <RecordButton />
+        </div>
+      </div>
+
+      <style jsx>{`
+        .record-delete-combo {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          padding: 0px;
+          gap: 10px;
+          height: 38px;
+        }
+
+        /* Override internal order properties of the base buttons */
+        .combo-item-clear {
+          order: 1;
+        }
+        .combo-item-record {
+          order: 2;
         }
       `}</style>
     </>
