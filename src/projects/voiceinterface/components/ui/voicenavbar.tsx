@@ -607,7 +607,7 @@ export const MorphingProcessingToCombo: React.FC<MorphingProcessingToComboProps>
           gap: 0px;
           width: 100%;
           max-width: 344px;
-          height: 40px;
+          height: 38px;
           box-sizing: border-box;
           transition: gap 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -621,9 +621,8 @@ export const MorphingProcessingToCombo: React.FC<MorphingProcessingToComboProps>
           align-items: center;
           justify-content: center; /* Center content for clear button */
           height: 40px; /* Match container height - was 38px */
-          opacity: 1; 
+          opacity: 1;
           overflow: hidden;
-          /* border: 0.5px solid blue; REMOVED DEBUG */
           /* Transition for width changes */
           transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -655,17 +654,19 @@ export const MorphingProcessingToCombo: React.FC<MorphingProcessingToComboProps>
         }
 
         .v2c-button-tracker {
-          width: 40px;
-          height: 40px;
+          width: 38px;
+          height: 38px;
           display: flex;
           align-items: center;
           justify-content: center;
-          /* border: 0.5px solid green; REMOVED DEBUG */
           transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .v2c-container.state-recording .v2c-button-tracker,
-        .v2c-container.state-processing .v2c-button-tracker { width: 74px; }
-        /* In Combo, it shrinks back to 40px (Idle size) */
+        .v2c-container.state-processing .v2c-button-tracker {
+          width: 74px;
+          height: 38px;
+        }
+        /* In Combo, it shrinks back to 38px (Idle size) */
 
         .v2c-morph-border {
           position: relative;
@@ -679,7 +680,6 @@ export const MorphingProcessingToCombo: React.FC<MorphingProcessingToComboProps>
           border: 1.13px solid var(--VoiceDarkGrey_20);
           border-radius: 19px;
           background: transparent;
-          /* outline: 0.5px solid orange; REMOVED DEBUG */
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .v2c-morph-border.state-recording,

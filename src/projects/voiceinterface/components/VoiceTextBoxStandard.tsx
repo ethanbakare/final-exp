@@ -230,7 +230,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
           flex-direction: row;
           justify-content: center;
           align-items: center;
-          padding: 0px;
+          padding: 0px 12px;
           gap: 0px;
 
           width: 100%;
