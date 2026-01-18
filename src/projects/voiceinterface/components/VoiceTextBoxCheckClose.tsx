@@ -120,8 +120,12 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
       abortControllerRef.current = null;
     }
 
-    // Reset oldTextLength to prevent re-animation when returning to combo state
-    oldTextLengthRef.current = 0;
+    // Set oldTextLength to full text length to prevent re-animation
+    // This makes the condition oldTextLength >= transcriptText.length true
+    // which shows text statically without animation
+    if (transcription) {
+      oldTextLengthRef.current = transcription.length;
+    }
 
     // Preserve text on screen - just return to appropriate state
     if (transcription) {

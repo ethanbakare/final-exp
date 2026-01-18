@@ -85,19 +85,24 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           <div className={`result-text ${styles.OpenRundeMedium16}`}>
             {oldTextLength > 0 && oldTextLength < transcriptText.length ? (
               <>
-                {/* Old text (static, no animation) */}
+                {/* Old text (static, no animation) - includes trailing space */}
                 <span className="old-text">
                   {transcriptText.substring(0, oldTextLength)}
                 </span>
-                {/* New text (animated) */}
+                {/* Explicit space separator */}
+                <span> </span>
+                {/* New text (animated) - trim to remove leading space */}
                 <VoiceTextAnimation
-                  text={transcriptText.substring(oldTextLength)}
+                  text={transcriptText.substring(oldTextLength).trim()}
                   animationDelay={0.07}      // 70ms between words
                   animationDuration={0.5}    // 500ms per word
                 />
               </>
+            ) : oldTextLength >= transcriptText.length ? (
+              /* Cancelled recording - show all text without animation */
+              <span className="static-text">{transcriptText}</span>
             ) : (
-              /* First recording or no append - animate all text */
+              /* First recording - animate all text */
               <VoiceTextAnimation
                 text={transcriptText}
                 animationDelay={0.07}      // 70ms between words
@@ -137,6 +142,10 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
         }
 
         .old-text {
+          color: var(--VoiceDarkGrey_90);
+        }
+
+        .static-text {
           color: var(--VoiceDarkGrey_90);
         }
 
