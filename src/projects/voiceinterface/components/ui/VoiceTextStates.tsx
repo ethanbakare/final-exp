@@ -14,7 +14,7 @@ export type VoiceTextState = 'idle' | 'recording' | 'processing' | 'results' | '
 interface VoiceTextStatesProps {
   textState: VoiceTextState;
   transcriptText?: string;
-  previousText?: string;  // Previous transcription shown at idle opacity
+  oldTextLength?: number;  // Split point for old vs new text (for animation)
   placeholderText?: string;
   variation?: 1 | 2 | 3;
 }
@@ -22,7 +22,7 @@ interface VoiceTextStatesProps {
 export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
   textState,
   transcriptText = '',
-  previousText = '',
+  oldTextLength = 0,
   placeholderText,
   variation = 1
 }) => {
@@ -50,12 +50,12 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           </div>
         )}
 
-        {/* RECORDING STATE - Show previous text at idle opacity (for appending) */}
+        {/* RECORDING STATE - Show existing text at 30% opacity */}
         {textState === 'recording' && (
           <>
-            {previousText ? (
-              <div className={`previous-text ${styles.OpenRundeMedium16}`}>
-                {previousText}
+            {transcriptText ? (
+              <div className={`dimmed-text ${styles.OpenRundeMedium16}`}>
+                {transcriptText}
               </div>
             ) : (
               <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
@@ -65,12 +65,12 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           </>
         )}
 
-        {/* PROCESSING STATE - Show previous text at idle opacity (for appending) */}
+        {/* PROCESSING STATE - Show existing text at 30% opacity */}
         {textState === 'processing' && (
           <>
-            {previousText ? (
-              <div className={`previous-text ${styles.OpenRundeMedium16}`}>
-                {previousText}
+            {transcriptText ? (
+              <div className={`dimmed-text ${styles.OpenRundeMedium16}`}>
+                {transcriptText}
               </div>
             ) : (
               <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
@@ -80,24 +80,31 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           </>
         )}
 
-        {/* RESULTS STATE - With word-by-word animation */}
+        {/* RESULTS STATE - With word-by-word animation for new text only */}
         {textState === 'results' && transcriptText && (
-          <>
-            {/* Show previous text at idle opacity (appended mode) */}
-            {previousText && (
-              <div className={`previous-text ${styles.OpenRundeMedium16}`}>
-                {previousText}
-              </div>
-            )}
-            {/* Show current transcription at result opacity with animation */}
-            <div className="result-text">
+          <div className={`result-text ${styles.OpenRundeMedium16}`}>
+            {oldTextLength > 0 && oldTextLength < transcriptText.length ? (
+              <>
+                {/* Old text (static, no animation) */}
+                <span className="old-text">
+                  {transcriptText.substring(0, oldTextLength)}
+                </span>
+                {/* New text (animated) */}
+                <VoiceTextAnimation
+                  text={transcriptText.substring(oldTextLength)}
+                  animationDelay={0.07}      // 70ms between words
+                  animationDuration={0.5}    // 500ms per word
+                />
+              </>
+            ) : (
+              /* First recording or no append - animate all text */
               <VoiceTextAnimation
                 text={transcriptText}
                 animationDelay={0.07}      // 70ms between words
                 animationDuration={0.5}    // 500ms per word
               />
-            </div>
-          </>
+            )}
+          </div>
         )}
 
         {/* ERROR STATE */}
@@ -117,17 +124,20 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           color: var(--VoiceDarkGrey_30);
         }
 
-        .previous-text {
+        .dimmed-text {
           color: var(--VoiceDarkGrey_30);
           word-wrap: break-word;
           line-height: 143.75%;
-          margin-bottom: 8px;  /* Space before new text */
         }
 
         .result-text {
           color: var(--VoiceDarkGrey_90);
           word-wrap: break-word;
           line-height: 143.75%;
+        }
+
+        .old-text {
+          color: var(--VoiceDarkGrey_90);
         }
 
         .error-text {
