@@ -22,6 +22,7 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
   // State management
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
+  const [isClearing, setIsClearing] = useState<boolean>(false);
   
   // Track where old text ends (for splitting old/new during animation)
   const oldTextLengthRef = React.useRef<number>(0);
@@ -184,12 +185,19 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
   };
 
   /**
-   * Clear (ClearButton clicked in combo state)
+   * Clear (ClearButton clicked in combo state with fade animation)
    */
   const handleClear = () => {
-    setAppState('idle');
-    setTranscription('');
-    oldTextLengthRef.current = 0;  // Reset split point
+    // Start fade-out animation
+    setIsClearing(true);
+    
+    // Wait for animation to complete (200ms), then clear state
+    setTimeout(() => {
+      setAppState('idle');
+      setTranscription('');
+      oldTextLengthRef.current = 0;  // Reset split point
+      setIsClearing(false);
+    }, 200); // Match CSS transition duration
   };
 
   // Cleanup on unmount
@@ -210,7 +218,7 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
         <div className="txt-box">
           {/* Transcript Display Area */}
           <div className="txt-transcript-box">
-            <div className="transcript-scroll-wrapper">
+            <div className={`transcript-scroll-wrapper ${isClearing ? 'clearing' : ''}`}>
               <VoiceTextBatch
                 textState={getTextState()}
                 transcriptText={transcription}
@@ -305,6 +313,15 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
           overflow-y: auto;
           overflow-x: hidden;
           padding-right: 4px;  /* Space for scrollbar */
+          
+          /* Smooth transition for fade animation */
+          transition: opacity 200ms ease-out;
+        }
+        
+        /* Clearing animation - Simple fade out (Google Docs style) */
+        .transcript-scroll-wrapper.clearing {
+          opacity: 0;
+          pointer-events: none;  /* Prevent interaction during fade */
         }
 
         /* Custom scrollbar styling */
