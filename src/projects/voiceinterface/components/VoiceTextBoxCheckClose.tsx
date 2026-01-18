@@ -22,6 +22,7 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
   // State management
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
+  const [previousTranscription, setPreviousTranscription] = useState<string>('');
 
   // Ref to track and cancel ongoing API requests
   const abortControllerRef = React.useRef<AbortController | null>(null);
@@ -37,6 +38,15 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
    * Start Recording
    */
   const handleStartRecording = () => {
+    // If starting from combo state (appending mode), move current to previous
+    if (appState === 'combo' && transcription) {
+      setPreviousTranscription(prev => {
+        // Append current transcription to previous with spacing
+        return prev ? `${prev}\n\n${transcription}` : transcription;
+      });
+      setTranscription('');  // Clear current for new recording
+    }
+
     setAppState('recording');
   };
 
@@ -57,6 +67,11 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
         body: JSON.stringify({ mock: true }),
         signal: abortControllerRef.current.signal
       });
+
+      // Check if response is OK before parsing JSON
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
 
       const data = await response.json();
       setTranscription(data.text || 'Mock transcription result');
@@ -85,6 +100,7 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
 
     setAppState('idle');
     setTranscription('');
+    setPreviousTranscription('');  // Clear all text
   };
 
   /**
@@ -93,6 +109,7 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
   const handleClear = () => {
     setAppState('idle');
     setTranscription('');
+    setPreviousTranscription('');  // Clear all text
   };
 
   return (
@@ -105,6 +122,7 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
               <VoiceTextStates
                 textState={getTextState()}
                 transcriptText={transcription}
+                previousText={previousTranscription}
                 variation={2}
               />
             </div>

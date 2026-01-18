@@ -14,6 +14,7 @@ export type VoiceTextState = 'idle' | 'recording' | 'processing' | 'results' | '
 interface VoiceTextStatesProps {
   textState: VoiceTextState;
   transcriptText?: string;
+  previousText?: string;  // Previous transcription shown at idle opacity
   placeholderText?: string;
   variation?: 1 | 2 | 3;
 }
@@ -21,6 +22,7 @@ interface VoiceTextStatesProps {
 export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
   textState,
   transcriptText = '',
+  previousText = '',
   placeholderText,
   variation = 1
 }) => {
@@ -48,29 +50,54 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
           </div>
         )}
 
-        {/* RECORDING STATE - Show nothing (button morph indicates recording) */}
+        {/* RECORDING STATE - Show previous text at idle opacity (for appending) */}
         {textState === 'recording' && (
-          <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
-            {/* Empty - no text during recording */}
-          </div>
+          <>
+            {previousText ? (
+              <div className={`previous-text ${styles.OpenRundeMedium16}`}>
+                {previousText}
+              </div>
+            ) : (
+              <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
+                {/* Empty - no text during first recording */}
+              </div>
+            )}
+          </>
         )}
 
-        {/* PROCESSING STATE - Keep empty, button spinner indicates processing */}
+        {/* PROCESSING STATE - Show previous text at idle opacity (for appending) */}
         {textState === 'processing' && (
-          <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
-            {/* Empty - button shows spinner during processing */}
-          </div>
+          <>
+            {previousText ? (
+              <div className={`previous-text ${styles.OpenRundeMedium16}`}>
+                {previousText}
+              </div>
+            ) : (
+              <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
+                {/* Empty - button shows spinner during processing */}
+              </div>
+            )}
+          </>
         )}
 
         {/* RESULTS STATE - With word-by-word animation */}
         {textState === 'results' && transcriptText && (
-          <div className="result-text">
-            <VoiceTextAnimation
-              text={transcriptText}
-              animationDelay={0.07}      // 70ms between words
-              animationDuration={0.5}    // 500ms per word
-            />
-          </div>
+          <>
+            {/* Show previous text at idle opacity (appended mode) */}
+            {previousText && (
+              <div className={`previous-text ${styles.OpenRundeMedium16}`}>
+                {previousText}
+              </div>
+            )}
+            {/* Show current transcription at result opacity with animation */}
+            <div className="result-text">
+              <VoiceTextAnimation
+                text={transcriptText}
+                animationDelay={0.07}      // 70ms between words
+                animationDuration={0.5}    // 500ms per word
+              />
+            </div>
+          </>
         )}
 
         {/* ERROR STATE */}
@@ -88,6 +115,13 @@ export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
 
         .placeholder-text {
           color: var(--VoiceDarkGrey_30);
+        }
+
+        .previous-text {
+          color: var(--VoiceDarkGrey_30);
+          word-wrap: break-word;
+          line-height: 143.75%;
+          margin-bottom: 8px;  /* Space before new text */
         }
 
         .result-text {

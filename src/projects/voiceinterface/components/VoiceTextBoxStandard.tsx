@@ -22,6 +22,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
   // Simple state management (Phase 0)
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
+  const [previousTranscription, setPreviousTranscription] = useState<string>('');
 
   // Ref to track and cancel ongoing API requests
   const abortControllerRef = React.useRef<AbortController | null>(null);
@@ -37,6 +38,15 @@ export const VoiceTextBoxStandard: React.FC = () => {
    * Start Recording
    */
   const handleStartRecording = () => {
+    // If starting from complete state (appending mode), move current to previous
+    if (appState === 'complete' && transcription) {
+      setPreviousTranscription(prev => {
+        // Append current transcription to previous with spacing
+        return prev ? `${prev}\n\n${transcription}` : transcription;
+      });
+      setTranscription('');  // Clear current for new recording
+    }
+
     setAppState('recording');
     // User clicks to stop - no auto-stop
   };
@@ -58,6 +68,11 @@ export const VoiceTextBoxStandard: React.FC = () => {
         body: JSON.stringify({ mock: true }),
         signal: abortControllerRef.current.signal
       });
+
+      // Check if response is OK before parsing JSON
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
 
       const data = await response.json();
       setTranscription(data.text || 'Mock transcription result');
@@ -86,6 +101,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
 
     setAppState('idle');
     setTranscription('');
+    setPreviousTranscription('');  // Clear all text
   };
 
   return (
@@ -98,6 +114,7 @@ export const VoiceTextBoxStandard: React.FC = () => {
               <VoiceTextStates
                 textState={getTextState()}
                 transcriptText={transcription}
+                previousText={previousTranscription}
                 variation={1}
               />
             </div>
