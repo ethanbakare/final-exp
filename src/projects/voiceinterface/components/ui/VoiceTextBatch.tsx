@@ -3,50 +3,39 @@ import styles from '@/projects/voiceinterface/styles/voice.module.css';
 import { VoiceTextAnimation } from './VoiceTextAnimation';
 
 /**
- * Voice Text States Component
+ * Voice Text Batch Component
  *
- * Displays different text based on the current application state.
- * Phase 1: Added word-by-word text animation for results state.
+ * Handles batch transcription display for Variants 1 & 2.
+ * States: idle → recording → processing → results
+ * 
+ * Key Behaviors:
+ * - Idle: Shows placeholder
+ * - Recording/Processing: Shows existing text at 30% opacity
+ * - Results: Animates new text word-by-word at 90% opacity
  */
 
-export type VoiceTextState = 'idle' | 'recording' | 'processing' | 'results' | 'error';
+export type VoiceTextBatchState = 'idle' | 'recording' | 'processing' | 'results' | 'error';
 
-interface VoiceTextStatesProps {
-  textState: VoiceTextState;
+interface VoiceTextBatchProps {
+  textState: VoiceTextBatchState;
   transcriptText?: string;
   oldTextLength?: number;  // Split point for old vs new text (for animation)
   placeholderText?: string;
-  variation?: 1 | 2 | 3;
 }
 
-export const VoiceTextStates: React.FC<VoiceTextStatesProps> = ({
+export const VoiceTextBatch: React.FC<VoiceTextBatchProps> = ({
   textState,
   transcriptText = '',
   oldTextLength = 0,
-  placeholderText,
-  variation = 1
+  placeholderText = "Tap to speak"
 }) => {
-  // Default placeholder text based on variation
-  const getPlaceholder = () => {
-    if (placeholderText) return placeholderText;
-    switch (variation) {
-      case 1:
-      case 2:
-        return "Tap to speak";
-      case 3:
-        return "Ready when you are";
-      default:
-        return "Tap to speak";
-    }
-  };
-
   return (
     <>
       <div className="voice-text-content">
         {/* IDLE STATE */}
         {textState === 'idle' && (
           <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
-            {getPlaceholder()}
+            {placeholderText}
           </div>
         )}
 

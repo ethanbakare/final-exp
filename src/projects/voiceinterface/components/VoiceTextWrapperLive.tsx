@@ -5,7 +5,7 @@ import {
   LiveConnectionState,
   LiveTranscriptionEvents,
 } from "@deepgram/sdk";
-import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
+import { VoiceTextStreaming, VoiceTextStreamingState } from './ui/VoiceTextStreaming';
 import { MorphingRecordWideStopDock } from './ui/voicenavbar';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
@@ -46,10 +46,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
   const connectionRef = useRef<LiveClient | null>(null);
 
   // Map app state to text state
-  const getTextState = (): VoiceTextState => {
-    // Map 'complete' to 'results' for VoiceTextStates component
-    if (appState === 'complete') return 'results';
-    return appState as VoiceTextState;
+  const getTextState = (): VoiceTextStreamingState => {
+    // For streaming, keep states as-is (no mapping to 'results')
+    // Text is already visible during recording, no animation needed
+    return appState as VoiceTextStreamingState;
   };
 
   /**
@@ -97,8 +97,12 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       // 5. Listen for transcripts
       connection.on(LiveTranscriptionEvents.Transcript, (data) => {
+        const { is_final: isFinal, speech_final: speechFinal } = data;
         const transcript = data.channel.alternatives[0].transcript;
-        if (transcript && transcript.trim()) {
+        
+        // Only append final, complete utterances (prevents duplication)
+        // interim_results sends both interim AND final transcripts
+        if (transcript && transcript.trim() && isFinal && speechFinal) {
           setTranscription(prev => {
             const separator = prev ? ' ' : '';
             return prev + separator + transcript;
@@ -233,10 +237,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
             {/* Transcript Display Area */}
             <div className="txt-transcript-box">
               <div className="transcript-scroll-wrapper">
-                <VoiceTextStates
+                <VoiceTextStreaming
                   textState={getTextState()}
                   transcriptText={transcription}
-                  variation={3}
+                  oldTextLength={prevTextLengthRef.current}
                 />
               </div>
 

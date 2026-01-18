@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
+import { VoiceTextBatch, VoiceTextBatchState } from './ui/VoiceTextBatch';
 import { MorphingProcessingToCombo } from './ui/voicenavbar';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
@@ -35,10 +35,10 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
   const mediaStreamRef = React.useRef<MediaStream | null>(null);
 
   // Map app state to text state
-  const getTextState = (): VoiceTextState => {
-    // Map 'combo' to 'results' for VoiceTextStates component
+  const getTextState = (): VoiceTextBatchState => {
+    // Map 'combo' to 'results' for VoiceTextBatch component
     if (appState === 'combo') return 'results';
-    return appState as VoiceTextState;
+    return appState as VoiceTextBatchState;
   };
 
   /**
@@ -211,11 +211,10 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
           {/* Transcript Display Area */}
           <div className="txt-transcript-box">
             <div className="transcript-scroll-wrapper">
-              <VoiceTextStates
+              <VoiceTextBatch
                 textState={getTextState()}
                 transcriptText={transcription}
                 oldTextLength={oldTextLengthRef.current}
-                variation={2}
               />
             </div>
 

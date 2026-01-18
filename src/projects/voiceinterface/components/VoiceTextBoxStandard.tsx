@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
+import { VoiceTextBatch, VoiceTextBatchState } from './ui/VoiceTextBatch';
 import { MorphingRecordDarkToPillWaveProcessing } from './ui/voicenavbar';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
@@ -35,10 +35,10 @@ export const VoiceTextBoxStandard: React.FC = () => {
   const mediaStreamRef = React.useRef<MediaStream | null>(null);
 
   // Map app state to text state
-  const getTextState = (): VoiceTextState => {
-    // Map 'complete' to 'results' for VoiceTextStates component
+  const getTextState = (): VoiceTextBatchState => {
+    // Map 'complete' to 'results' for VoiceTextBatch component
     if (appState === 'complete') return 'results';
-    return appState as VoiceTextState;
+    return appState as VoiceTextBatchState;
   };
 
   /**
@@ -228,11 +228,10 @@ export const VoiceTextBoxStandard: React.FC = () => {
           {/* Transcript Display Area */}
           <div className="txt-transcript-box">
             <div className="transcript-scroll-wrapper">
-              <VoiceTextStates
+              <VoiceTextBatch
                 textState={getTextState()}
                 transcriptText={transcription}
                 oldTextLength={oldTextLengthRef.current}
-                variation={1}
               />
             </div>
 
