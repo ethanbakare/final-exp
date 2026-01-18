@@ -880,6 +880,89 @@ export const CopyButton: React.FC<ButtonProps> = ({
 };
 
 /* ============================================
+   CHECK TICK BUTTON
+   38×38px circular button with check/tick icon
+   ============================================ */
+
+export const CheckTickButton: React.FC<ButtonProps> = ({
+  onClick,
+  disabled = false,
+  className = ''
+}) => {
+  return (
+    <>
+      <button
+        className={`check-tick-button ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Check"
+      >
+        <svg
+          className="check-icon"
+          width="18"
+          height="18"
+          viewBox="0 0 18 18"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M3 8.99997L6.71231 12.7123L14.6676 4.75732"
+            stroke="#262424"
+            strokeOpacity="0.9"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      <style jsx>{`
+        .check-tick-button {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+
+          /* Size */
+          width: 38px;
+          height: 38px;
+
+          /* Style */
+          background: var(--VoiceDarkGrey_5);
+          border: none;
+          border-radius: 32px;
+          cursor: pointer;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+
+        .check-tick-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* Check Icon */
+        .check-icon {
+          width: 18px;
+          height: 18px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
    CLEAR BUTTON
    38×38px circular button with clear/delete icon
    ============================================ */
@@ -1855,6 +1938,114 @@ export const RecordDeleteCombo: React.FC = () => {
         }
         .combo-item-record {
           order: 2;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   MORPHING COPY TO CHECK BUTTON
+   
+   Pattern: Copy button that morphs to check tick on click
+   - Default: CopyButton (38×38px)
+   - On click: CheckTickButton (38×38px)
+   - Auto-revert: Returns to CopyButton after 2 seconds
+   
+   ClipStream pattern - provides visual feedback for copy action
+   ============================================ */
+
+interface MorphingCopyToCheckButtonProps {
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+export const MorphingCopyToCheckButton: React.FC<MorphingCopyToCheckButtonProps> = ({
+  onClick,
+  disabled = false,
+  className = ''
+}) => {
+  // Internal state - starts as 'copy', switches to 'check' on click
+  const [state, setState] = React.useState<'copy' | 'check'>('copy');
+
+  const handleClick = () => {
+    // Prevent clicks when disabled or already in check state
+    if (disabled || state === 'check') return;
+    
+    // Switch to check state and notify parent
+    setState('check');
+    onClick?.();
+  };
+
+  // Auto-revert timer: Returns to 'copy' state after 2 seconds
+  React.useEffect(() => {
+    if (state === 'check') {
+      const timer = setTimeout(() => {
+        setState('copy');
+      }, 2000);
+
+      // Cleanup: Clear timer if component unmounts or state changes
+      return () => clearTimeout(timer);
+    }
+  }, [state]);
+
+  return (
+    <>
+      <div className={`morphing-copy-check-wrapper ${className}`}>
+        {/* Copy Button - visible in copy state */}
+        <div 
+          className={`button-layer copy-layer ${state === 'copy' ? 'active' : ''}`}
+          onClick={state === 'copy' ? handleClick : undefined}
+          style={{ pointerEvents: state === 'copy' ? 'auto' : 'none' }}
+        >
+          <CopyButton disabled={disabled} />
+        </div>
+        
+        {/* Check Tick Button - visible in check state */}
+        <div 
+          className={`button-layer check-layer ${state === 'check' ? 'active' : ''}`}
+          style={{ pointerEvents: 'none' }}
+        >
+          <CheckTickButton disabled={disabled} />
+        </div>
+      </div>
+      
+      <style jsx>{`
+        /* Accessibility: Disable animations for users who prefer reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+          .button-layer {
+            transition: none !important;
+          }
+        }
+        
+        /* Fixed container prevents layout shift */
+        .morphing-copy-check-wrapper {
+          position: relative;
+          width: 38px;
+          height: 38px;
+        }
+        
+        /* Both buttons are absolutely positioned and stacked */
+        .button-layer {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0;    /* Hidden by default */
+          transition: opacity 0.1s ease-out;  /* Fast transition for snappy feedback */
+          pointer-events: none;  /* Prevent clicks on hidden button */
+        }
+        
+        /* Active button is visible */
+        .button-layer.active {
+          opacity: 1;  /* Fully visible */
+        }
+        
+        /* Only copy button should be clickable (check button is just visual feedback) */
+        .button-layer.copy-layer.active {
+          pointer-events: auto;  /* Enable clicks on copy button */
         }
       `}</style>
     </>

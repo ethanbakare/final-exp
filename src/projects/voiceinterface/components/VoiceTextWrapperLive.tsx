@@ -181,13 +181,17 @@ export const VoiceTextWrapperLive: React.FC = () => {
   };
 
   /**
-   * Copy Transcription
+   * Copy Transcription (ClipStream pattern)
    */
-  const handleCopy = () => {
-    if (transcription) {
-      navigator.clipboard.writeText(transcription).then(() => {
-        console.log('Transcription copied to clipboard');
-      });
+  const handleCopy = async () => {
+    if (!transcription) return;
+    
+    try {
+      await navigator.clipboard.writeText(transcription);
+      console.log('[V3] Copied to clipboard:', transcription.substring(0, 50) + '...');
+    } catch (error) {
+      console.warn('[V3] Clipboard copy failed:', error);
+      // Silently fail - button will still show check mark for visual feedback
     }
   };
 
