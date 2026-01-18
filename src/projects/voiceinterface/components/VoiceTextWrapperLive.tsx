@@ -45,6 +45,9 @@ export const VoiceTextWrapperLive: React.FC = () => {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const connectionRef = useRef<LiveClient | null>(null);
 
+  // Ref for scrollable container (auto-scroll to show new text)
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Map app state to text state
   const getTextState = (): VoiceTextStreamingState => {
     // For streaming, keep states as-is (no mapping to 'results')
@@ -216,6 +219,29 @@ export const VoiceTextWrapperLive: React.FC = () => {
     };
   }, [connectionState, appState]);
 
+  // Auto-scroll to bottom when new text is added (ClipStream pattern)
+  useEffect(() => {
+    if (!transcription || transcription.length === 0) {
+      return;
+    }
+
+    // Only auto-scroll when recording (text is being added live)
+    if (appState === 'recording') {
+      // Small delay to ensure DOM has updated with new text
+      const scrollTimer = setTimeout(() => {
+        const element = scrollContainerRef.current;
+        if (element) {
+          element.scrollTo({
+            top: element.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [transcription, appState]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -236,7 +262,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
           <div className="txt-box">
             {/* Transcript Display Area */}
             <div className="txt-transcript-box">
-              <div className="transcript-scroll-wrapper">
+              <div className="transcript-scroll-wrapper" ref={scrollContainerRef}>
                 <VoiceTextStreaming
                   textState={getTextState()}
                   transcriptText={transcription}
