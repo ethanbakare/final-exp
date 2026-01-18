@@ -58,8 +58,7 @@ export const VoiceTextAnimation: React.FC<VoiceTextAnimationProps> = ({
 
       <style jsx>{`
         .voice-animated-text {
-          width: 100%;
-          display: inline-block;
+          display: inline;
           word-wrap: break-word;
           font-family: 'Open Runde', 'Inter', sans-serif;
           font-size: 16px;

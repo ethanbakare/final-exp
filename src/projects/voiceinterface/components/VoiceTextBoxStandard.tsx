@@ -121,6 +121,9 @@ export const VoiceTextBoxStandard: React.FC = () => {
       abortControllerRef.current = null;
     }
 
+    // Reset oldTextLength to prevent re-animation when returning to complete state
+    oldTextLengthRef.current = 0;
+
     // Preserve text on screen - just return to appropriate state
     if (transcription) {
       setAppState('complete');  // Return to complete state with existing text
