@@ -1,4 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
+import {
+  createClient,
+  LiveClient,
+  LiveConnectionState,
+  LiveTranscriptionEvents,
+} from "@deepgram/sdk";
 import { VoiceTextStates, VoiceTextState } from './ui/VoiceTextStates';
 import { MorphingRecordWideStopDock } from './ui/voicenavbar';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
@@ -27,10 +33,17 @@ export const VoiceTextWrapperLive: React.FC = () => {
   // State management
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
+  const [connectionState, setConnectionState] = useState<LiveConnectionState>(
+    LiveConnectionState.CLOSED
+  );
 
   // Refs for text streaming
   const prevTextLengthRef = useRef(0);
-  const streamingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Refs for MediaRecorder and Deepgram connection
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const connectionRef = useRef<LiveClient | null>(null);
 
   // Map app state to text state
   const getTextState = (): VoiceTextState => {
@@ -42,24 +55,119 @@ export const VoiceTextWrapperLive: React.FC = () => {
   /**
    * Start Recording & Streaming
    */
-  const handleStartRecording = () => {
-    setAppState('recording');
-    setTranscription('');
-    prevTextLengthRef.current = 0;
+  const handleStartRecording = async () => {
+    try {
+      setAppState('recording');
+      
+      // If appending to existing text, store its length
+      if (appState === 'complete' && transcription) {
+        prevTextLengthRef.current = transcription.length;
+      } else {
+        setTranscription('');
+        prevTextLengthRef.current = 0;
+      }
 
-    // Simulate live streaming transcription
-    // In production, this would be a WebSocket or SSE connection
-    simulateLiveStreaming();
+      // 1. Get temporary token from our API
+      const response = await fetch('/api/voice-interface/deepgram-token');
+      const data = await response.json();
+      const accessToken = data.key || data.access_token;
+
+      if (!accessToken) {
+        throw new Error('Failed to get Deepgram token');
+      }
+
+      // 2. Create Deepgram client with token
+      const deepgram = createClient(accessToken);
+
+      // 3. Open live connection
+      const connection = deepgram.listen.live({
+        model: "nova-2",
+        interim_results: true,
+        smart_format: true,
+        utterance_end_ms: 3000,
+      });
+
+      connectionRef.current = connection;
+
+      // 4. Listen for connection open
+      connection.on(LiveTranscriptionEvents.Open, () => {
+        console.log('Deepgram connection opened');
+        setConnectionState(LiveConnectionState.OPEN);
+      });
+
+      // 5. Listen for transcripts
+      connection.on(LiveTranscriptionEvents.Transcript, (data) => {
+        const transcript = data.channel.alternatives[0].transcript;
+        if (transcript && transcript.trim()) {
+          setTranscription(prev => {
+            const separator = prev ? ' ' : '';
+            return prev + separator + transcript;
+          });
+        }
+      });
+
+      // 6. Listen for errors
+      connection.on(LiveTranscriptionEvents.Error, (error) => {
+        console.error('Deepgram error:', error);
+      });
+
+      // 7. Listen for close
+      connection.on(LiveTranscriptionEvents.Close, () => {
+        console.log('Deepgram connection closed');
+        setConnectionState(LiveConnectionState.CLOSED);
+      });
+
+      // 8. Setup microphone
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      mediaStreamRef.current = stream;
+
+      // 9. Setup MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      // 10. Send audio chunks to Deepgram
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0 && connection) {
+          connection.send(event.data); // SDK handles the sending!
+        }
+      };
+
+      // 11. Start recording with chunks every 250ms
+      mediaRecorder.start(250);
+
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      alert('Failed to start recording. Please check your microphone and try again.');
+      setAppState('idle');
+    }
   };
 
   /**
    * Stop Recording
    */
   const handleStopRecording = () => {
-    // Stop streaming simulation
-    if (streamingTimerRef.current) {
-      clearTimeout(streamingTimerRef.current);
-      streamingTimerRef.current = null;
+    // Stop MediaRecorder
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+
+    // Close Deepgram connection
+    if (connectionRef.current) {
+      connectionRef.current.finish(); // SDK method to close gracefully
+      connectionRef.current = null;
+    }
+
+    // Release microphone
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
     }
 
     setAppState('complete');
@@ -85,38 +193,33 @@ export const VoiceTextWrapperLive: React.FC = () => {
     prevTextLengthRef.current = 0;
   };
 
-  /**
-   * Simulate Live Streaming Transcription
-   * In production, this would receive real-time chunks from a streaming API
-   */
-  const simulateLiveStreaming = () => {
-    const mockText = "This is a simulated live transcription. Words appear incrementally as if being transcribed in real-time from streaming audio. This demonstrates how Variant 3 handles continuous text updates during recording.";
-    const words = mockText.split(' ');
-    let wordIndex = 0;
+  // KeepAlive logic - keeps connection alive when microphone paused
+  useEffect(() => {
+    if (!connectionRef.current) return;
 
-    const addNextWord = () => {
-      if (wordIndex < words.length) {
-        setTranscription(prev => {
-          const newText = prev ? `${prev} ${words[wordIndex]}` : words[wordIndex];
-          prevTextLengthRef.current = newText.length;
-          return newText;
-        });
-        wordIndex++;
+    const connection = connectionRef.current;
+    let keepAliveInterval: NodeJS.Timeout;
 
-        // Continue streaming every 200ms
-        streamingTimerRef.current = setTimeout(addNextWord, 200);
-      }
+    if (connectionState === LiveConnectionState.OPEN && appState !== 'recording') {
+      connection.keepAlive();
+      keepAliveInterval = setInterval(() => {
+        connection.keepAlive();
+      }, 10000); // Every 10 seconds
+    }
+
+    return () => {
+      clearInterval(keepAliveInterval);
     };
-
-    // Start streaming
-    addNextWord();
-  };
+  }, [connectionState, appState]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (streamingTimerRef.current) {
-        clearTimeout(streamingTimerRef.current);
+      if (connectionRef.current) {
+        connectionRef.current.finish();
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);

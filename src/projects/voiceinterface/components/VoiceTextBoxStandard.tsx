@@ -29,6 +29,11 @@ export const VoiceTextBoxStandard: React.FC = () => {
   // Ref to track and cancel ongoing API requests
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
+  // Refs for MediaRecorder
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const audioChunksRef = React.useRef<Blob[]>([]);
+  const mediaStreamRef = React.useRef<MediaStream | null>(null);
+
   // Map app state to text state
   const getTextState = (): VoiceTextState => {
     // Map 'complete' to 'results' for VoiceTextStates component
@@ -39,74 +44,116 @@ export const VoiceTextBoxStandard: React.FC = () => {
   /**
    * Start Recording
    */
-  const handleStartRecording = () => {
-    // If starting from complete state (appending mode), save current text length
-    // Text stays visible at 30% opacity during recording
-    if (appState === 'complete' && transcription) {
-      oldTextLengthRef.current = transcription.length;
-    }
+  const handleStartRecording = async () => {
+    try {
+      // If starting from complete state (appending mode), save current text length
+      if (appState === 'complete' && transcription) {
+        oldTextLengthRef.current = transcription.length;
+      }
 
-    setAppState('recording');
-    // User clicks to stop - no auto-stop
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      mediaStreamRef.current = stream;
+
+      // Setup MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      // Collect audio chunks
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      // Handle recording stop
+      mediaRecorder.onstop = async () => {
+        await handleRecordingStopped();
+      };
+
+      // Start recording
+      mediaRecorder.start();
+      setAppState('recording');
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      alert('Microphone access is required to record audio.');
+    }
   };
 
   /**
    * Stop Recording
    */
-  const handleStopRecording = async () => {
-    setAppState('processing');
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setAppState('processing');
+    }
+  };
 
-    // Create new AbortController for this request
-    abortControllerRef.current = new AbortController();
+  /**
+   * Handle recording stopped - send audio to Deepgram
+   */
+  const handleRecordingStopped = async () => {
+    // Create blob from chunks
+    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    
+    // Release microphone
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
 
-    // Call mock API
+    // Send to transcription API
     try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      // Create new AbortController for this request
+      abortControllerRef.current = new AbortController();
+
       const response = await fetch('/api/voice-interface/transcribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mock: true }),
+        body: formData,
         signal: abortControllerRef.current.signal
       });
 
-      // Check if response is OK before parsing JSON
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        throw new Error(`Transcription failed: ${response.status}`);
       }
 
       const data = await response.json();
-      const newText = data.text || 'Mock transcription result';
+      const newText = data.text || '';
 
-      // Append new text with space separator
-      // oldTextLengthRef maintains split point for animation
-      if (transcription) {
-        // Appending mode: add space + new text
-        setTranscription(transcription + ' ' + newText);
-      } else {
-        // First recording: just new text
-        setTranscription(newText);
-        oldTextLengthRef.current = 0;
-      }
+      // Append new text with space separator (fresh state pattern)
+      setTranscription(prev => {
+        const combined = prev ? prev + ' ' + newText : newText;
+        // Update oldTextLength to point to where new text starts
+        if (prev) {
+          oldTextLengthRef.current = prev.length;
+        }
+        return combined;
+      });
 
       setAppState('complete');
+      abortControllerRef.current = null;
+
     } catch (error) {
-      // Don't show error if request was aborted (user clicked Close)
       if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Transcription cancelled');
         return;
       }
-
       console.error('Transcription error:', error);
-      const fallbackText = 'This is a mock transcription result for testing.';
-
-      // Append fallback text with space separator
-      if (transcription) {
-        // Appending mode: add space + fallback text
-        setTranscription(transcription + ' ' + fallbackText);
-      } else {
-        // First recording: just fallback text
-        setTranscription(fallbackText);
-        oldTextLengthRef.current = 0;
-      }
-
+      alert('Transcription failed. Please try again.');
       setAppState('complete');
     }
   };
@@ -115,6 +162,17 @@ export const VoiceTextBoxStandard: React.FC = () => {
    * Close - cancel current recording but preserve text
    */
   const handleClose = () => {
+    // Stop MediaRecorder if still recording
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+
+    // Release microphone if still active
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+
     // Cancel ongoing API request if exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -150,6 +208,18 @@ export const VoiceTextBoxStandard: React.FC = () => {
     setTranscription('');
     oldTextLengthRef.current = 0;  // Reset split point
   };
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return (
     <>
