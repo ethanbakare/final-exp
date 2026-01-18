@@ -183,9 +183,10 @@ export const MorphingRecordDarkToPillWaveProcessing: React.FC<MorphingRecordDark
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 368px; /* Fixed width per design screenshot */
+            width: 100%;
+            max-width: 368px;
             height: 100%;
-            padding: 0 0px; /* Removing padding as 368px might be the total width, spacing handled by flex */
+            padding: 0;
             box-sizing: border-box;
         }
 
@@ -485,7 +486,6 @@ export const MorphingProcessingToCombo: React.FC<MorphingProcessingToComboProps>
         <>
             <div
                 className={`v2c-container state-${state} ${className} ${styles.container}`}
-                style={{ width: `${containerWidth}px` }}
             >
                 {/* Timer Wrapper: Morphs between Timer and ClearButton */}
                 <div
@@ -605,11 +605,11 @@ export const MorphingProcessingToCombo: React.FC<MorphingProcessingToComboProps>
           align-items: center;
           justify-content: flex-end;
           gap: 0px;
+          width: 100%;
+          max-width: 344px;
           height: 40px;
           box-sizing: border-box;
-          /* border: 0.5px solid red; REMOVED DEBUG */
-          transition: gap 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                      width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: gap 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .v2c-container.state-recording,
         .v2c-container.state-processing,
