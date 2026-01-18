@@ -36,6 +36,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
   const [connectionState, setConnectionState] = useState<LiveConnectionState>(
     LiveConnectionState.CLOSED
   );
+  const [isClearing, setIsClearing] = useState<boolean>(false);
 
   // Refs for text streaming
   const prevTextLengthRef = useRef(0);
@@ -196,12 +197,19 @@ export const VoiceTextWrapperLive: React.FC = () => {
   };
 
   /**
-   * Clear (Start New Recording)
+   * Clear (Start New Recording with fade animation)
    */
   const handleClear = () => {
-    setAppState('idle');
-    setTranscription('');
-    prevTextLengthRef.current = 0;
+    // Start fade-out animation
+    setIsClearing(true);
+    
+    // Wait for animation to complete (300ms), then clear state
+    setTimeout(() => {
+      setAppState('idle');
+      setTranscription('');
+      prevTextLengthRef.current = 0;
+      setIsClearing(false);
+    }, 300); // Match CSS transition duration
   };
 
   // KeepAlive logic - keeps connection alive when microphone paused
@@ -266,7 +274,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
           <div className="txt-box">
             {/* Transcript Display Area */}
             <div className="txt-transcript-box">
-              <div className="transcript-scroll-wrapper" ref={scrollContainerRef}>
+              <div 
+                className={`transcript-scroll-wrapper ${isClearing ? 'clearing' : ''}`} 
+                ref={scrollContainerRef}
+              >
                 <VoiceTextStreaming
                   textState={getTextState()}
                   transcriptText={transcription}
@@ -378,6 +389,15 @@ export const VoiceTextWrapperLive: React.FC = () => {
           overflow-y: auto;
           overflow-x: hidden;
           padding-right: 4px;  /* Space for scrollbar */
+          
+          /* Smooth transition for fade animation */
+          transition: opacity 300ms ease-out;
+        }
+        
+        /* Clearing animation - Simple fade out (iOS/macOS style) */
+        .transcript-scroll-wrapper.clearing {
+          opacity: 0;
+          pointer-events: none;  /* Prevent interaction during fade */
         }
 
         /* Custom scrollbar styling */
