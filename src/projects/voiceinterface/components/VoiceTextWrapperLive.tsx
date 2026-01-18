@@ -203,13 +203,13 @@ export const VoiceTextWrapperLive: React.FC = () => {
     // Start fade-out animation
     setIsClearing(true);
     
-    // Wait for animation to complete (300ms), then clear state
+    // Wait for animation to complete (200ms), then clear state
     setTimeout(() => {
       setAppState('idle');
       setTranscription('');
       prevTextLengthRef.current = 0;
       setIsClearing(false);
-    }, 300); // Match CSS transition duration
+    }, 200); // Match CSS transition duration
   };
 
   // KeepAlive logic - keeps connection alive when microphone paused
@@ -391,10 +391,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
           padding-right: 4px;  /* Space for scrollbar */
           
           /* Smooth transition for fade animation */
-          transition: opacity 300ms ease-out;
+          transition: opacity 200ms ease-out;
         }
         
-        /* Clearing animation - Simple fade out (iOS/macOS style) */
+        /* Clearing animation - Simple fade out (Google Docs style) */
         .transcript-scroll-wrapper.clearing {
           opacity: 0;
           pointer-events: none;  /* Prevent interaction during fade */
