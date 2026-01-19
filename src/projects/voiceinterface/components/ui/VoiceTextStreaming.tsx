@@ -25,13 +25,15 @@ interface VoiceTextStreamingProps {
   transcriptText?: string;
   oldTextLength?: number;  // Split point for old vs new text (opacity change)
   placeholderText?: string;
+  showCursor?: boolean;  // Show blinking cursor (during recording)
 }
 
 export const VoiceTextStreaming: React.FC<VoiceTextStreamingProps> = ({
   textState,
   transcriptText = '',
   oldTextLength = 0,
-  placeholderText = "Ready when you are"
+  placeholderText = "Ready when you are",
+  showCursor = false
 }) => {
   return (
     <>
@@ -47,7 +49,7 @@ export const VoiceTextStreaming: React.FC<VoiceTextStreamingProps> = ({
         {textState === 'recording' && (
           <>
             {transcriptText ? (
-              <div className={`streaming-text ${styles.OpenRundeMedium16}`}>
+              <div className={`streaming-text ${showCursor ? 'with-cursor' : ''} ${styles.OpenRundeMedium16}`}>
                 {oldTextLength > 0 && oldTextLength < transcriptText.length ? (
                   <>
                     {/* Old text (dimmed to 30% during new recording) */}
@@ -67,7 +69,7 @@ export const VoiceTextStreaming: React.FC<VoiceTextStreamingProps> = ({
                 )}
               </div>
             ) : (
-              <div className={`placeholder-text ${styles.OpenRundeMedium16}`}>
+              <div className={`placeholder-text ${showCursor ? 'with-cursor' : ''} ${styles.OpenRundeMedium16}`}>
                 {/* Empty - waiting for first transcription */}
               </div>
             )}
@@ -101,6 +103,20 @@ export const VoiceTextStreaming: React.FC<VoiceTextStreamingProps> = ({
         .streaming-text {
           word-wrap: break-word;
           line-height: 143.75%;
+        }
+        
+        /* Blinking cursor - inline with text (terminal/IDE style) */
+        .streaming-text.with-cursor::after,
+        .placeholder-text.with-cursor::after {
+          content: '|';
+          color: var(--VoiceDarkGrey_30);  /* 30% opacity for subtle cursor */
+          margin-left: 2px;
+          animation: blink 1s step-end infinite;
+        }
+        
+        @keyframes blink {
+          0%, 50% { opacity: 1; }    /* Visible for 500ms */
+          51%, 100% { opacity: 0; }  /* Hidden for 500ms */
         }
 
         /* Old text during new recording - dimmed to 30% */
