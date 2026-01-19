@@ -275,7 +275,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
             {/* Transcript Display Area */}
             <div className="txt-transcript-box">
               <div 
-                className={`transcript-scroll-wrapper ${isClearing ? 'clearing' : ''}`} 
+                className={`transcript-scroll-wrapper ${isClearing ? 'clearing' : ''} ${appState === 'recording' ? 'recording' : ''}`} 
                 ref={scrollContainerRef}
               >
                 <VoiceTextStreaming
@@ -398,6 +398,19 @@ export const VoiceTextWrapperLive: React.FC = () => {
         .transcript-scroll-wrapper.clearing {
           opacity: 0;
           pointer-events: none;  /* Prevent interaction during fade */
+        }
+        
+        /* Blinking cursor - Shows during live recording (terminal/IDE style) */
+        .transcript-scroll-wrapper.recording::after {
+          content: '|';
+          color: var(--VoiceDarkGrey_90);
+          margin-left: 2px;  /* Small space after text */
+          animation: blink 1s step-end infinite;
+        }
+        
+        @keyframes blink {
+          0%, 50% { opacity: 1; }    /* Visible for 500ms */
+          51%, 100% { opacity: 0; }  /* Hidden for 500ms */
         }
 
         /* Custom scrollbar styling */
