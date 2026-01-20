@@ -184,9 +184,9 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           background-repeat: no-repeat;
         }
 
-        /* WT6 and WT7 only - Edge-to-edge width fit */
+        /* WT6 and WT7 only - Edge-to-edge height fit */
         .carousel-background.fit-width {
-          background-size: 100% auto;
+          background-size: auto 100%;
           background-position: center center;
         }
 
