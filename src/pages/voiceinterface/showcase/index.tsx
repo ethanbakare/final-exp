@@ -74,6 +74,20 @@ const VoiceInterfaceShowcase: React.FC = () => {
         <p className="subtitle">Component Showcase & Documentation</p>
 
         <div className="links">
+          <Link href="/voiceinterface/carousel" className="link-card">
+            Carousel Demo
+            <div className="link-description">
+              Full-screen showcase with gradient backgrounds
+            </div>
+          </Link>
+
+          <Link href="/voiceinterface/variations" className="link-card">
+            All Variations
+            <div className="link-description">
+              Side-by-side comparison view
+            </div>
+          </Link>
+
           <Link href="/voiceinterface/showcase/voicecomponent" className="link-card">
             Component Library
             <div className="link-description">
