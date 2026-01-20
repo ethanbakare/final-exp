@@ -83,12 +83,14 @@ export const VoiceTextWrapperLive: React.FC = () => {
       // 2. Create Deepgram client with token
       const deepgram = createClient(accessToken);
 
-      // 3. Open live connection
+      // 3. Open live connection with proper encoding
       const connection = deepgram.listen.live({
         model: "nova-2",
         interim_results: true,
         smart_format: true,
         utterance_end_ms: 3000,
+        encoding: "opus",  // Critical: Tell Deepgram the audio format!
+        sample_rate: 48000, // Standard WebM Opus sample rate
       });
 
       connectionRef.current = connection;
@@ -141,9 +143,21 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       mediaStreamRef.current = stream;
 
-      // 9. Setup MediaRecorder
-      const mediaRecorder = new MediaRecorder(stream);
+      // 9. Setup MediaRecorder with explicit encoding (Opus in WebM container)
+      // This matches the "encoding: opus" parameter we sent to Deepgram
+      const mimeType = 'audio/webm;codecs=opus';
+      
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        console.error('❌ MediaRecorder does not support', mimeType);
+        throw new Error(`Browser doesn't support ${mimeType}`);
+      }
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: mimeType,
+      });
       mediaRecorderRef.current = mediaRecorder;
+      
+      console.log('🎙️ MediaRecorder created with:', mimeType);
 
       // 10. Send audio chunks to Deepgram
       mediaRecorder.ondataavailable = (event) => {
