@@ -253,14 +253,14 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           height: 8px;
           border-radius: 50%;
           border: none;
-          background: var(--VoiceDarkGrey_20);
+          background: var(--VoiceDarkGrey_15);
           cursor: pointer;
           padding: 0;
           transition: all 200ms ease;
         }
 
         .dot:hover {
-          background: var(--VoiceDarkGrey_30);
+          background: var(--VoiceDarkGrey_20);
           transform: scale(1.2);
         }
 
