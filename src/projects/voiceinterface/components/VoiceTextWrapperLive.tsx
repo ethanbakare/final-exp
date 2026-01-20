@@ -133,10 +133,11 @@ export const VoiceTextWrapperLive: React.FC = () => {
         // #endregion
         
         if (transcript && transcript.trim()) {
-          if (isFinal && speechFinal) {
-            // Final, complete utterance - append permanently
+          if (isFinal) {
+            // Final result - append permanently (don't wait for speechFinal)
+            // Deepgram sends multiple finals per utterance with different speechFinal values
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:115',message:'Setting FINAL transcription',data:{transcript,branch:'isFinal&&speechFinal'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:115',message:'Setting FINAL transcription',data:{transcript,branch:'isFinal',speechFinal},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
             // #endregion
             setTranscription(prev => {
               const separator = prev ? ' ' : '';
@@ -144,7 +145,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
             });
             // Clear interim text after final result
             setInterimText('');
-          } else if (!isFinal) {
+          } else {
             // Interim result - show live (will be replaced by next interim or final)
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:122',message:'Setting INTERIM text',data:{transcript,branch:'!isFinal'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
