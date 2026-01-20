@@ -113,20 +113,17 @@ export const VoiceInterfaceCarousel: React.FC = () => {
 
         {/* Content Container - Centers the component */}
         <div className="carousel-content">
-          {/* Optional: Slide title/subtitle */}
-          <div className="slide-header">
-            <h2 className={`slide-title ${styles.OpenRundeMedium20}`}>
-              {slides[currentSlide].title}
-            </h2>
-            <p className={`slide-subtitle ${styles.OpenRundeRegular14}`}>
-              {slides[currentSlide].subtitle}
-            </p>
-          </div>
-
-          {/* Voice Interface Component */}
+          {/* Voice Interface Component - Perfectly centered */}
           <div className="component-wrapper">
             <CurrentComponent />
           </div>
+        </div>
+
+        {/* Slide Label - Bottom center (above dots) */}
+        <div className="slide-label">
+          <span className={`label-text ${styles.OpenRundeMedium16}`}>
+            {slides[currentSlide].title} — {slides[currentSlide].subtitle}
+          </span>
         </div>
 
         {/* Dot Indicators */}
@@ -205,14 +202,13 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           background: rgba(0, 0, 0, 0.02);
         }
 
-        /* Content Container - Centers component */
+        /* Content Container - Centers component perfectly */
         .carousel-content {
           position: relative;
           z-index: 5;
           display: flex;
-          flex-direction: column;
           align-items: center;
-          gap: 24px;
+          justify-content: center;
           pointer-events: none; /* Allow nav zones to be clickable */
         }
 
@@ -221,20 +217,20 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           pointer-events: auto;
         }
 
-        /* Slide Header - Optional title/subtitle */
-        .slide-header {
+        /* Slide Label - Bottom center (above dots) */
+        .slide-label {
+          position: absolute;
+          bottom: 80px; /* Above dot indicators */
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 20;
           text-align: center;
-          margin-bottom: 8px;
+          pointer-events: none;
         }
 
-        .slide-title {
-          color: var(--VoiceDarkGrey_90);
-          margin: 0 0 4px 0;
-        }
-
-        .slide-subtitle {
+        .label-text {
           color: var(--VoiceDarkGrey_30);
-          margin: 0;
+          white-space: nowrap;
         }
 
         /* Dot Indicators - Bottom center */
@@ -253,21 +249,21 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           height: 8px;
           border-radius: 50%;
           border: none;
-          background: var(--VoiceDarkGrey_15);
+          background: var(--VoiceDarkGrey_10);
           cursor: pointer;
           padding: 0;
           transition: all 200ms ease;
         }
 
         .dot:hover {
-          background: var(--VoiceDarkGrey_20);
+          background: var(--VoiceDarkGrey_15);
           transform: scale(1.2);
         }
 
         .dot.active {
           width: 24px;
           border-radius: 4px;
-          background: var(--VoiceDarkGrey_90);
+          background: var(--VoiceDarkGrey_30);
         }
 
         /* Arrow Hints - Show on hover */
@@ -302,8 +298,9 @@ export const VoiceInterfaceCarousel: React.FC = () => {
             width: 30%;
           }
 
-          .slide-header {
-            margin-bottom: 16px;
+          .slide-label {
+            bottom: 64px; /* Closer to dots on mobile */
+            font-size: 14px;
           }
 
           .carousel-dots {
