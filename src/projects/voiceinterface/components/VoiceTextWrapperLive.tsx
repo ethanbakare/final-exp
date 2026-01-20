@@ -32,7 +32,8 @@ type AppState = 'idle' | 'recording' | 'complete';
 export const VoiceTextWrapperLive: React.FC = () => {
   // State management
   const [appState, setAppState] = useState<AppState>('idle');
-  const [transcription, setTranscription] = useState<string>('');
+  const [transcription, setTranscription] = useState<string>(''); // Final transcripts (permanent)
+  const [interimText, setInterimText] = useState<string>(''); // Live interim text (temporary)
   const [connectionState, setConnectionState] = useState<LiveConnectionState>(
     LiveConnectionState.CLOSED
   );
@@ -67,9 +68,12 @@ export const VoiceTextWrapperLive: React.FC = () => {
       if (appState === 'complete' && transcription) {
         prevTextLengthRef.current = transcription.length;
       } else {
-    setTranscription('');
-    prevTextLengthRef.current = 0;
+        setTranscription('');
+        prevTextLengthRef.current = 0;
       }
+      
+      // Clear any interim text from previous recording
+      setInterimText('');
 
       // 1. Get temporary token from our API
       const response = await fetch('/api/voice-interface/deepgram-token');
@@ -101,7 +105,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
         setConnectionState(LiveConnectionState.OPEN);
       });
 
-      // 5. Listen for transcripts
+      // 5. Listen for transcripts (show interim + final)
       connection.on(LiveTranscriptionEvents.Transcript, (data) => {
         console.log('🎤 Transcript received:', data);
         
@@ -110,14 +114,21 @@ export const VoiceTextWrapperLive: React.FC = () => {
         
         console.log('📝 Transcript text:', transcript, 'isFinal:', isFinal, 'speechFinal:', speechFinal);
         
-        // Only append final, complete utterances (prevents duplication)
-        // interim_results sends both interim AND final transcripts
-        if (transcript && transcript.trim() && isFinal && speechFinal) {
-          console.log('✨ Appending to transcription:', transcript);
-          setTranscription(prev => {
-            const separator = prev ? ' ' : '';
-            return prev + separator + transcript;
-          });
+        if (transcript && transcript.trim()) {
+          if (isFinal && speechFinal) {
+            // Final, complete utterance - append permanently
+            console.log('✨ Final transcript - appending permanently:', transcript);
+            setTranscription(prev => {
+              const separator = prev ? ' ' : '';
+              return prev + separator + transcript;
+            });
+            // Clear interim text after final result
+            setInterimText('');
+          } else if (!isFinal) {
+            // Interim result - show live (will be replaced by next interim or final)
+            console.log('⚡ Interim transcript - showing live:', transcript);
+            setInterimText(transcript);
+          }
         }
       });
 
@@ -198,6 +209,9 @@ export const VoiceTextWrapperLive: React.FC = () => {
       mediaStreamRef.current = null;
     }
 
+    // Clear any remaining interim text (only keep final transcripts)
+    setInterimText('');
+    
     setAppState('complete');
   };
 
@@ -205,6 +219,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
    * Copy Transcription (ClipStream pattern)
    */
   const handleCopy = async () => {
+    // Copy final transcription only (not interim text)
     if (!transcription) return;
     
     try {
@@ -225,9 +240,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
     
     // Wait for animation to complete (200ms), then clear state
     setTimeout(() => {
-    setAppState('idle');
-    setTranscription('');
-    prevTextLengthRef.current = 0;
+      setAppState('idle');
+      setTranscription('');
+      setInterimText(''); // Clear interim text too
+      prevTextLengthRef.current = 0;
       setIsClearing(false);
     }, 200); // Match CSS transition duration
   };
@@ -253,7 +269,8 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
   // Auto-scroll to bottom when new text is added (ClipStream pattern)
   useEffect(() => {
-    if (!transcription || transcription.length === 0) {
+    const hasText = transcription || interimText;
+    if (!hasText) {
       return;
     }
 
@@ -271,8 +288,8 @@ export const VoiceTextWrapperLive: React.FC = () => {
       }, 100);
 
       return () => clearTimeout(scrollTimer);
-      }
-  }, [transcription, appState]);
+    }
+  }, [transcription, interimText, appState]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -300,14 +317,19 @@ export const VoiceTextWrapperLive: React.FC = () => {
               >
                 <VoiceTextStreaming
                   textState={getTextState()}
-                  transcriptText={transcription}
+                  transcriptText={
+                    // Combine permanent transcription + live interim text
+                    transcription && interimText 
+                      ? transcription + ' ' + interimText
+                      : transcription || interimText
+                  }
                   oldTextLength={prevTextLengthRef.current}
                   showCursor={appState === 'recording'}
                 />
               </div>
 
               {/* Fade overlay at bottom (only visible when text overflows) */}
-              {(appState === 'recording' || appState === 'complete') && transcription && (
+              {(appState === 'recording' || appState === 'complete') && (transcription || interimText) && (
                 <div className="fade-overlay"></div>
               )}
             </div>
