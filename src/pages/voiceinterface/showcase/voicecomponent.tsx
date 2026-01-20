@@ -9,6 +9,7 @@ import {
   StopRecordButton,
   CopyButton,
   ClearButton,
+  ClearButtonLight,
   ClearButtonFaded,
   TimeCountButton,
   RecordingWaveButton,
@@ -390,6 +391,10 @@ const VoiceComponents: React.FC = () => {
 
             <ButtonGrid label="CLEAR BUTTON - 38PX">
               <ClearButton />
+            </ButtonGrid>
+
+            <ButtonGrid label="CLEAR BUTTON LIGHT (V3) - 38PX">
+              <ClearButtonLight />
             </ButtonGrid>
 
             <ButtonGrid label="CLEAR BUTTON FADED - 38PX">
