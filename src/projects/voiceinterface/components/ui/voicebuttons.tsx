@@ -551,7 +551,7 @@ export const CloseButton: React.FC<ButtonProps> = ({
           height: 38px;
 
           /* Style */
-          background: var(--VoiceLightGrey);
+          background: var(--VoiceDarkGrey_5);
           border: none;
           border-radius: 32px;
           cursor: pointer;
