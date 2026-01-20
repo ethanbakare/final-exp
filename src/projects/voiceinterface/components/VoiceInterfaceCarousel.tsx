@@ -25,21 +25,21 @@ const slides: Slide[] = [
     title: 'Variant 1',
     subtitle: 'Standard Mode',
     component: VoiceTextBoxStandard,
-    gradient: 'linear-gradient(135deg, #FFE5E5 0%, #FFF0F0 50%, #FFE8E0 100%)', // Soft pink/coral
+    gradient: 'url(/images/voice-interface/wt1.jpg)',
   },
   {
     id: 2,
     title: 'Variant 2',
     subtitle: 'Check & Close Mode',
     component: VoiceTextBoxCheckClose,
-    gradient: 'linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 50%, #E0E7FF 100%)', // Light blue/purple
+    gradient: 'url(/images/voice-interface/wt6.png)',
   },
   {
     id: 3,
     title: 'Variant 3',
     subtitle: 'Live Streaming',
     component: VoiceTextWrapperLive,
-    gradient: 'linear-gradient(135deg, #DBEAFE 0%, #E0E7FF 50%, #EDE9FE 100%)', // Blue/purple gradient
+    gradient: 'url(/images/voice-interface/wt7.jpeg)',
   },
 ];
 
@@ -167,7 +167,7 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           justify-content: center;
         }
 
-        /* Background Layer - Smooth gradient transitions */
+        /* Background Layer - HD image backgrounds */
         .carousel-background {
           position: absolute;
           top: 0;
@@ -175,7 +175,9 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           width: 100%;
           height: 100%;
           z-index: 0;
-          transition: background 600ms ease-out;
+          background-size: cover;
+          background-position: center;
+          background-repeat: no-repeat;
         }
 
         /* Navigation Zones - Invisible clickable areas */
