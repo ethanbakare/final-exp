@@ -61,9 +61,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
    * Start Recording & Streaming
    */
   const handleStartRecording = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:63',message:'handleStartRecording called',data:{currentAppState:appState},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     try {
     setAppState('recording');
       
@@ -79,9 +76,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
       // 1. Get temporary token from our API
       const response = await fetch('/api/voice-interface/deepgram-token');
       const data = await response.json();
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:79',message:'Token response received',data:{hasKey:!!(data.key),hasAccessToken:!!(data.access_token),keyPrefix:data.key?data.key.substring(0,10)+'...':'none',responseKeys:Object.keys(data)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F,H'})}).catch(()=>{});
-      // #endregion
       const accessToken = data.key || data.access_token;
 
       if (!accessToken) {
@@ -99,9 +93,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
         utterance_end_ms: 3000,
         // NO encoding/sample_rate - let Deepgram SDK auto-detect from audio stream
       };
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:97',message:'Creating Deepgram connection',data:{config:dgConfig},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'I'})}).catch(()=>{});
-      // #endregion
       const connection = deepgram.listen.live(dgConfig);
 
       connectionRef.current = connection;
@@ -112,17 +103,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
         const { is_final: isFinal, speech_final: speechFinal } = data;
         const transcript = data.channel.alternatives[0].transcript;
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:108',message:'Transcript event received',data:{transcript,isFinal,speechFinal,hasText:!!(transcript && transcript.trim())},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-        
         if (transcript && transcript.trim()) {
           if (isFinal) {
             // Final result - append permanently (don't wait for speechFinal)
             // Deepgram sends multiple finals per utterance with different speechFinal values
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:115',message:'Setting FINAL transcription',data:{transcript,branch:'isFinal',speechFinal},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
-            // #endregion
             setTranscription(prev => {
               const separator = prev ? ' ' : '';
               return prev + separator + transcript;
@@ -131,9 +115,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
             setInterimText('');
           } else {
             // Interim result - show live (will be replaced by next interim or final)
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:122',message:'Setting INTERIM text',data:{transcript,branch:'!isFinal'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
-            // #endregion
             setInterimText(transcript);
           }
         }
@@ -141,26 +122,18 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       // 5. Listen for errors
       connection.on(LiveTranscriptionEvents.Error, (error) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:136',message:'Deepgram ERROR event',data:{error:String(error)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         console.error('Deepgram error:', error);
       });
 
       // 6. Listen for close
       connection.on(LiveTranscriptionEvents.Close, () => {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:152',message:'Deepgram connection CLOSED',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         console.log('Deepgram connection closed');
         setConnectionState(LiveConnectionState.CLOSED);
       });
 
-      // 7. Listen for metadata (to see if Deepgram sends any other info)
+      // 7. Listen for metadata
       connection.on(LiveTranscriptionEvents.Metadata, (data) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:162',message:'Deepgram METADATA event',data:{metadata:data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'I'})}).catch(()=>{});
-        // #endregion
+        // Metadata event - can be used for debugging if needed
       });
 
       // 8. Setup microphone
@@ -178,9 +151,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
       const mediaRecorder = new MediaRecorder(stream);
       // NO mimeType - browser will choose best format, Deepgram SDK auto-detects
       mediaRecorderRef.current = mediaRecorder;
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:175',message:'MediaRecorder created with browser default',data:{actualMimeType:mediaRecorder.mimeType},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
 
       // Buffer to hold audio chunks until connection opens
       const audioBuffer: Blob[] = [];
@@ -188,46 +158,28 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       // 10. Handle audio chunks - buffer until connection is open, then send immediately
       mediaRecorder.ondataavailable = (event) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:188',message:'Audio chunk available',data:{size:event.data.size,hasConnection:!!connection,isConnectionOpen,bufferedChunks:audioBuffer.length,willBuffer:!isConnectionOpen},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         if (event.data.size > 0) {
           if (isConnectionOpen && connection) {
             // Connection is open - send immediately
             connection.send(event.data);
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:192',message:'Audio chunk SENT to Deepgram immediately',data:{size:event.data.size},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
           } else {
             // Connection not open yet - buffer the chunk
             audioBuffer.push(event.data);
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:198',message:'Audio chunk BUFFERED (connection not open yet)',data:{size:event.data.size,totalBuffered:audioBuffer.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'K'})}).catch(()=>{});
-            // #endregion
           }
         }
       };
 
       // 11. START RECORDING IMMEDIATELY (don't wait for connection)
       mediaRecorder.start(250);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:208',message:'MediaRecorder started IMMEDIATELY',data:{interval:250,state:mediaRecorder.state},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'K'})}).catch(()=>{});
-      // #endregion
 
       // 12. When connection opens, send all buffered chunks
       connection.on(LiveTranscriptionEvents.Open, () => {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:215',message:'Connection opened - sending buffered chunks',data:{bufferedCount:audioBuffer.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'K'})}).catch(()=>{});
-        // #endregion
         console.log('Deepgram connection opened');
         setConnectionState(LiveConnectionState.OPEN);
         isConnectionOpen = true;
         // Send all buffered chunks
-        audioBuffer.forEach((chunk, index) => {
+        audioBuffer.forEach((chunk) => {
           connection.send(chunk);
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:223',message:'Buffered chunk SENT',data:{index:index+1,of:audioBuffer.length,size:chunk.size},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'K'})}).catch(()=>{});
-          // #endregion
         });
         audioBuffer.length = 0; // Clear buffer
       });
@@ -351,13 +303,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
       }
     };
   }, []);
-
-  // #region agent log
-  // Log render with current state values
-  React.useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:305',message:'Component rendering',data:{appState,transcription,interimText,transcriptionLength:transcription.length,interimLength:interimText.length,combined:interimText?(transcription+(transcription?' ':'')+interimText):transcription},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'E'})}).catch(()=>{});
-  });
-  // #endregion
 
   return (
     <>
