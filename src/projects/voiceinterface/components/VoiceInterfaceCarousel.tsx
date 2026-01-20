@@ -103,7 +103,7 @@ export const VoiceInterfaceCarousel: React.FC = () => {
       <div className={`carousel-container ${styles.container}`}>
         {/* Background Layer - HD image backgrounds */}
         <div 
-          className={`carousel-background ${currentSlide === 0 ? 'fit-width' : ''}`}
+          className="carousel-background fit-width"
           style={{ background: slides[currentSlide].gradient }}
         />
 
@@ -180,10 +180,10 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           background-repeat: no-repeat;
         }
 
-        /* WT1 specific - Fit width edge-to-edge */
+        /* All variants - Fit width edge-to-edge, centered vertically */
         .carousel-background.fit-width {
           background-size: 100% auto;
-          background-position: center top;
+          background-position: center center;
         }
 
         /* Navigation Zones - Invisible clickable areas */
