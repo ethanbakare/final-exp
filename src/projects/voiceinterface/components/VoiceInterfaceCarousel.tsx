@@ -104,7 +104,7 @@ export const VoiceInterfaceCarousel: React.FC = () => {
         {/* Background Layer - HD image backgrounds */}
         <div 
           className="carousel-background fit-width"
-          style={{ background: slides[currentSlide].gradient }}
+          style={{ backgroundImage: slides[currentSlide].gradient }}
         />
 
         {/* Navigation Zones - Full height clickable areas */}
