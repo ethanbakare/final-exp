@@ -85,19 +85,21 @@ export const VoiceTextWrapperLive: React.FC = () => {
       // 2. Create Deepgram client with token
       const deepgram = createClient(accessToken);
 
-      // 3. Open live connection
+      // 3. Open live connection with proper encoding
       const connection = deepgram.listen.live({
         model: "nova-2",
         interim_results: true,
         smart_format: true,
         utterance_end_ms: 3000,
+        encoding: "opus",
+        sample_rate: 48000,
       });
 
       connectionRef.current = connection;
 
       // 4. Listen for connection open
       connection.on(LiveTranscriptionEvents.Open, () => {
-        console.log('Deepgram connection opened');
+        console.log('✅ Deepgram connection opened - Ready to transcribe');
         setConnectionState(LiveConnectionState.OPEN);
       });
 
@@ -106,9 +108,12 @@ export const VoiceTextWrapperLive: React.FC = () => {
         const { is_final: isFinal, speech_final: speechFinal } = data;
         const transcript = data.channel.alternatives[0].transcript;
         
+        console.log('📝 Transcript:', transcript, '| isFinal:', isFinal, '| speechFinal:', speechFinal);
+        
         if (transcript && transcript.trim()) {
           if (isFinal && speechFinal) {
             // Final, complete utterance - append permanently
+            console.log('✨ FINAL - Appending to transcription:', transcript);
             setTranscription(prev => {
               const separator = prev ? ' ' : '';
               return prev + separator + transcript;
@@ -117,6 +122,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
             setInterimText('');
           } else if (!isFinal) {
             // Interim result - show live (will be replaced by next interim or final)
+            console.log('⚡ INTERIM - Showing live:', transcript);
             setInterimText(transcript);
           }
         }
@@ -144,13 +150,17 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       mediaStreamRef.current = stream;
 
-      // 9. Setup MediaRecorder
-      const mediaRecorder = new MediaRecorder(stream);
+      // 9. Setup MediaRecorder with explicit codec
+      const mimeType = 'audio/webm;codecs=opus';
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: mimeType,
+      });
       mediaRecorderRef.current = mediaRecorder;
 
       // 10. Send audio chunks to Deepgram
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0 && connection) {
+          console.log('🎵 Sending audio:', event.data.size, 'bytes');
           connection.send(event.data); // SDK handles the sending!
         }
       };
