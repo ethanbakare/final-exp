@@ -195,10 +195,6 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           background-size: cover;
           background-position: center;
           background-repeat: no-repeat;
-          opacity: 1;
-          transform: scale(1);
-          transition: opacity 600ms cubic-bezier(0.4, 0, 0.2, 1), 
-                      transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* WT6 and WT7 only - Edge-to-edge height fit */
@@ -207,20 +203,46 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           background-position: center center;
         }
 
-        /* Crossfade animations */
+        /* Crossfade animations - explicit states */
         .carousel-background.fade-out {
-          opacity: 0;
-          transform: scale(1.05); /* Subtle zoom out on exit */
+          opacity: 1;
+          transform: scale(1);
+          animation: slideOut 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .carousel-background.fade-in {
-          opacity: 1;
+          opacity: 0;
           transform: scale(1);
+          animation: slideIn 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .carousel-background.hidden {
           opacity: 0;
+          transform: scale(1);
           pointer-events: none;
+        }
+
+        /* Keyframes for smooth crossfade */
+        @keyframes slideOut {
+          from {
+            opacity: 1;
+            transform: scale(1);
+          }
+          to {
+            opacity: 0;
+            transform: scale(1.05);
+          }
+        }
+
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: scale(1);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
         }
 
         /* Navigation Zones - Invisible clickable areas */
