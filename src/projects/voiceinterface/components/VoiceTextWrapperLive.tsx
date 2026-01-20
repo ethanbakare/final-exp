@@ -33,6 +33,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
   // State management
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
+  const [interimText, setInterimText] = useState<string>('');
   const [connectionState, setConnectionState] = useState<LiveConnectionState>(
     LiveConnectionState.CLOSED
   );
@@ -68,6 +69,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
         prevTextLengthRef.current = transcription.length;
       } else {
     setTranscription('');
+    setInterimText('');
     prevTextLengthRef.current = 0;
       }
 
@@ -104,13 +106,19 @@ export const VoiceTextWrapperLive: React.FC = () => {
         const { is_final: isFinal, speech_final: speechFinal } = data;
         const transcript = data.channel.alternatives[0].transcript;
         
-        // Only append final, complete utterances (prevents duplication)
-        // interim_results sends both interim AND final transcripts
-        if (transcript && transcript.trim() && isFinal && speechFinal) {
-          setTranscription(prev => {
-            const separator = prev ? ' ' : '';
-            return prev + separator + transcript;
-          });
+        if (transcript && transcript.trim()) {
+          if (isFinal && speechFinal) {
+            // Final, complete utterance - append permanently
+            setTranscription(prev => {
+              const separator = prev ? ' ' : '';
+              return prev + separator + transcript;
+            });
+            // Clear interim text after final result
+            setInterimText('');
+          } else if (!isFinal) {
+            // Interim result - show live (will be replaced by next interim or final)
+            setInterimText(transcript);
+          }
         }
       });
 
@@ -172,6 +180,9 @@ export const VoiceTextWrapperLive: React.FC = () => {
       connectionRef.current = null;
     }
 
+    // Clear interim text (final results are already in transcription)
+    setInterimText('');
+
     // Release microphone
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
@@ -207,6 +218,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
     setTimeout(() => {
     setAppState('idle');
     setTranscription('');
+    setInterimText('');
     prevTextLengthRef.current = 0;
       setIsClearing(false);
     }, 200); // Match CSS transition duration
@@ -280,7 +292,11 @@ export const VoiceTextWrapperLive: React.FC = () => {
               >
                 <VoiceTextStreaming
                   textState={getTextState()}
-                  transcriptText={transcription}
+                  transcriptText={
+                    interimText 
+                      ? transcription + (transcription ? ' ' : '') + interimText
+                      : transcription
+                  }
                   oldTextLength={prevTextLengthRef.current}
                   showCursor={appState === 'recording'}
                 />
