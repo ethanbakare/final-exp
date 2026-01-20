@@ -33,7 +33,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
   // State management
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
-  const [interimText, setInterimText] = useState<string>('');
   const [connectionState, setConnectionState] = useState<LiveConnectionState>(
     LiveConnectionState.CLOSED
   );
@@ -69,7 +68,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
         prevTextLengthRef.current = transcription.length;
       } else {
     setTranscription('');
-    setInterimText('');
     prevTextLengthRef.current = 0;
       }
 
@@ -97,39 +95,38 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       // 4. Listen for connection open
       connection.on(LiveTranscriptionEvents.Open, () => {
-        console.log('Deepgram connection opened');
+        console.log('✅ Deepgram connection opened');
         setConnectionState(LiveConnectionState.OPEN);
       });
 
       // 5. Listen for transcripts
       connection.on(LiveTranscriptionEvents.Transcript, (data) => {
+        console.log('🎤 Transcript received:', data);
+        
         const { is_final: isFinal, speech_final: speechFinal } = data;
         const transcript = data.channel.alternatives[0].transcript;
         
-        if (transcript && transcript.trim()) {
-          if (isFinal && speechFinal) {
-            // Final, complete utterance - append permanently
-            setTranscription(prev => {
-              const separator = prev ? ' ' : '';
-              return prev + separator + transcript;
-            });
-            // Clear interim text after final result
-            setInterimText('');
-          } else if (!isFinal) {
-            // Interim result - show live (will be replaced by next interim or final)
-            setInterimText(transcript);
-          }
+        console.log('📝 Transcript text:', transcript, 'isFinal:', isFinal, 'speechFinal:', speechFinal);
+        
+        // Only append final, complete utterances (prevents duplication)
+        // interim_results sends both interim AND final transcripts
+        if (transcript && transcript.trim() && isFinal && speechFinal) {
+          console.log('✨ Appending to transcription:', transcript);
+          setTranscription(prev => {
+            const separator = prev ? ' ' : '';
+            return prev + separator + transcript;
+          });
         }
       });
 
       // 6. Listen for errors
       connection.on(LiveTranscriptionEvents.Error, (error) => {
-        console.error('Deepgram error:', error);
+        console.error('❌ Deepgram error:', error);
       });
 
       // 7. Listen for close
       connection.on(LiveTranscriptionEvents.Close, () => {
-        console.log('Deepgram connection closed');
+        console.log('🔌 Deepgram connection closed');
         setConnectionState(LiveConnectionState.CLOSED);
       });
 
@@ -151,6 +148,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
       // 10. Send audio chunks to Deepgram
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0 && connection) {
+          console.log('🎵 Sending audio chunk:', event.data.size, 'bytes');
           connection.send(event.data); // SDK handles the sending!
         }
       };
@@ -179,9 +177,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
       connectionRef.current.finish(); // SDK method to close gracefully
       connectionRef.current = null;
     }
-
-    // Clear interim text (final results are already in transcription)
-    setInterimText('');
 
     // Release microphone
     if (mediaStreamRef.current) {
@@ -218,7 +213,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
     setTimeout(() => {
     setAppState('idle');
     setTranscription('');
-    setInterimText('');
     prevTextLengthRef.current = 0;
       setIsClearing(false);
     }, 200); // Match CSS transition duration
@@ -292,11 +286,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
               >
                 <VoiceTextStreaming
                   textState={getTextState()}
-                  transcriptText={
-                    interimText 
-                      ? transcription + (transcription ? ' ' : '') + interimText
-                      : transcription
-                  }
+                  transcriptText={transcription}
                   oldTextLength={prevTextLengthRef.current}
                   showCursor={appState === 'recording'}
                 />
