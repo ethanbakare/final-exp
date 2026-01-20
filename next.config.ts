@@ -4,10 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactStrictMode: true,
   
-  // Hide the Next.js development indicator (bottom-left "N" icon)
+  // Hide Next.js development indicators
   devIndicators: {
-    buildActivity: false,
-    buildActivityPosition: 'bottom-right',
+    appIsrStatus: false,      // Hides the Static Route Indicator ("N" badge)
+    buildActivity: false,     // Hides the build activity spinner
   },
 };
 

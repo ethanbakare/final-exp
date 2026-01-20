@@ -33,17 +33,6 @@ export default function VoiceInterfaceCarouselPage() {
           width: 100%;
           height: 100%;
         }
-        
-        /* Hide Next.js development indicator (bottom-left "N" icon) */
-        #__next-build-watcher {
-          display: none !important;
-        }
-        
-        /* Alternative selector for Next.js dev indicator */
-        [data-nextjs-toast-errors-parent],
-        [data-nextjs-toast-errors] {
-          display: none !important;
-        }
       `}</style>
     </>
   );
