@@ -79,6 +79,9 @@ export const VoiceTextWrapperLive: React.FC = () => {
       // 1. Get temporary token from our API
       const response = await fetch('/api/voice-interface/deepgram-token');
       const data = await response.json();
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:79',message:'Token response received',data:{hasKey:!!(data.key),hasAccessToken:!!(data.access_token),keyPrefix:data.key?data.key.substring(0,10)+'...':'none',responseKeys:Object.keys(data)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F,H'})}).catch(()=>{});
+      // #endregion
       const accessToken = data.key || data.access_token;
 
       if (!accessToken) {
@@ -89,14 +92,18 @@ export const VoiceTextWrapperLive: React.FC = () => {
       const deepgram = createClient(accessToken);
 
       // 3. Open live connection with encoding parameters
-      const connection = deepgram.listen.live({
+      const dgConfig = {
         model: "nova-2",
         interim_results: true,
         smart_format: true,
         utterance_end_ms: 3000,
         encoding: "opus",        // Tell Deepgram the audio codec
         sample_rate: 48000,      // Standard WebM Opus sample rate
-      });
+      };
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:97',message:'Creating Deepgram connection',data:{config:dgConfig},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'I'})}).catch(()=>{});
+      // #endregion
+      const connection = deepgram.listen.live(dgConfig);
 
       connectionRef.current = connection;
 
@@ -150,11 +157,21 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       // 7. Listen for close
       connection.on(LiveTranscriptionEvents.Close, () => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:152',message:'Deepgram connection CLOSED',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         console.log('Deepgram connection closed');
         setConnectionState(LiveConnectionState.CLOSED);
       });
 
-      // 8. Setup microphone
+      // 8. Listen for metadata (to see if Deepgram sends any other info)
+      connection.on(LiveTranscriptionEvents.Metadata, (data) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:162',message:'Deepgram METADATA event',data:{metadata:data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'I'})}).catch(()=>{});
+        // #endregion
+      });
+
+      // 9. Setup microphone
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -165,14 +182,21 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       mediaStreamRef.current = stream;
 
-      // 9. Setup MediaRecorder with explicit codec (must match Deepgram encoding)
+      // 10. Setup MediaRecorder with explicit codec (must match Deepgram encoding)
       const mimeType = 'audio/webm;codecs=opus';
+      const isSupported = MediaRecorder.isTypeSupported(mimeType);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:161',message:'MediaRecorder codec check',data:{mimeType,isSupported,defaultMimeType:new MediaRecorder(stream).mimeType},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: mimeType,
+        mimeType: isSupported ? mimeType : undefined,
       });
       mediaRecorderRef.current = mediaRecorder;
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:168',message:'MediaRecorder created',data:{actualMimeType:mediaRecorder.mimeType,requestedMimeType:mimeType,usingFallback:!isSupported},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
 
-      // 10. Send audio chunks to Deepgram
+      // 11. Send audio chunks to Deepgram
       mediaRecorder.ondataavailable = (event) => {
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:158',message:'Audio chunk available',data:{size:event.data.size,hasConnection:!!connection,willSend:event.data.size>0&&!!connection},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
@@ -185,7 +209,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
         }
       };
 
-      // 11. Start recording with chunks every 250ms
+      // 12. Start recording with chunks every 250ms
       mediaRecorder.start(250);
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:176',message:'MediaRecorder started',data:{interval:250,state:mediaRecorder.state},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
