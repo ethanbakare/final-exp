@@ -551,7 +551,7 @@ export const CloseButton: React.FC<ButtonProps> = ({
           height: 38px;
 
           /* Style */
-          background: var(--VoiceDarkGrey_5);
+          background: var(--VoiceLightGrey);
           border: none;
           border-radius: 32px;
           cursor: pointer;
@@ -1014,7 +1014,7 @@ export const ClearButton: React.FC<ButtonProps> = ({
           height: 38px;
 
           /* Style */
-          background: var(--VoiceDarkGrey_5);
+          background: var(--VoiceLightGrey);
           border: none;
           border-radius: 32px;
           cursor: pointer;
@@ -1097,7 +1097,7 @@ export const ClearButtonFaded: React.FC<ButtonProps> = ({
           height: 38px;
 
           /* Style */
-          background: var(--VoiceDarkGrey_5);
+          background: var(--VoiceLightGrey);
           border: none;
           border-radius: 32px;
           cursor: pointer;
