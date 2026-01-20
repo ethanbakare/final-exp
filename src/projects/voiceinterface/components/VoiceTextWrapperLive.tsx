@@ -106,24 +106,8 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       connectionRef.current = connection;
 
-      // 4. Listen for connection open - START RECORDING ONLY AFTER THIS
-      connection.on(LiveTranscriptionEvents.Open, async () => {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:100',message:'Deepgram connection OPENED - starting MediaRecorder',data:{connectionState:'OPEN'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        console.log('Deepgram connection opened');
-        setConnectionState(LiveConnectionState.OPEN);
 
-        // NOW start recording - connection is ready!
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
-          mediaRecorderRef.current.start(250);
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:114',message:'MediaRecorder started AFTER connection opened',data:{interval:250,state:mediaRecorderRef.current.state},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'J'})}).catch(()=>{});
-          // #endregion
-        }
-      });
-
-      // 5. Listen for transcripts
+      // 4. Listen for transcripts
       connection.on(LiveTranscriptionEvents.Transcript, (data) => {
         const { is_final: isFinal, speech_final: speechFinal } = data;
         const transcript = data.channel.alternatives[0].transcript;
@@ -155,7 +139,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
         }
       });
 
-      // 6. Listen for errors
+      // 5. Listen for errors
       connection.on(LiveTranscriptionEvents.Error, (error) => {
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:136',message:'Deepgram ERROR event',data:{error:String(error)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
@@ -163,7 +147,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
         console.error('Deepgram error:', error);
       });
 
-      // 7. Listen for close
+      // 6. Listen for close
       connection.on(LiveTranscriptionEvents.Close, () => {
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:152',message:'Deepgram connection CLOSED',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
@@ -172,14 +156,14 @@ export const VoiceTextWrapperLive: React.FC = () => {
         setConnectionState(LiveConnectionState.CLOSED);
       });
 
-      // 8. Listen for metadata (to see if Deepgram sends any other info)
+      // 7. Listen for metadata (to see if Deepgram sends any other info)
       connection.on(LiveTranscriptionEvents.Metadata, (data) => {
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:162',message:'Deepgram METADATA event',data:{metadata:data},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'I'})}).catch(()=>{});
         // #endregion
       });
 
-      // 9. Setup microphone
+      // 8. Setup microphone
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -190,7 +174,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       mediaStreamRef.current = stream;
 
-      // 10. Setup MediaRecorder (let browser choose format like reference implementation)
+      // 9. Setup MediaRecorder (let browser choose format like reference implementation)
       const mediaRecorder = new MediaRecorder(stream);
       // NO mimeType - browser will choose best format, Deepgram SDK auto-detects
       mediaRecorderRef.current = mediaRecorder;
@@ -198,21 +182,55 @@ export const VoiceTextWrapperLive: React.FC = () => {
       fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:175',message:'MediaRecorder created with browser default',data:{actualMimeType:mediaRecorder.mimeType},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
       // #endregion
 
-      // 11. Send audio chunks to Deepgram
+      // Buffer to hold audio chunks until connection opens
+      const audioBuffer: Blob[] = [];
+      let isConnectionOpen = false;
+
+      // 10. Handle audio chunks - buffer until connection is open, then send immediately
       mediaRecorder.ondataavailable = (event) => {
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:188',message:'Audio chunk available',data:{size:event.data.size,hasConnection:!!connection,willSend:event.data.size>0&&!!connection},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:188',message:'Audio chunk available',data:{size:event.data.size,hasConnection:!!connection,isConnectionOpen,bufferedChunks:audioBuffer.length,willBuffer:!isConnectionOpen},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
-        if (event.data.size > 0 && connection) {
-          connection.send(event.data); // SDK handles the sending!
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:192',message:'Audio chunk SENT to Deepgram',data:{size:event.data.size},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
+        if (event.data.size > 0) {
+          if (isConnectionOpen && connection) {
+            // Connection is open - send immediately
+            connection.send(event.data);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:192',message:'Audio chunk SENT to Deepgram immediately',data:{size:event.data.size},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+          } else {
+            // Connection not open yet - buffer the chunk
+            audioBuffer.push(event.data);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:198',message:'Audio chunk BUFFERED (connection not open yet)',data:{size:event.data.size,totalBuffered:audioBuffer.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'K'})}).catch(()=>{});
+            // #endregion
+          }
         }
       };
 
-      // 12. MediaRecorder will be started in the connection.on(Open) handler above
-      // This ensures we don't send audio before the WebSocket is ready
+      // 11. START RECORDING IMMEDIATELY (don't wait for connection)
+      mediaRecorder.start(250);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:208',message:'MediaRecorder started IMMEDIATELY',data:{interval:250,state:mediaRecorder.state},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'K'})}).catch(()=>{});
+      // #endregion
+
+      // 12. When connection opens, send all buffered chunks
+      connection.on(LiveTranscriptionEvents.Open, () => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:215',message:'Connection opened - sending buffered chunks',data:{bufferedCount:audioBuffer.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'K'})}).catch(()=>{});
+        // #endregion
+        console.log('Deepgram connection opened');
+        setConnectionState(LiveConnectionState.OPEN);
+        isConnectionOpen = true;
+        // Send all buffered chunks
+        audioBuffer.forEach((chunk, index) => {
+          connection.send(chunk);
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:223',message:'Buffered chunk SENT',data:{index:index+1,of:audioBuffer.length,size:chunk.size},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'K'})}).catch(()=>{});
+          // #endregion
+        });
+        audioBuffer.length = 0; // Clear buffer
+      });
 
     } catch (err) {
       console.error('Error starting recording:', err);
