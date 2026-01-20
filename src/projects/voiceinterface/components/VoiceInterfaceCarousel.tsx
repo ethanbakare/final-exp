@@ -45,6 +45,7 @@ const slides: Slide[] = [
 
 export const VoiceInterfaceCarousel: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [previousSlide, setPreviousSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const totalSlides = slides.length;
@@ -53,15 +54,16 @@ export const VoiceInterfaceCarousel: React.FC = () => {
    * Navigate to specific slide
    */
   const goToSlide = (index: number) => {
-    if (isTransitioning) return; // Prevent navigation during transition
+    if (isTransitioning || index === currentSlide) return; // Prevent navigation during transition
     
     setIsTransitioning(true);
+    setPreviousSlide(currentSlide); // Store previous for crossfade
     setCurrentSlide(index);
     
     // Reset transition lock after animation completes
     setTimeout(() => {
       setIsTransitioning(false);
-    }, 400); // Match CSS transition duration
+    }, 600); // Match CSS transition duration
   };
 
   /**
@@ -101,9 +103,20 @@ export const VoiceInterfaceCarousel: React.FC = () => {
   return (
     <>
       <div className={`carousel-container ${styles.container}`}>
-        {/* Background Layer - HD image backgrounds */}
+        {/* Background Layer - Crossfade with dual layers */}
+        {/* Previous slide - fading out with scale */}
         <div 
-          className={`carousel-background ${currentSlide >= 1 ? 'fit-width' : ''}`}
+          className={`carousel-background ${previousSlide >= 1 ? 'fit-width' : ''} ${isTransitioning ? 'fade-out' : 'hidden'}`}
+          style={
+            previousSlide === 0 
+              ? { background: slides[previousSlide].gradient }
+              : { backgroundImage: slides[previousSlide].gradient }
+          }
+        />
+        
+        {/* Current slide - fading in */}
+        <div 
+          className={`carousel-background ${currentSlide >= 1 ? 'fit-width' : ''} ${isTransitioning ? 'fade-in' : ''}`}
           style={
             currentSlide === 0 
               ? { background: slides[currentSlide].gradient }
@@ -182,12 +195,32 @@ export const VoiceInterfaceCarousel: React.FC = () => {
           background-size: cover;
           background-position: center;
           background-repeat: no-repeat;
+          opacity: 1;
+          transform: scale(1);
+          transition: opacity 600ms cubic-bezier(0.4, 0, 0.2, 1), 
+                      transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         /* WT6 and WT7 only - Edge-to-edge height fit */
         .carousel-background.fit-width {
           background-size: auto 100%;
           background-position: center center;
+        }
+
+        /* Crossfade animations */
+        .carousel-background.fade-out {
+          opacity: 0;
+          transform: scale(1.05); /* Subtle zoom out on exit */
+        }
+
+        .carousel-background.fade-in {
+          opacity: 1;
+          transform: scale(1);
+        }
+
+        .carousel-background.hidden {
+          opacity: 0;
+          pointer-events: none;
         }
 
         /* Navigation Zones - Invisible clickable areas */
