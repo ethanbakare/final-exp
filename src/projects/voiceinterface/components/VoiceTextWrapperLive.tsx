@@ -32,8 +32,8 @@ type AppState = 'idle' | 'recording' | 'complete';
 export const VoiceTextWrapperLive: React.FC = () => {
   // State management
   const [appState, setAppState] = useState<AppState>('idle');
-  const [transcription, setTranscription] = useState<string>(''); // Final transcripts (permanent)
-  const [interimText, setInterimText] = useState<string>(''); // Live interim text (temporary)
+  const [transcription, setTranscription] = useState<string>('');
+  const [interimText, setInterimText] = useState<string>('');
   const [connectionState, setConnectionState] = useState<LiveConnectionState>(
     LiveConnectionState.CLOSED
   );
@@ -68,12 +68,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
       if (appState === 'complete' && transcription) {
         prevTextLengthRef.current = transcription.length;
       } else {
-        setTranscription('');
-        prevTextLengthRef.current = 0;
+    setTranscription('');
+    setInterimText('');
+    prevTextLengthRef.current = 0;
       }
-      
-      // Clear any interim text from previous recording
-      setInterimText('');
 
       // 1. Get temporary token from our API
       const response = await fetch('/api/voice-interface/deepgram-token');
@@ -87,37 +85,30 @@ export const VoiceTextWrapperLive: React.FC = () => {
       // 2. Create Deepgram client with token
       const deepgram = createClient(accessToken);
 
-      // 3. Open live connection with proper encoding
+      // 3. Open live connection
       const connection = deepgram.listen.live({
         model: "nova-2",
         interim_results: true,
         smart_format: true,
         utterance_end_ms: 3000,
-        encoding: "opus",  // Critical: Tell Deepgram the audio format!
-        sample_rate: 48000, // Standard WebM Opus sample rate
       });
 
       connectionRef.current = connection;
 
       // 4. Listen for connection open
       connection.on(LiveTranscriptionEvents.Open, () => {
-        console.log('✅ Deepgram connection opened');
+        console.log('Deepgram connection opened');
         setConnectionState(LiveConnectionState.OPEN);
       });
 
-      // 5. Listen for transcripts (show interim + final)
+      // 5. Listen for transcripts
       connection.on(LiveTranscriptionEvents.Transcript, (data) => {
-        console.log('🎤 Transcript received:', data);
-        
         const { is_final: isFinal, speech_final: speechFinal } = data;
         const transcript = data.channel.alternatives[0].transcript;
-        
-        console.log('📝 Transcript text:', transcript, 'isFinal:', isFinal, 'speechFinal:', speechFinal);
         
         if (transcript && transcript.trim()) {
           if (isFinal && speechFinal) {
             // Final, complete utterance - append permanently
-            console.log('✨ Final transcript - appending permanently:', transcript);
             setTranscription(prev => {
               const separator = prev ? ' ' : '';
               return prev + separator + transcript;
@@ -126,7 +117,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
             setInterimText('');
           } else if (!isFinal) {
             // Interim result - show live (will be replaced by next interim or final)
-            console.log('⚡ Interim transcript - showing live:', transcript);
             setInterimText(transcript);
           }
         }
@@ -134,12 +124,12 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       // 6. Listen for errors
       connection.on(LiveTranscriptionEvents.Error, (error) => {
-        console.error('❌ Deepgram error:', error);
+        console.error('Deepgram error:', error);
       });
 
       // 7. Listen for close
       connection.on(LiveTranscriptionEvents.Close, () => {
-        console.log('🔌 Deepgram connection closed');
+        console.log('Deepgram connection closed');
         setConnectionState(LiveConnectionState.CLOSED);
       });
 
@@ -154,26 +144,13 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       mediaStreamRef.current = stream;
 
-      // 9. Setup MediaRecorder with explicit encoding (Opus in WebM container)
-      // This matches the "encoding: opus" parameter we sent to Deepgram
-      const mimeType = 'audio/webm;codecs=opus';
-      
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        console.error('❌ MediaRecorder does not support', mimeType);
-        throw new Error(`Browser doesn't support ${mimeType}`);
-      }
-      
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: mimeType,
-      });
+      // 9. Setup MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
-      
-      console.log('🎙️ MediaRecorder created with:', mimeType);
 
       // 10. Send audio chunks to Deepgram
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0 && connection) {
-          console.log('🎵 Sending audio chunk:', event.data.size, 'bytes');
           connection.send(event.data); // SDK handles the sending!
         }
       };
@@ -203,15 +180,15 @@ export const VoiceTextWrapperLive: React.FC = () => {
       connectionRef.current = null;
     }
 
+    // Clear interim text (final results are already in transcription)
+    setInterimText('');
+
     // Release microphone
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
     }
 
-    // Clear any remaining interim text (only keep final transcripts)
-    setInterimText('');
-    
     setAppState('complete');
   };
 
@@ -219,7 +196,6 @@ export const VoiceTextWrapperLive: React.FC = () => {
    * Copy Transcription (ClipStream pattern)
    */
   const handleCopy = async () => {
-    // Copy final transcription only (not interim text)
     if (!transcription) return;
     
     try {
@@ -240,10 +216,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
     
     // Wait for animation to complete (200ms), then clear state
     setTimeout(() => {
-      setAppState('idle');
-      setTranscription('');
-      setInterimText(''); // Clear interim text too
-      prevTextLengthRef.current = 0;
+    setAppState('idle');
+    setTranscription('');
+    setInterimText('');
+    prevTextLengthRef.current = 0;
       setIsClearing(false);
     }, 200); // Match CSS transition duration
   };
@@ -269,8 +245,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
   // Auto-scroll to bottom when new text is added (ClipStream pattern)
   useEffect(() => {
-    const hasText = transcription || interimText;
-    if (!hasText) {
+    if (!transcription || transcription.length === 0) {
       return;
     }
 
@@ -288,8 +263,8 @@ export const VoiceTextWrapperLive: React.FC = () => {
       }, 100);
 
       return () => clearTimeout(scrollTimer);
-    }
-  }, [transcription, interimText, appState]);
+      }
+  }, [transcription, appState]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -318,10 +293,9 @@ export const VoiceTextWrapperLive: React.FC = () => {
                 <VoiceTextStreaming
                   textState={getTextState()}
                   transcriptText={
-                    // Combine permanent transcription + live interim text
-                    transcription && interimText 
-                      ? transcription + ' ' + interimText
-                      : transcription || interimText
+                    interimText 
+                      ? transcription + (transcription ? ' ' : '') + interimText
+                      : transcription
                   }
                   oldTextLength={prevTextLengthRef.current}
                   showCursor={appState === 'recording'}
@@ -329,7 +303,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
               </div>
 
               {/* Fade overlay at bottom (only visible when text overflows) */}
-              {(appState === 'recording' || appState === 'complete') && (transcription || interimText) && (
+              {(appState === 'recording' || appState === 'complete') && transcription && (
                 <div className="fade-overlay"></div>
               )}
             </div>
