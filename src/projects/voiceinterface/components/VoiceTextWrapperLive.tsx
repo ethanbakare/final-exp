@@ -91,14 +91,13 @@ export const VoiceTextWrapperLive: React.FC = () => {
       // 2. Create Deepgram client with token
       const deepgram = createClient(accessToken);
 
-      // 3. Open live connection with encoding parameters
+      // 3. Open live connection (let SDK auto-detect encoding like reference implementation)
       const dgConfig = {
         model: "nova-2",
         interim_results: true,
         smart_format: true,
         utterance_end_ms: 3000,
-        encoding: "opus",        // Tell Deepgram the audio codec
-        sample_rate: 48000,      // Standard WebM Opus sample rate
+        // NO encoding/sample_rate - let Deepgram SDK auto-detect from audio stream
       };
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:97',message:'Creating Deepgram connection',data:{config:dgConfig},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'I'})}).catch(()=>{});
@@ -190,18 +189,12 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       mediaStreamRef.current = stream;
 
-      // 10. Setup MediaRecorder with explicit codec (must match Deepgram encoding)
-      const mimeType = 'audio/webm;codecs=opus';
-      const isSupported = MediaRecorder.isTypeSupported(mimeType);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:161',message:'MediaRecorder codec check',data:{mimeType,isSupported,defaultMimeType:new MediaRecorder(stream).mimeType},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: isSupported ? mimeType : undefined,
-      });
+      // 10. Setup MediaRecorder (let browser choose format like reference implementation)
+      const mediaRecorder = new MediaRecorder(stream);
+      // NO mimeType - browser will choose best format, Deepgram SDK auto-detects
       mediaRecorderRef.current = mediaRecorder;
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:168',message:'MediaRecorder created',data:{actualMimeType:mediaRecorder.mimeType,requestedMimeType:mimeType,usingFallback:!isSupported},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:175',message:'MediaRecorder created with browser default',data:{actualMimeType:mediaRecorder.mimeType},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
       // #endregion
 
       // 11. Send audio chunks to Deepgram
