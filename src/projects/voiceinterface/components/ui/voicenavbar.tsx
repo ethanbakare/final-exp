@@ -3,7 +3,7 @@ import styles from '@/projects/voiceinterface/styles/voice.module.css';
 import { VoiceLiveTimerSeconds } from './VoiceLiveTimerSeconds';
 import { VoiceLiveWaveform } from './VoiceLiveWaveform';
 import { VoiceLiveTimer } from './VoiceLiveTimer';
-import { CloseButton, ClearButton, ClearButtonFaded, CopyButton, TimeCountButton, MorphingCopyToCheckButton } from './voicebuttons';
+import { CloseButton, ClearButton, ClearButtonLight, ClearButtonFaded, CopyButton, TimeCountButton, MorphingCopyToCheckButton } from './voicebuttons';
 
 /* ============================================
    VOICE NAV BAR
@@ -888,9 +888,9 @@ export const MorphingRecordWideStopDock: React.FC<MorphingRecordWideStopDockProp
                     </button>
                 </div>
 
-                {/* Right side button - ClearButton */}
+                {/* Right side button - ClearButtonLight (Variant 3) */}
                 <div className="rwsd-right-button">
-                    <ClearButton onClick={onClearClick} disabled={disabled} />
+                    <ClearButtonLight onClick={onClearClick} disabled={disabled} />
                 </div>
             </div>
 
