@@ -103,7 +103,7 @@ export const VoiceInterfaceCarousel: React.FC = () => {
       <div className={`carousel-container ${styles.container}`}>
         {/* Background Layer - HD image backgrounds */}
         <div 
-          className="carousel-background fit-width"
+          className={`carousel-background ${currentSlide > 0 ? 'fit-width' : ''}`}
           style={{ backgroundImage: slides[currentSlide].gradient }}
         />
 
