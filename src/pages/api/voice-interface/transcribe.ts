@@ -98,7 +98,7 @@ export default async function handler(
     }
 
     const result = await response.json();
-    
+
     // Extract transcript
     const transcript = result.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
     const confidence = result.results?.channels?.[0]?.alternatives?.[0]?.confidence || 0;

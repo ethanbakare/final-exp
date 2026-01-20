@@ -48,7 +48,7 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
   const handleStartRecording = async () => {
     try {
       // If starting from combo state (appending mode), save current text length
-      if (appState === 'combo' && transcription) {
+    if (appState === 'combo' && transcription) {
         oldTextLengthRef.current = transcription.length;
       }
 
@@ -84,7 +84,7 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
 
       // Start recording
       mediaRecorder.start();
-      setAppState('recording');
+    setAppState('recording');
     } catch (err) {
       console.error('Microphone access denied:', err);
       alert('Microphone access is required to record audio.');
@@ -97,7 +97,7 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
   const handleConfirmRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
-      setAppState('processing');
+    setAppState('processing');
     }
   };
 
@@ -119,8 +119,8 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.webm');
 
-      // Create new AbortController for this request
-      abortControllerRef.current = new AbortController();
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
 
       const response = await fetch('/api/voice-interface/transcribe', {
         method: 'POST',
@@ -193,8 +193,8 @@ export const VoiceTextBoxCheckClose: React.FC = () => {
     
     // Wait for animation to complete (200ms), then clear state
     setTimeout(() => {
-      setAppState('idle');
-      setTranscription('');
+    setAppState('idle');
+    setTranscription('');
       oldTextLengthRef.current = 0;  // Reset split point
       setIsClearing(false);
     }, 200); // Match CSS transition duration

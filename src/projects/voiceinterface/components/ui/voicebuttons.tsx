@@ -848,7 +848,7 @@ export const CopyButton: React.FC<ButtonProps> = ({
           height: 38px;
 
           /* Style */
-          background: var(--VoiceDarkGrey_5);
+          background: var(--VoiceLightGrey);
           border: none;
           border-radius: 32px;
           cursor: pointer;
@@ -931,7 +931,7 @@ export const CheckTickButton: React.FC<ButtonProps> = ({
           height: 38px;
 
           /* Style */
-          background: var(--VoiceDarkGrey_5);
+          background: var(--VoiceLightGrey);
           border: none;
           border-radius: 32px;
           cursor: pointer;

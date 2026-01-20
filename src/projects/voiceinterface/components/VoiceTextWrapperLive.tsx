@@ -61,14 +61,14 @@ export const VoiceTextWrapperLive: React.FC = () => {
    */
   const handleStartRecording = async () => {
     try {
-      setAppState('recording');
+    setAppState('recording');
       
       // If appending to existing text, store its length
       if (appState === 'complete' && transcription) {
         prevTextLengthRef.current = transcription.length;
       } else {
-        setTranscription('');
-        prevTextLengthRef.current = 0;
+    setTranscription('');
+    prevTextLengthRef.current = 0;
       }
 
       // 1. Get temporary token from our API
@@ -205,9 +205,9 @@ export const VoiceTextWrapperLive: React.FC = () => {
     
     // Wait for animation to complete (200ms), then clear state
     setTimeout(() => {
-      setAppState('idle');
-      setTranscription('');
-      prevTextLengthRef.current = 0;
+    setAppState('idle');
+    setTranscription('');
+    prevTextLengthRef.current = 0;
       setIsClearing(false);
     }, 200); // Match CSS transition duration
   };
@@ -251,7 +251,7 @@ export const VoiceTextWrapperLive: React.FC = () => {
       }, 100);
 
       return () => clearTimeout(scrollTimer);
-    }
+      }
   }, [transcription, appState]);
 
   // Cleanup on unmount
