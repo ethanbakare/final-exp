@@ -157,9 +157,13 @@ export const VoiceInterfaceCarousel: React.FC = () => {
       <style jsx>{`
         /* Carousel Container - Full viewport */
         .carousel-container {
-          position: relative;
+          position: fixed;
+          top: 0;
+          left: 0;
           width: 100vw;
           height: 100vh;
+          margin: 0;
+          padding: 0;
           overflow: hidden;
           display: flex;
           align-items: center;
