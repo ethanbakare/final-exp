@@ -551,7 +551,7 @@ export const CloseButton: React.FC<ButtonProps> = ({
           height: 38px;
 
           /* Style */
-          background: var(--VoiceLightGrey);
+          background: var(--VoiceDarkGrey_5);
           border: none;
           border-radius: 32px;
           cursor: pointer;
@@ -563,6 +563,90 @@ export const CloseButton: React.FC<ButtonProps> = ({
         }
 
         .close-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* Close Icon */
+        .close-icon {
+          width: 24px;
+          height: 24px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
+   CLOSE BUTTON LIGHT (Variant with F4F4F4 Background)
+   38×38px circular button with close icon and light grey background
+   ============================================ */
+
+export const CloseButtonLight: React.FC<ButtonProps> = ({
+  onClick,
+  disabled = false,
+  className = ''
+}) => {
+  return (
+    <>
+      <button
+        className={`close-button-light ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Close"
+      >
+        <svg
+          className="close-icon"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M18 18L6 6M18 6L6 18"
+            stroke="#262424"
+            strokeOpacity="0.9"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      <style jsx>{`
+        .close-button-light {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+
+          /* Size */
+          margin: 0 auto;
+          width: 38px;
+          height: 38px;
+
+          /* Style */
+          background: var(--VoiceLightGrey);
+          border: none;
+          border-radius: 32px;
+          cursor: pointer;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 1;
+          flex-grow: 0;
+        }
+
+        .close-button-light:disabled {
           opacity: 0.5;
           cursor: not-allowed;
         }
@@ -1014,7 +1098,7 @@ export const ClearButton: React.FC<ButtonProps> = ({
           height: 38px;
 
           /* Style */
-          background: var(--VoiceLightGrey);
+          background: var(--VoiceDarkGrey_5);
           border: none;
           border-radius: 32px;
           cursor: pointer;
@@ -1097,7 +1181,7 @@ export const ClearButtonFaded: React.FC<ButtonProps> = ({
           height: 38px;
 
           /* Style */
-          background: var(--VoiceLightGrey);
+          background: var(--VoiceDarkGrey_5);
           border: none;
           border-radius: 32px;
           cursor: pointer;
