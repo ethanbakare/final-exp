@@ -1213,6 +1213,89 @@ export const ClearButtonFaded: React.FC<ButtonProps> = ({
 };
 
 /* ============================================
+   CLEAR BUTTON LIGHT (Variant 3)
+   38×38px circular button with clear/delete icon and light grey background
+   ============================================ */
+
+export const ClearButtonLight: React.FC<ButtonProps> = ({
+  onClick,
+  disabled = false,
+  className = ''
+}) => {
+  return (
+    <>
+      <button
+        className={`clear-button-light ${className} ${styles.container}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label="Clear"
+      >
+        <svg
+          className="clear-icon"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M14 10V17M10 10L10 17M4 6H20M18 6V17.8C18 18.9201 18.0002 19.4802 17.7822 19.908C17.5905 20.2844 17.2841 20.5902 16.9078 20.782C16.48 21 15.9203 21 14.8002 21H9.20019C8.08009 21 7.51962 21 7.0918 20.782C6.71547 20.5902 6.40973 20.2844 6.21799 19.908C6 19.4802 6 18.9201 6 17.8V6H18ZM16 6H8C8 5.06812 8 4.60216 8.15224 4.23462C8.35523 3.74456 8.74432 3.35523 9.23437 3.15224C9.60192 3 10.0681 3 11 3H13C13.9319 3 14.3978 3 14.7654 3.15224C15.2554 3.35523 15.6447 3.74456 15.8477 4.23462C15.9999 4.60216 16 5.06812 16 6Z"
+            stroke="#262424"
+            strokeOpacity="0.9"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      <style jsx>{`
+        .clear-button-light {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px;
+          gap: 10px;
+
+          /* Size */
+          width: 38px;
+          height: 38px;
+
+          /* Style */
+          background: var(--VoiceLightGrey);
+          border: none;
+          border-radius: 32px;
+          cursor: pointer;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 2;
+          flex-grow: 0;
+        }
+
+        .clear-button-light:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* Clear Icon */
+        .clear-icon {
+          width: 24px;
+          height: 24px;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+        }
+      `}</style>
+    </>
+  );
+};
+
+/* ============================================
    TIME COUNT BUTTON (Seconds Timer with Red Dot)
    58×26px component with red circle indicator and seconds timer
 
