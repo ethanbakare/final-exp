@@ -107,13 +107,21 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       connectionRef.current = connection;
 
-      // 4. Listen for connection open
-      connection.on(LiveTranscriptionEvents.Open, () => {
+      // 4. Listen for connection open - START RECORDING ONLY AFTER THIS
+      connection.on(LiveTranscriptionEvents.Open, async () => {
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:100',message:'Deepgram connection OPENED',data:{connectionState:'OPEN'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:100',message:'Deepgram connection OPENED - starting MediaRecorder',data:{connectionState:'OPEN'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A'})}).catch(()=>{});
         // #endregion
         console.log('Deepgram connection opened');
         setConnectionState(LiveConnectionState.OPEN);
+
+        // NOW start recording - connection is ready!
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
+          mediaRecorderRef.current.start(250);
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:114',message:'MediaRecorder started AFTER connection opened',data:{interval:250,state:mediaRecorderRef.current.state},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'J'})}).catch(()=>{});
+          // #endregion
+        }
       });
 
       // 5. Listen for transcripts
@@ -199,21 +207,18 @@ export const VoiceTextWrapperLive: React.FC = () => {
       // 11. Send audio chunks to Deepgram
       mediaRecorder.ondataavailable = (event) => {
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:158',message:'Audio chunk available',data:{size:event.data.size,hasConnection:!!connection,willSend:event.data.size>0&&!!connection},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:188',message:'Audio chunk available',data:{size:event.data.size,hasConnection:!!connection,willSend:event.data.size>0&&!!connection},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
         if (event.data.size > 0 && connection) {
           connection.send(event.data); // SDK handles the sending!
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:162',message:'Audio chunk SENT to Deepgram',data:{size:event.data.size},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+          fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:192',message:'Audio chunk SENT to Deepgram',data:{size:event.data.size},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
           // #endregion
         }
       };
 
-      // 12. Start recording with chunks every 250ms
-      mediaRecorder.start(250);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b0a44acd-8318-4899-a04e-eff7ce4ac214',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'VoiceTextWrapperLive.tsx:176',message:'MediaRecorder started',data:{interval:250,state:mediaRecorder.state},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      // 12. MediaRecorder will be started in the connection.on(Open) handler above
+      // This ensures we don't send audio before the WebSocket is ready
 
     } catch (err) {
       console.error('Error starting recording:', err);
