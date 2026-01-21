@@ -253,17 +253,13 @@
    COLOR VARIABLES
    ============================================ */
 
-/* Color Variables Container */
+/* Legacy Color Variables (kept for backwards compatibility) */
 .container {
-  /* Trace Color Palette */
-
-  /* Base Colors - Full Opacity */
+  /* Trace Color Palette - Legacy */
   --TraceDarkGrey: #262424;
   --TraceWhite: #FFFFFF;
   --TraceBlue: #3B82F6;
   --TraceLightGrey: #F4F4F4;
-
-  /* Dark Grey Variations */
   --TraceDarkGrey_95: rgba(38, 36, 36, 0.95);
   --TraceDarkGrey_90: rgba(38, 36, 36, 0.9);
   --TraceDarkGrey_80: rgba(38, 36, 36, 0.8);
@@ -272,12 +268,147 @@
   --TraceDarkGrey_15: rgba(38, 36, 36, 0.15);
   --TraceDarkGrey_10: rgba(38, 36, 36, 0.1);
   --TraceDarkGrey_5: rgba(38, 36, 36, 0.05);
-
-  /* Text Grey for Grid Labels */
   --TraceTextGrey_50: rgba(94, 94, 94, 0.5);
-
-  /* Trace Background Colors */
   --TraceBoxBg: #F7F6F4;
   --TraceBoxOutline: #F2F2F2;
   --TraceBoxShadow: rgba(0, 0, 0, 0.06);
+}
+
+/* ============================================
+   TRACE UI DESIGN TOKENS
+   Extracted from Pencil designs (Jan 2026)
+   ============================================ */
+
+:root {
+  /* ==================== COLORS ==================== */
+
+  /* Primary Backgrounds */
+  --trace-bg-dark: #1c1917;          /* stone-950 - TextBox background, app bg */
+  --trace-bg-merchant: #29252466;    /* stone-900 @ 40% - MerchantBlock */
+  --trace-bg-showcase: #0a0a0a;      /* Super dark - Showcase page background */
+  --trace-bg-demo: #18181b;          /* zinc-950 - Demo card backgrounds */
+
+  /* Button Colors */
+  --trace-btn-light: #f5f5f4;        /* stone-50 - Upload/Speak/Close buttons */
+  --trace-btn-orange: #f97316;       /* orange-500 - SendAudio button (CTA) */
+  --trace-btn-processing: #a8a29e;   /* stone-400 - Processing state buttons */
+
+  /* Text Colors */
+  --trace-text-primary: #ffffff;     /* White - Primary text (dates, totals, buttons) */
+  --trace-text-secondary: #e7e5e4;   /* stone-200 - Item names, prices */
+  --trace-text-tertiary: #78716c;    /* stone-500 - Merchant names, labels */
+  --trace-text-qty: #ffffff4d;       /* White @ 30% - Quantity badges (2x, 1x) */
+
+  /* Border Colors */
+  --trace-border-primary: #44403c;   /* stone-700 - TextBox border, button text on light */
+  --trace-border-light: #27272a;     /* zinc-800 - Showcase card borders */
+
+  /* Accent Colors */
+  --trace-accent-red: #ef4444;       /* red-500 - Error states, unused date bar */
+  --trace-discount-orange: #fb923c80; /* orange-400 @ 50% - Discount text (-£3.99) */
+
+  /* Shadow */
+  --trace-shadow-textbox: 0px 4px 10.5px rgba(0, 0, 0, 0.06);
+
+
+  /* ==================== TYPOGRAPHY ==================== */
+
+  /* Font Family */
+  --trace-font-family: 'Open Runde', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Font Sizes (with corresponding line heights) */
+  --trace-fs-discount-currency: 8px;   /* Line height: 3.0 (24px) */
+  --trace-fs-currency: 9px;            /* Line height: 2.67 (24px) */
+  --trace-fs-small: 10px;              /* Line height: 2.4 (24px) */
+  --trace-fs-body: 12px;               /* Line height: 2.0 (24px) */
+  --trace-fs-medium: 14px;             /* Line height: 1.71 (24px) */
+  --trace-fs-button: 16px;             /* Line height: 1.44 (23px) */
+  --trace-fs-processing: 18px;         /* Line height: 1.44 (26px) */
+  --trace-fs-title: 24px;              /* Showcase section titles */
+  --trace-fs-heading: 32px;            /* App header */
+
+  /* Font Weights */
+  --trace-fw-normal: 400;
+  --trace-fw-medium: 500;
+  --trace-fw-semibold: 600;
+  --trace-fw-bold: 700;
+
+  /* Line Heights (unitless multipliers) */
+  --trace-lh-discount-currency: 3.0;
+  --trace-lh-currency: 2.67;
+  --trace-lh-small: 2.4;
+  --trace-lh-body: 2.0;
+  --trace-lh-medium: 1.71;
+  --trace-lh-button: 1.44;
+  --trace-lh-processing: 1.44;
+
+
+  /* ==================== DIMENSIONS ==================== */
+
+  /* TRNavbar */
+  --trace-navbar-width: 301px;
+  --trace-button-height: 44px;
+  --trace-button-radius: 23px;        /* ~23.16px rounded */
+  --trace-button-stroke: 2px;         /* ~2.32px rounded */
+  --trace-button-gap: 12px;           /* Gap between buttons in navbar */
+
+  /* Individual Button Widths (for reference, most are auto) */
+  --trace-btn-upload-width: 97px;
+  --trace-btn-speak-width: 106px;
+  --trace-btn-close-width: 56px;
+  --trace-btn-sendaudio-width: 150px;
+  --trace-btn-processing-width: 301px; /* Full width */
+
+  /* TextBox / FinanceBox */
+  --trace-textbox-width: 301px;
+  --trace-textbox-height: 421px;
+  --trace-textbox-radius: 16px;
+  --trace-textbox-border: 1px;
+
+  /* FinanceBox Inner Padding */
+  --trace-financebox-padding-vertical: 32px;
+  --trace-financebox-padding-horizontal: 12px;
+  --trace-financebox-radius: 6px;
+
+  /* MerchantBlock */
+  --trace-merchantblock-radius: 8px;
+  --trace-merchantblock-padding-bottom: 4px;
+
+  /* ContentRow Padding Variations */
+  --trace-contentrow-padding-first: 4px 10px 8px 10px;  /* First item */
+  --trace-contentrow-padding-subsequent: 0 10px 8px 10px; /* Subsequent items */
+  --trace-contentrow-gap: 100px;      /* Space-between gap */
+
+  /* RowIdentifier */
+  --trace-rowidentifier-padding: 6px 10px;
+  --trace-rowidentifier-radius-top: 8px;
+
+  /* DayTotal */
+  --trace-daytotal-padding: 0 10px;
+  --trace-daytotal-border-top: 0.5px;
+
+
+  /* ==================== SPACING ==================== */
+
+  --trace-spacing-xs: 4px;
+  --trace-spacing-sm: 6px;
+  --trace-spacing-md: 10px;
+  --trace-spacing-lg: 12px;
+  --trace-spacing-xl: 16px;
+  --trace-spacing-2xl: 32px;
+
+
+  /* ==================== Z-INDEX LAYERS ==================== */
+
+  --trace-z-base: 0;
+  --trace-z-navbar: 100;
+  --trace-z-modal: 200;
+  --trace-z-toast: 300;
+
+
+  /* ==================== TRANSITIONS ==================== */
+
+  --trace-transition-fast: 0.15s ease;
+  --trace-transition-normal: 0.2s ease;
+  --trace-transition-slow: 0.3s ease;
 }

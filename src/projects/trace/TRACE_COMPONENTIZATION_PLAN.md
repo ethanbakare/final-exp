@@ -227,6 +227,109 @@ export const ProcessingImageButton: React.FC<ProcessingProps>
 
 ---
 
+## ⚡ Currency Symbol Alignment Strategy
+
+### The Problem
+In the Pencil designs, currency symbols (£, $, €) are placed in separate divs with manual padding adjustments. This was necessary because:
+- Currency symbols are smaller (8-9px) than price text (12-14px)
+- When different font sizes are on the same line, the smaller text vertically centers by default
+- This makes the symbol appear "floating" in the middle rather than aligned to the text baseline
+- Traditional solutions (bottom-align, line-height adjustments) didn't work consistently
+
+**Pencil Design Approach (separate divs):**
+```tsx
+// Currency in its own div with top padding
+<div className="currency-wrapper" style={{ paddingTop: '2px' }}>
+  <span>£</span>
+</div>
+<div className="price-value">
+  <span>104.99</span>
+</div>
+```
+
+### Modern CSS Solution
+
+**We will NOT replicate the separate div structure.** Instead, we'll use modern CSS alignment:
+
+#### **Option 1: Flexbox with Baseline Alignment (Recommended)**
+```tsx
+const PriceWithCurrency: React.FC<{currency: string, amount: number}> = ({currency, amount}) => (
+  <div className="price-container">
+    <span className="currency">{currency}</span>
+    <span className="amount">{amount.toFixed(2)}</span>
+
+    <style jsx>{`
+      .price-container {
+        display: flex;
+        align-items: baseline; /* Aligns text baselines, not centers */
+        gap: 2px;
+      }
+
+      .currency {
+        font-size: var(--trace-fs-currency); /* 9px */
+        font-weight: var(--trace-fw-medium);
+      }
+
+      .amount {
+        font-size: var(--trace-fs-body); /* 12px or 14px */
+        font-weight: var(--trace-fw-medium);
+      }
+    `}</style>
+  </div>
+);
+```
+
+#### **Option 2: Fine-Tuned with Transform (If baseline isn't perfect)**
+```css
+.currency {
+  font-size: var(--trace-fs-currency);
+  transform: translateY(1px); /* More precise than padding */
+}
+```
+
+#### **Option 3: CSS Grid (Alternative)**
+```css
+.price-container {
+  display: grid;
+  grid-auto-flow: column;
+  align-items: end; /* Align to bottom of text */
+  gap: 2px;
+}
+```
+
+### Implementation Decision
+
+**We will use Option 1 (Flexbox + Baseline) as the default**, with Option 2 (transform) as a fallback if we need pixel-perfect adjustments during testing.
+
+**Benefits:**
+- Semantic HTML (no unnecessary wrapper divs)
+- Maintainable (no magic padding numbers)
+- Responsive (works across different font sizes)
+- Accessible (screen readers read as single unit)
+
+### Testing Strategy
+
+1. **Build components with Option 1 first**
+2. **Test in showcase with all price variations**:
+   - Small currency (8px) + body text (12px)
+   - Small currency (9px) + medium text (14px)
+   - Discount currency (-£) with orange color
+3. **Visually compare to Pencil designs**
+4. **If misaligned, add transform adjustment (max 2px)**
+5. **Document final approach in CSS comments**
+
+### Components Affected
+
+This pattern will be used in:
+- `TotalFrame` (£5246.99)
+- `NetPriceFrame` (£104.99)
+- `DiscountFrame` (-£3.99)
+- `RowIdentifier` merchant total (£619.97)
+
+**Each component will be a single div with flexbox, not nested divs.**
+
+---
+
 ### **Phase 3: Finance Display Atoms**
 
 #### 3.1 Text & Badge Components
@@ -265,22 +368,96 @@ export const ItemNameText: React.FC<ItemNameProps>
 
 ```tsx
 // Total Frame - Currency + Amount
-export const TotalFrame: React.FC<TotalFrameProps> {
-  // Example: "£5246.99"
-  // Currency: 9px, Amount: 12px
-}
+// Uses modern flexbox baseline alignment (no separate divs!)
+export const TotalFrame: React.FC<TotalFrameProps> = ({ currency, amount }) => (
+  <div className="total-frame">
+    <span className="currency">{currency}</span>
+    <span className="amount">{amount.toFixed(2)}</span>
+
+    <style jsx>{`
+      .total-frame {
+        display: flex;
+        align-items: baseline; /* Modern alignment solution */
+        gap: 2px;
+        justify-content: flex-end;
+      }
+
+      .currency {
+        font-size: var(--trace-fs-currency); /* 9px */
+        font-weight: var(--trace-fw-medium);
+        color: var(--trace-text-primary);
+      }
+
+      .amount {
+        font-size: var(--trace-fs-body); /* 12px */
+        font-weight: var(--trace-fw-normal);
+        color: var(--trace-text-primary);
+      }
+    `}</style>
+  </div>
+);
 
 // Net Price Frame - Currency + Price
-export const NetPriceFrame: React.FC<PriceFrameProps> {
-  // Example: "£104.99"
-  // Currency: 9px, Price: 14px, height: 20px
-}
+// Single div, flexbox baseline (no padding hacks!)
+export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({ currency, price }) => (
+  <div className="net-price-frame">
+    <span className="currency">{currency}</span>
+    <span className="price">{price.toFixed(2)}</span>
+
+    <style jsx>{`
+      .net-price-frame {
+        display: flex;
+        align-items: baseline;
+        gap: 2px;
+        height: 20px;
+      }
+
+      .currency {
+        font-size: var(--trace-fs-currency); /* 9px */
+        font-weight: var(--trace-fw-medium);
+        color: var(--trace-text-secondary);
+      }
+
+      .price {
+        font-size: var(--trace-fs-medium); /* 14px */
+        font-weight: var(--trace-fw-medium);
+        color: var(--trace-text-secondary);
+      }
+    `}</style>
+  </div>
+);
 
 // Discount Frame - Currency + Discount
-export const DiscountFrame: React.FC<DiscountFrameProps> {
-  // Example: "-£3.99"
-  // Currency: 8px, Amount: 10px, color: orange @ 50%, height: 12px
-}
+// Includes negative sign, uses transform if needed for perfect alignment
+export const DiscountFrame: React.FC<DiscountFrameProps> = ({ currency, discount }) => (
+  <div className="discount-frame">
+    <span className="currency">-{currency}</span>
+    <span className="discount">{discount.toFixed(2)}</span>
+
+    <style jsx>{`
+      .discount-frame {
+        display: flex;
+        align-items: baseline;
+        gap: 2px;
+        height: 12px;
+      }
+
+      .currency {
+        font-size: var(--trace-fs-discount-currency); /* 8px */
+        font-weight: var(--trace-fw-normal);
+        color: var(--trace-discount-orange);
+        /* Add transform only if baseline isn't perfect after testing */
+        /* transform: translateY(1px); */
+      }
+
+      .discount {
+        font-size: var(--trace-fs-small); /* 10px */
+        font-weight: var(--trace-fw-normal);
+        color: var(--trace-discount-orange);
+      }
+    `}</style>
+  </div>
+);
 
 // Qty + ItemName - Combined display
 export const QtyItemName: React.FC<QtyItemNameProps> {
@@ -695,6 +872,88 @@ export default function TraceComponents() {
           </div>
         </div>
 
+        {/* Section 6: Font Size & Alignment Testing */}
+        <div className="section full-width">
+          <h2 className="section-title">Font Size & Currency Alignment Testing</h2>
+          <p className="section-description">
+            Interactive testing area to validate font sizes and currency symbol alignment.
+            Adjust if components appear too small/large on actual screens.
+          </p>
+
+          <div className="testing-grid">
+            {/* Currency Alignment Tests */}
+            <div className="test-card">
+              <h3>Currency Alignment Tests</h3>
+              <div className="test-examples">
+                <div className="example-row">
+                  <span className="label">Total Frame (9px + 12px):</span>
+                  <TotalFrame currency="£" amount={5246.99} />
+                </div>
+                <div className="example-row">
+                  <span className="label">Net Price (9px + 14px):</span>
+                  <NetPriceFrame currency="£" price={104.99} />
+                </div>
+                <div className="example-row">
+                  <span className="label">Discount (8px + 10px):</span>
+                  <DiscountFrame currency="£" discount={3.99} />
+                </div>
+              </div>
+              <p className="test-note">
+                ✅ Symbols should align to text baseline, not float in middle.
+                <br />
+                ✅ If misaligned, adjust with transform: translateY() in CSS.
+              </p>
+            </div>
+
+            {/* Full ContentRow Test */}
+            <div className="test-card">
+              <h3>Complete ContentRow</h3>
+              <div className="contentrow-test">
+                <ContentRow
+                  quantity={2}
+                  itemName="Headphones are"
+                  currency="£"
+                  netPrice={104.99}
+                  discount={3.99}
+                  isFirstItem={true}
+                />
+              </div>
+              <p className="test-note">
+                Check: Quantity (12px), Item name (14px), Currency (9px), Price (14px), Discount (8px/10px)
+              </p>
+            </div>
+
+            {/* Font Size Scale Test */}
+            <div className="test-card full-width">
+              <h3>Font Size Readability Test</h3>
+              <p>If text appears too small, increase CSS variables by 10-20%:</p>
+              <div className="font-samples">
+                <div className="sample">
+                  <span style={{ fontSize: '8px' }}>8px - Discount Currency</span>
+                </div>
+                <div className="sample">
+                  <span style={{ fontSize: '9px' }}>9px - Currency Symbol</span>
+                </div>
+                <div className="sample">
+                  <span style={{ fontSize: '10px' }}>10px - Small Text (Merchant)</span>
+                </div>
+                <div className="sample">
+                  <span style={{ fontSize: '12px' }}>12px - Body Text (Dates, Totals)</span>
+                </div>
+                <div className="sample">
+                  <span style={{ fontSize: '14px' }}>14px - Medium (Item Names, Prices)</span>
+                </div>
+                <div className="sample">
+                  <span style={{ fontSize: '16px' }}>16px - Button Text</span>
+                </div>
+                <div className="sample">
+                  <span style={{ fontSize: '18px' }}>18px - Processing Text</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <style jsx>{`
@@ -773,6 +1032,89 @@ export default function TraceComponents() {
           padding: 40px;
           background: #18181b;
           border-radius: 12px;
+        }
+
+        .section-description {
+          font-family: var(--trace-font-family);
+          font-size: 14px;
+          color: var(--trace-text-tertiary);
+          margin-bottom: 32px;
+        }
+
+        .testing-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 20px;
+        }
+
+        .test-card {
+          background: #18181b;
+          border-radius: 12px;
+          padding: 24px;
+        }
+
+        .test-card.full-width {
+          grid-column: 1 / -1;
+        }
+
+        .test-card h3 {
+          font-family: var(--trace-font-family);
+          font-size: 16px;
+          font-weight: 500;
+          color: var(--trace-text-primary);
+          margin-bottom: 16px;
+        }
+
+        .test-examples {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .example-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid #27272a;
+        }
+
+        .example-row .label {
+          font-size: 12px;
+          color: var(--trace-text-tertiary);
+        }
+
+        .test-note {
+          margin-top: 16px;
+          font-size: 11px;
+          color: var(--trace-text-tertiary);
+          line-height: 1.6;
+        }
+
+        .contentrow-test {
+          background: var(--trace-bg-dark);
+          border: 1px solid var(--trace-border-primary);
+          border-radius: 8px;
+          padding: 12px;
+        }
+
+        .font-samples {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .font-samples .sample {
+          padding: 8px 12px;
+          background: var(--trace-bg-dark);
+          border: 1px solid var(--trace-border-primary);
+          border-radius: 6px;
+        }
+
+        .font-samples .sample span {
+          font-family: var(--trace-font-family);
+          color: var(--trace-text-primary);
         }
       `}</style>
     </div>
