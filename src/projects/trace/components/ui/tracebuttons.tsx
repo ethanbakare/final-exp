@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import '@/projects/trace/styles/trace.module.css';
+import styles from '@/projects/trace/styles/trace.module.css';
 import {
   UploadButtonProps,
   SpeakButtonProps,
@@ -22,7 +22,7 @@ export const UploadButton: React.FC<UploadButtonProps> = ({
 }) => {
   return (
     <button
-      className={`upload-button ${className}`}
+      className={`upload-button ${className} ${styles.container}`}
       onClick={onClick}
       type="button"
     >
@@ -115,7 +115,7 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({
 }) => {
   return (
     <button
-      className={`speak-button ${className}`}
+      className={`speak-button ${className} ${styles.container}`}
       onClick={onClick}
       type="button"
     >
@@ -184,7 +184,7 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
 }) => {
   return (
     <button
-      className={`close-button ${className}`}
+      className={`close-button ${className} ${styles.container}`}
       onClick={onClick}
       type="button"
     >
@@ -242,7 +242,7 @@ export const SendAudioButton: React.FC<SendAudioButtonProps> = ({
 }) => {
   return (
     <button
-      className={`send-audio-button ${isRecording ? 'recording' : ''} ${className}`}
+      className={`send-audio-button ${isRecording ? 'recording' : ''} ${className} ${styles.container}`}
       onClick={onClick}
       type="button"
     >
@@ -358,7 +358,7 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`processing-button ${className}`}>
+    <div className={`processing-button ${className} ${styles.container}`}>
       {/* Spinner Icon */}
       <div className="spinner-container">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -430,7 +430,7 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`processing-button ${className}`}>
+    <div className={`processing-button ${className} ${styles.container}`}>
       {/* Spinner Icon */}
       <div className="spinner-container">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

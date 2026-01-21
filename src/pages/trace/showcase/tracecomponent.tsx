@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import '@/projects/trace/styles/trace.module.css';
+import styles from '@/projects/trace/styles/trace.module.css';
 import {
   UploadButton,
   SpeakButton,
@@ -279,7 +279,7 @@ const TraceComponent: React.FC = () => {
         }
       `}</style>
 
-      <div className="showcase-container">
+      <div className={`showcase-container ${styles.container}`}>
         {/* Atomic Buttons Section */}
         <div className="section">
           <h2 className="section-title">Trace UI Components</h2>
