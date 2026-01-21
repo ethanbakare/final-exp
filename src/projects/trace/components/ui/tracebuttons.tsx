@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import '@/projects/trace/styles/trace.module.css';
 import {
   UploadButtonProps,
   SpeakButtonProps,
