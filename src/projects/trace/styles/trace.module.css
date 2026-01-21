@@ -253,9 +253,9 @@
    COLOR VARIABLES
    ============================================ */
 
-/* Legacy Color Variables (kept for backwards compatibility) */
+/* CSS Module Variables - ALL trace variables go here */
 .container {
-  /* Trace Color Palette - Legacy */
+  /* ==================== LEGACY COLORS (backwards compatibility) ==================== */
   --TraceDarkGrey: #262424;
   --TraceWhite: #FFFFFF;
   --TraceBlue: #3B82F6;
@@ -272,14 +272,8 @@
   --TraceBoxBg: #F7F6F4;
   --TraceBoxOutline: #F2F2F2;
   --TraceBoxShadow: rgba(0, 0, 0, 0.06);
-}
 
-/* ============================================
-   TRACE UI DESIGN TOKENS
-   Extracted from Pencil designs (Jan 2026)
-   ============================================ */
-
-:root {
+  /* ==================== TRACE UI DESIGN TOKENS (Jan 2026) ==================== */
   /* ==================== COLORS ==================== */
 
   /* Primary Backgrounds */
