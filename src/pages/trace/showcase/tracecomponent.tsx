@@ -365,12 +365,14 @@ const TraceComponent: React.FC = () => {
                   <>
                     <UploadButton />
                     <SpeakButton />
-                    <CloseButton />
                   </>
                 )}
 
                 {navbarState === 'recording' && (
-                  <SendAudioButton isRecording={true} />
+                  <>
+                    <CloseButton />
+                    <SendAudioButton isRecording={true} />
+                  </>
                 )}
 
                 {navbarState === 'processing_audio' && (
