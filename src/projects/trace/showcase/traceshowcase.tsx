@@ -153,7 +153,7 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
   );
 };
 
-const TraceComponents: React.FC = () => {
+const TraceComponent: React.FC = () => {
   // SendAudio animation control
   const [isSendAudioRecording, setIsSendAudioRecording] = useState(false);
 
@@ -392,4 +392,4 @@ const TraceComponents: React.FC = () => {
   );
 };
 
-export default TraceComponents;
+export default TraceComponent;
