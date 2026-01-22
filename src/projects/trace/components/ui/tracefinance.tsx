@@ -378,6 +378,7 @@ export interface ContentRowProps {
   netPrice: string;
   discount?: string;
   isFirst?: boolean; // Differentiate first row padding from subsequent rows
+  width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   className?: string;
 }
 
@@ -390,6 +391,7 @@ export interface MerchantBlockProps {
     netPrice: string;
     discount?: string;
   }>;
+  width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   className?: string;
 }
 
@@ -406,6 +408,7 @@ export interface DayBlockProps {
       discount?: string;
     }>;
   }>;
+  width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   className?: string;
 }
 
@@ -561,6 +564,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   netPrice,
   discount,
   isFirst = false,
+  width = '277px',
   className = '',
 }) => {
   // Determine padding based on position and discount presence
@@ -581,9 +585,8 @@ export const ContentRow: React.FC<ContentRowProps> = ({
           display: flex;
           align-items: baseline;
           justify-content: space-between;
-          gap: 100px;
           padding: ${getPadding()};
-          width: 100%;
+          width: ${width};
         }
       `}</style>
     </div>
@@ -595,6 +598,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
   merchantName,
   merchantTotal,
   items,
+  width = '277px',
   className = '',
 }) => {
   return (
@@ -608,6 +612,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
           netPrice={item.netPrice}
           discount={item.discount}
           isFirst={index === 0}
+          width="100%"
         />
       ))}
 
@@ -619,7 +624,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
           border-radius: 8px;
           background: var(--trace-bg-merchant);
           padding: 0 10px 8px 10px;
-          width: 100%;
+          width: ${width};
         }
       `}</style>
     </div>
@@ -631,6 +636,7 @@ export const DayBlock: React.FC<DayBlockProps> = ({
   date,
   total,
   merchants,
+  width = '277px',
   className = '',
 }) => {
   return (
@@ -642,6 +648,7 @@ export const DayBlock: React.FC<DayBlockProps> = ({
           merchantName={merchant.merchantName}
           merchantTotal={merchant.merchantTotal}
           items={merchant.items}
+          width="100%"
         />
       ))}
 
@@ -650,7 +657,7 @@ export const DayBlock: React.FC<DayBlockProps> = ({
           display: flex;
           flex-direction: column;
           gap: 4px;
-          width: 100%;
+          width: ${width};
         }
       `}</style>
     </div>
@@ -670,6 +677,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           date={day.date}
           total={day.total}
           merchants={day.merchants}
+          width="100%"
         />
       ))}
 
