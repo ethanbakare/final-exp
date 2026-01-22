@@ -310,7 +310,7 @@ export const DiscountFrame: React.FC<DiscountFrameProps> = ({
 }) => {
   return (
     <div className={`discount-frame ${className} ${styles.container}`}>
-      <span className="currency">£</span>
+      <span className="currency">-£</span>
       <span className="amount">{discount}</span>
 
       <style jsx>{`
