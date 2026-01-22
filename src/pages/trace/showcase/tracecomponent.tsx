@@ -8,6 +8,24 @@ import {
   ProcessingAudioButton,
   ProcessingImageButton
 } from '@/projects/trace/components/ui/tracebuttons';
+import {
+  Date as TraceDate,
+  TotalFrame,
+  MerchantFrame,
+  DiscountFrame,
+  MerchantTotalFrame,
+  NetPriceFrame,
+  Quantity,
+  ItemName,
+  ItemDiscountFrame,
+  DayTotal,
+  RowIdentifier,
+  QuantityItemName,
+  PriceFrame,
+  ContentRow,
+  MerchantBlock,
+  DayBlock
+} from '@/projects/trace/components/ui/tracefinance';
 
 // Trace UI Component Showcase
 // Displays individual UI components in isolation
@@ -277,6 +295,70 @@ const TraceComponent: React.FC = () => {
           color: var(--trace-text-tertiary);
           white-space: nowrap;
         }
+
+        /* Finance Component Box Variants */
+        .button-grid.box-quad {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          border: 0.8px solid rgba(255, 255, 255, 0.1);
+          border-radius: 0px;
+          background: transparent;
+          flex: none;
+          width: 400px;
+          height: 400px;
+        }
+
+        .button-grid.box-tall {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          border: 0.8px solid rgba(255, 255, 255, 0.1);
+          border-radius: 0px;
+          background: transparent;
+          flex: none;
+          width: 200px;
+          height: 400px;
+        }
+
+        .button-grid.box-wide-tall {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          border: 0.8px solid rgba(255, 255, 255, 0.1);
+          border-radius: 0px;
+          background: transparent;
+          flex: none;
+          width: 400px;
+          height: 600px;
+        }
+
+        .button-grid .button-center {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex: 1;
+        }
+
+        .button-grid .button-label {
+          position: absolute;
+          bottom: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-family: var(--trace-font-family);
+          font-size: 0.375rem;
+          font-weight: 400;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+          color: var(--trace-text-tertiary);
+          white-space: nowrap;
+        }
       `}</style>
 
       <div className={`showcase-container ${styles.container}`}>
@@ -387,6 +469,118 @@ const TraceComponent: React.FC = () => {
               <div className="navbar-label">
                 TRNAVBAR - 4 STATES (IDLE → RECORDING → PROCESSING)
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Finance Components Section */}
+        <div className="section">
+          <h2 className="section-title">Finance Display Components</h2>
+          <div className="file-label">📁 tracefinance.tsx</div>
+
+          {/* Atoms */}
+          <div className="seamless-grid">
+            <ButtonGrid label="DATE">
+              <TraceDate date="14th Jul" />
+            </ButtonGrid>
+
+            <ButtonGrid label="TOTAL FRAME" isDouble={true}>
+              <TotalFrame total="5246.99" />
+            </ButtonGrid>
+
+            <ButtonGrid label="MERCHANT FRAME">
+              <MerchantFrame merchantName="TESCOS" />
+            </ButtonGrid>
+
+            <ButtonGrid label="DISCOUNT FRAME">
+              <DiscountFrame amount="619.97" />
+            </ButtonGrid>
+
+            <ButtonGrid label="MERCHANT TOTAL FRAME">
+              <MerchantTotalFrame total="619.97" />
+            </ButtonGrid>
+
+            <ButtonGrid label="NET PRICE FRAME">
+              <NetPriceFrame price="104.99" />
+            </ButtonGrid>
+
+            <ButtonGrid label="QUANTITY">
+              <Quantity quantity="2x" />
+            </ButtonGrid>
+
+            <ButtonGrid label="ITEM NAME">
+              <ItemName itemName="Headphones" />
+            </ButtonGrid>
+
+            <ButtonGrid label="ITEM DISCOUNT FRAME">
+              <ItemDiscountFrame discount="3.99" />
+            </ButtonGrid>
+          </div>
+
+          {/* Molecules */}
+          <div className="seamless-grid" style={{ marginTop: '2rem' }}>
+            <ButtonGrid label="DAY TOTAL - MOLECULE" isDouble={true}>
+              <DayTotal date="14th Jul" total="5246.99" />
+            </ButtonGrid>
+
+            <ButtonGrid label="ROW IDENTIFIER - MOLECULE" isDouble={true}>
+              <RowIdentifier merchantName="TESCOS" merchantTotal="619.97" />
+            </ButtonGrid>
+
+            <ButtonGrid label="QUANTITY + ITEM NAME - MOLECULE">
+              <QuantityItemName quantity="2x" itemName="Headphones" />
+            </ButtonGrid>
+
+            <ButtonGrid label="PRICE FRAME (WITH DISCOUNT) - MOLECULE">
+              <PriceFrame netPrice="104.99" discount="3.99" />
+            </ButtonGrid>
+
+            <ButtonGrid label="PRICE FRAME (NO DISCOUNT) - MOLECULE">
+              <PriceFrame netPrice="499.99" />
+            </ButtonGrid>
+          </div>
+
+          {/* Larger Molecules */}
+          <div className="seamless-grid" style={{ marginTop: '2rem' }}>
+            <div className="button-grid box-quad">
+              <div className="button-center">
+                <ContentRow
+                  quantity="2x"
+                  itemName="Headphones"
+                  netPrice="104.99"
+                  discount="3.99"
+                />
+              </div>
+              <div className="button-label">CONTENT ROW (WITH DISCOUNT) - MOLECULE</div>
+            </div>
+
+            <div className="button-grid box-quad">
+              <div className="button-center">
+                <ContentRow
+                  quantity="1x"
+                  itemName="Playstation 5"
+                  netPrice="499.99"
+                />
+              </div>
+              <div className="button-label">CONTENT ROW (NO DISCOUNT) - MOLECULE</div>
+            </div>
+          </div>
+
+          {/* Merchant Block */}
+          <div className="seamless-grid" style={{ marginTop: '2rem' }}>
+            <div className="button-grid box-wide-tall">
+              <div className="button-center">
+                <MerchantBlock
+                  merchantName="TESCOS"
+                  merchantTotal="619.97"
+                  items={[
+                    { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
+                    { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
+                    { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" }
+                  ]}
+                />
+              </div>
+              <div className="button-label">MERCHANT BLOCK - ORGANISM</div>
             </div>
           </div>
         </div>
