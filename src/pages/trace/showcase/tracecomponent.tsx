@@ -101,6 +101,32 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
           height: 200px;
         }
 
+        /* Mobile: Scale down boxes proportionally */
+        @media (max-width: 768px) {
+          .box-single {
+            width: 160px;
+            height: 160px;
+          }
+
+          .box-double {
+            width: 320px;
+            height: 160px;
+          }
+        }
+
+        /* Extra small mobile: Even smaller */
+        @media (max-width: 480px) {
+          .box-single {
+            width: 140px;
+            height: 140px;
+          }
+
+          .box-double {
+            width: 280px;
+            height: 140px;
+          }
+        }
+
         .button-center {
           /* Centered content */
           display: flex;
@@ -124,6 +150,14 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
           color: var(--trace-text-tertiary);
 
           white-space: nowrap;
+        }
+
+        /* Mobile: Slightly larger labels for readability */
+        @media (max-width: 768px) {
+          .button-label {
+            font-size: 0.4rem;
+            bottom: 6px;
+          }
         }
 
         .toggle-container {
@@ -199,6 +233,13 @@ const TraceComponent: React.FC = () => {
           background-color: var(--trace-bg-showcase);
         }
 
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+          .showcase-container {
+            padding: 1rem;
+          }
+        }
+
         .section {
           margin-bottom: 3rem;
         }
@@ -211,12 +252,28 @@ const TraceComponent: React.FC = () => {
           margin-bottom: 1rem;
         }
 
+        /* Mobile: Smaller section titles */
+        @media (max-width: 768px) {
+          .section-title {
+            font-size: 1.25rem;
+          }
+        }
+
         .seamless-grid {
           display: inline-flex;
           flex-wrap: wrap;
           max-width: 1200px;
           margin-left: -0.8px;
           margin-top: -0.8px;
+        }
+
+        /* Mobile: Center grid and allow horizontal scroll if needed */
+        @media (max-width: 768px) {
+          .seamless-grid {
+            display: flex;
+            justify-content: center;
+            max-width: 100%;
+          }
         }
 
         .file-label {
@@ -239,6 +296,24 @@ const TraceComponent: React.FC = () => {
           align-items: center;
           justify-content: center;
           padding: 20px;
+        }
+
+        /* Mobile: Scale down navbar showcase */
+        @media (max-width: 768px) {
+          .navbar-showcase {
+            width: 320px;
+            height: 160px;
+            padding: 16px;
+          }
+        }
+
+        /* Extra small mobile */
+        @media (max-width: 480px) {
+          .navbar-showcase {
+            width: 280px;
+            height: 140px;
+            padding: 12px;
+          }
         }
 
         .navbar-state-controls {
@@ -283,6 +358,14 @@ const TraceComponent: React.FC = () => {
           color: var(--trace-text-primary);
         }
 
+        /* Mobile: Larger touch targets for state toggle buttons */
+        @media (max-width: 768px) {
+          .state-toggle-btn {
+            padding: 4px 10px;
+            font-size: 9px;
+          }
+        }
+
         .navbar-label {
           position: absolute;
           bottom: 8px;
@@ -295,6 +378,14 @@ const TraceComponent: React.FC = () => {
           letter-spacing: 0.02em;
           color: var(--trace-text-tertiary);
           white-space: nowrap;
+        }
+
+        /* Mobile: Slightly larger navbar labels */
+        @media (max-width: 768px) {
+          .navbar-label {
+            font-size: 0.4rem;
+            bottom: 6px;
+          }
         }
 
         /* Finance Component Box Variants */
@@ -338,6 +429,42 @@ const TraceComponent: React.FC = () => {
           flex: none;
           width: 400px;
           height: 600px;
+        }
+
+        /* Mobile: Scale down finance boxes */
+        @media (max-width: 768px) {
+          .button-grid.box-quad {
+            width: 320px;
+            height: 320px;
+          }
+
+          .button-grid.box-tall {
+            width: 160px;
+            height: 320px;
+          }
+
+          .button-grid.box-wide-tall {
+            width: 320px;
+            height: 480px;
+          }
+        }
+
+        /* Extra small mobile: Even smaller finance boxes */
+        @media (max-width: 480px) {
+          .button-grid.box-quad {
+            width: 280px;
+            height: 280px;
+          }
+
+          .button-grid.box-tall {
+            width: 140px;
+            height: 280px;
+          }
+
+          .button-grid.box-wide-tall {
+            width: 280px;
+            height: 420px;
+          }
         }
 
         .button-grid .button-center {
