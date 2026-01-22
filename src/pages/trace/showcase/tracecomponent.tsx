@@ -101,16 +101,16 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
           height: 200px;
         }
 
-        /* Mobile: Scale down boxes but expand to fill available width */
+        /* Mobile: Scale down boxes proportionally */
         @media (max-width: 768px) {
           .box-single {
-            width: 180px;
-            height: 180px;
+            width: 160px;
+            height: 160px;
           }
 
           .box-double {
-            width: 360px;
-            height: 180px;
+            width: 320px;
+            height: 160px;
           }
         }
 
@@ -233,10 +233,10 @@ const TraceComponent: React.FC = () => {
           background-color: var(--trace-bg-showcase);
         }
 
-        /* Mobile optimization - minimal side padding to let boxes expand */
+        /* Mobile optimization */
         @media (max-width: 768px) {
           .showcase-container {
-            padding: 1rem 0.5rem;
+            padding: 1rem;
           }
         }
 
@@ -298,11 +298,11 @@ const TraceComponent: React.FC = () => {
           padding: 20px;
         }
 
-        /* Mobile: Scale down navbar showcase but expand to fill available width */
+        /* Mobile: Scale down navbar showcase */
         @media (max-width: 768px) {
           .navbar-showcase {
-            width: 360px;
-            height: 180px;
+            width: 320px;
+            height: 160px;
             padding: 16px;
           }
         }
@@ -431,21 +431,21 @@ const TraceComponent: React.FC = () => {
           height: 600px;
         }
 
-        /* Mobile: Scale down finance boxes but expand to fill available width */
+        /* Mobile: Scale down finance boxes */
         @media (max-width: 768px) {
           .button-grid.box-quad {
-            width: 360px;
-            height: 360px;
+            width: 320px;
+            height: 320px;
           }
 
           .button-grid.box-tall {
-            width: 180px;
-            height: 360px;
+            width: 160px;
+            height: 320px;
           }
 
           .button-grid.box-wide-tall {
-            width: 360px;
-            height: 540px;
+            width: 320px;
+            height: 480px;
           }
         }
 
