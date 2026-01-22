@@ -101,16 +101,16 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
           height: 200px;
         }
 
-        /* Mobile: Scale down boxes proportionally */
+        /* Mobile: Boxes expand to fill available width (accounting for 1rem padding each side) */
         @media (max-width: 768px) {
           .box-single {
-            width: 160px;
-            height: 160px;
+            width: calc((100vw - 2rem) / 2 - 0.8px);
+            height: calc((100vw - 2rem) / 2 - 0.8px);
           }
 
           .box-double {
-            width: 320px;
-            height: 160px;
+            width: calc(100vw - 2rem - 0.8px);
+            height: calc((100vw - 2rem) / 2 - 0.8px);
           }
         }
 
@@ -298,11 +298,11 @@ const TraceComponent: React.FC = () => {
           padding: 20px;
         }
 
-        /* Mobile: Scale down navbar showcase */
+        /* Mobile: Navbar expands to fill available width (accounting for 1rem padding each side) */
         @media (max-width: 768px) {
           .navbar-showcase {
-            width: 320px;
-            height: 160px;
+            width: calc(100vw - 2rem - 0.8px);
+            height: calc((100vw - 2rem) / 2 - 0.8px);
             padding: 16px;
           }
         }
@@ -431,21 +431,21 @@ const TraceComponent: React.FC = () => {
           height: 600px;
         }
 
-        /* Mobile: Scale down finance boxes */
+        /* Mobile: Finance boxes expand to fill available width (accounting for 1rem padding each side) */
         @media (max-width: 768px) {
           .button-grid.box-quad {
-            width: 320px;
-            height: 320px;
+            width: calc(100vw - 2rem - 0.8px);
+            height: calc(100vw - 2rem - 0.8px);
           }
 
           .button-grid.box-tall {
-            width: 160px;
-            height: 320px;
+            width: calc((100vw - 2rem) / 2 - 0.8px);
+            height: calc(100vw - 2rem - 0.8px);
           }
 
           .button-grid.box-wide-tall {
-            width: 320px;
-            height: 480px;
+            width: calc(100vw - 2rem - 0.8px);
+            height: calc((100vw - 2rem) * 1.5);
           }
         }
 
