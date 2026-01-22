@@ -12,12 +12,11 @@ import {
   Date as TraceDate,
   TotalFrame,
   MerchantFrame,
-  DiscountFrame,
   MerchantTotalFrame,
   NetPriceFrame,
   Quantity,
   ItemName,
-  ItemDiscountFrame,
+  DiscountFrame,
   DayTotal,
   RowIdentifier,
   QuantityItemName,
@@ -492,10 +491,6 @@ const TraceComponent: React.FC = () => {
               <MerchantFrame merchantName="TESCOS" />
             </ButtonGrid>
 
-            <ButtonGrid label="DISCOUNT FRAME">
-              <DiscountFrame amount="619.97" />
-            </ButtonGrid>
-
             <ButtonGrid label="MERCHANT TOTAL FRAME">
               <MerchantTotalFrame total="619.97" />
             </ButtonGrid>
@@ -512,8 +507,8 @@ const TraceComponent: React.FC = () => {
               <ItemName itemName="Headphones" />
             </ButtonGrid>
 
-            <ButtonGrid label="ITEM DISCOUNT FRAME">
-              <ItemDiscountFrame discount="3.99" />
+            <ButtonGrid label="DISCOUNT FRAME">
+              <DiscountFrame discount="3.99" />
             </ButtonGrid>
           </div>
 

@@ -23,11 +23,6 @@ export interface MerchantFrameProps {
   className?: string;
 }
 
-export interface DiscountFrameProps {
-  amount: string;
-  className?: string;
-}
-
 export interface MerchantTotalFrameProps {
   total: string;
   className?: string;
@@ -48,7 +43,7 @@ export interface ItemNameProps {
   className?: string;
 }
 
-export interface ItemDiscountFrameProps {
+export interface DiscountFrameProps {
   discount: string;
   className?: string;
 }
@@ -156,61 +151,6 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
         }
 
         .merchant-name {
-          font-family: var(--trace-font-family);
-          font-size: 10px;
-          font-weight: 500;
-          line-height: 2.4;
-          color: #78716c;
-          text-align: right;
-          vertical-align: middle;
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// DiscountFrame - Currency + Discount amount (for row identifier)
-export const DiscountFrame: React.FC<DiscountFrameProps> = ({
-  amount,
-  className = '',
-}) => {
-  return (
-    <div className={`discount-frame ${className} ${styles.container}`}>
-      <div className="discount-currency">
-        <span className="currency-symbol">£</span>
-      </div>
-      <span className="discount-amount">{amount}</span>
-
-      <style jsx>{`
-        .discount-frame {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          height: 12px;
-        }
-
-        .discount-currency {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          width: 9px;
-          height: 12px;
-          padding-top: 2px;
-          gap: 10px;
-        }
-
-        .currency-symbol {
-          font-family: var(--trace-font-family);
-          font-size: 9px;
-          font-weight: 500;
-          line-height: 2.67;
-          color: #78716c;
-          text-align: right;
-          vertical-align: middle;
-        }
-
-        .discount-amount {
           font-family: var(--trace-font-family);
           font-size: 10px;
           font-weight: 500;
@@ -394,20 +334,20 @@ export const ItemName: React.FC<ItemNameProps> = ({
   );
 };
 
-// ItemDiscountFrame - Item-level discount (orange, shown in PriceFrame)
-export const ItemDiscountFrame: React.FC<ItemDiscountFrameProps> = ({
+// DiscountFrame - Item-level discount (orange, shown in PriceFrame)
+export const DiscountFrame: React.FC<DiscountFrameProps> = ({
   discount,
   className = '',
 }) => {
   return (
-    <div className={`item-discount-frame ${className} ${styles.container}`}>
+    <div className={`discount-frame ${className} ${styles.container}`}>
       <div className="discount-currency">
         <span className="currency-symbol">£</span>
       </div>
       <span className="discount-amount">{discount}</span>
 
       <style jsx>{`
-        .item-discount-frame {
+        .discount-frame {
           display: flex;
           align-items: center;
           justify-content: flex-end;
@@ -556,7 +496,7 @@ export const RowIdentifier: React.FC<RowIdentifierProps> = ({
           align-items: center;
           justify-content: space-between;
           gap: 4px;
-          padding: 0 10px;
+          padding: 6px 10px;
           border-radius: 8px 8px 0 0;
           width: ${width};
         }
@@ -589,7 +529,7 @@ export const QuantityItemName: React.FC<QuantityItemNameProps> = ({
   );
 };
 
-// PriceFrame - NetPriceFrame + optional ItemDiscountFrame
+// PriceFrame - NetPriceFrame + optional DiscountFrame
 export const PriceFrame: React.FC<PriceFrameProps> = ({
   netPrice,
   discount,
@@ -598,7 +538,7 @@ export const PriceFrame: React.FC<PriceFrameProps> = ({
   return (
     <div className={`price-frame ${className} ${styles.container}`}>
       <NetPriceFrame price={netPrice} />
-      {discount && <ItemDiscountFrame discount={discount} />}
+      {discount && <DiscountFrame discount={discount} />}
 
       <style jsx>{`
         .price-frame {
