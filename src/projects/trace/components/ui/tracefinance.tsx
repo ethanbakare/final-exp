@@ -219,7 +219,7 @@ export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
         .currency {
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-small); /* 10px */
-          font-weight: var(--trace-fw-medium); /* 500 */
+          font-weight: var(--trace-fw-normal); /* 400 */
           line-height: var(--trace-lh-currency); /* 2.67 */
           color: var(--trace-text-primary);
           text-align: right;
@@ -230,7 +230,7 @@ export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
         .amount {
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-button); /* 16px */
-          font-weight: var(--trace-fw-medium); /* 500 */
+          font-weight: var(--trace-fw-normal); /* 400 */
           line-height: var(--trace-lh-medium); /* 1.71 */
           color: var(--trace-text-secondary);
           text-align: right;
@@ -293,7 +293,7 @@ export const ItemName: React.FC<ItemNameProps> = ({
         .item-text {
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-button); /* 16px */
-          font-weight: var(--trace-fw-medium); /* 500 */
+          font-weight: var(--trace-fw-normal); /* 400 */
           line-height: var(--trace-lh-medium); /* 1.71 */
           color: var(--trace-text-secondary);
         }
