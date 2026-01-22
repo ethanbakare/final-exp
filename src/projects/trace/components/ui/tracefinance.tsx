@@ -19,7 +19,7 @@ export interface TotalFrameProps {
 }
 
 export interface MerchantFrameProps {
-  merchantName: string;
+  merchantName?: string; // Optional - if undefined, displays "- - -"
   className?: string;
 }
 
@@ -123,14 +123,14 @@ export const TotalFrame: React.FC<TotalFrameProps> = ({
   );
 };
 
-// MerchantFrame - Merchant name (e.g., "TESCOS") (12px)
+// MerchantFrame - Merchant name (e.g., "TESCOS") or "- - -" if undefined (12px)
 export const MerchantFrame: React.FC<MerchantFrameProps> = ({
   merchantName,
   className = '',
 }) => {
   return (
     <div className={`merchant-frame ${className} ${styles.container}`}>
-      <span className="merchant-name">{merchantName}</span>
+      <span className="merchant-name">{merchantName ?? '- - -'}</span>
 
       <style jsx>{`
         .merchant-frame {
@@ -354,8 +354,9 @@ export interface DayTotalProps {
 }
 
 export interface RowIdentifierProps {
-  merchantName: string;
+  merchantName?: string; // Optional - if undefined, displays "- - -"
   merchantTotal: string;
+  showRowIdentifier?: boolean; // Default: true, set to false to hide this component entirely
   width?: string; // Default: 100%, can be overridden
   className?: string;
 }
@@ -383,13 +384,29 @@ export interface ContentRowProps {
 }
 
 export interface MerchantBlockProps {
-  merchantName: string;
+  merchantName?: string; // Optional - if undefined, shows "- - -" or hides based on showRowIdentifier
   merchantTotal: string;
   items: Array<{
     quantity: string;
     itemName: string;
     netPrice: string;
     discount?: string;
+  }>;
+  showRowIdentifier?: boolean; // Default: true, controls whether RowIdentifier is shown
+  width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
+  className?: string;
+}
+
+export interface DayExpensesProps {
+  merchants: Array<{
+    merchantName?: string; // Optional merchant name
+    merchantTotal: string;
+    items: Array<{
+      quantity: string;
+      itemName: string;
+      netPrice: string;
+      discount?: string;
+    }>;
   }>;
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   className?: string;
@@ -399,7 +416,7 @@ export interface DayBlockProps {
   date: string;
   total: string;
   merchants: Array<{
-    merchantName: string;
+    merchantName?: string; // Optional merchant name
     merchantTotal: string;
     items: Array<{
       quantity: string;
@@ -417,7 +434,7 @@ export interface FinanceBoxProps {
     date: string;
     total: string;
     merchants: Array<{
-      merchantName: string;
+      merchantName?: string; // Optional merchant name
       merchantTotal: string;
       items: Array<{
         quantity: string;
@@ -435,7 +452,7 @@ export interface TextBoxProps {
     date: string;
     total: string;
     merchants: Array<{
-      merchantName: string;
+      merchantName?: string; // Optional merchant name
       merchantTotal: string;
       items: Array<{
         quantity: string;
@@ -479,9 +496,15 @@ export const DayTotal: React.FC<DayTotalProps> = ({
 export const RowIdentifier: React.FC<RowIdentifierProps> = ({
   merchantName,
   merchantTotal,
+  showRowIdentifier = true,
   width = '100%',
   className = '',
 }) => {
+  // Hide this component entirely if showRowIdentifier is false
+  if (!showRowIdentifier) {
+    return null;
+  }
+
   return (
     <div className={`row-identifier ${className} ${styles.container}`}>
       <MerchantFrame merchantName={merchantName} />
@@ -598,12 +621,17 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
   merchantName,
   merchantTotal,
   items,
+  showRowIdentifier = true,
   width = '277px',
   className = '',
 }) => {
   return (
     <div className={`merchant-block ${className} ${styles.container}`}>
-      <RowIdentifier merchantName={merchantName} merchantTotal={merchantTotal} />
+      <RowIdentifier
+        merchantName={merchantName}
+        merchantTotal={merchantTotal}
+        showRowIdentifier={showRowIdentifier}
+      />
       {items.map((item, index) => (
         <ContentRow
           key={index}
@@ -631,7 +659,45 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
   );
 };
 
-// DayBlock - DayTotal + MerchantBlocks
+// DayExpenses - Wrapper for MerchantBlocks with larger gap between them
+export const DayExpenses: React.FC<DayExpensesProps> = ({
+  merchants,
+  width = '277px',
+  className = '',
+}) => {
+  return (
+    <div className={`day-expenses ${className} ${styles.container}`}>
+      {merchants.map((merchant, index) => {
+        // Determine if RowIdentifier should be shown:
+        // - Hide if there's only 1 merchant AND merchantName is undefined
+        // - Show in all other cases
+        const showRowIdentifier = !(merchants.length === 1 && !merchant.merchantName);
+
+        return (
+          <MerchantBlock
+            key={index}
+            merchantName={merchant.merchantName}
+            merchantTotal={merchant.merchantTotal}
+            items={merchant.items}
+            showRowIdentifier={showRowIdentifier}
+            width="100%"
+          />
+        );
+      })}
+
+      <style jsx>{`
+        .day-expenses {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          width: ${width};
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// DayBlock - DayTotal + DayExpenses
 export const DayBlock: React.FC<DayBlockProps> = ({
   date,
   total,
@@ -642,15 +708,7 @@ export const DayBlock: React.FC<DayBlockProps> = ({
   return (
     <div className={`day-block ${className} ${styles.container}`}>
       <DayTotal date={date} total={total} width="100%" />
-      {merchants.map((merchant, index) => (
-        <MerchantBlock
-          key={index}
-          merchantName={merchant.merchantName}
-          merchantTotal={merchant.merchantTotal}
-          items={merchant.items}
-          width="100%"
-        />
-      ))}
+      <DayExpenses merchants={merchants} width="100%" />
 
       <style jsx>{`
         .day-block {
