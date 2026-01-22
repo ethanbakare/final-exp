@@ -409,6 +409,42 @@ export interface DayBlockProps {
   className?: string;
 }
 
+export interface FinanceBoxProps {
+  days: Array<{
+    date: string;
+    total: string;
+    merchants: Array<{
+      merchantName: string;
+      merchantTotal: string;
+      items: Array<{
+        quantity: string;
+        itemName: string;
+        netPrice: string;
+        discount?: string;
+      }>;
+    }>;
+  }>;
+  className?: string;
+}
+
+export interface TextBoxProps {
+  days: Array<{
+    date: string;
+    total: string;
+    merchants: Array<{
+      merchantName: string;
+      merchantTotal: string;
+      items: Array<{
+        quantity: string;
+        itemName: string;
+        netPrice: string;
+        discount?: string;
+      }>;
+    }>;
+  }>;
+  className?: string;
+}
+
 // DayTotal - Date + TotalFrame
 export const DayTotal: React.FC<DayTotalProps> = ({
   date,
@@ -615,6 +651,66 @@ export const DayBlock: React.FC<DayBlockProps> = ({
           flex-direction: column;
           gap: 4px;
           width: 100%;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// FinanceBox - Padding container for DayBlocks (no background)
+export const FinanceBox: React.FC<FinanceBoxProps> = ({
+  days,
+  className = '',
+}) => {
+  return (
+    <div className={`finance-box ${className} ${styles.container}`}>
+      {days.map((day, index) => (
+        <DayBlock
+          key={index}
+          date={day.date}
+          total={day.total}
+          merchants={day.merchants}
+        />
+      ))}
+
+      <style jsx>{`
+        .finance-box {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 10px;
+          padding: var(--trace-financebox-padding-vertical) var(--trace-financebox-padding-horizontal); /* 32px 12px */
+          border-radius: var(--trace-financebox-radius); /* 6px */
+          width: 100%;
+          height: 100%;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+// TextBox - Dark container with border and shadow
+export const TextBox: React.FC<TextBoxProps> = ({
+  days,
+  className = '',
+}) => {
+  return (
+    <div className={`text-box ${className} ${styles.container}`}>
+      <FinanceBox days={days} />
+
+      <style jsx>{`
+        .text-box {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: var(--trace-textbox-width); /* 301px */
+          height: var(--trace-textbox-height); /* 421px */
+          background: var(--trace-bg-dark); /* #1c1917 */
+          border: var(--trace-textbox-border) solid var(--trace-border-primary); /* 1px solid #44403c */
+          border-radius: var(--trace-textbox-radius); /* 16px */
+          box-shadow: var(--trace-shadow-textbox); /* 0px 4px 10.5px rgba(0, 0, 0, 0.06) */
         }
       `}</style>
     </div>

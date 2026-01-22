@@ -23,7 +23,9 @@ import {
   PriceFrame,
   ContentRow,
   MerchantBlock,
-  DayBlock
+  DayBlock,
+  FinanceBox,
+  TextBox
 } from '@/projects/trace/components/ui/tracefinance';
 
 // Trace UI Component Showcase
@@ -600,6 +602,41 @@ const TraceComponent: React.FC = () => {
                 />
               </div>
               <div className="button-label">DAY BLOCK - ORGANISM (DAY TOTAL + MERCHANT BLOCK)</div>
+            </div>
+          </div>
+
+          {/* TextBox - Full Container */}
+          <div className="seamless-grid" style={{ marginTop: '2rem' }}>
+            <div className="button-grid box-wide-tall" style={{ background: '#ffffff' }}>
+              <div className="button-center">
+                <TextBox
+                  days={[
+                    {
+                      date: "14th Jul",
+                      total: "5246.99",
+                      merchants: [
+                        {
+                          merchantName: "TESCOS",
+                          merchantTotal: "619.97",
+                          items: [
+                            { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
+                            { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
+                            { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" }
+                          ]
+                        },
+                        {
+                          merchantName: "AMAZON",
+                          merchantTotal: "299.99",
+                          items: [
+                            { quantity: "1x", itemName: "Laptop Stand", netPrice: "299.99" }
+                          ]
+                        }
+                      ]
+                    }
+                  ]}
+                />
+              </div>
+              <div className="button-label">TEXTBOX - COMPLETE FINANCE DISPLAY (301×421px)</div>
             </div>
           </div>
         </div>
