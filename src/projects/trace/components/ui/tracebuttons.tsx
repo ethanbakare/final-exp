@@ -13,6 +13,7 @@ import {
   ProcessingButtonProps,
 } from '../../types/trace.types';
 import { TraceLiveWaveform } from './TraceLiveWaveform';
+import { TraceColors } from '../../constants/designTokens';
 
 /* ==================== UPLOAD BUTTON ==================== */
 // 97×44px, stone-50 background, scan icon
@@ -225,7 +226,7 @@ export const SendAudioButton: React.FC<SendAudioButtonProps> = ({
         barWidth={2.8}
         barGap={4}
         barRadius={2}
-        barColor="#FFFFFF"
+        barColor={TraceColors.textPrimary}
         barHeight={5}
         mode="static"
         ambientWave={isRecording}

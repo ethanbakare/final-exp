@@ -81,7 +81,7 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
           align-items: center;
 
           /* Style - Lighter borders for dark background */
-          border: 0.8px solid rgba(255, 255, 255, 0.1);
+          border: 0.8px solid var(--trace-showcase-border);
           border-radius: 0px;
           background: transparent;
 
@@ -141,14 +141,14 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
         .toggle-switch {
           width: 28px;
           height: 16px;
-          background: rgba(255, 255, 255, 0.2);
+          background: var(--trace-showcase-toggle-bg);
           border-radius: 8px;
           position: relative;
           transition: background 0.2s ease;
         }
 
         .toggle-switch.active {
-          background: rgba(255, 255, 255, 0.4);
+          background: var(--trace-showcase-toggle-active);
         }
 
         .toggle-slider {
@@ -160,7 +160,7 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
           top: 2px;
           left: 2px;
           transition: left 0.2s ease;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 1px 2px var(--trace-showcase-shadow);
         }
 
         .toggle-switch.active .toggle-slider {
@@ -232,7 +232,7 @@ const TraceComponent: React.FC = () => {
           position: relative;
           width: 400px;
           height: 200px;
-          border: 0.8px solid rgba(255, 255, 255, 0.1);
+          border: 0.8px solid var(--trace-showcase-border);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -253,18 +253,18 @@ const TraceComponent: React.FC = () => {
         .state-toggle-btn {
           padding: 2px 8px;
           font-size: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.3);
+          border: 1px solid var(--trace-showcase-button-border);
           cursor: pointer;
           margin-left: -1px;
           position: relative;
           color: var(--trace-text-tertiary);
           transition: background 0.2s, z-index 0s, color 0.15s ease;
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--trace-showcase-button-bg);
         }
 
         .state-toggle-btn.active {
           color: var(--trace-text-primary);
-          background: rgba(255, 255, 255, 0.2);
+          background: var(--trace-showcase-button-active);
         }
 
         .state-toggle-btn.first {
@@ -302,7 +302,7 @@ const TraceComponent: React.FC = () => {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          border: 0.8px solid rgba(255, 255, 255, 0.1);
+          border: 0.8px solid var(--trace-showcase-border);
           border-radius: 0px;
           background: transparent;
           flex: none;
@@ -316,7 +316,7 @@ const TraceComponent: React.FC = () => {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          border: 0.8px solid rgba(255, 255, 255, 0.1);
+          border: 0.8px solid var(--trace-showcase-border);
           border-radius: 0px;
           background: transparent;
           flex: none;
@@ -330,7 +330,7 @@ const TraceComponent: React.FC = () => {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          border: 0.8px solid rgba(255, 255, 255, 0.1);
+          border: 0.8px solid var(--trace-showcase-border);
           border-radius: 0px;
           background: transparent;
           flex: none;
@@ -479,35 +479,35 @@ const TraceComponent: React.FC = () => {
 
           {/* Atoms */}
           <div className="seamless-grid">
-            <ButtonGrid label="DATE">
+            <ButtonGrid label="DATE - 12PX">
               <TraceDate date="14th Jul" />
             </ButtonGrid>
 
-            <ButtonGrid label="TOTAL FRAME" isDouble={true}>
+            <ButtonGrid label="TOTAL FRAME - £ (9PX), AMOUNT (12PX)" isDouble={true}>
               <TotalFrame total="5246.99" />
             </ButtonGrid>
 
-            <ButtonGrid label="MERCHANT FRAME">
+            <ButtonGrid label="MERCHANT FRAME - 12PX">
               <MerchantFrame merchantName="TESCOS" />
             </ButtonGrid>
 
-            <ButtonGrid label="MERCHANT TOTAL FRAME">
+            <ButtonGrid label="MERCHANT TOTAL FRAME - £ (9PX), AMOUNT (12PX)">
               <MerchantTotalFrame total="619.97" />
             </ButtonGrid>
 
-            <ButtonGrid label="NET PRICE FRAME">
+            <ButtonGrid label="NET PRICE FRAME - £ (10PX), AMOUNT (16PX)">
               <NetPriceFrame price="104.99" />
             </ButtonGrid>
 
-            <ButtonGrid label="QUANTITY">
+            <ButtonGrid label="QUANTITY - 12PX">
               <Quantity quantity="2x" />
             </ButtonGrid>
 
-            <ButtonGrid label="ITEM NAME">
+            <ButtonGrid label="ITEM NAME - 16PX">
               <ItemName itemName="Headphones" />
             </ButtonGrid>
 
-            <ButtonGrid label="DISCOUNT FRAME">
+            <ButtonGrid label="DISCOUNT FRAME - £ (9PX), AMOUNT (12PX)">
               <DiscountFrame discount="3.99" />
             </ButtonGrid>
           </div>
@@ -576,6 +576,30 @@ const TraceComponent: React.FC = () => {
                 />
               </div>
               <div className="button-label">MERCHANT BLOCK - ORGANISM</div>
+            </div>
+          </div>
+
+          {/* Day Block */}
+          <div className="seamless-grid" style={{ marginTop: '2rem' }}>
+            <div className="button-grid box-wide-tall">
+              <div className="button-center">
+                <DayBlock
+                  date="14th Jul"
+                  total="5246.99"
+                  merchants={[
+                    {
+                      merchantName: "TESCOS",
+                      merchantTotal: "619.97",
+                      items: [
+                        { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
+                        { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
+                        { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" }
+                      ]
+                    }
+                  ]}
+                />
+              </div>
+              <div className="button-label">DAY BLOCK - ORGANISM (DAY TOTAL + MERCHANT BLOCK)</div>
             </div>
           </div>
         </div>

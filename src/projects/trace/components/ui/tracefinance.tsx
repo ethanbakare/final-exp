@@ -50,7 +50,7 @@ export interface DiscountFrameProps {
 
 /* ==================== ATOMS ==================== */
 
-// Date - simple date text
+// Date - simple date text (12px)
 export const Date: React.FC<DateProps> = ({
   date,
   className = '',
@@ -69,9 +69,9 @@ export const Date: React.FC<DateProps> = ({
 
         .date-text {
           font-family: var(--trace-font-family);
-          font-size: 12px;
-          font-weight: 500;
-          line-height: 2;
+          font-size: var(--trace-fs-body); /* 12px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: var(--trace-lh-body); /* 2.0 */
           color: var(--trace-text-primary);
           vertical-align: middle;
         }
@@ -80,60 +80,50 @@ export const Date: React.FC<DateProps> = ({
   );
 };
 
-// TotalFrame - Currency + Total amount
+// TotalFrame - Currency + Total amount (9px + 12px)
+// Modern CSS: Single container with baseline alignment, no nested divs
 export const TotalFrame: React.FC<TotalFrameProps> = ({
   total,
   className = '',
 }) => {
   return (
     <div className={`total-frame ${className} ${styles.container}`}>
-      <div className="total-currency">
-        <span className="currency-symbol">£</span>
-      </div>
-      <span className="total-amount">{total}</span>
+      <span className="currency">£</span>
+      <span className="amount">{total}</span>
 
       <style jsx>{`
         .total-frame {
           display: flex;
-          align-items: center;
+          align-items: baseline;
           justify-content: flex-end;
           height: 12.95px;
         }
 
-        .total-currency {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          padding-top: 2px;
-          gap: 10px;
-        }
-
-        .currency-symbol {
+        .currency {
           font-family: var(--trace-font-family);
-          font-size: 9px;
-          font-weight: 400;
-          line-height: 2.67;
+          font-size: var(--trace-fs-currency); /* 9px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: var(--trace-lh-currency); /* 2.67 */
           color: var(--trace-text-primary);
           text-align: right;
-          vertical-align: middle;
+          /* Add transform only if baseline isn't perfect after testing */
+          /* transform: translateY(1px); */
         }
 
-        .total-amount {
+        .amount {
           font-family: var(--trace-font-family);
-          font-size: 12px;
-          font-weight: 400;
-          line-height: 2;
+          font-size: var(--trace-fs-body); /* 12px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: var(--trace-lh-body); /* 2.0 */
           color: var(--trace-text-primary);
           text-align: right;
-          vertical-align: middle;
         }
       `}</style>
     </div>
   );
 };
 
-// MerchantFrame - Merchant name (e.g., "TESCOS")
+// MerchantFrame - Merchant name (e.g., "TESCOS") (12px)
 export const MerchantFrame: React.FC<MerchantFrameProps> = ({
   merchantName,
   className = '',
@@ -152,10 +142,10 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
 
         .merchant-name {
           font-family: var(--trace-font-family);
-          font-size: 10px;
-          font-weight: 500;
-          line-height: 2.4;
-          color: #78716c;
+          font-size: var(--trace-fs-body); /* 12px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: var(--trace-lh-small); /* 2.4 */
+          color: var(--trace-text-tertiary);
           text-align: right;
           vertical-align: middle;
         }
@@ -164,107 +154,85 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
   );
 };
 
-// MerchantTotalFrame - Currency + Merchant total amount (used in RowIdentifier)
+// MerchantTotalFrame - Currency + Merchant total amount (used in RowIdentifier) (9px + 12px)
+// Modern CSS: Single container with baseline alignment, no nested divs
 export const MerchantTotalFrame: React.FC<MerchantTotalFrameProps> = ({
   total,
   className = '',
 }) => {
   return (
     <div className={`merchant-total-frame ${className} ${styles.container}`}>
-      <div className="total-currency">
-        <span className="currency-symbol">£</span>
-      </div>
-      <span className="total-amount">{total}</span>
+      <span className="currency">£</span>
+      <span className="amount">{total}</span>
 
       <style jsx>{`
         .merchant-total-frame {
           display: flex;
-          align-items: center;
+          align-items: baseline;
           justify-content: flex-end;
           height: 12px;
         }
 
-        .total-currency {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          width: 9px;
-          height: 12px;
-          padding-top: 2px;
-          gap: 10px;
+        .currency {
+          font-family: var(--trace-font-family);
+          font-size: var(--trace-fs-currency); /* 9px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: var(--trace-lh-currency); /* 2.67 */
+          color: var(--trace-text-tertiary);
+          text-align: right;
+          /* Add transform only if baseline isn't perfect after testing */
+          /* transform: translateY(1px); */
         }
 
-        .currency-symbol {
+        .amount {
           font-family: var(--trace-font-family);
-          font-size: 9px;
-          font-weight: 500;
-          line-height: 2.67;
-          color: #78716c;
+          font-size: var(--trace-fs-body); /* 12px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: var(--trace-lh-small); /* 2.4 */
+          color: var(--trace-text-tertiary);
           text-align: right;
-          vertical-align: middle;
-        }
-
-        .total-amount {
-          font-family: var(--trace-font-family);
-          font-size: 10px;
-          font-weight: 500;
-          line-height: 2.4;
-          color: #78716c;
-          text-align: right;
-          vertical-align: middle;
         }
       `}</style>
     </div>
   );
 };
 
-// NetPriceFrame - Currency + Net price
+// NetPriceFrame - Currency + Net price (10px + 16px)
+// Modern CSS: Single container with baseline alignment, no nested divs
 export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
   price,
   className = '',
 }) => {
   return (
     <div className={`net-price-frame ${className} ${styles.container}`}>
-      <div className="price-currency">
-        <span className="currency-symbol">£</span>
-      </div>
-      <span className="price-amount">{price}</span>
+      <span className="currency">£</span>
+      <span className="amount">{price}</span>
 
       <style jsx>{`
         .net-price-frame {
           display: flex;
-          align-items: center;
+          align-items: baseline;
           justify-content: flex-end;
           height: 20px;
         }
 
-        .price-currency {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          width: 6px;
-          padding-top: 4px;
-          gap: 10px;
-        }
-
-        .currency-symbol {
+        .currency {
           font-family: var(--trace-font-family);
-          font-size: 9px;
-          font-weight: 400;
-          line-height: 2.67;
+          font-size: var(--trace-fs-small); /* 10px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: var(--trace-lh-currency); /* 2.67 */
           color: var(--trace-text-primary);
           text-align: right;
-          vertical-align: middle;
+          /* Add transform only if baseline isn't perfect after testing */
+          /* transform: translateY(1px); */
         }
 
-        .price-amount {
+        .amount {
           font-family: var(--trace-font-family);
-          font-size: 14px;
-          font-weight: 500;
-          line-height: 1.71;
-          color: #e7e5e4;
+          font-size: var(--trace-fs-button); /* 16px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: var(--trace-lh-medium); /* 1.71 */
+          color: var(--trace-text-secondary);
           text-align: right;
         }
       `}</style>
@@ -272,7 +240,7 @@ export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
   );
 };
 
-// Quantity - e.g., "2x"
+// Quantity - e.g., "2x" (12px)
 export const Quantity: React.FC<QuantityProps> = ({
   quantity,
   className = '',
@@ -295,17 +263,17 @@ export const Quantity: React.FC<QuantityProps> = ({
 
         .quantity-text {
           font-family: var(--trace-font-family);
-          font-size: 12px;
-          font-weight: 400;
-          line-height: 2;
-          color: rgba(255, 255, 255, 0.3);
+          font-size: var(--trace-fs-body); /* 12px */
+          font-weight: var(--trace-fw-normal); /* 400 */
+          line-height: var(--trace-lh-body); /* 2.0 */
+          color: var(--trace-text-qty);
         }
       `}</style>
     </div>
   );
 };
 
-// ItemName - e.g., "Headphones"
+// ItemName - e.g., "Headphones" (16px)
 export const ItemName: React.FC<ItemNameProps> = ({
   itemName,
   className = '',
@@ -324,63 +292,52 @@ export const ItemName: React.FC<ItemNameProps> = ({
 
         .item-text {
           font-family: var(--trace-font-family);
-          font-size: 14px;
-          font-weight: 500;
-          line-height: 1.71;
-          color: #e7e5e4;
+          font-size: var(--trace-fs-button); /* 16px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: var(--trace-lh-medium); /* 1.71 */
+          color: var(--trace-text-secondary);
         }
       `}</style>
     </div>
   );
 };
 
-// DiscountFrame - Item-level discount (orange, shown in PriceFrame)
+// DiscountFrame - Item-level discount (orange, shown in PriceFrame) (9px + 12px)
+// Modern CSS: Single container with baseline alignment, no nested divs
 export const DiscountFrame: React.FC<DiscountFrameProps> = ({
   discount,
   className = '',
 }) => {
   return (
     <div className={`discount-frame ${className} ${styles.container}`}>
-      <div className="discount-currency">
-        <span className="currency-symbol">£</span>
-      </div>
-      <span className="discount-amount">{discount}</span>
+      <span className="currency">£</span>
+      <span className="amount">{discount}</span>
 
       <style jsx>{`
         .discount-frame {
           display: flex;
-          align-items: center;
+          align-items: baseline;
+
           justify-content: flex-end;
           height: 12px;
         }
 
-        .discount-currency {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          width: 10px;
-          padding-top: 2px;
-          gap: 10px;
+        .currency {
+          font-family: var(--trace-font-family);
+          font-size: var(--trace-fs-currency); /* 9px */
+          font-weight: var(--trace-fw-normal); /* 400 */
+          line-height: var(--trace-lh-currency); /* 2.67 */
+          color: var(--trace-discount-orange);
+          /* Add transform only if baseline isn't perfect after testing */
+          /* transform: translateY(1px); */
         }
 
-        .currency-symbol {
+        .amount {
           font-family: var(--trace-font-family);
-          font-size: 9px;
-          font-weight: 400;
-          line-height: 2.67;
-          color: rgba(251, 146, 60, 0.5);
-          text-align: right;
-          vertical-align: middle;
-        }
-
-        .discount-amount {
-          font-family: var(--trace-font-family);
-          font-size: 10px;
-          font-weight: 400;
-          line-height: 2.4;
-          color: rgba(251, 146, 60, 0.5);
-          text-align: right;
+          font-size: var(--trace-fs-body); /* 12px */
+          font-weight: var(--trace-fw-normal); /* 400 */
+          line-height: var(--trace-lh-small); /* 2.4 */
+          color: var(--trace-discount-orange);
         }
       `}</style>
     </div>
@@ -420,6 +377,7 @@ export interface ContentRowProps {
   itemName: string;
   netPrice: string;
   discount?: string;
+  isFirst?: boolean; // Differentiate first row padding from subsequent rows
   className?: string;
 }
 
@@ -466,7 +424,7 @@ export const DayTotal: React.FC<DayTotalProps> = ({
       <style jsx>{`
         .day-total {
           display: flex;
-          align-items: center;
+          align-items: baseline;
           justify-content: space-between;
           gap: 4px;
           padding: 0 10px;
@@ -493,10 +451,10 @@ export const RowIdentifier: React.FC<RowIdentifierProps> = ({
       <style jsx>{`
         .row-identifier {
           display: flex;
-          align-items: center;
+          align-items: baseline;
           justify-content: space-between;
           gap: 4px;
-          padding: 6px 10px;
+          padding: 6px 0;
           border-radius: 8px 8px 0 0;
           width: ${width};
         }
@@ -538,7 +496,11 @@ export const PriceFrame: React.FC<PriceFrameProps> = ({
   return (
     <div className={`price-frame ${className} ${styles.container}`}>
       <NetPriceFrame price={netPrice} />
-      {discount && <DiscountFrame discount={discount} />}
+      {discount && (
+        <div className="discount-wrapper">
+          <DiscountFrame discount={discount} />
+        </div>
+      )}
 
       <style jsx>{`
         .price-frame {
@@ -546,6 +508,10 @@ export const PriceFrame: React.FC<PriceFrameProps> = ({
           align-items: flex-end;
           justify-content: center;
           flex-direction: column;
+        }
+
+        .discount-wrapper {
+          margin-top: var(--trace-priceframe-discount-offset);
         }
       `}</style>
     </div>
@@ -558,8 +524,17 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   itemName,
   netPrice,
   discount,
+  isFirst = false,
   className = '',
 }) => {
+  // Determine padding based on position and discount presence
+  const getPadding = () => {
+    if (isFirst && discount) return '4px 0 16px 0';
+    if (isFirst && !discount) return '4px 0 8px 0';
+    if (!isFirst && discount) return '0 0 16px 0';
+    return '0 0 8px 0';
+  };
+
   return (
     <div className={`content-row ${className} ${styles.container}`}>
       <QuantityItemName quantity={quantity} itemName={itemName} />
@@ -568,10 +543,10 @@ export const ContentRow: React.FC<ContentRowProps> = ({
       <style jsx>{`
         .content-row {
           display: flex;
-          align-items: flex-start;
+          align-items: baseline;
           justify-content: space-between;
           gap: 100px;
-          padding: 4px 10px 8px 10px;
+          padding: ${getPadding()};
           width: 100%;
         }
       `}</style>
@@ -596,6 +571,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
           itemName={item.itemName}
           netPrice={item.netPrice}
           discount={item.discount}
+          isFirst={index === 0}
         />
       ))}
 
@@ -605,8 +581,8 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
           justify-content: center;
           flex-direction: column;
           border-radius: 8px;
-          background: rgba(41, 37, 36, 0.4);
-          padding: 0 0 4px 0;
+          background: var(--trace-bg-merchant);
+          padding: 0 10px 8px 10px;
           width: 100%;
         }
       `}</style>

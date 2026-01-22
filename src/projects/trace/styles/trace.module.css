@@ -304,6 +304,15 @@
   /* Shadow */
   --trace-shadow-textbox: 0px 4px 10.5px rgba(0, 0, 0, 0.06);
 
+  /* Showcase UI Elements (for demo/showcase pages) */
+  --trace-showcase-border: rgba(255, 255, 255, 0.1);     /* Light borders on dark background */
+  --trace-showcase-toggle-bg: rgba(255, 255, 255, 0.2);   /* Toggle switch background */
+  --trace-showcase-toggle-active: rgba(255, 255, 255, 0.4); /* Active toggle state */
+  --trace-showcase-button-bg: rgba(255, 255, 255, 0.05);  /* Button background */
+  --trace-showcase-button-border: rgba(255, 255, 255, 0.3); /* Button border */
+  --trace-showcase-button-active: rgba(255, 255, 255, 0.2); /* Active button state */
+  --trace-showcase-shadow: rgba(0, 0, 0, 0.2);           /* Box shadow for toggle elements */
+
 
   /* ==================== TYPOGRAPHY ==================== */
 
@@ -317,7 +326,7 @@
   --trace-fs-body: 12px;               /* Line height: 2.0 (24px) */
   --trace-fs-medium: 14px;             /* Line height: 1.71 (24px) */
   --trace-fs-button: 16px;             /* Line height: 1.44 (23px) */
-  --trace-fs-processing: 18px;         /* Line height: 1.44 (26px) */
+  --trace-fs-processing: 16px;         /* Line height: 1.44 (23px) */
   --trace-fs-title: 24px;              /* Showcase section titles */
   --trace-fs-heading: 32px;            /* App header */
 
@@ -371,7 +380,12 @@
   /* ContentRow Padding Variations */
   --trace-contentrow-padding-first: 4px 10px 8px 10px;  /* First item */
   --trace-contentrow-padding-subsequent: 0 10px 8px 10px; /* Subsequent items */
+  --trace-contentrow-padding-first-with-discount: 4px 10px 16px 10px;  /* First item with discount */
+  --trace-contentrow-padding-subsequent-with-discount: 0 10px 16px 10px; /* Subsequent items with discount */
   --trace-contentrow-gap: 100px;      /* Space-between gap */
+
+  /* PriceFrame */
+  --trace-priceframe-discount-offset: -4px;  /* Negative margin to pull discount closer to net price */
 
   /* RowIdentifier */
   --trace-rowidentifier-padding: 6px 10px;

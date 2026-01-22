@@ -3,6 +3,7 @@
 import { useEffect, useRef, type HTMLAttributes } from "react"
 
 import { cn } from "@/lib/utils"
+import { TraceColors } from '../../constants/designTokens'
 
 export type TraceLiveWaveformProps = HTMLAttributes<HTMLDivElement> & {
   active?: boolean
@@ -55,7 +56,7 @@ export const TraceLiveWaveform = ({
   barWidth = 2.5,
   barGap = 5,
   barRadius = 10,
-  barColor = "#FFFFFF",
+  barColor = TraceColors.textPrimary,
   fadeEdges = false,
   fadeWidth = 0,
   barHeight: baseBarHeight = 5,
@@ -81,7 +82,7 @@ export const TraceLiveWaveform = ({
   containerPaddingVertical = 0,
   // Outline Styling Defaults
   showOutline = false,
-  outlineColor = "#FFFFFF",
+  outlineColor = TraceColors.textPrimary,
   outlineWidth = 2,
   // Bar Opacity Default
   intensityOpacity = false,
@@ -492,7 +493,7 @@ export const TraceLiveWaveform = ({
         const rect = canvas.getBoundingClientRect()
         ctx.clearRect(0, 0, rect.width, rect.height)
 
-        const computedBarColor = barColor || "#000" // Fallback simplified
+        const computedBarColor = barColor || TraceColors.textPrimary // Fallback to design token
         const centerY = rect.height / 2
 
         // CENTERING ALIGNMENT:
@@ -640,10 +641,11 @@ export const TraceLiveWaveform = ({
           if (!gradientCacheRef.current || lastWidthRef.current !== rect.width || lastFadeWidthRef.current !== fadeWidth) {
             const gradient = ctx.createLinearGradient(0, 0, rect.width, 0)
             const fadePercent = Math.min(0.5, fadeWidth / rect.width)
-            gradient.addColorStop(0, "rgba(255,255,255,1)")
-            gradient.addColorStop(fadePercent, "rgba(255,255,255,0)")
-            gradient.addColorStop(1 - fadePercent, "rgba(255,255,255,0)")
-            gradient.addColorStop(1, "rgba(255,255,255,1)")
+            // Use white for masking operation (gradient used as alpha mask)
+            gradient.addColorStop(0, `rgba(255,255,255,1)`)
+            gradient.addColorStop(fadePercent, `rgba(255,255,255,0)`)
+            gradient.addColorStop(1 - fadePercent, `rgba(255,255,255,0)`)
+            gradient.addColorStop(1, `rgba(255,255,255,1)`)
             gradientCacheRef.current = gradient
             lastWidthRef.current = rect.width
             lastFadeWidthRef.current = fadeWidth
