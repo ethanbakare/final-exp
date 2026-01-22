@@ -592,10 +592,10 @@ export const ContentRow: React.FC<ContentRowProps> = ({
 }) => {
   // Determine padding based on position and discount presence
   const getPadding = () => {
-    if (isFirst && discount) return '4px 0 16px 0';
-    if (isFirst && !discount) return '4px 0 8px 0';
-    if (!isFirst && discount) return '0 0 16px 0';
-    return '0 0 8px 0';
+    if (isFirst && discount) return 'var(--trace-contentrow-padding-first-with-discount)';
+    if (isFirst && !discount) return 'var(--trace-contentrow-padding-first)';
+    if (!isFirst && discount) return 'var(--trace-contentrow-padding-subsequent-with-discount)';
+    return 'var(--trace-contentrow-padding-subsequent)';
   };
 
   return (
@@ -651,7 +651,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
           flex-direction: column;
           border-radius: 8px;
           background: var(--trace-bg-merchant);
-          padding: 0 10px 8px 10px;
+          padding: var(--trace-merchantblock-padding);
           width: ${width};
         }
       `}</style>
