@@ -620,11 +620,14 @@ const TraceComponent: React.FC = () => {
               <div className="button-center">
                 <MerchantBlock
                   merchantName="TESCOS"
-                  merchantTotal="619.97"
+                  merchantTotal="632.70"
                   items={[
                     { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
                     { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
-                    { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" }
+                    { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
+                    { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
+                    { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
+                    { quantity: "2x", itemName: "Kitchen Towels", netPrice: "3.98" }
                   ]}
                 />
               </div>
@@ -638,15 +641,18 @@ const TraceComponent: React.FC = () => {
               <div className="button-center">
                 <DayBlock
                   date="14th Jul"
-                  total="5246.99"
+                  total="5259.72"
                   merchants={[
                     {
                       merchantName: "TESCOS",
-                      merchantTotal: "619.97",
+                      merchantTotal: "632.70",
                       items: [
                         { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
                         { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
-                        { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" }
+                        { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
+                        { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
+                        { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
+                        { quantity: "2x", itemName: "Kitchen Towels", netPrice: "3.98" }
                       ]
                     }
                   ]}
@@ -664,15 +670,18 @@ const TraceComponent: React.FC = () => {
                   days={[
                     {
                       date: "14th Jul",
-                      total: "5246.99",
+                      total: "5259.72",
                       merchants: [
                         {
                           merchantName: "TESCOS",
-                          merchantTotal: "619.97",
+                          merchantTotal: "632.70",
                           items: [
                             { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
                             { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
-                            { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" }
+                            { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
+                            { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
+                            { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
+                            { quantity: "2x", itemName: "Kitchen Towels", netPrice: "3.98" }
                           ]
                         },
                         {
