@@ -99,32 +99,7 @@ const ButtonGrid: React.FC<ButtonGridProps> = ({
         .box-double {
           width: 400px;
           height: 200px;
-        }
-
-        /* Mobile: Boxes expand to fill available width (accounting for 1rem padding each side) */
-        @media (max-width: 768px) {
-          .box-single {
-            width: calc((100vw - 2rem) / 2 - 0.8px);
-            height: calc((100vw - 2rem) / 2 - 0.8px);
-          }
-
-          .box-double {
-            width: calc(100vw - 2rem - 0.8px);
-            height: calc((100vw - 2rem) / 2 - 0.8px);
-          }
-        }
-
-        /* Extra small mobile: Even smaller */
-        @media (max-width: 480px) {
-          .box-single {
-            width: 140px;
-            height: 140px;
-          }
-
-          .box-double {
-            width: 280px;
-            height: 140px;
-          }
+          max-width: calc(100vw - 2rem);
         }
 
         .button-center {
@@ -290,30 +265,13 @@ const TraceComponent: React.FC = () => {
         .navbar-showcase {
           position: relative;
           width: 400px;
+          max-width: calc(100vw - 2rem);
           height: 200px;
           border: 0.8px solid var(--trace-showcase-border);
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 20px;
-        }
-
-        /* Mobile: Navbar expands to fill available width (accounting for 1rem padding each side) */
-        @media (max-width: 768px) {
-          .navbar-showcase {
-            width: calc(100vw - 2rem - 0.8px);
-            height: calc((100vw - 2rem) / 2 - 0.8px);
-            padding: 16px;
-          }
-        }
-
-        /* Extra small mobile */
-        @media (max-width: 480px) {
-          .navbar-showcase {
-            width: 280px;
-            height: 140px;
-            padding: 12px;
-          }
         }
 
         .navbar-state-controls {
@@ -400,6 +358,7 @@ const TraceComponent: React.FC = () => {
           background: transparent;
           flex: none;
           width: 400px;
+          max-width: calc(100vw - 2rem);
           height: 400px;
         }
 
@@ -428,43 +387,8 @@ const TraceComponent: React.FC = () => {
           background: transparent;
           flex: none;
           width: 400px;
+          max-width: calc(100vw - 2rem);
           height: 600px;
-        }
-
-        /* Mobile: Finance boxes expand to fill available width (accounting for 1rem padding each side) */
-        @media (max-width: 768px) {
-          .button-grid.box-quad {
-            width: calc(100vw - 2rem - 0.8px);
-            height: calc(100vw - 2rem - 0.8px);
-          }
-
-          .button-grid.box-tall {
-            width: calc((100vw - 2rem) / 2 - 0.8px);
-            height: calc(100vw - 2rem - 0.8px);
-          }
-
-          .button-grid.box-wide-tall {
-            width: calc(100vw - 2rem - 0.8px);
-            height: calc((100vw - 2rem) * 1.5);
-          }
-        }
-
-        /* Extra small mobile: Even smaller finance boxes */
-        @media (max-width: 480px) {
-          .button-grid.box-quad {
-            width: 280px;
-            height: 280px;
-          }
-
-          .button-grid.box-tall {
-            width: 140px;
-            height: 280px;
-          }
-
-          .button-grid.box-wide-tall {
-            width: 280px;
-            height: 420px;
-          }
         }
 
         .button-grid .button-center {
