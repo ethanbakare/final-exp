@@ -221,7 +221,7 @@ export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
           font-size: var(--trace-fs-small); /* 10px */
           font-weight: var(--trace-fw-normal); /* 400 */
           line-height: var(--trace-lh-currency); /* 2.67 */
-          color: var(--trace-text-primary);
+          color: var(--trace-text-second);
           text-align: right;
           /* Add transform only if baseline isn't perfect after testing */
           /* transform: translateY(1px); */
@@ -232,7 +232,7 @@ export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
           font-size: var(--trace-fs-button); /* 16px */
           font-weight: var(--trace-fw-normal); /* 400 */
           line-height: var(--trace-lh-medium); /* 1.71 */
-          color: var(--trace-text-secondary);
+          color: var(--trace-text-second);
           text-align: right;
         }
       `}</style>
