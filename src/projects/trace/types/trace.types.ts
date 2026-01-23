@@ -179,7 +179,7 @@ export interface TRNavbarProps {
   onUploadClick?: () => void;
   onSpeakClick?: () => void;
   onCloseClick?: () => void;
-  onSendAudioClick?: (audioBlob: Blob) => void;
+  onSendAudioClick?: () => void; // Parent component manages audio blob from recording state
   disabled?: boolean;
   className?: string;
 }
