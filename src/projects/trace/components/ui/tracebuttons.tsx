@@ -280,7 +280,11 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`processing-button ${className} ${styles.container}`}>
+    <button
+      className={`processing-button ${className} ${styles.container}`}
+      disabled
+      type="button"
+    >
       {/* Spinner Icon */}
       <div className="spinner-container">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -312,7 +316,7 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
           font-weight: var(--trace-fw-medium);
           line-height: var(--trace-lh-processing);
           color: var(--trace-text-primary);
-          pointer-events: none;
+          cursor: not-allowed;
           user-select: none;
         }
 
@@ -339,7 +343,7 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
           white-space: nowrap;
         }
       `}</style>
-    </div>
+    </button>
   );
 };
 
@@ -352,7 +356,11 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`processing-button ${className} ${styles.container}`}>
+    <button
+      className={`processing-button ${className} ${styles.container}`}
+      disabled
+      type="button"
+    >
       {/* Spinner Icon */}
       <div className="spinner-container">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -384,7 +392,7 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
           font-weight: var(--trace-fw-medium);
           line-height: var(--trace-lh-processing);
           color: var(--trace-text-primary);
-          pointer-events: none;
+          cursor: not-allowed;
           user-select: none;
         }
 
@@ -411,6 +419,6 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
           white-space: nowrap;
         }
       `}</style>
-    </div>
+    </button>
   );
 };
