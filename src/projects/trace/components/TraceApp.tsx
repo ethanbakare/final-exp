@@ -107,8 +107,14 @@ export const TraceApp: React.FC<TraceAppProps> = ({
     setAppState('processing_audio');
 
     try {
+      console.log('[TRACE APP] Converting audio blob to base64...');
       const base64Audio = await blobToBase64(audioBlob);
+      console.log('[TRACE APP] Audio converted', {
+        blobSize: audioBlob.size,
+        base64Length: base64Audio.length
+      });
 
+      console.log('[TRACE APP] Sending request to /api/trace/parse-voice');
       const response = await fetch('/api/trace/parse-voice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,17 +124,35 @@ export const TraceApp: React.FC<TraceAppProps> = ({
         }),
       });
 
+      console.log('[TRACE APP] Response received', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
       if (!response.ok) {
-        const errorData = await response.json();
+        const responseText = await response.text();
+        console.error('[TRACE APP] Response not OK. Body:', responseText);
+
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
         throw new Error(errorData.error || 'Failed to process audio');
       }
 
-      const entry: ExpenseEntry = await response.json();
+      const responseText = await response.text();
+      console.log('[TRACE APP] Response body:', responseText);
+      const entry: ExpenseEntry = JSON.parse(responseText);
+      console.log('[TRACE APP] Successfully parsed entry:', entry.id);
+
       setEntries((prev) => [entry, ...prev]);
       setAppState('idle');
       setError(null);
     } catch (err) {
-      console.error('Error processing audio:', err);
+      console.error('[TRACE APP] Error processing audio:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to process audio';
       setError(errorMessage);
       setAppState('error');
@@ -153,8 +177,18 @@ export const TraceApp: React.FC<TraceAppProps> = ({
     setAppState('processing_image');
 
     try {
+      console.log('[TRACE APP] Converting image file to base64...', {
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type
+      });
       const base64Image = await fileToBase64(file);
+      console.log('[TRACE APP] Image converted', {
+        fileSize: file.size,
+        base64Length: base64Image.length
+      });
 
+      console.log('[TRACE APP] Sending request to /api/trace/parse-receipt');
       const response = await fetch('/api/trace/parse-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,17 +198,35 @@ export const TraceApp: React.FC<TraceAppProps> = ({
         }),
       });
 
+      console.log('[TRACE APP] Response received', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
       if (!response.ok) {
-        const errorData = await response.json();
+        const responseText = await response.text();
+        console.error('[TRACE APP] Response not OK. Body:', responseText);
+
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
         throw new Error(errorData.error || 'Failed to process image');
       }
 
-      const entry: ExpenseEntry = await response.json();
+      const responseText = await response.text();
+      console.log('[TRACE APP] Response body:', responseText);
+      const entry: ExpenseEntry = JSON.parse(responseText);
+      console.log('[TRACE APP] Successfully parsed entry:', entry.id);
+
       setEntries((prev) => [entry, ...prev]);
       setAppState('idle');
       setError(null);
     } catch (err) {
-      console.error('Error processing image:', err);
+      console.error('[TRACE APP] Error processing image:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to process image';
       setError(errorMessage);
       setAppState('error');

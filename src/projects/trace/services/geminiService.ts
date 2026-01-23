@@ -53,9 +53,18 @@ const EXPENSE_SCHEMA = {
  * Parse receipt image using Gemini AI
  */
 export async function parseReceiptImage(base64Image: string, mimeType: string): Promise<ExpenseEntry> {
-  const today = new Date().toISOString().split('T')[0];
-  const ai = getGeminiAI();
+  console.log('[GEMINI SERVICE] parseReceiptImage: Starting', {
+    imageLength: base64Image.length,
+    mimeType
+  });
 
+  const today = new Date().toISOString().split('T')[0];
+
+  console.log('[GEMINI SERVICE] parseReceiptImage: Getting Gemini AI instance...');
+  const ai = getGeminiAI();
+  console.log('[GEMINI SERVICE] parseReceiptImage: Gemini AI instance created');
+
+  console.log('[GEMINI SERVICE] parseReceiptImage: Calling Gemini API...');
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: {
@@ -84,15 +93,20 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
     }
   });
 
+  console.log('[GEMINI SERVICE] parseReceiptImage: Response received');
   const text = response.text || '{}';
+  console.log('[GEMINI SERVICE] parseReceiptImage: Parsing JSON response');
   const entry = JSON.parse(text) as Omit<ExpenseEntry, 'id' | 'source' | 'createdAt'>;
 
-  return {
+  const result = {
     ...entry,
     id: crypto.randomUUID(),
-    source: 'camera',
+    source: 'camera' as const,
     createdAt: new Date().toISOString(),
   };
+
+  console.log('[GEMINI SERVICE] parseReceiptImage: Success', { id: result.id });
+  return result;
 }
 
 /**
@@ -100,14 +114,24 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
  * V1: Direct audio parsing (no transcription step)
  */
 export async function parseVoiceAudio(base64Audio: string, mimeType: string): Promise<ExpenseEntry> {
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Starting', {
+    audioLength: base64Audio.length,
+    mimeType
+  });
+
   const today = new Date().toISOString().split('T')[0];
 
   // Validate mimeType
   if (!mimeType.startsWith('audio/')) {
+    console.error('[GEMINI SERVICE] parseVoiceAudio: Invalid MIME type:', mimeType);
     throw new Error('Invalid audio format. Expected audio/* MIME type.');
   }
 
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Getting Gemini AI instance...');
   const ai = getGeminiAI();
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Gemini AI instance created');
+
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Calling Gemini API...');
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: {
@@ -136,13 +160,18 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
     }
   });
 
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Response received');
   const textOutput = response.text || '{}';
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Parsing JSON response');
   const entry = JSON.parse(textOutput) as Omit<ExpenseEntry, 'id' | 'source' | 'createdAt'>;
 
-  return {
+  const result = {
     ...entry,
     id: crypto.randomUUID(),
-    source: 'voice',
+    source: 'voice' as const,
     createdAt: new Date().toISOString(),
   };
+
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Success', { id: result.id });
+  return result;
 }
