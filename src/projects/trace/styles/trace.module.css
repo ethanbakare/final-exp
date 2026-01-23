@@ -278,7 +278,7 @@
 
   /* Primary Backgrounds */
   --trace-bg-dark: #1c1917;          /* stone-950 - TextBox background, app bg */
-  --trace-bg-merchant: #29252480;    /* stone-900 @ 40% - MerchantBlock */
+  --trace-bg-merchant: #29252466;    /* stone-900 @ 40% - MerchantBlock */
   --trace-bg-showcase: #0a0a0a;      /* Super dark - Showcase page background */
   --trace-bg-demo: #18181b;          /* zinc-950 - Demo card backgrounds */
 
@@ -288,8 +288,7 @@
   --trace-btn-processing: #a8a29e;   /* stone-400 - Processing state buttons */
 
   /* Text Colors */
-  --trace-text-primary: #ffffff;  
-  
+  --trace-text-primary: #ffffff;     /* White - Primary text (dates, totals, buttons) */
   --trace-text-secondary: #e7e5e4;   /* stone-200 - Item names, prices */
   --trace-text-tertiary: #78716c;    /* stone-500 - Merchant names, labels */
   --trace-text-qty: #ffffff4d;       /* White @ 30% - Quantity badges (2x, 1x) */
