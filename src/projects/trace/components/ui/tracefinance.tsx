@@ -102,7 +102,7 @@ export const TotalFrame: React.FC<TotalFrameProps> = ({
         .currency {
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-currency); /* 9px */
-          font-weight: var(--trace-fw-medium); /* 500 */
+          font-weight: var(--trace-fw-semibold); /* 600 */
           line-height: var(--trace-lh-currency); /* 2.67 */
           color: var(--trace-text-primary);
           text-align: right;
@@ -113,7 +113,7 @@ export const TotalFrame: React.FC<TotalFrameProps> = ({
         .amount {
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-body); /* 12px */
-          font-weight: var(--trace-fw-medium); /* 500 */
+          font-weight: var(--trace-fw-semibold); /* 600 */
           line-height: var(--trace-lh-body); /* 2.0 */
           color: var(--trace-text-primary);
           text-align: right;
@@ -143,7 +143,7 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
         .merchant-name {
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-body); /* 12px */
-          font-weight: var(--trace-fw-medium); /* 500 */
+          font-weight: var(--trace-fw-semibold); /* 600 */
           line-height: var(--trace-lh-small); /* 2.4 */
           color: var(--trace-text-tertiary);
           text-align: right;
@@ -219,7 +219,7 @@ export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
         .currency {
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-small); /* 10px */
-          font-weight: var(--trace-fw-normal); /* 400 */
+          font-weight: var(--trace-fw-medium); /* 500 */
           line-height: var(--trace-lh-currency); /* 2.67 */
           color: var(--trace-text-primary);
           text-align: right;
@@ -230,7 +230,7 @@ export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
         .amount {
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-button); /* 16px */
-          font-weight: var(--trace-fw-normal); /* 400 */
+          font-weight: var(--trace-fw-medium); /* 500 */
           line-height: var(--trace-lh-medium); /* 1.71 */
           color: var(--trace-text-secondary);
           text-align: right;
