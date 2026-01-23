@@ -296,7 +296,7 @@ export const TraceApp: React.FC<TraceAppProps> = ({
             <p className="empty-subtext">Use the buttons below to get started</p>
           </div>
         ) : (
-          <FinanceBox days={groupedDays} onDelete={handleDeleteEntry} />
+          <FinanceBox days={groupedDays} />
         )}
       </main>
 
