@@ -316,7 +316,6 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
           font-weight: var(--trace-fw-medium);
           line-height: var(--trace-lh-processing);
           color: var(--trace-text-primary);
-          cursor: not-allowed;
           user-select: none;
         }
 
@@ -392,7 +391,6 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
           font-weight: var(--trace-fw-medium);
           line-height: var(--trace-lh-processing);
           color: var(--trace-text-primary);
-          cursor: not-allowed;
           user-select: none;
         }
 
