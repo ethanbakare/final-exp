@@ -6,10 +6,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { ExpenseEntry } from '../types/trace.types';
 
-// Initialize Gemini AI
-const ai = new GoogleGenAI({
-  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || ''
-});
+/**
+ * Get Gemini AI instance with API key validation
+ */
+function getGeminiAI(): GoogleGenAI {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      'Gemini API key not found. Please set NEXT_PUBLIC_GEMINI_API_KEY in your .env.local file.'
+    );
+  }
+
+  return new GoogleGenAI({ apiKey });
+}
 
 /**
  * JSON schema for expense entry validation
@@ -44,6 +54,7 @@ const EXPENSE_SCHEMA = {
  */
 export async function parseReceiptImage(base64Image: string, mimeType: string): Promise<ExpenseEntry> {
   const today = new Date().toISOString().split('T')[0];
+  const ai = getGeminiAI();
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -96,6 +107,7 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
     throw new Error('Invalid audio format. Expected audio/* MIME type.');
   }
 
+  const ai = getGeminiAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: {
