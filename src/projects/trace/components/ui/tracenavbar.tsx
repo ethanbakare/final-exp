@@ -198,6 +198,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           justify-content: center;
           width: 100%;
           height: 100%;
+          pointer-events: none; /* Critical: don't block morphing buttons when processing is hidden */
         }
 
         .processing-audio-wrapper,
