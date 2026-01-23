@@ -16,7 +16,7 @@ import { TraceLiveWaveform } from './TraceLiveWaveform';
 import { TraceColors } from '../../constants/designTokens';
 
 /* ==================== UPLOAD BUTTON ==================== */
-// 97×44px, stone-50 background, scan icon
+// 117×44px, stone-50 background, scan icon
 
 export const UploadButton: React.FC<UploadButtonProps> = ({
   onClick,
@@ -46,6 +46,7 @@ export const UploadButton: React.FC<UploadButtonProps> = ({
           align-items: center;
           justify-content: center;
           gap: var(--trace-spacing-sm);
+          width: var(--trace-btn-upload-width);
           height: var(--trace-button-height);
           padding: 0 var(--trace-spacing-xl);
           background: var(--trace-btn-light);
@@ -80,7 +81,7 @@ export const UploadButton: React.FC<UploadButtonProps> = ({
 
 
 /* ==================== SPEAK BUTTON ==================== */
-// 106×44px, stone-50 background, mic icon
+// 118×44px, stone-50 background, mic icon
 
 export const SpeakButton: React.FC<SpeakButtonProps> = ({
   onClick,
@@ -117,6 +118,7 @@ export const SpeakButton: React.FC<SpeakButtonProps> = ({
           align-items: center;
           justify-content: center;
           gap: var(--trace-spacing-sm);
+          width: var(--trace-btn-speak-width);
           height: var(--trace-button-height);
           padding: 0 var(--trace-spacing-xl);
           background: var(--trace-btn-light);

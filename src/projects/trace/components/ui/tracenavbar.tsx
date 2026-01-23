@@ -12,11 +12,11 @@ import type { TRNavbarProps, TRNavbarState } from '@/projects/trace/types/trace.
  * TRNavbar - Trace Navigation Bar with Morphing Animations
  *
  * State-driven navigation bar with button morph transitions:
- * - idle → recording: Upload (97px) morphs to Close (56px), Speak (106px) morphs to SendAudio (150px)
+ * - idle → recording: Upload (117px) morphs to Close (56px), Speak (118px) morphs to SendAudio (150px)
  * - Icons crossfade during morph
  * - Processing states show single full-width button
  *
- * Dimensions: 301px width, 44px height, 12px gap between morphing buttons
+ * Dimensions: 247px width, 44px height, 12px gap between morphing buttons
  *
  * Based on voicemorphingbuttons.tsx pattern - dual independent button morphs
  */

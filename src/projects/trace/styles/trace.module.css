@@ -350,21 +350,21 @@
   /* ==================== DIMENSIONS ==================== */
 
   /* TRNavbar */
-  --trace-navbar-width: 301px;
+  --trace-navbar-width: 247px;        /* Upload(117) + gap(12) + Speak(118) = 247px */
   --trace-button-height: 44px;
   --trace-button-radius: 23px;        /* ~23.16px rounded */
   --trace-button-stroke: 2px;         /* ~2.32px rounded */
   --trace-button-gap: 12px;           /* Gap between buttons in navbar */
 
-  /* Individual Button Widths (for reference, most are auto) */
-  --trace-btn-upload-width: 97px;
-  --trace-btn-speak-width: 106px;
+  /* Individual Button Widths (measured from rendered buttons with proper padding) */
+  --trace-btn-upload-width: 117px;     /* Upload: icon(20) + gap(6) + text(~59) + padding(32) */
+  --trace-btn-speak-width: 118px;      /* Speak: icon(20) + gap(6) + text(~60) + padding(32) */
   --trace-btn-close-width: 56px;
   --trace-btn-sendaudio-width: 150px;
-  --trace-btn-processing-width: 301px; /* Full width */
+  --trace-btn-processing-width: 247px; /* Full navbar width */
 
   /* TextBox / FinanceBox */
-  --trace-textbox-width: 301px;
+  --trace-textbox-width: 247px;       /* Matches navbar width */
   --trace-textbox-height: 421px;
   --trace-textbox-radius: 16px;
   --trace-textbox-border: 1px;
