@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '@/projects/trace/styles/trace.module.css';
 import {
   UploadButton,
@@ -193,6 +193,34 @@ const TraceComponent: React.FC = () => {
 
   // Navbar state control (for demonstration)
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
+
+  // Auto-timeout for processing states (3 seconds)
+  useEffect(() => {
+    if (navbarState === 'processing_audio' || navbarState === 'processing_image') {
+      const timeout = setTimeout(() => {
+        setNavbarState('idle');
+      }, 3000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [navbarState]);
+
+  // TRNavbar button handlers
+  const handleUploadClick = () => {
+    setNavbarState('processing_image');
+  };
+
+  const handleSpeakClick = () => {
+    setNavbarState('recording');
+  };
+
+  const handleCloseClick = () => {
+    setNavbarState('idle');
+  };
+
+  const handleSendAudioClick = () => {
+    setNavbarState('processing_audio');
+  };
 
   return (
     <>
@@ -495,7 +523,13 @@ const TraceComponent: React.FC = () => {
                 >P-IMG</button>
               </div>
 
-              <TRNavbar state={navbarState} />
+              <TRNavbar
+                state={navbarState}
+                onUploadClick={handleUploadClick}
+                onSpeakClick={handleSpeakClick}
+                onCloseClick={handleCloseClick}
+                onSendAudioClick={handleSendAudioClick}
+              />
 
               <div className="navbar-label">
                 TRNAVBAR - 4 STATES (IDLE → RECORDING → PROCESSING)
