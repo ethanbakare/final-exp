@@ -537,7 +537,7 @@ const TraceComponent: React.FC = () => {
             </ButtonGrid>
 
             <ButtonGrid label="TOTAL FRAME - £ (9PX), AMOUNT (12PX)" isDouble={true}>
-              <TotalFrame total="5246.99" />
+              <TotalFrame total="928.20" />
             </ButtonGrid>
 
             <ButtonGrid label="MERCHANT FRAME - 12PX">
@@ -545,7 +545,7 @@ const TraceComponent: React.FC = () => {
             </ButtonGrid>
 
             <ButtonGrid label="MERCHANT TOTAL FRAME - £ (9PX), AMOUNT (12PX)">
-              <MerchantTotalFrame total="619.97" />
+              <MerchantTotalFrame total="628.21" />
             </ButtonGrid>
 
             <ButtonGrid label="NET PRICE FRAME - £ (10PX), AMOUNT (16PX)">
@@ -568,11 +568,11 @@ const TraceComponent: React.FC = () => {
           {/* Molecules */}
           <div className="seamless-grid" style={{ marginTop: '2rem' }}>
             <ButtonGrid label="DAY TOTAL - MOLECULE" isDouble={true}>
-              <DayTotal date="14th Jul" total="5246.99" />
+              <DayTotal date="14th Jul" total="928.20" />
             </ButtonGrid>
 
             <ButtonGrid label="ROW IDENTIFIER - MOLECULE" isDouble={true}>
-              <RowIdentifier merchantName="TESCOS" merchantTotal="619.97" />
+              <RowIdentifier merchantName="TESCOS" merchantTotal="628.21" />
             </ButtonGrid>
 
             <ButtonGrid label="QUANTITY + ITEM NAME - MOLECULE">
@@ -620,7 +620,7 @@ const TraceComponent: React.FC = () => {
               <div className="button-center">
                 <MerchantBlock
                   merchantName="TESCOS"
-                  merchantTotal="632.70"
+                  merchantTotal="628.21"
                   items={[
                     { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
                     { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
@@ -641,11 +641,11 @@ const TraceComponent: React.FC = () => {
               <div className="button-center">
                 <DayBlock
                   date="14th Jul"
-                  total="5259.72"
+                  total="628.21"
                   merchants={[
                     {
                       merchantName: "TESCOS",
-                      merchantTotal: "632.70",
+                      merchantTotal: "628.21",
                       items: [
                         { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
                         { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
@@ -670,11 +670,11 @@ const TraceComponent: React.FC = () => {
                   days={[
                     {
                       date: "14th Jul",
-                      total: "5259.72",
+                      total: "928.20",
                       merchants: [
                         {
                           merchantName: "TESCOS",
-                          merchantTotal: "632.70",
+                          merchantTotal: "628.21",
                           items: [
                             { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
                             { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
