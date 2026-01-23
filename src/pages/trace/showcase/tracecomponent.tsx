@@ -8,6 +8,7 @@ import {
   ProcessingAudioButton,
   ProcessingImageButton
 } from '@/projects/trace/components/ui/tracebuttons';
+import { TRNavbar } from '@/projects/trace/components/ui/tracenavbar';
 import {
   Date as TraceDate,
   TotalFrame,
@@ -470,10 +471,10 @@ const TraceComponent: React.FC = () => {
         {/* TRNavbar States Section */}
         <div className="section">
           <h2 className="section-title">TRNavbar States</h2>
-          <div className="file-label">📁 tracenavbar.tsx (Preview)</div>
+          <div className="file-label">📁 tracenavbar.tsx</div>
 
           <div className="seamless-grid">
-            {/* Idle State */}
+            {/* TRNavbar with state controls */}
             <div className="navbar-showcase">
               <div className="navbar-state-controls">
                 <button
@@ -494,29 +495,7 @@ const TraceComponent: React.FC = () => {
                 >P-IMG</button>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                {navbarState === 'idle' && (
-                  <>
-                    <UploadButton />
-                    <SpeakButton />
-                  </>
-                )}
-
-                {navbarState === 'recording' && (
-                  <>
-                    <CloseButton />
-                    <SendAudioButton isRecording={true} />
-                  </>
-                )}
-
-                {navbarState === 'processing_audio' && (
-                  <ProcessingAudioButton text="Analysing Audio" />
-                )}
-
-                {navbarState === 'processing_image' && (
-                  <ProcessingImageButton text="Processing Image" />
-                )}
-              </div>
+              <TRNavbar state={navbarState} />
 
               <div className="navbar-label">
                 TRNAVBAR - 4 STATES (IDLE → RECORDING → PROCESSING)
