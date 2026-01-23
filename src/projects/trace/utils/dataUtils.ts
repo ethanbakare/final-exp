@@ -3,13 +3,13 @@
  * Helper functions for data transformation and grouping
  */
 
-import type { ExpenseEntry, Day, Merchant } from '../types/trace.types';
+import type { ExpenseEntry } from '../types/trace.types';
 
 /**
  * Group expense entries by day
- * Returns an array of Day objects for the FinanceBox component
+ * Returns an array formatted for FinanceBox component
  */
-export function groupEntriesByDay(entries: ExpenseEntry[]): Day[] {
+export function groupEntriesByDay(entries: ExpenseEntry[]): any[] {
   // Group entries by date
   const grouped = entries.reduce((acc, entry) => {
     const date = entry.date;
@@ -21,7 +21,7 @@ export function groupEntriesByDay(entries: ExpenseEntry[]): Day[] {
   }, {} as Record<string, ExpenseEntry[]>);
 
   // Convert to Day array
-  const days: Day[] = Object.entries(grouped).map(([date, dayEntries]) => {
+  const days: any[] = Object.entries(grouped).map(([date, dayEntries]) => {
     // Group by merchant within the day
     const merchantsMap = dayEntries.reduce((acc, entry) => {
       const merchantName = entry.merchant || 'Unknown Merchant';
@@ -33,16 +33,24 @@ export function groupEntriesByDay(entries: ExpenseEntry[]): Day[] {
     }, {} as Record<string, ExpenseEntry[]>);
 
     // Convert to Merchant array
-    const merchants: Merchant[] = Object.entries(merchantsMap).map(([merchantName, merchantEntries]) => {
+    const merchants: any[] = Object.entries(merchantsMap).map(([merchantName, merchantEntries]) => {
       // Calculate merchant total from all entries for that merchant
       const merchantTotal = merchantEntries.reduce((sum, entry) => sum + entry.total, 0);
 
       // Flatten all items from all entries for this merchant
-      const allItems = merchantEntries.flatMap(entry => entry.items);
+      // Map to the format FinanceBox components expect
+      const allItems = merchantEntries.flatMap(entry =>
+        entry.items.map(item => ({
+          quantity: item.quantity.toString(),
+          itemName: item.name,
+          netPrice: item.total_price.toFixed(2),
+          discount: item.discount > 0 ? item.discount.toFixed(2) : undefined,
+        }))
+      );
 
       return {
-        merchant: merchantName,
-        merchantTotal,
+        merchantName: merchantName === 'Unknown Merchant' ? undefined : merchantName,
+        merchantTotal: merchantTotal.toFixed(2),
         items: allItems,
       };
     });
@@ -52,7 +60,7 @@ export function groupEntriesByDay(entries: ExpenseEntry[]): Day[] {
 
     return {
       date: formatDate(date),
-      dayTotal,
+      total: dayTotal.toFixed(2),
       merchants,
     };
   });
