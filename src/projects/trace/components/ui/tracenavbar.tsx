@@ -40,10 +40,14 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         <div className="left-button-tracker">
           <button
             className={`left-morph-button state-${state}`}
-            onClick={state === 'idle' ? onUploadClick : onCloseClick}
+            onClick={() => {
+              if (state === 'idle' && !disabled) onUploadClick?.();
+              else if (state === 'recording' && !disabled) onCloseClick?.();
+              // Do nothing in processing_image state
+            }}
             disabled={disabled}
             type="button"
-            aria-label={state === 'idle' ? 'Upload' : 'Close'}
+            aria-label={state === 'idle' ? 'Upload' : state === 'recording' ? 'Close' : 'Processing'}
           >
             {/* Content container for crossfade */}
             <div className="left-content">
@@ -93,10 +97,14 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         <div className="right-button-tracker">
           <button
             className={`right-morph-button state-${state}`}
-            onClick={state === 'idle' ? onSpeakClick : onSendAudioClick}
+            onClick={() => {
+              if (state === 'idle' && !disabled) onSpeakClick?.();
+              else if (state === 'recording' && !disabled) onSendAudioClick?.();
+              // Do nothing in processing_audio state
+            }}
             disabled={disabled}
             type="button"
-            aria-label={state === 'idle' ? 'Speak' : 'Send Audio'}
+            aria-label={state === 'idle' ? 'Speak' : state === 'recording' ? 'Send Audio' : 'Processing'}
           >
             {/* Content container for crossfade */}
             <div className="right-content">
@@ -315,6 +323,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           background: var(--trace-btn-processing); /* Gray background */
           color: var(--trace-text-primary); /* Dark text */
           pointer-events: none; /* Non-interactive during processing */
+          cursor: default; /* Show default cursor, not pointer */
         }
 
         .left-morph-button:disabled {
@@ -451,6 +460,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           background: var(--trace-btn-processing); /* Gray background */
           color: var(--trace-text-primary); /* White text */
           pointer-events: none; /* Non-interactive during processing */
+          cursor: default; /* Show default cursor, not pointer */
         }
 
         .right-morph-button:disabled {

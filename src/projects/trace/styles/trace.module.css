@@ -379,10 +379,10 @@
   --trace-merchantblock-padding: 0 10px 8px 10px;  /* top right bottom left */
 
   /* ContentRow Padding Variations */
-  --trace-contentrow-padding-first: 4px 0 8px 0;  /* First item */
-  --trace-contentrow-padding-subsequent: 0 0 8px 0; /* Subsequent items */
-  --trace-contentrow-padding-first-with-discount: 4px 0 16px 0;  /* First item with discount */
-  --trace-contentrow-padding-subsequent-with-discount: 0 0 16px 0; /* Subsequent items with discount */
+  --trace-contentrow-padding-first: 4px 0 12px 0;  /* First item */
+  --trace-contentrow-padding-subsequent: 0 0 12px 0; /* Subsequent items */
+  --trace-contentrow-padding-first-with-discount: 4px 0 22px 0;  /* First item with discount */
+  --trace-contentrow-padding-subsequent-with-discount: 0 0 22px 0; /* Subsequent items with discount */
 
   /* PriceFrame */
   --trace-priceframe-discount-offset: -4px;  /* Negative margin to pull discount closer to net price */
