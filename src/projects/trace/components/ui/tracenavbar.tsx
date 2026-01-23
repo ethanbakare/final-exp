@@ -16,9 +16,10 @@ import type { TRNavbarProps, TRNavbarState } from '@/projects/trace/types/trace.
  * - Icons crossfade during morph
  * - idle → processing_image: Upload button expands to full width (247px), Speak button shrinks to 0 and fades out
  * - Content inside Upload crossfades from Upload icon to Processing Image (spinner + text)
- * - idle → processing_audio: Crossfade to full-width Processing Audio button
+ * - recording → processing_audio: SendAudio button expands to full width (247px), Close button shrinks to 0 and fades out
+ * - Content inside SendAudio crossfades from waveform to Analysing Audio (spinner + text)
  *
- * Dimensions: 247px width, 44px height, 12px gap between morphing buttons (removed in processing_image)
+ * Dimensions: 247px width, 44px height, 12px gap between morphing buttons (removed in processing states)
  *
  * Based on voicemorphingbuttons.tsx pattern - dual independent button morphs + hybrid morph/crossfade states
  */
@@ -137,6 +138,20 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
                 />
                 <span className="button-text">Send Audio</span>
               </div>
+
+              {/* AnalysingAudio Spinner + Text - visible in processing_audio */}
+              <div className="analysing-audio-content">
+                <div className="spinner-container">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
+                      transform="translate(2, 2) scale(0.025)"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </div>
+                <span className="button-text">Analysing Audio</span>
+              </div>
             </div>
           </button>
         </div>
@@ -195,15 +210,10 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           transition: opacity 0.2s ease, gap 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Remove gap in processing_image (Upload button expands to full width) */
-        .state-processing_image .morphing-group {
-          gap: 0;
-        }
-
-        /* Fade out morphing buttons in processing_audio state only */
+        /* Remove gap in processing states (one button expands to full width) */
+        .state-processing_image .morphing-group,
         .state-processing_audio .morphing-group {
-          opacity: 0;
-          pointer-events: none;
+          gap: 0;
         }
 
         /* ========================================
@@ -232,13 +242,8 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           transition: opacity 0.2s ease;
         }
 
-        /* Fade in processing audio button */
-        .state-processing_audio .processing-audio-wrapper {
-          opacity: 1;
-          pointer-events: auto;
-        }
-
-        /* Processing image now handled by morphing left button - keep this hidden */
+        /* Processing buttons now handled by morphing buttons - keep these hidden */
+        .state-processing_audio .processing-audio-wrapper,
         .state-processing_image .processing-image-wrapper {
           opacity: 0;
           pointer-events: none;
@@ -255,7 +260,9 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           align-items: center;
           justify-content: center;
           overflow: hidden; /* Clips content during morph */
-          transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          opacity: 1;
+          transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      opacity 0.21s ease; /* Fade out by 70% of animation time */
         }
 
         /* RECORDING: Close width */
@@ -266,6 +273,13 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         /* PROCESSING_IMAGE: Expand to full navbar width */
         .state-processing_image .left-button-tracker {
           width: var(--trace-navbar-width); /* 247px - full width */
+        }
+
+        /* PROCESSING_AUDIO: Shrink to 0 and fade out faster */
+        .state-processing_audio .left-button-tracker {
+          width: 0;
+          opacity: 0;
+          pointer-events: none;
         }
 
         /* ========================================
@@ -365,7 +379,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         }
 
         /* ========================================
-           RIGHT BUTTON TRACKER: Speak → SendAudio
+           RIGHT BUTTON TRACKER: Speak → SendAudio → AnalysingAudio
            ======================================== */
         .right-button-tracker {
           /* IDLE: Speak width */
@@ -392,6 +406,12 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           pointer-events: none;
         }
 
+        /* PROCESSING_AUDIO: Expand to full navbar width */
+        .state-processing_audio .right-button-tracker {
+          width: var(--trace-navbar-width); /* 247px - full width */
+          opacity: 1;
+        }
+
         /* ========================================
            RIGHT MORPHING BUTTON
            ======================================== */
@@ -413,9 +433,9 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           color: var(--trace-border-primary);
 
           /* Morph transitions */
-          transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                      background 0.2s ease,
-                      color 0.2s ease;
+          transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                      background 0.3s ease,
+                      color 0.3s ease;
         }
 
         /* RECORDING: SendAudio button (orange background) */
@@ -423,6 +443,14 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           width: var(--trace-btn-sendaudio-width);
           background: var(--trace-btn-orange);
           color: var(--trace-text-primary);
+        }
+
+        /* PROCESSING_AUDIO: Full width processing state */
+        .right-morph-button.state-processing_audio {
+          width: var(--trace-navbar-width); /* Full width for processing */
+          background: var(--trace-btn-processing); /* Gray background */
+          color: var(--trace-text-primary); /* White text */
+          pointer-events: none; /* Non-interactive during processing */
         }
 
         .right-morph-button:disabled {
@@ -443,30 +471,49 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         }
 
         .speak-content,
-        .sendaudio-content {
+        .sendaudio-content,
+        .analysing-audio-content {
           position: absolute;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: var(--trace-spacing-sm);
-          transition: opacity 0.2s ease;
+          transition: opacity 0.3s ease;
         }
 
         /* Speak visible in idle */
         .speak-content {
           opacity: 1;
         }
-        .right-morph-button.state-recording .speak-content {
+        .right-morph-button.state-recording .speak-content,
+        .right-morph-button.state-processing_audio .speak-content {
           opacity: 0;
           pointer-events: none;
         }
 
-        /* SendAudio visible in recording */
+        /* SendAudio visible in recording - FIXED WHITE COLOR */
         .sendaudio-content {
           opacity: 0;
           pointer-events: none;
+          color: var(--trace-text-primary); /* Fixed white - no transition */
         }
         .right-morph-button.state-recording .sendaudio-content {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .right-morph-button.state-processing_audio .sendaudio-content {
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        /* AnalysingAudio visible in processing_audio - FIXED WHITE COLOR */
+        .analysing-audio-content {
+          opacity: 0;
+          pointer-events: none;
+          gap: var(--trace-spacing-lg); /* Larger gap for processing state */
+          color: var(--trace-text-primary); /* Fixed white - no transition */
+        }
+        .right-morph-button.state-processing_audio .analysing-audio-content {
           opacity: 1;
           pointer-events: auto;
         }
