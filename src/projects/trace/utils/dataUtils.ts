@@ -1,0 +1,93 @@
+/**
+ * Trace Data Utilities
+ * Helper functions for data transformation and grouping
+ */
+
+import type { ExpenseEntry, Day, Merchant } from '../types/trace.types';
+
+/**
+ * Group expense entries by day
+ * Returns an array of Day objects for the FinanceBox component
+ */
+export function groupEntriesByDay(entries: ExpenseEntry[]): Day[] {
+  // Group entries by date
+  const grouped = entries.reduce((acc, entry) => {
+    const date = entry.date;
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(entry);
+    return acc;
+  }, {} as Record<string, ExpenseEntry[]>);
+
+  // Convert to Day array
+  const days: Day[] = Object.entries(grouped).map(([date, dayEntries]) => {
+    // Group by merchant within the day
+    const merchantsMap = dayEntries.reduce((acc, entry) => {
+      const merchantName = entry.merchant || 'Unknown Merchant';
+      if (!acc[merchantName]) {
+        acc[merchantName] = [];
+      }
+      acc[merchantName].push(entry);
+      return acc;
+    }, {} as Record<string, ExpenseEntry[]>);
+
+    // Convert to Merchant array
+    const merchants: Merchant[] = Object.entries(merchantsMap).map(([merchantName, merchantEntries]) => {
+      // Calculate merchant total from all entries for that merchant
+      const merchantTotal = merchantEntries.reduce((sum, entry) => sum + entry.total, 0);
+
+      // Flatten all items from all entries for this merchant
+      const allItems = merchantEntries.flatMap(entry => entry.items);
+
+      return {
+        merchant: merchantName,
+        merchantTotal,
+        items: allItems,
+      };
+    });
+
+    // Calculate day total from all entries
+    const dayTotal = dayEntries.reduce((sum, entry) => sum + entry.total, 0);
+
+    return {
+      date: formatDate(date),
+      dayTotal,
+      merchants,
+    };
+  });
+
+  // Sort by date descending (most recent first)
+  return days.sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return dateB.getTime() - dateA.getTime();
+  });
+}
+
+/**
+ * Format date from YYYY-MM-DD to "14th Jul" format
+ */
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const day = date.getDate();
+  const month = date.toLocaleString('en-US', { month: 'short' });
+
+  // Add ordinal suffix (st, nd, rd, th)
+  const ordinal = getOrdinalSuffix(day);
+
+  return `${day}${ordinal} ${month}`;
+}
+
+/**
+ * Get ordinal suffix for a day number
+ */
+function getOrdinalSuffix(day: number): string {
+  if (day > 3 && day < 21) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
