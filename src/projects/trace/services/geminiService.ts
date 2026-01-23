@@ -10,11 +10,11 @@ import type { ExpenseEntry } from '../types/trace.types';
  * Get Gemini AI instance with API key validation
  */
 function getGeminiAI(): GoogleGenAI {
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     throw new Error(
-      'Gemini API key not found. Please set NEXT_PUBLIC_GEMINI_API_KEY in your .env.local file.'
+      'Gemini API key not found. Please set GEMINI_API_KEY in your .env.local file.'
     );
   }
 
