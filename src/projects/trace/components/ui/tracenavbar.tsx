@@ -50,11 +50,13 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
               <div className="left-content">
                 {/* Upload Icon + Text - visible in idle */}
                 <div className="upload-content">
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M15.9414 8.94891L15.9405 6.51244C15.9403 5.97042 15.7201 5.45169 15.3304 5.07502L13.226 3.04135C12.8531 2.68095 12.3548 2.4795 11.8362 2.4795L6.27519 2.4795C5.17042 2.4795 4.27491 3.37523 4.27519 4.48L4.27629 8.94891" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M4.27344 15.3234L4.27359 15.5221C4.27447 16.6261 5.16964 17.5206 6.27359 17.5206L13.9385 17.5206C15.0437 17.5206 15.9394 16.6242 15.9385 15.519L15.9384 15.3234" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M2.35156 11.8452L17.6453 11.8452" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
+                  <div className="icon-container">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M15.9414 8.94891L15.9405 6.51244C15.9403 5.97042 15.7201 5.45169 15.3304 5.07502L13.226 3.04135C12.8531 2.68095 12.3548 2.4795 11.8362 2.4795L6.27519 2.4795C5.17042 2.4795 4.27491 3.37523 4.27519 4.48L4.27629 8.94891" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M4.27344 15.3234L4.27359 15.5221C4.27447 16.6261 5.16964 17.5206 6.27359 17.5206L13.9385 17.5206C15.0437 17.5206 15.9394 16.6242 15.9385 15.519L15.9384 15.3234" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      <path d="M2.35156 11.8452L17.6453 11.8452" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </div>
                   <span className="button-text">Upload</span>
                 </div>
 
@@ -87,18 +89,20 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
               <div className="right-content">
                 {/* Speak Icon + Text - visible in idle */}
                 <div className="speak-content">
-                  <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M9.40583 6.84452C9.40583 4.85934 11.0151 3.25003 13.0003 3.25003C14.9855 3.25003 16.5948 4.85934 16.5948 6.84451V11.4855C16.5948 13.4707 14.9855 15.08 13.0003 15.08C11.0151 15.08 9.40583 13.4707 9.40583 11.4855V6.84452Z"
-                      fill="currentColor"
-                    />
-                    <path
-                      d="M19.9282 13.3002C19.3867 16.6398 16.4897 19.1896 12.9971 19.1896C9.50541 19.1896 6.60896 16.6411 6.06641 13.3027M12.9965 22.75V19.3733M15.0926 22.75H10.9399M13.0003 15.08C11.0151 15.08 9.40583 13.4707 9.40583 11.4855V6.84452C9.40583 4.85934 11.0151 3.25003 13.0003 3.25003C14.9855 3.25003 16.5948 4.85934 16.5948 6.84451V11.4855C16.5948 13.4707 14.9855 15.08 13.0003 15.08Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
+                  <div className="icon-container">
+                    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M9.40583 6.84452C9.40583 4.85934 11.0151 3.25003 13.0003 3.25003C14.9855 3.25003 16.5948 4.85934 16.5948 6.84451V11.4855C16.5948 13.4707 14.9855 15.08 13.0003 15.08C11.0151 15.08 9.40583 13.4707 9.40583 11.4855V6.84452Z"
+                        fill="currentColor"
+                      />
+                      <path
+                        d="M19.9282 13.3002C19.3867 16.6398 16.4897 19.1896 12.9971 19.1896C9.50541 19.1896 6.60896 16.6411 6.06641 13.3027M12.9965 22.75V19.3733M15.0926 22.75H10.9399M13.0003 15.08C11.0151 15.08 9.40583 13.4707 9.40583 11.4855V6.84452C9.40583 4.85934 11.0151 3.25003 13.0003 3.25003C14.9855 3.25003 16.5948 4.85934 16.5948 6.84451V11.4855C16.5948 13.4707 14.9855 15.08 13.0003 15.08Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
                   <span className="button-text">Speak</span>
                 </div>
 
@@ -366,6 +370,17 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           font-weight: var(--trace-fw-medium);
           line-height: var(--trace-lh-button);
           white-space: nowrap;
+        }
+
+        /* ========================================
+           ICON CONTAINER
+           ======================================== */
+        .icon-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 20px;
+          height: 20px;
         }
       `}</style>
     </div>
