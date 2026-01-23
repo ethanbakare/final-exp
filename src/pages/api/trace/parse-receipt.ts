@@ -12,6 +12,15 @@ interface RequestBody {
   mimeType: string;
 }
 
+// Increase body size limit to 10MB for image uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ExpenseEntry | { error: string }>
