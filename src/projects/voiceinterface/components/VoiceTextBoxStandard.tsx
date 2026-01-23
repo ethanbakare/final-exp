@@ -77,10 +77,8 @@ export const VoiceTextBoxStandard: React.FC = () => {
         }
       };
 
-      // Handle recording stop
-      mediaRecorder.onstop = async () => {
-        await handleRecordingStopped();
-      };
+      // Note: onstop handler is set dynamically in stopRecorderAndGetBlob()
+      // This allows us to control whether to transcribe or just cleanup
 
       // Start recording
       mediaRecorder.start();
@@ -92,27 +90,60 @@ export const VoiceTextBoxStandard: React.FC = () => {
   };
 
   /**
-   * Stop Recording
+   * Stop MediaRecorder and return audio blob (Promise-based)
+   * This decouples stopping from transcribing - caller decides what to do with blob
    */
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+  const stopRecorderAndGetBlob = (): Promise<Blob> => {
+    return new Promise((resolve) => {
+      if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
+        // Already stopped or never started - return empty blob
+        resolve(new Blob());
+        return;
+      }
+
+      // Set onstop to ONLY collect blob and cleanup (no transcription)
+      mediaRecorderRef.current.onstop = () => {
+        // Create blob from collected chunks
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+
+        // Release microphone
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach(track => track.stop());
+          mediaStreamRef.current = null;
+        }
+
+        // Resolve with the blob (caller decides whether to transcribe)
+        resolve(audioBlob);
+      };
+
+      // Stop the recorder (triggers onstop)
       mediaRecorderRef.current.stop();
-    setAppState('processing');
-    }
+    });
   };
 
   /**
-   * Handle recording stopped - send audio to Deepgram
+   * Stop Recording (explicitly transcribe)
    */
-  const handleRecordingStopped = async () => {
-    // Create blob from chunks
-    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-    
-    // Release microphone
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-      mediaStreamRef.current = null;
+  const handleStopRecording = async () => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
+      return;
     }
+
+    setAppState('processing');
+
+    // Get the blob
+    const audioBlob = await stopRecorderAndGetBlob();
+
+    // Explicitly transcribe
+    await transcribeAudio(audioBlob);
+  };
+
+  /**
+   * Transcribe audio blob - send to Deepgram API
+   */
+  const transcribeAudio = async (audioBlob: Blob) => {
+    // audioBlob is passed in (already created by stopRecorderAndGetBlob)
+    // Microphone is already released by stopRecorderAndGetBlob
 
     // Send to transcription API
     try {
@@ -162,22 +193,17 @@ export const VoiceTextBoxStandard: React.FC = () => {
   /**
    * Close - cancel current recording but preserve text
    */
-  const handleClose = () => {
-    // Stop MediaRecorder if still recording
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-
-    // Release microphone if still active
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-      mediaStreamRef.current = null;
-    }
-
-    // Cancel ongoing API request if exists
+  const handleClose = async () => {
+    // Cancel ongoing API request if exists (for processing state)
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
+    }
+
+    // If still recording, stop and get blob but DON'T transcribe
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      await stopRecorderAndGetBlob();
+      // Blob is discarded (not transcribed)
     }
 
     // Set oldTextLength to full text length to prevent re-animation
