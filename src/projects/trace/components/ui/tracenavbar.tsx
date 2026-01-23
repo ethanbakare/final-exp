@@ -331,9 +331,10 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           transition: opacity 0.3s ease;
         }
 
-        /* Upload visible in idle */
+        /* Upload visible in idle - FIXED DARK COLOR */
         .upload-content {
           opacity: 1;
+          color: var(--trace-border-primary); /* Fixed dark - no transition */
         }
         .left-morph-button.state-recording .upload-content,
         .left-morph-button.state-processing_image .upload-content {
@@ -351,11 +352,12 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           pointer-events: auto;
         }
 
-        /* Processing Image visible in processing_image */
+        /* Processing Image visible in processing_image - FIXED WHITE COLOR */
         .processing-image-content {
           opacity: 0;
           pointer-events: none;
           gap: var(--trace-spacing-lg); /* Larger gap for processing state */
+          color: var(--trace-text-primary); /* Fixed white - no transition */
         }
         .left-morph-button.state-processing_image .processing-image-content {
           opacity: 1;
@@ -375,7 +377,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           overflow: hidden; /* Clips content during morph */
           opacity: 1;
           transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                      opacity 0.3s ease;
+                      opacity 0.21s ease; /* Fade out by 70% of animation time */
         }
 
         /* RECORDING: SendAudio width */
@@ -383,7 +385,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           width: var(--trace-btn-sendaudio-width);
         }
 
-        /* PROCESSING_IMAGE: Shrink to 0 and fade out */
+        /* PROCESSING_IMAGE: Shrink to 0 and fade out faster */
         .state-processing_image .right-button-tracker {
           width: 0;
           opacity: 0;
