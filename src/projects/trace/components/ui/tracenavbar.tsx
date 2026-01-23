@@ -171,8 +171,8 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
            LEFT BUTTON TRACKER: Upload → Close
            ======================================== */
         .left-button-tracker {
-          /* IDLE: Upload width (97px) */
-          width: 97px;
+          /* IDLE: Upload width */
+          width: var(--trace-btn-upload-width);
           height: var(--trace-button-height);
           display: flex;
           align-items: center;
@@ -181,9 +181,9 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* RECORDING: Close width (56px) */
+        /* RECORDING: Close width */
         .state-recording .left-button-tracker {
-          width: 56px;
+          width: var(--trace-btn-close-width);
         }
 
         /* ========================================
@@ -204,13 +204,13 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           user-select: none;
 
           /* Morph dimensions */
-          width: 97px; /* Upload size */
+          width: var(--trace-btn-upload-width); /* Upload size */
           transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
                       background 0.2s ease;
         }
 
         .left-morph-button.state-recording {
-          width: 56px; /* Close size */
+          width: var(--trace-btn-close-width); /* Close size */
         }
 
         .left-morph-button:disabled {
@@ -263,8 +263,8 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
            RIGHT BUTTON TRACKER: Speak → SendAudio
            ======================================== */
         .right-button-tracker {
-          /* IDLE: Speak width (106px) */
-          width: 106px;
+          /* IDLE: Speak width */
+          width: var(--trace-btn-speak-width);
           height: var(--trace-button-height);
           display: flex;
           align-items: center;
@@ -273,9 +273,9 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* RECORDING: SendAudio width (150px) */
+        /* RECORDING: SendAudio width */
         .state-recording .right-button-tracker {
-          width: 150px;
+          width: var(--trace-btn-sendaudio-width);
         }
 
         /* ========================================
@@ -294,7 +294,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           user-select: none;
 
           /* IDLE: Speak button (light background) */
-          width: 106px;
+          width: var(--trace-btn-speak-width);
           background: var(--trace-btn-light);
           color: var(--trace-border-primary);
 
@@ -306,7 +306,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
 
         /* RECORDING: SendAudio button (orange background) */
         .right-morph-button.state-recording {
-          width: 150px;
+          width: var(--trace-btn-sendaudio-width);
           background: var(--trace-btn-orange);
           color: var(--trace-text-primary);
         }
