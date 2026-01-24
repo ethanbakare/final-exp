@@ -380,6 +380,7 @@ export interface ContentRowProps {
   netPrice: string;
   discount?: string;
   isFirst?: boolean; // Differentiate first row padding from subsequent rows
+  isLast?: boolean; // Hide bottom border on last row
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   className?: string;
 }
@@ -484,7 +485,7 @@ export const DayTotal: React.FC<DayTotalProps> = ({
           align-items: baseline;
           justify-content: space-between;
           gap: 4px;
-          padding: 0 10px;
+          padding: var(--trace-daytotal-padding);
           border-radius: 8px;
           width: ${width};
         }
@@ -588,6 +589,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   netPrice,
   discount,
   isFirst = false,
+  isLast = false,
   width = '277px',
   className = '',
 }) => {
@@ -611,6 +613,8 @@ export const ContentRow: React.FC<ContentRowProps> = ({
           justify-content: space-between;
           padding: ${getPadding()};
           width: ${width};
+          /* OPTIONAL: Bottom border between rows - comment out to disable */
+          border-bottom: ${isLast ? 'none' : 'var(--trace-contentrow-border-width) solid var(--trace-contentrow-border-color)'};
         }
       `}</style>
     </div>
@@ -644,6 +648,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
           netPrice={item.netPrice}
           discount={item.discount}
           isFirst={index === 0}
+          isLast={index === items.length - 1}
           width="100%"
         />
       ))}
@@ -750,7 +755,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           flex-direction: column;
           align-items: center;
           justify-content: flex-start;
-          gap: 10px;
+          gap: 24px;
           padding: var(--trace-financebox-padding-vertical) var(--trace-financebox-padding-horizontal); /* 32px 12px */
           border-radius: var(--trace-financebox-radius); /* 6px */
           width: 100%;

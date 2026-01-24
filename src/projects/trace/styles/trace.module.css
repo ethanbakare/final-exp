@@ -378,13 +378,17 @@
 
   /* MerchantBlock */
   --trace-merchantblock-radius: 8px;
-  --trace-merchantblock-padding: 0 10px 8px 10px;  /* top right bottom left */
+  --trace-merchantblock-padding: 0 12px 8px 12px;  /* top right bottom left */
 
   /* ContentRow Padding Variations */
-  --trace-contentrow-padding-first: 4px 0 4px 0;  /* First item */
-  --trace-contentrow-padding-subsequent: 4px 0 4px 0; /* Subsequent items */
-  --trace-contentrow-padding-first-with-discount: 4px 0 12px 0;  /* First item with discount */
-  --trace-contentrow-padding-subsequent-with-discount: 4px 0 12px 0; /* Subsequent items with discount */
+  --trace-contentrow-padding-first: 4px 0 6px 0;  /* First item */
+  --trace-contentrow-padding-subsequent: 3px 0 6px 0; /* Subsequent items */
+  --trace-contentrow-padding-first-with-discount: 3px 0 15px 0;  /* First item with discount */
+  --trace-contentrow-padding-subsequent-with-discount: 3px 0 15px 0; /* Subsequent items with discount */
+
+  /* ContentRow Border (divider between items) */
+  --trace-contentrow-border-width: 0.5px;
+  --trace-contentrow-border-color: rgba(255, 255, 255, 0.0); /* White @ 10% - OPTIONAL: comment out border in tracefinance.tsx to disable */
 
   /* PriceFrame */
   --trace-priceframe-discount-offset: -4px;  /* Negative margin to pull discount closer to net price */
@@ -394,7 +398,7 @@
   --trace-rowidentifier-radius-top: 8px;
 
   /* DayTotal */
-  --trace-daytotal-padding: 0 10px;
+  --trace-daytotal-padding: 0 12px;
   --trace-daytotal-border-top: 0.5px;
 
 
