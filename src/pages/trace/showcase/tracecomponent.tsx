@@ -699,9 +699,19 @@ const TraceComponent: React.FC = () => {
                         },
                         {
                           merchantName: "AMAZON",
-                          merchantTotal: "299.99",
+                          merchantTotal: "1247.88",
                           items: [
-                            { quantity: "1x", itemName: "Laptop Stand", netPrice: "299.99" }
+                            { quantity: "1x", itemName: "Laptop Stand", netPrice: "299.99" },
+                            { quantity: "2x", itemName: "USB-C Cable", netPrice: "15.99", discount: "2.00" },
+                            { quantity: "1x", itemName: "Wireless Mouse", netPrice: "45.50" },
+                            { quantity: "3x", itemName: "AA Batteries", netPrice: "8.99" },
+                            { quantity: "1x", itemName: "Desk Lamp", netPrice: "89.99", discount: "10.00" },
+                            { quantity: "1x", itemName: "Notebook Pack", netPrice: "12.49" },
+                            { quantity: "2x", itemName: "Phone Case", netPrice: "24.99" },
+                            { quantity: "1x", itemName: "Webcam HD", netPrice: "129.99", discount: "15.00" },
+                            { quantity: "4x", itemName: "Pen Set", netPrice: "6.75" },
+                            { quantity: "1x", itemName: "Monitor Riser", netPrice: "65.99" },
+                            { quantity: "1x", itemName: "Keyboard Cover", netPrice: "18.99", discount: "3.00" }
                           ]
                         }
                       ]
