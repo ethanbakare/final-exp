@@ -835,7 +835,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           -webkit-overflow-scrolling: touch;
         }
 
-        /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
+        /* Custom scrollbar styling - Modern iOS-style pill scrollbar with auto-hide */
         /* Chrome/Safari (webkit browsers) */
         .finance-box::-webkit-scrollbar {
           width: 2px;  /* Thin scrollbar */
@@ -845,11 +845,18 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           background: transparent;
         }
 
+        /* Hidden by default - auto-hide when not hovering/scrolling */
         .finance-box::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2);  /* White @ 20% opacity */
+          background: transparent;  /* Invisible by default */
           border-radius: 9999px;  /* Pill shape - fully rounded ends */
         }
 
+        /* Show on hover over scrollable area */
+        .finance-box:hover::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);  /* White @ 20% opacity */
+        }
+
+        /* Brighter when hovering directly on thumb */
         .finance-box::-webkit-scrollbar-thumb:hover {
           background: rgba(255, 255, 255, 0.4);  /* White @ 40% opacity on hover */
         }
