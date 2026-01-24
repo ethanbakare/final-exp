@@ -836,6 +836,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
         }
 
         /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
+        /* Chrome/Safari (webkit browsers) */
         .finance-box::-webkit-scrollbar {
           width: 2px;  /* Thin scrollbar */
         }
@@ -853,10 +854,13 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           background: rgba(255, 255, 255, 0.4);  /* White @ 40% opacity on hover */
         }
 
-        /* Firefox scrollbar support */
-        .finance-box {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        /* Firefox scrollbar support - ONLY for non-webkit browsers */
+        /* CRITICAL: @supports prevents these from overriding webkit styles in Chrome 121+ */
+        @supports not selector(::-webkit-scrollbar) {
+          .finance-box {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+          }
         }
       `}</style>
     </div>
