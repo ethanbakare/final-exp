@@ -837,7 +837,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
 
         /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
         .finance-box::-webkit-scrollbar {
-          width: 2px;  /* Thin scrollbar - 30% thinner than original 4px */
+          width: 0.5px;  /* Ultra-thin scrollbar - testing visibility */
         }
 
         .finance-box::-webkit-scrollbar-track {
