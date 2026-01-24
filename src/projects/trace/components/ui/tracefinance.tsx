@@ -509,7 +509,7 @@ export const DayTotal: React.FC<DayTotalProps> = ({
 
           /* Sticky positioning */
           position: sticky;
-          top: calc(0px - var(--trace-financebox-padding-vertical)); /* Compensate for FinanceBox top padding to stick flush to actual top */
+          top: calc(0px - var(--trace-financebox-padding-top)); /* Compensate for FinanceBox top padding to stick flush to actual top */
           z-index: 10; /* Appear above scrolling content */
         }
       `}</style>
@@ -831,7 +831,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           align-items: center;
           justify-content: flex-start;
           gap: 0; /* Gap moved to DayTotal top padding (24px) */
-          padding: var(--trace-financebox-padding-vertical) var(--trace-financebox-padding-horizontal); /* 32px 12px - equal padding on both sides */
+          padding: var(--trace-financebox-padding-top) var(--trace-financebox-padding-horizontal) var(--trace-financebox-padding-bottom) var(--trace-financebox-padding-horizontal); /* 8px 12px 12px 12px - top, right, bottom, left */
           border-radius: var(--trace-financebox-radius); /* 6px */
           width: 100%;
           height: 100%;
