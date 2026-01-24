@@ -822,7 +822,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           align-items: center;
           justify-content: flex-start;
           gap: 24px;
-          padding: var(--trace-financebox-padding-vertical) calc(var(--trace-financebox-padding-horizontal) + 2px) var(--trace-financebox-padding-vertical) var(--trace-financebox-padding-horizontal); /* 32px 14px 32px 12px - extra 2px right for scrollbar breathing room */
+          padding: var(--trace-financebox-padding-vertical) calc(var(--trace-financebox-padding-horizontal) + 4px) var(--trace-financebox-padding-vertical) var(--trace-financebox-padding-horizontal); /* 32px 16px 32px 12px - extra 4px right for scrollbar breathing room */
           border-radius: var(--trace-financebox-radius); /* 6px */
           width: 100%;
           height: 100%;
