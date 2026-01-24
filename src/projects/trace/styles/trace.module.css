@@ -402,7 +402,7 @@
   --trace-rowidentifier-radius-top: 8px;
 
   /* DayTotal */
-  --trace-daytotal-padding: 0 12px;
+  --trace-daytotal-padding: 24px 12px 4px 12px; /* Top: 24px (from FinanceBox gap), Right: 12px, Bottom: 4px (from DayBlock gap), Left: 12px */
   --trace-daytotal-border-top: 0.5px;
 
 
