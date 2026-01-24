@@ -148,6 +148,7 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
           color: var(--trace-text-tertiary);
           text-align: right;
           vertical-align: middle;
+          text-transform: uppercase;
         }
       `}</style>
     </div>
@@ -292,7 +293,7 @@ export const ItemName: React.FC<ItemNameProps> = ({
 
         .item-text {
           font-family: var(--trace-font-family);
-          font-size: var(--trace-fs-button); /* 16px */
+          font-size: var(--trace-fs-itemname); /* 14px */
           font-weight: var(--trace-fw-normal); /* 400 */
           line-height: var(--trace-lh-medium); /* 1.71 */
           color: var(--trace-text-secondary);
@@ -539,7 +540,7 @@ export const QuantityItemName: React.FC<QuantityItemNameProps> = ({
       <style jsx>{`
         .quantity-item-name {
           display: flex;
-          align-items: center;
+          align-items: baseline;
           justify-content: center;
           gap: 10px;
           height: 20px;
@@ -625,6 +626,9 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
   width = '277px',
   className = '',
 }) => {
+  // When RowIdentifier is hidden, add 6px top padding to preserve spacing
+  const paddingTop = showRowIdentifier ? '0px' : '6px';
+
   return (
     <div className={`merchant-block ${className} ${styles.container}`}>
       <RowIdentifier
@@ -652,6 +656,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
           border-radius: 8px;
           background: var(--trace-bg-merchant);
           padding: var(--trace-merchantblock-padding);
+          padding-top: ${paddingTop};
           width: ${width};
         }
       `}</style>
@@ -670,7 +675,7 @@ export const DayExpenses: React.FC<DayExpensesProps> = ({
       {merchants.map((merchant, index) => {
         // Determine if RowIdentifier should be shown:
         // - Hide if there's only 1 merchant AND merchantName is undefined
-        // - Show in all other cases
+        // - Show in all other cases (multiple merchants, or single merchant with name)
         const showRowIdentifier = !(merchants.length === 1 && !merchant.merchantName);
 
         return (

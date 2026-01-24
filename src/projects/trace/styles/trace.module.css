@@ -326,6 +326,7 @@
   --trace-fs-small: 10px;              /* Line height: 2.4 (24px) */
   --trace-fs-body: 12px;               /* Line height: 2.0 (24px) */
   --trace-fs-medium: 14px;             /* Line height: 1.71 (24px) */
+  --trace-fs-itemname: 14px;           /* Line height: 1.71 (24px) */
   --trace-fs-button: 16px;             /* Line height: 1.44 (23px) */
   --trace-fs-processing: 16px;         /* Line height: 1.44 (23px) */
   --trace-fs-title: 24px;              /* Showcase section titles */
@@ -343,6 +344,7 @@
   --trace-lh-small: 2.4;
   --trace-lh-body: 2.0;
   --trace-lh-medium: 1.71;
+  --trace-lh-itemname: 1.71;
   --trace-lh-button: 1.44;
   --trace-lh-processing: 1.44;
 
@@ -379,10 +381,10 @@
   --trace-merchantblock-padding: 0 10px 8px 10px;  /* top right bottom left */
 
   /* ContentRow Padding Variations */
-  --trace-contentrow-padding-first: 4px 0 12px 0;  /* First item */
-  --trace-contentrow-padding-subsequent: 0 0 12px 0; /* Subsequent items */
-  --trace-contentrow-padding-first-with-discount: 4px 0 22px 0;  /* First item with discount */
-  --trace-contentrow-padding-subsequent-with-discount: 0 0 22px 0; /* Subsequent items with discount */
+  --trace-contentrow-padding-first: 4px 0 4px 0;  /* First item */
+  --trace-contentrow-padding-subsequent: 4px 0 4px 0; /* Subsequent items */
+  --trace-contentrow-padding-first-with-discount: 4px 0 12px 0;  /* First item with discount */
+  --trace-contentrow-padding-subsequent-with-discount: 4px 0 12px 0; /* Subsequent items with discount */
 
   /* PriceFrame */
   --trace-priceframe-discount-offset: -4px;  /* Negative margin to pull discount closer to net price */

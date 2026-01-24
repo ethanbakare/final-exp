@@ -41,7 +41,7 @@ export function groupEntriesByDay(entries: ExpenseEntry[]): any[] {
       // Map to the format FinanceBox components expect
       const allItems = merchantEntries.flatMap(entry =>
         entry.items.map(item => ({
-          quantity: item.quantity.toString(),
+          quantity: item.quantity.toString() + 'x',
           itemName: item.name,
           netPrice: item.total_price.toFixed(2),
           discount: item.discount > 0 ? item.discount.toFixed(2) : undefined,
