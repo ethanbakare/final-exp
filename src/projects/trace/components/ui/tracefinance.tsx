@@ -509,7 +509,7 @@ export const DayTotal: React.FC<DayTotalProps> = ({
 
           /* Sticky positioning */
           position: sticky;
-          top: 0; /* Stick to top of FinanceBox scroll container */
+          top: calc(0px - var(--trace-financebox-padding-vertical)); /* Compensate for FinanceBox top padding to stick flush to actual top */
           z-index: 10; /* Appear above scrolling content */
         }
       `}</style>
