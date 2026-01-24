@@ -502,6 +502,10 @@ export const DayTotal: React.FC<DayTotalProps> = ({
           padding: var(--trace-daytotal-padding);
           border-radius: 8px;
           width: ${width};
+          /* DEBUG: Red border to visualize DayTotal container */
+          border: 2px solid red;
+          /* Add background for sticky positioning visibility */
+          background: var(--trace-bg-dark); /* #1c1917 - same as TextBox */
         }
       `}</style>
     </div>
