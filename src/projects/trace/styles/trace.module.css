@@ -372,7 +372,7 @@
   --trace-textbox-border: 1px;
 
   /* FinanceBox Inner Padding */
-  --trace-financebox-padding-vertical: 32px;
+  --trace-financebox-padding-vertical: 8px; /* Reduced from 32px; 24px moved to DayTotal top padding */
   --trace-financebox-padding-horizontal: 12px;
   --trace-financebox-radius: 6px;
 
