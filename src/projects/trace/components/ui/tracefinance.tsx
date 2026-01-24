@@ -804,7 +804,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`finance-box ${className} ${styles.container}`}>
+    <div className={`finance-box ${className}`}>
       {days.map((day, index) => (
         <DayBlock
           key={index}
@@ -836,21 +836,20 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
         }
 
         /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
-        /* IMPORTANT: Use :global() to prevent styled-jsx scoping issues with scrollbar pseudo-elements */
-        :global(.finance-box::-webkit-scrollbar) {
+        .finance-box::-webkit-scrollbar {
           width: 2px;  /* Thin scrollbar */
         }
 
-        :global(.finance-box::-webkit-scrollbar-track) {
+        .finance-box::-webkit-scrollbar-track {
           background: transparent;
         }
 
-        :global(.finance-box::-webkit-scrollbar-thumb) {
+        .finance-box::-webkit-scrollbar-thumb {
           background: rgba(255, 255, 255, 0.2);  /* White @ 20% opacity */
           border-radius: 9999px;  /* Pill shape - fully rounded ends */
         }
 
-        :global(.finance-box::-webkit-scrollbar-thumb:hover) {
+        .finance-box::-webkit-scrollbar-thumb:hover {
           background: rgba(255, 255, 255, 0.4);  /* White @ 40% opacity on hover */
         }
 
