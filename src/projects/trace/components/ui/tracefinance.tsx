@@ -836,20 +836,21 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
         }
 
         /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
-        .finance-box::-webkit-scrollbar {
-          width: 0.5px;  /* Ultra-thin scrollbar - testing visibility */
+        /* IMPORTANT: Use :global() to prevent styled-jsx scoping issues with scrollbar pseudo-elements */
+        :global(.finance-box::-webkit-scrollbar) {
+          width: 2px;  /* Thin scrollbar */
         }
 
-        .finance-box::-webkit-scrollbar-track {
+        :global(.finance-box::-webkit-scrollbar-track) {
           background: transparent;
         }
 
-        .finance-box::-webkit-scrollbar-thumb {
+        :global(.finance-box::-webkit-scrollbar-thumb) {
           background: rgba(255, 255, 255, 0.2);  /* White @ 20% opacity */
           border-radius: 9999px;  /* Pill shape - fully rounded ends */
         }
 
-        .finance-box::-webkit-scrollbar-thumb:hover {
+        :global(.finance-box::-webkit-scrollbar-thumb:hover) {
           background: rgba(255, 255, 255, 0.4);  /* White @ 40% opacity on hover */
         }
 
