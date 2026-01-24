@@ -215,6 +215,8 @@ export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
           align-items: baseline;
           justify-content: flex-end;
           height: 20px;
+          /* DEBUG: Red border to visualize price container */
+          border: .2px solid red;
         }
 
         .currency {
@@ -289,6 +291,8 @@ export const ItemName: React.FC<ItemNameProps> = ({
           justify-content: center;
           flex-direction: column;
           height: 24px; /* Increased from 20px to accommodate line-height (14px * 1.71 ≈ 24px) */
+          flex: 1;  /* Grow to fill available space in parent QuantityItemName */
+          min-width: 0;  /* Allow shrinking below content size for ellipsis */
         }
 
         .item-text {
@@ -299,11 +303,10 @@ export const ItemName: React.FC<ItemNameProps> = ({
           color: var(--trace-text-secondary);
           /* DEBUG: Red border to visualize text bounding box */
           border: .2px solid red;
-          /* Ellipsis overflow */
+          /* Ellipsis overflow - width determined by parent flex layout */
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          max-width: 180px; /* Adjust to see ellipsis effect */
         }
       `}</style>
     </div>
@@ -551,7 +554,10 @@ export const QuantityItemName: React.FC<QuantityItemNameProps> = ({
           align-items: baseline;
           justify-content: center;
           gap: 10px;
-          height: 20px;
+          flex: 1;  /* Grow to fill available space */
+          min-width: 0;  /* Allow flex items to shrink below content size */
+          /* DEBUG: Green border to visualize QuantityItemName container */
+          border: .2px solid green;
         }
       `}</style>
     </div>
@@ -579,6 +585,10 @@ export const PriceFrame: React.FC<PriceFrameProps> = ({
           align-items: flex-end;
           justify-content: center;
           flex-direction: column;
+          width: var(--trace-priceframe-width);  /* Fixed width for consistent vertical alignment */
+          flex-shrink: 0;  /* Prevent shrinking when space is limited */
+          /* DEBUG: Blue border to visualize PriceFrame container (outer) */
+          border: .2px solid blue;
         }
 
         .discount-wrapper {
@@ -617,7 +627,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
         .content-row {
           display: flex;
           align-items: baseline;
-          justify-content: space-between;
+          gap: var(--trace-contentrow-gap);
           padding: ${getPadding()};
           width: ${width};
           /* OPTIONAL: Bottom border between rows - comment out to disable */

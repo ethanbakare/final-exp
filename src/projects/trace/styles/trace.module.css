@@ -391,7 +391,11 @@
   --trace-contentrow-border-color: rgba(255, 255, 255, 0.0); /* White @ 10% - OPTIONAL: comment out border in tracefinance.tsx to disable */
 
   /* PriceFrame */
+  --trace-priceframe-width: 85px;  /* Fixed width for consistent vertical alignment (handles £999,999.99) */
   --trace-priceframe-discount-offset: -4px;  /* Negative margin to pull discount closer to net price */
+
+  /* ContentRow Layout */
+  --trace-contentrow-gap: 16px;  /* Minimum spacing between QuantityItemName and PriceFrame */
 
   /* RowIdentifier */
   --trace-rowidentifier-padding: 6px 10px;
