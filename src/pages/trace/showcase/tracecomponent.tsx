@@ -597,7 +597,7 @@ const TraceComponent: React.FC = () => {
             </ButtonGrid>
 
             <ButtonGrid label="PRICE FRAME (NO DISCOUNT) - MOLECULE">
-              <PriceFrame netPrice="499.99" />
+              <PriceFrame netPrice="5000.99" />
             </ButtonGrid>
           </div>
 
@@ -620,7 +620,7 @@ const TraceComponent: React.FC = () => {
                 <ContentRow
                   quantity="1x"
                   itemName="Playstation 5"
-                  netPrice="499.99"
+                  netPrice="5000.99"
                 />
               </div>
               <div className="button-label">CONTENT ROW (NO DISCOUNT) - MOLECULE</div>
@@ -636,7 +636,7 @@ const TraceComponent: React.FC = () => {
                   merchantTotal="628.21"
                   items={[
                     { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
-                    { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
+                    { quantity: "1x", itemName: "Playstation 5", netPrice: "5000.99" },
                     { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
                     { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
                     { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
@@ -661,7 +661,7 @@ const TraceComponent: React.FC = () => {
                       merchantTotal: "628.21",
                       items: [
                         { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
-                        { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
+                        { quantity: "1x", itemName: "Playstation 5", netPrice: "5000.99" },
                         { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
                         { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
                         { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
@@ -690,7 +690,7 @@ const TraceComponent: React.FC = () => {
                           merchantTotal: "628.21",
                           items: [
                             { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
-                            { quantity: "1x", itemName: "Playstation 5", netPrice: "499.99" },
+                            { quantity: "1x", itemName: "Playstation 5", netPrice: "5000.99" },
                             { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
                             { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
                             { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
