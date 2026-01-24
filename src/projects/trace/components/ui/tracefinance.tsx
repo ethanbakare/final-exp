@@ -381,6 +381,7 @@ export interface QuantityItemNameProps {
 export interface PriceFrameProps {
   netPrice: string;
   discount?: string; // Optional discount
+  width?: number; // Optional width override (in px) - only allows values SMALLER than 85px
   className?: string;
 }
 
@@ -392,6 +393,7 @@ export interface ContentRowProps {
   isFirst?: boolean; // Differentiate first row padding from subsequent rows
   isLast?: boolean; // Hide bottom border on last row
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
+  priceFrameWidth?: number; // Optional PriceFrame width override (in px) - only allows values SMALLER than 85px
   className?: string;
 }
 
@@ -406,6 +408,7 @@ export interface MerchantBlockProps {
   }>;
   showRowIdentifier?: boolean; // Default: true, controls whether RowIdentifier is shown
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
+  priceFrameWidth?: number; // Optional PriceFrame width override (in px) - only allows values SMALLER than 85px
   className?: string;
 }
 
@@ -421,6 +424,7 @@ export interface DayExpensesProps {
     }>;
   }>;
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
+  priceFrameWidth?: number; // Optional PriceFrame width override (in px) - only allows values SMALLER than 85px
   className?: string;
 }
 
@@ -568,6 +572,7 @@ export const QuantityItemName: React.FC<QuantityItemNameProps> = ({
 export const PriceFrame: React.FC<PriceFrameProps> = ({
   netPrice,
   discount,
+  width,
   className = '',
 }) => {
   return (
@@ -585,7 +590,7 @@ export const PriceFrame: React.FC<PriceFrameProps> = ({
           align-items: flex-end;
           justify-content: center;
           flex-direction: column;
-          width: var(--trace-priceframe-width);  /* Fixed width for consistent vertical alignment */
+          width: ${width ? `${width}px` : 'var(--trace-priceframe-width)'};  /* Dynamic width based on data, fallback to 85px */
           flex-shrink: 0;  /* Prevent shrinking when space is limited */
           /* DEBUG: Blue border to visualize PriceFrame container (outer) */
           border: .2px solid blue;
@@ -608,6 +613,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   isFirst = false,
   isLast = false,
   width = '277px',
+  priceFrameWidth,
   className = '',
 }) => {
   // Determine padding based on position and discount presence
@@ -621,7 +627,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   return (
     <div className={`content-row ${className} ${styles.container}`}>
       <QuantityItemName quantity={quantity} itemName={itemName} />
-      <PriceFrame netPrice={netPrice} discount={discount} />
+      <PriceFrame netPrice={netPrice} discount={discount} width={priceFrameWidth} />
 
       <style jsx>{`
         .content-row {
@@ -645,6 +651,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
   items,
   showRowIdentifier = true,
   width = '277px',
+  priceFrameWidth,
   className = '',
 }) => {
   // When RowIdentifier is hidden, add 6px top padding to preserve spacing
@@ -667,6 +674,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
           isFirst={index === 0}
           isLast={index === items.length - 1}
           width="100%"
+          priceFrameWidth={priceFrameWidth}
         />
       ))}
 
@@ -690,6 +698,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
 export const DayExpenses: React.FC<DayExpensesProps> = ({
   merchants,
   width = '277px',
+  priceFrameWidth,
   className = '',
 }) => {
   return (
@@ -708,6 +717,7 @@ export const DayExpenses: React.FC<DayExpensesProps> = ({
             items={merchant.items}
             showRowIdentifier={showRowIdentifier}
             width="100%"
+            priceFrameWidth={priceFrameWidth}
           />
         );
       })}
@@ -732,10 +742,49 @@ export const DayBlock: React.FC<DayBlockProps> = ({
   width = '277px',
   className = '',
 }) => {
+  // Calculate optimal PriceFrame width based on longest price in this day
+  const calculateOptimalPriceWidth = (): number | undefined => {
+    const DEFAULT_WIDTH = 85;
+    const allPrices: string[] = [];
+
+    // Collect all netPrice values from all merchants and items
+    merchants.forEach(merchant => {
+      merchant.items.forEach(item => {
+        allPrices.push(item.netPrice);
+      });
+    });
+
+    if (allPrices.length === 0) return undefined; // Use CSS variable default
+
+    // Find the longest price string
+    const maxPriceLength = Math.max(...allPrices.map(p => p.length));
+
+    // Calculate width based on character count
+    // Examples: "2.50" (4) → 50px, "14.99" (5) → 55px, "104.99" (6) → 65px, "499.99" (6) → 65px
+    let calculatedWidth: number;
+    if (maxPriceLength <= 4) {
+      calculatedWidth = 50; // "2.50" → 50px
+    } else if (maxPriceLength <= 5) {
+      calculatedWidth = 55; // "14.99" → 55px
+    } else if (maxPriceLength <= 6) {
+      calculatedWidth = 65; // "104.99", "499.99" → 65px
+    } else if (maxPriceLength <= 7) {
+      calculatedWidth = 75; // "9999.99" → 75px
+    } else {
+      calculatedWidth = 85; // "99999.99" or longer → 85px (max)
+    }
+
+    // CRITICAL CONSTRAINT: Only return width if it's SMALLER than default
+    // Never allow width to be larger than 85px
+    return calculatedWidth < DEFAULT_WIDTH ? calculatedWidth : undefined;
+  };
+
+  const priceFrameWidth = calculateOptimalPriceWidth();
+
   return (
     <div className={`day-block ${className} ${styles.container}`}>
       <DayTotal date={date} total={total} width="100%" />
-      <DayExpenses merchants={merchants} width="100%" />
+      <DayExpenses merchants={merchants} width="100%" priceFrameWidth={priceFrameWidth} />
 
       <style jsx>{`
         .day-block {
