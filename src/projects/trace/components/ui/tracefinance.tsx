@@ -288,7 +288,7 @@ export const ItemName: React.FC<ItemNameProps> = ({
           display: flex;
           justify-content: center;
           flex-direction: column;
-          height: 20px;
+          height: 24px; /* Increased from 20px to accommodate line-height (14px * 1.71 ≈ 24px) */
         }
 
         .item-text {
@@ -297,6 +297,13 @@ export const ItemName: React.FC<ItemNameProps> = ({
           font-weight: var(--trace-fw-normal); /* 400 */
           line-height: var(--trace-lh-medium); /* 1.71 */
           color: var(--trace-text-secondary);
+          /* DEBUG: Red border to visualize text bounding box */
+          border: .2px solid red;
+          /* Ellipsis overflow */
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 180px; /* Adjust to see ellipsis effect */
         }
       `}</style>
     </div>
