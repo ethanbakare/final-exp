@@ -822,10 +822,41 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           align-items: center;
           justify-content: flex-start;
           gap: 24px;
-          padding: var(--trace-financebox-padding-vertical) var(--trace-financebox-padding-horizontal); /* 32px 12px */
+          padding: var(--trace-financebox-padding-vertical) calc(var(--trace-financebox-padding-horizontal) + 2px) var(--trace-financebox-padding-vertical) var(--trace-financebox-padding-horizontal); /* 32px 14px 32px 12px - extra 2px right for scrollbar breathing room */
           border-radius: var(--trace-financebox-radius); /* 6px */
           width: 100%;
           height: 100%;
+
+          /* Scrollable container */
+          overflow-y: auto;
+          overflow-x: hidden;
+
+          /* Smooth scroll on iOS */
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
+        .finance-box::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        .finance-box::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .finance-box::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);  /* White @ 20% opacity */
+          border-radius: 9999px;  /* Pill shape - fully rounded ends */
+        }
+
+        .finance-box::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.4);  /* White @ 40% opacity on hover */
+        }
+
+        /* Firefox scrollbar support */
+        .finance-box {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
         }
       `}</style>
     </div>
