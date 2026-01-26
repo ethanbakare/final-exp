@@ -83,3 +83,396 @@
     aspect-ratio: 956 / 806;
   }
 }
+
+/* ============================================
+   ACT DECK - Portfolio Project Styles
+   ============================================ */
+
+/* Page wrapper for ActDeck - white background */
+.actdeck-page-wrapper {
+  min-height: 100vh;
+  background: #f0f0f1;
+  padding: 0;
+  margin: 0;
+}
+
+/* Container for all sections - 940px max-width */
+.actdeck-container {
+  max-width: 940px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* V1 - First image (no padding, no background) */
+.actdeck-section-v1 {
+  width: 100%;
+}
+
+.actdeck-section-v1 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Text Section (After V1) */
+.actdeck-text-section {
+  padding: 85px 47px 71px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  background: #FAFAF8;
+}
+
+.actdeck-text-intro {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  color: #737685;
+  line-height: 1.1;
+  text-align: left;
+}
+
+.actdeck-text-intro strong {
+  font-weight: 700;
+}
+
+.actdeck-text-task-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.actdeck-text-task-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #737685;
+  margin: 0;
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+.actdeck-text-task-description {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  color: #737685;
+  line-height: 1.1;
+  margin: 10px 0 25px;
+  text-align: left;
+}
+
+/* V2 - Second image (background #EDEDED, padding top) */
+.actdeck-section-v2 {
+  background: #EDEDED;
+  padding: 90px 48px 0;
+}
+
+.actdeck-section-v2 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V3 - Third image (padding top) */
+.actdeck-section-v3 {
+  padding: 58px 48px 0;
+}
+
+.actdeck-section-v3 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V4 - Fourth image (no padding) */
+.actdeck-section-v4 {
+  width: 100%;
+  padding: 0 48px;
+}
+
+.actdeck-section-v4 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V5 - Two-column layout (typography + image) */
+.actdeck-section-v5 {
+  background: linear-gradient(to bottom, #F4F4F5, #F7F7F7);
+  padding: 90px 48px 62px;
+  display: flex;
+  gap: 0;
+}
+
+.actdeck-v5-typography {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.actdeck-v5-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 1.7rem;
+  color: #808194;
+  margin: 0;
+  padding-bottom: 15px;
+}
+
+.actdeck-v5-description {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  color: #808194;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.actdeck-v5-image-wrapper {
+  background: rgba(234, 232, 244, 0.22);
+  padding: 37px 72px;
+  flex: 1;
+}
+
+.actdeck-v5-image-wrapper img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V6 - Sixth image (gradient background, padding top/bottom) */
+.actdeck-section-v6 {
+  background: linear-gradient(to bottom, #F7F7F7, #FFFFFF);
+  padding: 44px 48px 14px;
+}
+
+.actdeck-section-v6 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V7 - Seventh image (white background, padding top/bottom) */
+.actdeck-section-v7 {
+  background: #FFFFFF;
+  padding: 23px 48px 78px;
+}
+
+.actdeck-section-v7 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V8 & V9 - Container holds both images */
+.actdeck-section-v8-v9 {
+  background: linear-gradient(to bottom, #EEEEF5, #FAFAFA);
+  padding: 91px 48px 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 120px;
+}
+
+.actdeck-section-v8-v9 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V10 - Tenth image (white background, padding top/bottom) */
+.actdeck-section-v10 {
+  background: #FFFFFF;
+  padding: 48px 48px 62px;
+}
+
+.actdeck-section-v10 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V11 - Eleventh image (no padding) */
+.actdeck-section-v11 {
+  width: 100%;
+}
+
+.actdeck-section-v11 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* RESPONSIVE - ActDeck Mobile & Tablet */
+@media (max-width: 768px) {
+  /* Text section mobile adjustments */
+  .actdeck-text-section {
+    padding: 51px 6px 19px;
+    gap: 28px;
+  }
+
+  .actdeck-text-intro {
+    font-size: 0.8rem;
+  }
+
+  .actdeck-text-task-title {
+    font-size: 0.8rem;
+  }
+
+  .actdeck-text-task-description {
+    font-size: 0.8rem;
+    margin: 5px 0 25px;
+  }
+
+  /* V2 mobile padding */
+  .actdeck-section-v2 {
+    padding: 34px 12px 0;
+  }
+
+  /* V3 mobile padding */
+  .actdeck-section-v3 {
+    padding: 23px 12px 0;
+  }
+
+  /* V4 mobile padding */
+  .actdeck-section-v4 {
+    padding: 0 12px;
+  }
+
+  /* V5 mobile - stack vertically with gap */
+  .actdeck-section-v5 {
+    flex-direction: column;
+    gap: 19px;
+    padding: 90px 12px 62px;
+  }
+
+  .actdeck-v5-image-wrapper {
+    padding: 37px 28px;
+  }
+
+  /* V6 mobile padding */
+  .actdeck-section-v6 {
+    padding: 44px 12px 14px;
+  }
+
+  /* V7 mobile padding */
+  .actdeck-section-v7 {
+    padding: 23px 12px 78px;
+  }
+
+  /* V8 & V9 mobile gap */
+  .actdeck-section-v8-v9 {
+    padding: 28px 12px 37px;
+    gap: 46px;
+  }
+
+  /* V10 mobile padding */
+  .actdeck-section-v10 {
+    padding: 12px 12px 27px;
+  }
+}
+
+/* Tablet-specific (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* V2 tablet padding */
+  .actdeck-section-v2 {
+    padding: 78px 48px 0;
+  }
+}
+
+/* ============================================
+   MAGMA DECK - Portfolio Project Styles
+   ============================================ */
+
+/* Page wrapper for MagmaDeck */
+.magmadeck-page-wrapper {
+  min-height: 100vh;
+  background: #f2efec;
+  padding: 0;
+  margin: 0;
+}
+
+/* Container for all sections - 940px max-width */
+.magmadeck-container {
+  max-width: 940px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Section 01 - First image (edge-to-edge, no padding, no background) */
+.magmadeck-section-01 {
+  width: 100%;
+}
+
+.magmadeck-section-01 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 02 - Four images (02v1 to 02v4) */
+.magmadeck-section-02 {
+  background: linear-gradient(to bottom, #EDEDE1, #F7F3EB);
+  padding: 4rem 48px 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.125rem;
+}
+
+.magmadeck-section-02 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 03 - Four images (03v1 to 03v4) */
+.magmadeck-section-03 {
+  background: linear-gradient(to bottom, #EDEDE1, #F7F3EB);
+  padding: 4.6rem 48px 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.125rem;
+}
+
+.magmadeck-section-03 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 04 - Two images (04v1 to 04v2) */
+.magmadeck-section-04 {
+  background: linear-gradient(to bottom, #EDEDE1, #F7F3EB);
+  padding: 4rem 48px 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.magmadeck-section-04 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* RESPONSIVE - MagmaDeck Mobile */
+@media (max-width: 768px) {
+  /* Section 02 mobile */
+  .magmadeck-section-02 {
+    padding: 4rem 12px 1rem;
+    gap: 1.225rem;
+  }
+
+  /* Section 03 mobile */
+  .magmadeck-section-03 {
+    padding: 2.7rem 12px 1rem;
+    gap: 1.225rem;
+  }
+
+  /* Section 04 mobile */
+  .magmadeck-section-04 {
+    padding: 3.4rem 12px 2.3rem;
+    gap: 2.6rem;
+  }
+}
