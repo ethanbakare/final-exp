@@ -400,9 +400,11 @@
   width: 100%;
 }
 
-/* Section 01 - First image (edge-to-edge, no padding, no background) */
+/* Section 01 - First image (edge-to-edge) */
 .magmadeck-section-01 {
   width: 100%;
+  background: #f7f3eb;
+  padding-top: 4rem;
 }
 
 .magmadeck-section-01 img {
@@ -413,7 +415,7 @@
 
 /* Section 02 - Four images (02v1 to 02v4) */
 .magmadeck-section-02 {
-  background: linear-gradient(to bottom, #EDEDE1, #F7F3EB);
+  background: linear-gradient(to bottom, #EDE9E1, #F7F3EB);
   padding: 4rem 48px 1rem;
   display: flex;
   flex-direction: column;
@@ -428,7 +430,7 @@
 
 /* Section 03 - Four images (03v1 to 03v4) */
 .magmadeck-section-03 {
-  background: linear-gradient(to bottom, #EDEDE1, #F7F3EB);
+  background: linear-gradient(to bottom, #EDE9E1, #F7F3EB);
   padding: 4.6rem 48px 1rem;
   display: flex;
   flex-direction: column;
@@ -443,7 +445,7 @@
 
 /* Section 04 - Two images (04v1 to 04v2) */
 .magmadeck-section-04 {
-  background: linear-gradient(to bottom, #EDEDE1, #F7F3EB);
+  background: linear-gradient(to bottom, #EDE9E1, #F7F3EB);
   padding: 4rem 48px 3.5rem;
   display: flex;
   flex-direction: column;
@@ -458,6 +460,11 @@
 
 /* RESPONSIVE - MagmaDeck Mobile */
 @media (max-width: 768px) {
+  /* Section 01 mobile */
+  .magmadeck-section-01 {
+    padding-top: 2.5rem;
+  }
+
   /* Section 02 mobile */
   .magmadeck-section-02 {
     padding: 4rem 12px 1rem;
