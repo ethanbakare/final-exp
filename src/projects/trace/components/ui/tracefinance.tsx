@@ -25,6 +25,7 @@ export interface MerchantFrameProps {
 
 export interface MerchantTotalFrameProps {
   total: string;
+  width?: number; // Optional width override (in px) - for adaptive sizing
   className?: string;
 }
 
@@ -138,8 +139,8 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
           align-items: center;
           justify-content: flex-end;
           height: 12px;
-          /* DEBUG: Green border to visualize merchant frame container */
-          border: 1px solid green;
+          flex: 1;  /* Grow to fill available space */
+          min-width: 0;  /* Allow shrinking for ellipsis */
         }
 
         .merchant-name {
@@ -151,8 +152,12 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
           text-align: right;
           vertical-align: middle;
           text-transform: uppercase;
-          /* DEBUG: Red border to visualize merchant name bounds */
-          border: 1px solid red;
+          /* Flex and ellipsis properties */
+          flex: 1;  /* Fill available space in parent */
+          min-width: 0;  /* Allow shrinking below content size */
+          overflow: hidden;  /* Hide overflow */
+          text-overflow: ellipsis;  /* Show ellipsis for truncated text */
+          white-space: nowrap;  /* Prevent wrapping */
         }
       `}</style>
     </div>
@@ -163,8 +168,21 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
 // Modern CSS: Single container with baseline alignment, no nested divs
 export const MerchantTotalFrame: React.FC<MerchantTotalFrameProps> = ({
   total,
+  width,
   className = '',
 }) => {
+  // Calculate default width based on total length if no width provided
+  const getDefaultWidth = (): number => {
+    const totalLength = total.length;
+    if (totalLength <= 4) return 35; // "2.50" → 35px
+    if (totalLength <= 5) return 40; // "14.99" → 40px
+    if (totalLength <= 6) return 50; // "104.99" → 50px
+    if (totalLength <= 7) return 60; // "9999.99" → 60px
+    return 70; // "99999.99" or longer → 70px
+  };
+
+  const frameWidth = width ?? getDefaultWidth();
+
   return (
     <div className={`merchant-total-frame ${className} ${styles.container}`}>
       <span className="currency">£</span>
@@ -176,6 +194,8 @@ export const MerchantTotalFrame: React.FC<MerchantTotalFrameProps> = ({
           align-items: baseline;
           justify-content: flex-end;
           height: 12px;
+          width: ${frameWidth}px;  /* Dynamic width based on total length */
+          flex-shrink: 0;  /* Prevent shrinking when space is limited */
         }
 
         .currency {
@@ -532,10 +552,22 @@ export const RowIdentifier: React.FC<RowIdentifierProps> = ({
     return null;
   }
 
+  // Calculate optimal width for MerchantTotalFrame based on total length
+  const calculateOptimalMerchantTotalWidth = (): number => {
+    const totalLength = merchantTotal.length;
+    if (totalLength <= 4) return 35; // "2.50" → 35px
+    if (totalLength <= 5) return 40; // "14.99" → 40px
+    if (totalLength <= 6) return 50; // "104.99" → 50px
+    if (totalLength <= 7) return 60; // "9999.99" → 60px
+    return 70; // "99999.99" or longer → 70px
+  };
+
+  const merchantTotalWidth = calculateOptimalMerchantTotalWidth();
+
   return (
     <div className={`row-identifier ${className} ${styles.container}`}>
       <MerchantFrame merchantName={merchantName} />
-      <MerchantTotalFrame total={merchantTotal} />
+      <MerchantTotalFrame total={merchantTotal} width={merchantTotalWidth} />
 
       <style jsx>{`
         .row-identifier {
