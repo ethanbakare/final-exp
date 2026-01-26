@@ -26,11 +26,12 @@
 
 ### Goals
 
-The Trace animation system needs to handle three primary scenarios:
+The Trace animation system needs to handle these primary scenarios:
 
-1. **New Entry Under Existing Date** - When a user records an expense that belongs to an already-visible date section
-2. **New Date Section** - When a user records an expense for a date that doesn't exist in the current view
-3. **Auto-Scroll to New Content** - Automatically bring newly added entries into view with smooth scrolling
+1. **New MerchantBlock on Same Day** - When a user records an expense for a different merchant on an existing date (e.g., "TESCOS" already exists for Jan 26th, user adds "AMAZON" on same day)
+2. **New DayBlock for Different Date** - When a user records an expense for a date that doesn't exist in the current view
+3. **Directional Insertion** - New content can appear **above** existing content (existing slides down) or **below** existing content (triggers auto-scroll)
+4. **Auto-Scroll to New Content** - Automatically bring newly added entries into view with smooth scrolling (similar to ClipStream implementation)
 
 ### Design Philosophy
 
@@ -114,37 +115,55 @@ TextBox
 
 ## Entry Animation Strategies
 
-### Scenario 1: New Entry Under Existing Date
+### Scenario 1: New MerchantBlock on Existing Day
 
 **User Flow**:
-User records expense → API returns parsed data → Data grouped by date → New `ExpenseItem` appends to existing `DayBlock`
+User records expense → API returns parsed data → Data grouped by date and merchant → New `MerchantBlock` added to existing `DayBlock`
 
-**Animation Approach - "Slide & Fade In"**:
+**Example**:
+- Existing: "January 26th, 2026" has TESCOS merchant
+- User adds: Receipt from AMAZON on same day
+- Result: AMAZON MerchantBlock inserts into existing Jan 26th DayBlock
+
+**Animation Approach - "Expand & Fade In"**:
 
 ```
 Initial State:
-DayTotal: "January 26th, 2026"
-├── ExpenseItem A (existing)
-├── ExpenseItem B (existing)
-└── [insertion point]
+DayTotal: "January 26th, 2026" (£628.21)
+└── MerchantBlock: TESCOS (£628.21)
+    ├── 2x Headphones (£104.99)
+    ├── 1x Playstation 5 (£5000.99)
+    └── ...
 
-Animation Sequence (300ms total):
-1. New ExpenseItem starts with opacity: 0, transform: translateY(-8px)
-2. Existing items (A, B) transform down by height of new item (smooth displacement)
-3. New item animates to opacity: 1, transform: translateY(0)
-4. Timeline:
-   - 0ms: Insert DOM element (height: 0, opacity: 0, translateY: -8px)
-   - 0-50ms: Expand height to natural size (triggers reflow for existing items)
-   - 50-300ms: Fade in (opacity 0→1) + Slide down (translateY -8px→0)
+New State After Animation:
+DayTotal: "January 26th, 2026" (£1876.09) ← total updates
+├── MerchantBlock: TESCOS (£628.21)
+│   └── ... (existing items)
+└── MerchantBlock: AMAZON (£1247.88) ← NEW, animates in
+    ├── 1x Laptop Stand (£299.99)
+    └── ...
+
+Animation Sequence (350ms total):
+1. DayTotal updates (total recalculates, animates number change)
+2. New MerchantBlock starts with: max-height: 0, opacity: 0, translateY: -12px
+3. Existing content below displaces downward smoothly
+4. New block animates to: max-height: auto, opacity: 1, translateY: 0
+5. Timeline:
+   - 0ms: Insert MerchantBlock DOM (collapsed state)
+   - 0-50ms: DayTotal number change animation
+   - 50-350ms: Height expansion + fade in + slide down
 ```
 
-**Why This Works**:
-- **Visual Hierarchy**: Slide direction (down) matches reading order and gravity
-- **Attention Guide**: Fade draws eye to new content without being jarring
-- **Smooth Displacement**: Existing items move in sync with new item appearing
-- **Performance**: Using `transform` and `opacity` (GPU-accelerated) instead of `margin`/`height` changes
+**Directionality**:
+- **Insert Above**: New merchant appears at top of DayBlock, existing merchants slide down
+- **Insert Below**: New merchant appears at bottom, triggers auto-scroll if outside viewport
 
-### Scenario 2: New Date Section
+**Why This Works**:
+- **Grouped Animation**: MerchantBlock (RowIdentifier + ContentRows) animates as one unit
+- **Context Update**: DayTotal number change signals to user that content changed
+- **Smooth Displacement**: Existing merchants move down gracefully using FLIP technique
+
+### Scenario 2: New DayBlock for Different Date
 
 **User Flow**:
 User records expense for new date → API returns → Data grouped → New `ContentRow` (DayTotal + DayBlock) inserted
@@ -170,27 +189,67 @@ Animation Sequence (400ms total):
 - **Longer Duration**: 400ms (vs 300ms for single item) signals larger content change
 - **Height Animation Challenge**: Using `max-height` with large value (e.g., 500px) as workaround for `height: auto` animation limitation
 
-### Scenario 3: Multiple Items Simultaneously
+### Scenario 3: Insertion Direction & Auto-Scroll
 
 **User Flow**:
-Bulk import or rapid successive recordings → Multiple ExpenseItems for same date
+User records expense → New content can insert **above** or **below** existing content depending on chronological order
 
-**Animation Approach - "Staggered Cascade"**:
+#### 3A: Insertion Above Viewport (Existing Content Slides Down)
 
+**Example**:
+- Current view: Scrolled down to "January 20th, 2026"
+- User adds: Expense for "January 27th, 2026" (more recent date)
+- Result: New DayBlock appears at top, existing content slides down
+
+**Animation Approach**:
 ```
-Animation Sequence:
-1. Items insert in chronological order (oldest to newest)
-2. Each item staggers by 50ms delay
-3. Example with 3 items:
-   - Item 1: starts at 0ms, completes at 300ms
-   - Item 2: starts at 50ms, completes at 350ms
-   - Item 3: starts at 100ms, completes at 400ms
+Animation Sequence (400ms total):
+1. New DayBlock inserts at top with: opacity: 0, translateY: -16px
+2. All existing DayBlocks below smoothly displace downward (FLIP technique)
+3. New block animates to: opacity: 1, translateY: 0
+4. NO auto-scroll (user chose to scroll away from top)
+```
+
+**Why No Auto-Scroll**:
+- User is intentionally viewing older content
+- Forcing scroll would disrupt their current focus
+- Visual displacement is enough to signal new content exists
+
+#### 3B: Insertion Below Viewport (Auto-Scroll Triggered)
+
+**Example**:
+- Current view: Viewing "January 26th, 2026" at top of list
+- User adds: Expense for "January 15th, 2026" (older date)
+- Result: New DayBlock appears below, out of viewport
+
+**Animation Approach** (Inspired by ClipStream):
+```
+Animation Sequence (400ms animation + 300ms scroll):
+1. New DayBlock inserts at bottom with: opacity: 0, maxHeight: 0
+2. Animate to: opacity: 1, maxHeight: auto (400ms)
+3. Wait 50ms for animation to establish
+4. Auto-scroll to new entry using scrollIntoView() (300ms smooth scroll)
+5. User sees new content fade in as scroll completes
+```
+
+**Why Auto-Scroll**:
+- New content is below viewport (user can't see it)
+- Similar to ClipStream behavior: "scroll to show new recording"
+- Brings user's attention to the result of their action
+
+#### 3C: Insertion Within Viewport (Visible Area)
+
+**Animation Approach**:
+```
+1. New content animates in place (fade + slide)
+2. Existing content displaces smoothly
+3. NO auto-scroll (already visible)
 ```
 
 **Why This Works**:
-- **Visual Flow**: Cascade guides eye from top to bottom
-- **Reduced Cognitive Load**: Sequential animations easier to process than simultaneous
-- **Professional Polish**: Pattern used by Linear, Notion, Stripe
+- **Context-Aware**: Different behaviors for different insertion points
+- **User-Friendly**: Only auto-scroll when necessary (ClipStream pattern)
+- **Predictable**: User can anticipate behavior based on scroll position
 
 ---
 
@@ -433,16 +492,81 @@ const [parent] = useAutoAnimate();
 
 ---
 
+## Animation Showcase & Testing Strategy
+
+### Dedicated Animation Testing File
+
+**Concept**: Create a separate showcase file (similar to `tracecomponent.tsx`) specifically for testing animations in isolation.
+
+**Proposed File**: `/src/pages/trace/showcase/tracemorphing.tsx` (or `traceanimations.tsx`)
+
+**Purpose**:
+1. **Isolated Testing**: Test animations without affecting main implementation
+2. **Visual Documentation**: Showcase different animation states side-by-side
+3. **Safe Experimentation**: Tweak timing, easing, and patterns without breaking production code
+4. **Component Library**: Pre-built animated variants ready to integrate into main app
+
+**Structure** (Similar to tracecomponent.tsx):
+```tsx
+// tracemorphing.tsx
+export default function TraceMorphing() {
+  return (
+    <div className="animation-showcase">
+      {/* Section 1: MerchantBlock Insertion Animation */}
+      <div className="demo-section">
+        <h2>New MerchantBlock Animation (Above)</h2>
+        <button onClick={triggerAnimation}>Add AMAZON to Jan 26th</button>
+        <TextBox days={[...]} /> {/* Animated demo */}
+      </div>
+
+      {/* Section 2: DayBlock Insertion Animation */}
+      <div className="demo-section">
+        <h2>New DayBlock Animation (Below)</h2>
+        <button onClick={triggerAnimation}>Add Jan 15th</button>
+        <TextBox days={[...]} /> {/* Animated demo */}
+      </div>
+
+      {/* Section 3: Auto-Scroll Behavior */}
+      <div className="demo-section">
+        <h2>Auto-Scroll to New Entry</h2>
+        <button onClick={triggerScroll}>Add & Scroll</button>
+        <div style={{height: '500px', overflow: 'auto'}}>
+          <TextBox days={[...]} />
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+**Benefits**:
+- ✅ **Non-Destructive**: Animations tested separately won't break existing components
+- ✅ **Visual QA**: Easy to compare "before" and "after" states
+- ✅ **Reusable Variants**: Once animations work in showcase, copy to main app
+- ✅ **Documentation**: Serves as living documentation for animation patterns
+
+**Implementation Complexity**: **Easy** ⭐
+- Duplicate structure from `tracecomponent.tsx`
+- Add state management for triggering animations (useState)
+- Import animated components (will be wrapped with Framer Motion)
+- Add control buttons to trigger different animation scenarios
+
+**Recommendation**: **Implement this FIRST** before modifying main `tracefinance.tsx` components. This de-risks the animation implementation and provides a safe sandbox for experimentation.
+
+---
+
 ## Implementation Roadmap
 
 ### Phase 1: Infrastructure Setup (Day 1)
 
 **Tasks**:
-1. ✅ Remove debug borders (yellow on DayTotal:502, blue on PriceFrame:591)
-2. ✅ Fix trace index page to show TextBox component
-3. ✅ Create wrapper container for TextBox + TRNavbar with 10px gap
-4. Install Framer Motion: `npm install framer-motion`
-5. Create animation configuration file: `src/projects/trace/config/animations.ts`
+1. ✅ Framer Motion already installed (v12.6.2) - no installation needed
+2. ✅ TRACE_ANIMATION_IMPLEMENTATION_PLAN.md created and committed
+3. ⏳ Create animation showcase file: `src/pages/trace/showcase/tracemorphing.tsx`
+4. ⏳ Fix trace index page to show TextBox component
+5. ⏳ Create wrapper container for TextBox + TRNavbar with 10px gap
+6. ⏳ Remove debug borders (yellow on DayTotal:502, blue on PriceFrame:591)
+7. ⏳ Create animation configuration file: `src/projects/trace/config/animations.ts`
 
 **Animation Config File**:
 ```typescript
@@ -483,84 +607,94 @@ export const ANIMATION_CONFIG = {
 };
 ```
 
-### Phase 2: Basic Entry Animations (Day 2)
+### Phase 2: MerchantBlock Animations (Day 2)
 
-**Task 1: Wrap ExpenseItem with motion.div**
+**Task 1: Test MerchantBlock Animation in Showcase File**
 
-Modify `tracefinance.tsx`:
+In `tracemorphing.tsx`, create animated demo:
 ```tsx
 import { motion, AnimatePresence } from 'framer-motion';
 import { ANIMATION_CONFIG } from '@/projects/trace/config/animations';
 
-// In FinanceBox component, wrap ExpenseItem mapping:
+// Demo: Add new merchant to existing day
+const [merchants, setMerchants] = useState([
+  { merchantName: 'TESCOS', merchantTotal: '628.21', items: [...] }
+]);
+
+const addAmazonMerchant = () => {
+  setMerchants(prev => [
+    ...prev,
+    { merchantName: 'AMAZON', merchantTotal: '1247.88', items: [...] }
+  ]);
+};
+
+// Render with animation:
 <AnimatePresence mode="popLayout">
-  {groupedByDate.map((dateGroup) => (
-    <ContentRow key={dateGroup.date}>
-      <DayTotal /* ... */ />
-      <DayBlock>
-        {dateGroup.expenses.map((expense, index) => (
-          <motion.div
-            key={expense.id}
-            layout
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={ANIMATION_CONFIG.variants.expenseItem}
-            transition={{
-              duration: ANIMATION_CONFIG.duration.normal,
-              ease: ANIMATION_CONFIG.easing.standard,
-              delay: index * ANIMATION_CONFIG.stagger.items,
-            }}
-          >
-            <ExpenseItem data={expense} />
-          </motion.div>
-        ))}
-      </DayBlock>
-    </ContentRow>
-  ))}
-</AnimatePresence>
-```
-
-**Task 2: Test Animation**
-- Manually add new expense to mock data
-- Verify smooth fade + slide animation
-- Check existing items displace smoothly
-
-### Phase 3: Date Section Animations (Day 3)
-
-**Task: Animate entire ContentRow**
-
-```tsx
-<AnimatePresence mode="popLayout">
-  {groupedByDate.map((dateGroup, groupIndex) => (
+  {merchants.map((merchant, index) => (
     <motion.div
-      key={dateGroup.date}
+      key={merchant.merchantName}
       layout
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      variants={ANIMATION_CONFIG.variants.dateSection}
+      initial={{ opacity: 0, maxHeight: 0, y: -12 }}
+      animate={{ opacity: 1, maxHeight: 500, y: 0 }}
+      exit={{ opacity: 0, maxHeight: 0 }}
       transition={{
-        duration: ANIMATION_CONFIG.duration.slow,
+        duration: ANIMATION_CONFIG.duration.slow, // 0.4s
         ease: ANIMATION_CONFIG.easing.standard,
-        delay: groupIndex * ANIMATION_CONFIG.stagger.items,
       }}
     >
-      <ContentRow>
-        <DayTotal /* ... */ />
-        <DayBlock>
-          {/* ExpenseItems with their own animations from Phase 2 */}
-        </DayBlock>
-      </ContentRow>
+      <MerchantBlock {...merchant} />
     </motion.div>
   ))}
 </AnimatePresence>
 ```
 
-**Stagger Strategy**:
-- DateGroup appears first (0ms delay)
-- DayTotal within group appears (50ms delay)
-- ExpenseItems stagger after (100ms, 150ms, 200ms...)
+**Task 2: Test in Isolation**
+- Click "Add AMAZON" button in showcase
+- Verify fade + expand animation (350ms)
+- Verify existing TESCOS block displaces downward smoothly
+- Test both "insert above" and "insert below" positions
+
+### Phase 3: DayBlock Animations (Day 3)
+
+**Task: Animate entire DayBlock (DayTotal + DayExpenses)**
+
+Test in `tracemorphing.tsx`:
+```tsx
+const [days, setDays] = useState([
+  { date: '26th Jan', total: '628.21', merchants: [...] }
+]);
+
+const addNewDay = () => {
+  setDays(prev => [
+    { date: '27th Jan', total: '1247.88', merchants: [...] }, // Insert at top
+    ...prev
+  ]);
+};
+
+// Render with animation:
+<AnimatePresence mode="popLayout">
+  {days.map((day) => (
+    <motion.div
+      key={day.date}
+      layout
+      initial={{ opacity: 0, maxHeight: 0, y: -16 }}
+      animate={{ opacity: 1, maxHeight: 1000, y: 0 }}
+      exit={{ opacity: 0, maxHeight: 0 }}
+      transition={{
+        duration: ANIMATION_CONFIG.duration.slow, // 0.4s
+        ease: ANIMATION_CONFIG.easing.standard,
+      }}
+    >
+      <DayBlock {...day} />
+    </motion.div>
+  ))}
+</AnimatePresence>
+```
+
+**Test Scenarios**:
+- Insert new day at top (above existing) - existing days slide down
+- Insert new day at bottom (below existing) - prepare for auto-scroll test
+- Verify DayTotal and MerchantBlocks animate as cohesive unit
 
 ### Phase 4: Auto-Scroll Implementation (Day 4)
 
@@ -957,14 +1091,40 @@ import { ErrorBoundary } from 'react-error-boundary';
 
 ## Conclusion
 
-This implementation plan provides a comprehensive roadmap for adding professional-grade animations to the Trace expense tracker. The recommended approach using Framer Motion balances:
+This implementation plan provides a comprehensive roadmap for adding professional-grade animations to the Trace expense tracker. The recommended approach using Framer Motion (already installed in the project) balances:
 
 - **Developer Experience**: Declarative API, easy to understand and maintain
 - **User Experience**: Smooth, purposeful animations that guide attention
 - **Performance**: GPU-accelerated transforms, optimized rendering
 - **Accessibility**: Built-in support for reduced motion preferences
 - **Scalability**: Easy to extend with drag-to-reorder, swipe-to-delete, etc.
+- **Safety**: Animation showcase file (`tracemorphing.tsx`) allows testing in isolation without breaking main components
 
-By following the 6-day roadmap, the Trace interface will evolve from static list rendering to a dynamic, polished expense tracking experience that rivals commercial applications like Splitwise, Mint, and YNAB.
+### Key Clarifications & Constraints
 
-**Next Steps**: Proceed with Phase 1 implementation after index page fixes are complete.
+Based on project review:
+
+1. **No ContentRow-level insertion** - We never add individual expense items to existing merchants
+2. **Two insertion scenarios**:
+   - New **MerchantBlock** on existing day (same date, different merchant)
+   - New **DayBlock** for different date
+3. **Directional awareness**: Content can insert above (slides down existing) or below (triggers auto-scroll)
+4. **ClipStream pattern**: Auto-scroll only when new content is below viewport
+5. **Framer Motion safety**: Already in use for home project components, no conflicts expected
+
+### Implementation Strategy
+
+**Phase 0** (FIRST): Create `tracemorphing.tsx` showcase file
+- Test all animations in isolation
+- Verify no conflicts with existing components
+- Build confidence before touching main `tracefinance.tsx`
+
+**Phases 1-6**: Follow roadmap with tested animation variants
+
+By following this updated 6-day roadmap, the Trace interface will evolve from static list rendering to a dynamic, polished expense tracking experience that rivals commercial applications like Splitwise, Mint, and YNAB.
+
+**Next Steps**:
+1. ✅ Commit this updated plan (safe rollback point)
+2. Create animation showcase file `tracemorphing.tsx`
+3. Fix index page to show TextBox + TRNavbar wrapper
+4. Begin animation implementation in showcase environment
