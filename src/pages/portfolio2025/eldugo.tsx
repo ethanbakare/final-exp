@@ -32,6 +32,7 @@ export default function EldugoPage() {
   const eldugoImages = {
     // Hero
     hero: { src: '/images/portfolio2025/eldugo/01-intro.webp', alt: 'Eldugo Intro' },
+    heroMobile: { src: '/images/portfolio2025/eldugo/hero-mobile.webp', alt: 'Eldugo Hero Mobile' },
     textLogo: { src: '/images/portfolio2025/eldugo/02-text-logo.webp', alt: 'Eldugo Logo' },
 
     // Approach

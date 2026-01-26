@@ -561,8 +561,8 @@
   margin-top: 16px;
 }
 
-/* Hero Section (Section 20) - Full-width with overlay */
-.eldugo-section-hero {
+/* Hero Section - DESKTOP ONLY (hidden on mobile) */
+.eldugo-section-hero-desktop {
   position: relative;
   width: 100%;
   min-height: 100vh;
@@ -582,12 +582,19 @@
   object-position: 50% 100%;
 }
 
-.eldugo-hero-overlay {
-  position: relative;
-  z-index: 1;
+/* Hero Section - MOBILE ONLY (hidden on desktop) */
+.eldugo-section-hero-mobile {
+  display: none;
+  width: 100%;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  max-width: 600px;
-  padding: 0 24px;
+  padding: 48px 24px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .eldugo-hero-logo {
@@ -986,6 +993,11 @@
   .text-block-3 {
     font-size: 16px;
     line-height: 24px;
+    padding: 0 4px;
+  }
+
+  .eldugo-hero-logo {
+    padding: 0 40px;
   }
 
   .app-text {
@@ -1000,8 +1012,13 @@
     padding: 0 16px;
   }
 
-  .eldugo-hero-overlay {
-    padding: 0 16px;
+  /* Mobile: Hide desktop hero section, show mobile hero section */
+  .eldugo-section-hero-desktop {
+    display: none;
+  }
+
+  .eldugo-section-hero-mobile {
+    display: flex;
   }
 
   .eldugo-section-approach {

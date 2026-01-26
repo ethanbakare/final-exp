@@ -10,6 +10,7 @@ interface EldugoLayoutProps {
   images: {
     // Hero
     hero: EldugoImage;
+    heroMobile: EldugoImage;
     textLogo: EldugoImage;
     // Approach
     approachHelp: EldugoImage;
@@ -69,15 +70,20 @@ interface EldugoLayoutProps {
 export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
   return (
     <div className={styles['eldugo-container']}>
-      {/* Hero Section (Section 20) - Full-width with overlay */}
-      <section className={styles['eldugo-section-hero']}>
+      {/* Hero Section - DESKTOP ONLY (hidden on mobile) */}
+      <section className={styles['eldugo-section-hero-desktop']}>
         <img src={images.hero.src} alt={images.hero.alt} className={styles['eldugo-hero-bg']} />
-        <div className={styles['eldugo-hero-overlay']}>
-          <img src={images.textLogo.src} alt={images.textLogo.alt} className={styles['eldugo-hero-logo']} />
-          <div className={styles['text-block-3']}>
-            Eldugo is a brand which works predominantly within the industry of creating and selling handmade
-            bags and quality accessories, incorporating traditional African designs into modern use cases.
-          </div>
+      </section>
+
+      {/* Hero Section - MOBILE ONLY (hidden on desktop) */}
+      <section
+        className={styles['eldugo-section-hero-mobile']}
+        style={{ backgroundImage: `url(${images.heroMobile.src})` }}
+      >
+        <img src={images.textLogo.src} alt={images.textLogo.alt} className={styles['eldugo-hero-logo']} />
+        <div className={styles['text-block-3']}>
+          Eldugo is a brand which works predominantly within the industry of creating and selling handmade
+          bags and quality accessories, incorporating traditional African designs into modern use cases.
         </div>
       </section>
 
