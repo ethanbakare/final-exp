@@ -483,3 +483,681 @@
     gap: 2.6rem;
   }
 }
+
+/* ============================================
+   ELDUGO - Portfolio Project Styles
+   ============================================ */
+
+/* Page Wrapper with Color Variables */
+.eldugo-page-wrapper {
+  --el-orange: #da9002;
+  --el-black: #262626;
+  --el-grey: #888786;
+  --el-biz: #e6e6e6;
+  --el-bg-1: #f6f5f5;
+  --el-bg-2: #f6f4f5;
+  --el-bg-3: #f6f6f6;
+
+  min-height: 100vh;
+  background: #fff;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-montserrat), sans-serif;
+}
+
+/* Container */
+.eldugo-container {
+  width: 100%;
+}
+
+.eldugo-section-content {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Typography Styles */
+.el-header-main {
+  font-family: var(--font-playfair-display), serif;
+  color: var(--el-grey);
+  font-size: 3rem;
+  font-weight: 400;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.header-el-caps {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: #c5c3c4;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px 0;
+}
+
+.header-el-sp {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 19px;
+  font-weight: 300;
+  color: #c5c3c4;
+  margin: 0 0 32px 0;
+}
+
+.text-block-3 {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 21.5px;
+  font-weight: 400;
+  line-height: 30px;
+  color: #54534e;
+  margin: 0;
+}
+
+.app-text {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 15px;
+  font-weight: 300;
+  color: #aba9aa;
+  line-height: 1.6;
+  margin-top: 16px;
+}
+
+/* Hero Section (Section 20) - Full-width with overlay */
+.eldugo-section-hero {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.eldugo-hero-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 100%;
+}
+
+.eldugo-hero-overlay {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 600px;
+  padding: 0 24px;
+}
+
+.eldugo-hero-logo {
+  width: 100%;
+  max-width: 450px;
+  height: auto;
+  margin-bottom: 32px;
+}
+
+/* Approach Section (Section 36) - 3-column grid */
+.eldugo-section-approach {
+  background: var(--el-bg-3);
+  padding: 88px 0 270px;
+}
+
+.eldugo-approach-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.eldugo-approach-main-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 64px;
+}
+
+.eldugo-approach-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  margin-top: 48px;
+}
+
+.eldugo-approach-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.eldugo-approach-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-width: 280px;
+}
+
+/* Full-width Image Sections */
+.eldugo-section-full-img {
+  width: 100%;
+}
+
+.eldugo-section-full-img img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Idea Section (Section 19) */
+.eldugo-section-idea {
+  background: var(--el-bg-1);
+  padding: 85px 0;
+}
+
+.eldugo-idea-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.eldugo-idea-content {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 64px;
+  position: relative;
+}
+
+.eldugo-note-circle {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.eldugo-idea-text {
+  flex: 1;
+}
+
+.eldugo-idea-text p {
+  margin-bottom: 20px;
+}
+
+.eldugo-idea-main-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Wordmark Section (Section 37) */
+.eldugo-section-wordmark {
+  background: #fff;
+  padding: 64px 0;
+}
+
+.eldugo-section-wordmark img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Logo Variation Section (Section 21) */
+.eldugo-section-logo-variation {
+  background: var(--el-bg-1);
+  padding: 133px 0 183px;
+}
+
+.eldugo-logo-variation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.eldugo-logo-variation-text {
+  padding-right: 24px;
+}
+
+.eldugo-logo-variation-text h1 {
+  margin-bottom: 24px;
+}
+
+.eldugo-logo-variation-img img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Logo Variation Details (Section 27) */
+.eldugo-section-logo-details {
+  background: var(--el-bg-2);
+  padding: 110px 0 34px;
+}
+
+.eldugo-section-logo-details img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Logo Variations Section (Section 38) - Header + 2x2 grid */
+.eldugo-section-variations {
+  background: #f6f6f6;
+  padding: 88px 0 120px;
+}
+
+.eldugo-variations-header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.eldugo-variations-header .header-el-caps {
+  margin-bottom: 16px;
+}
+
+.eldugo-variations-header .header-el-sp {
+  margin-top: 16px;
+}
+
+.eldugo-divider-orange {
+  width: 120px;
+  height: 3px;
+  background-color: #da9002;
+  margin: 0 auto;
+}
+
+.eldugo-variations-container {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.eldugo-variations-container:first-of-type {
+  margin-top: 146px;
+  margin-bottom: 200px;
+}
+
+.eldugo-variations-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 117px;
+  margin-bottom: 48px;
+  border: 2px solid red;
+}
+
+.eldugo-variations-row img {
+  max-width: 200px;
+  height: auto;
+  display: block;
+  border: 2px solid blue;
+}
+
+/* Legacy grid for backwards compatibility */
+.eldugo-variations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.eldugo-variations-grid img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Visual Identity Section (Section 39) */
+.eldugo-section-visual-identity {
+  background: #fff;
+  padding: 0;
+}
+
+.eldugo-visual-identity-content {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 88px 16px 48px;
+}
+
+.eldugo-visual-identity-text {
+  text-align: left;
+}
+
+.eldugo-visual-identity-text h1 {
+  margin-bottom: 24px;
+}
+
+.text-block-5 {
+  font-family: var(--font-montserrat);
+  font-size: 21.5px;
+  font-weight: 400;
+  line-height: 30px;
+  color: #888786;
+}
+
+.text-block-5-mobile {
+  display: none;
+}
+
+.eldugo-divider-orange-wide {
+  width: 100%;
+  height: 3px;
+  background-color: #da9002;
+  margin: 0;
+}
+
+.eldugo-visual-identity-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Price Tags - 2-column layout */
+.eldugo-section-price-tags {
+  background: #fff;
+  padding: 64px 0;
+}
+
+.eldugo-price-tags-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.eldugo-price-tags-grid img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Centered Section (for single images) */
+.eldugo-section-centered {
+  background: #fff;
+  padding: 64px 0;
+}
+
+.eldugo-section-centered img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Other Projects - 3-column grid */
+.eldugo-section-other-projects {
+  background: #fff;
+  padding: 88px 0 120px;
+}
+
+.eldugo-section-other-projects .header-el-caps {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.eldugo-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.eldugo-project-card {
+  text-decoration: none;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.eldugo-project-card:hover {
+  transform: translateY(-4px);
+}
+
+.eldugo-project-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.eldugo-project-title {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--el-black);
+  text-align: center;
+}
+
+/* Footer */
+.eldugo-footer {
+  background: #000;
+  color: #fff;
+  padding: 64px 0;
+}
+
+.eldugo-footer-content {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eldugo-footer-logo img {
+  height: 40px;
+  width: auto;
+}
+
+.eldugo-footer-cta p {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 18px;
+  font-weight: 300;
+  margin: 0 0 16px 0;
+  color: #fff;
+}
+
+.eldugo-footer-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: transparent;
+  border: 2px solid var(--el-orange);
+  color: var(--el-orange);
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.eldugo-footer-button:hover {
+  background: var(--el-orange);
+  color: #fff;
+}
+
+.eldugo-arrow-icon {
+  width: 16px;
+  height: auto;
+}
+
+/* RESPONSIVE - Mobile Small (479px and below) */
+@media (max-width: 479px) {
+  .header-el-caps {
+    font-size: 20px;
+  }
+
+  .header-el-sp {
+    font-size: 15px;
+  }
+
+  .text-block-3 {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .app-text {
+    font-size: 13px;
+  }
+
+  .el-header-main {
+    font-size: 2rem;
+  }
+
+  .eldugo-section-content {
+    padding: 0 16px;
+  }
+
+  .eldugo-hero-overlay {
+    padding: 0 16px;
+  }
+
+  .eldugo-section-approach {
+    padding: 48px 0 120px;
+  }
+
+  .eldugo-approach-grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .eldugo-idea-content {
+    flex-direction: column;
+  }
+
+  .eldugo-note-circle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .eldugo-logo-variation-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .eldugo-variations-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .eldugo-variations-row {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .text-block-5 {
+    font-size: 16px;
+    line-height: 24px;
+    display: none;
+  }
+
+  .text-block-5-mobile {
+    display: block;
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .eldugo-visual-identity-content {
+    padding: 48px 16px 32px;
+  }
+
+  .eldugo-price-tags-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .eldugo-projects-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .eldugo-footer-content {
+    flex-direction: column;
+    gap: 32px;
+    text-align: center;
+  }
+}
+
+/* RESPONSIVE - Tablet Small (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .header-el-caps {
+    font-size: 22px;
+  }
+
+  .header-el-sp {
+    font-size: 16px;
+  }
+
+  .text-block-3 {
+    font-size: 18px;
+    line-height: 26px;
+  }
+
+  .el-header-main {
+    font-size: 2.5rem;
+  }
+
+  .eldugo-section-approach {
+    padding: 64px 0 150px;
+  }
+
+  .eldugo-approach-grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .eldugo-logo-variation-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .eldugo-variations-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .eldugo-price-tags-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .eldugo-projects-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+/* RESPONSIVE - Tablet Large (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .eldugo-approach-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+  }
+
+  .eldugo-logo-variation-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .eldugo-projects-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* RESPONSIVE - Desktop Small (992px - 1439px) */
+@media (min-width: 992px) and (max-width: 1439px) {
+  .eldugo-section-content {
+    padding: 0 32px;
+  }
+}
+
+/* RESPONSIVE - Desktop Large (1440px+) */
+@media (min-width: 1440px) {
+  .eldugo-section-content {
+    padding: 0 48px;
+  }
+
+  .eldugo-section-approach {
+    padding: 120px 0 320px;
+  }
+
+  .eldugo-section-idea {
+    padding: 120px 0;
+  }
+
+  .eldugo-section-logo-variation {
+    padding: 160px 0 220px;
+  }
+}
