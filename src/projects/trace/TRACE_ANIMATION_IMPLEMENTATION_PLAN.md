@@ -562,11 +562,12 @@ export default function TraceMorphing() {
 **Tasks**:
 1. ✅ Framer Motion already installed (v12.6.2) - no installation needed
 2. ✅ TRACE_ANIMATION_IMPLEMENTATION_PLAN.md created and committed
-3. ⏳ Create animation showcase file: `src/pages/trace/showcase/tracemorphing.tsx`
-4. ⏳ Fix trace index page to show TextBox component
-5. ⏳ Create wrapper container for TextBox + TRNavbar with 10px gap
-6. ⏳ Remove debug borders (yellow on DayTotal:502, blue on PriceFrame:591)
-7. ⏳ Create animation configuration file: `src/projects/trace/config/animations.ts`
+3. ✅ Fix trace index page to show TextBox component
+4. ✅ Create wrapper container for TextBox + TRNavbar with 10px gap
+5. ✅ Remove debug borders (yellow on DayTotal, blue on PriceFrame)
+6. ✅ Commit non-animation changes (rollback point created: 1d88bf5)
+7. ⏳ Create animation showcase file: `src/pages/trace/showcase/tracemorphing.tsx`
+8. ⏳ Create animation configuration file: `src/projects/trace/config/animations.ts`
 
 **Animation Config File**:
 ```typescript
