@@ -138,6 +138,8 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
           align-items: center;
           justify-content: flex-end;
           height: 12px;
+          /* DEBUG: Green border to visualize merchant frame container */
+          border: 1px solid green;
         }
 
         .merchant-name {
@@ -149,6 +151,8 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
           text-align: right;
           vertical-align: middle;
           text-transform: uppercase;
+          /* DEBUG: Red border to visualize merchant name bounds */
+          border: 1px solid red;
         }
       `}</style>
     </div>
