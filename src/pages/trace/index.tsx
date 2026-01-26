@@ -5,11 +5,148 @@
  * Route: /trace
  */
 
-import React from 'react';
-import { TraceApp } from '@/projects/trace/components/TraceApp';
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { TextBox } from '@/projects/trace/components/ui/tracefinance';
+import TRNavbar from '@/projects/trace/components/ui/tracenavbar';
+import { groupEntriesByDay } from '@/projects/trace/utils/dataUtils';
+import { blobToBase64, fileToBase64 } from '@/projects/trace/utils/fileUtils';
 import Head from 'next/head';
+import type { ExpenseEntry } from '@/projects/trace/types/trace.types';
+
+const STORAGE_KEY = 'trace-expense-entries';
 
 export default function TracePage() {
+  // State management
+  const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
+  const [entries, setEntries] = useState<ExpenseEntry[]>([]);
+
+  // MediaRecorder refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  // Load entries from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          setEntries(JSON.parse(stored));
+        } catch (err) {
+          console.error('Failed to parse stored entries:', err);
+        }
+      }
+    }
+  }, []);
+
+  // Save entries to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && entries.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    }
+  }, [entries]);
+
+  // Voice recording handlers
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+      audioChunksRef.current = [];
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setNavbarState('recording');
+    } catch (err) {
+      console.error('Error starting recording:', err);
+      alert('Failed to access microphone');
+    }
+  };
+
+  const handleSendAudio = async () => {
+    if (!mediaRecorderRef.current) return;
+
+    const mediaRecorder = mediaRecorderRef.current;
+    mediaRecorder.stop();
+
+    await new Promise<void>((resolve) => {
+      mediaRecorder.onstop = () => resolve();
+    });
+
+    mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+
+    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    setNavbarState('processing_audio');
+
+    try {
+      const base64Audio = await blobToBase64(audioBlob);
+      const response = await fetch('/api/trace/parse-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64Audio, mimeType: 'audio/webm' }),
+      });
+
+      if (!response.ok) throw new Error('Failed to process audio');
+
+      const entry: ExpenseEntry = await response.json();
+      setEntries((prev) => [entry, ...prev]);
+      setNavbarState('idle');
+    } catch (err) {
+      console.error('Error processing audio:', err);
+      alert('Failed to process audio');
+      setNavbarState('idle');
+    }
+  };
+
+  const handleCancelRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+    }
+    audioChunksRef.current = [];
+    setNavbarState('idle');
+  };
+
+  // Image upload handler
+  const handleUploadClick = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      setNavbarState('processing_image');
+
+      try {
+        const base64Image = await fileToBase64(file);
+        const response = await fetch('/api/trace/parse-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Image, mimeType: file.type }),
+        });
+
+        if (!response.ok) throw new Error('Failed to process image');
+
+        const entry: ExpenseEntry = await response.json();
+        setEntries((prev) => [entry, ...prev]);
+        setNavbarState('idle');
+      } catch (err) {
+        console.error('Error processing image:', err);
+        alert('Failed to process image');
+        setNavbarState('idle');
+      }
+    };
+    input.click();
+  };
+
+  // Group entries by day for TextBox
+  const groupedDays = groupEntriesByDay(entries);
+
   return (
     <>
       <Head>
@@ -18,7 +155,36 @@ export default function TracePage() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <TraceApp />
+      <div className="trace-page">
+        {/* Wrapper container for TextBox + Navbar */}
+        <div className="trace-container">
+          <TextBox days={groupedDays} />
+          <TRNavbar
+            state={navbarState}
+            onUploadClick={handleUploadClick}
+            onSpeakClick={handleStartRecording}
+            onCloseClick={handleCancelRecording}
+            onSendAudioClick={handleSendAudio}
+          />
+        </div>
+      </div>
+
+      <style jsx>{`
+        .trace-page {
+          min-height: 100vh;
+          background: var(--trace-bg-dark);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 20px;
+        }
+
+        .trace-container {
+          display: flex;
+          flex-direction: column;
+          gap: 10px; /* 10px gap between TextBox and Navbar */
+        }
+      `}</style>
     </>
   );
 }

@@ -502,8 +502,6 @@ export const DayTotal: React.FC<DayTotalProps> = ({
           padding: var(--trace-daytotal-padding); /* 24px 12px 4px 12px */
           border-radius: 0px;
           width: ${width};
-          /* DEBUG: Yellow border to visualize DayTotal container */
-          border: .5px solid yellow;
           /* Background for sticky positioning - covers content underneath */
           background: var(--trace-bg-dark); /* #1c1917 - same as TextBox */
 
@@ -601,8 +599,6 @@ export const PriceFrame: React.FC<PriceFrameProps> = ({
           flex-direction: column;
           width: ${width ? `${width}px` : 'var(--trace-priceframe-width)'};  /* Dynamic width based on data, fallback to 85px */
           flex-shrink: 0;  /* Prevent shrinking when space is limited */
-          /* DEBUG: Blue border to visualize PriceFrame container (outer) */
-          border: .2px solid blue;
         }
 
         .discount-wrapper {
