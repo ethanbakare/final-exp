@@ -137,7 +137,7 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
         .merchant-frame {
           display: flex;
           align-items: center;
-          justify-content: flex-end;
+          justify-content: flex-start;  /* Left-align content */
           height: 12px;
           flex: 1;  /* Grow to fill available space */
           min-width: 0;  /* Allow shrinking for ellipsis */
@@ -149,7 +149,7 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
           font-weight: var(--trace-fw-medium); /* 500 */
           line-height: var(--trace-lh-small); /* 2.4 */
           color: var(--trace-text-tertiary);
-          text-align: right;
+          text-align: left;  /* Left-align text */
           vertical-align: middle;
           text-transform: uppercase;
           /* Flex and ellipsis properties */
@@ -573,8 +573,7 @@ export const RowIdentifier: React.FC<RowIdentifierProps> = ({
         .row-identifier {
           display: flex;
           align-items: baseline;
-          justify-content: space-between;
-          gap: 4px;
+          gap: 4px;  /* Minimal spacing between merchant name and total */
           padding: 6px 0;
           border-radius: 8px 8px 0 0;
           width: ${width};
