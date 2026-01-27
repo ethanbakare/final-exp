@@ -74,7 +74,7 @@ const TraceModalButton: React.FC<ModalButtonProps> = ({
         /* Outline variant - light border with reduced opacity, transparent background */
         .modal-button--outline {
           background: transparent;
-          border: 2px solid rgba(245, 245, 244, 0.35); /* stone-50 @ 35% opacity */
+          border: 1px solid rgba(245, 245, 244, 0.35); /* stone-50 @ 35% opacity */
           color: var(--trace-btn-light);
         }
 
@@ -89,7 +89,7 @@ const TraceModalButton: React.FC<ModalButtonProps> = ({
         /* Filled variant - white background with dark text */
         .modal-button--filled {
           background: var(--trace-btn-light); /* stone-50 white */
-          border: 2px solid transparent;
+          border: 1px solid transparent;
           color: var(--trace-border-primary); /* stone-700 dark text */
         }
 
@@ -133,7 +133,7 @@ export const TraceClearExpensesModal: React.FC<TraceClearExpensesModalProps> = (
             Clear Expenses
           </div>
           <div className={`clear-message ${styles.OpenRundeRegular14}`}>
-            This action permanently removes expenses from your list
+            This permanently removes all your expenses
           </div>
         </div>
 
@@ -169,7 +169,7 @@ export const TraceClearExpensesModal: React.FC<TraceClearExpensesModalProps> = (
 
           width: 247px;
           min-width: 177px;
-          height: 157px;
+          height: 141px;
 
           background: var(--trace-bg-dark); /* #1c1917 */
           border: 1px solid var(--trace-border-primary); /* #44403c */
@@ -190,7 +190,7 @@ export const TraceClearExpensesModal: React.FC<TraceClearExpensesModalProps> = (
           gap: 4px;
 
           width: 247px;
-          height: 86px;
+          height: 70px;
 
           border-radius: 8px;
 
