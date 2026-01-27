@@ -74,16 +74,16 @@ const TraceModalButton: React.FC<ModalButtonProps> = ({
         /* Outline variant - light border with reduced opacity, transparent background */
         .modal-button--outline {
           background: transparent;
-          border: 1px solid rgba(245, 245, 244, 0.35); /* stone-50 @ 35% opacity */
+          border: none;
           color: var(--trace-btn-light);
         }
 
         .modal-button--outline:hover {
-          background: rgba(245, 245, 244, 0.1); /* subtle hover */
+          opacity: 0.8;
         }
 
         .modal-button--outline:active {
-          background: rgba(245, 245, 244, 0.2);
+          opacity: 0.6;
         }
 
         /* Filled variant - white background with dark text */
@@ -172,7 +172,7 @@ export const TraceClearExpensesModal: React.FC<TraceClearExpensesModalProps> = (
           height: 141px;
 
           background: var(--trace-bg-dark); /* #1c1917 */
-          border: 1px solid var(--trace-border-primary); /* #44403c */
+          border: none;
           border-radius: 16px;
 
           /* Inside auto layout */
