@@ -74,7 +74,7 @@ const TraceModalButton: React.FC<ModalButtonProps> = ({
         /* Outline variant - light border with reduced opacity, transparent background */
         .modal-button--outline {
           background: transparent;
-          border: none;
+          border: 1px solid rgba(245, 245, 244, 0.35); /* stone-50 @ 35% opacity */
           color: var(--trace-btn-light);
         }
 
@@ -171,8 +171,8 @@ export const TraceClearExpensesModal: React.FC<TraceClearExpensesModalProps> = (
           min-width: 177px;
           height: 141px;
 
-          background: var(--trace-bg-dark); /* #1c1917 */
-          border: none;
+          background: #292524B3; /* stone-900 @ 70% - matches merchant block but higher opacity */
+          border: 1px solid var(--trace-border-primary); /* #44403c */
           border-radius: 16px;
 
           /* Inside auto layout */

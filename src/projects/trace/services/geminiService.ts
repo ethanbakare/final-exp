@@ -75,6 +75,7 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
           - FALLBACK DATE: Use today's date: ${today} if not found.
           - MERCHANT: Try to identify the business name accurately.
           - CURRENCY: Detect from symbols (£, $, €, etc). Defaults to GBP.
+          - FORMATTING: Item names MUST start with a capital letter (e.g., "Coffee", "Milk").
           - ACCURACY: Ensure quantity * unit_price - discount = total_price.
           - Return ONLY valid JSON.`
         },
@@ -142,6 +143,8 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
           - DATE: Defaults to ${today}.
           - CURRENCY: Defaults to GBP unless specified.
           - ITEMS: Extract specific items and their prices.
+          - FORMATTING: Item names MUST start with a capital letter (e.g., "Coffee", "Phone charger").
+          - MERCHANT: Extract merchant names from phrases like "from [place]" (e.g., "from Starbucks" → merchant: "Starbucks").
           - If user says "it was five pounds for a coffee and three for a cake", total is 8.00.
           - Return ONLY valid JSON.`
         },
