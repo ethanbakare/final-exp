@@ -4,7 +4,7 @@
  */
 
 import React, { useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import {
   TextBox,
   FinanceBox,
@@ -28,7 +28,7 @@ export const AnimatedMerchantBlock: React.FC<MerchantBlockProps & { index?: numb
   const shouldReduceMotion = useReducedMotion();
 
   const animationProps = shouldReduceMotion
-    ? { initial: false, animate: false, exit: false }
+    ? {}
     : {
         initial: { opacity: 0, y: -8 },
         animate: { opacity: 1, y: 0 },
@@ -49,14 +49,26 @@ export const AnimatedMerchantBlock: React.FC<MerchantBlockProps & { index?: numb
 
 /* ==================== ANIMATED DAY BLOCK ==================== */
 
-export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number }> = ({
-  index = 0,
-  ...props
-}) => {
+export const AnimatedDayBlock: React.FC<
+  DayBlockProps & { index?: number; containerRef?: React.RefObject<HTMLDivElement> }
+> = ({ index = 0, containerRef, ...props }) => {
   const shouldReduceMotion = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Scroll-linked opacity: fades out as element scrolls past top of container
+  // When element top reaches container top (0px), opacity = 1
+  // When element top is 8px above container top (-8px), opacity = 0
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    container: containerRef,
+    offset: ['start start', 'start -8px'], // From 0px to -8px above container top
+  });
+
+  // Map scroll progress (0 to 1) to opacity (1 to 0)
+  const scrollOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
 
   const animationProps = shouldReduceMotion
-    ? { initial: false, animate: false, exit: false }
+    ? {}
     : {
         initial: { opacity: 0, y: -8 },
         animate: { opacity: 1, y: 0 },
@@ -69,7 +81,14 @@ export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number }> = ({
       };
 
   return (
-    <motion.div {...animationProps} style={{ width: '100%' }}>
+    <motion.div
+      ref={ref}
+      {...animationProps}
+      style={{
+        width: '100%',
+        opacity: scrollOpacity, // Apply scroll-linked opacity
+      }}
+    >
       <DayBlock {...props} />
     </motion.div>
   );
@@ -141,6 +160,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
             merchants={day.merchants}
             width="100%"
             index={index}
+            containerRef={containerRef} // Pass container ref for scroll-linked fade
           />
         ))}
       </AnimatePresence>
