@@ -11,6 +11,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { TextBox } from '@/projects/trace/components/ui/tracefinance';
 import TRNavbar from '@/projects/trace/components/ui/tracenavbar';
 import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
+import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
+import { TraceModalOverlay } from '@/projects/trace/components/ui/TraceModalOverlay';
 import { groupEntriesByDay } from '@/projects/trace/utils/dataUtils';
 import { blobToBase64, fileToBase64 } from '@/projects/trace/utils/fileUtils';
 import Head from 'next/head';
@@ -22,6 +24,7 @@ export default function TracePage() {
   // State management
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
   const [entries, setEntries] = useState<ExpenseEntry[]>([]);
+  const [showClearModal, setShowClearModal] = useState(false);
 
   // MediaRecorder refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -147,12 +150,21 @@ export default function TracePage() {
 
   // Clear all entries handler
   const handleClearAll = () => {
-    if (confirm('Are you sure you want to clear all expense entries? This cannot be undone.')) {
-      setEntries([]);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(STORAGE_KEY);
-      }
+    setShowClearModal(true);
+  };
+
+  // Handle modal confirm delete
+  const handleConfirmClear = () => {
+    setEntries([]);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
     }
+    setShowClearModal(false);
+  };
+
+  // Handle modal cancel
+  const handleCancelClear = () => {
+    setShowClearModal(false);
   };
 
   // Group entries by day for TextBox
@@ -183,6 +195,18 @@ export default function TracePage() {
             onSendAudioClick={handleSendAudio}
           />
         </div>
+
+        {/* Clear Expenses Modal */}
+        <TraceModalOverlay
+          isVisible={showClearModal}
+          onClose={handleCancelClear}
+          closeOnBackdropClick={true}
+        >
+          <TraceClearExpensesModal
+            onCancel={handleCancelClear}
+            onDelete={handleConfirmClear}
+          />
+        </TraceModalOverlay>
       </div>
 
       <style jsx>{`
