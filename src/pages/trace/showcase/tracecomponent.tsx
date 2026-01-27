@@ -683,6 +683,24 @@ const TraceComponent: React.FC = () => {
                   days={[
                     {
                       date: "21st Dec",
+                      total: "628.21",
+                      merchants: [
+                        {
+                          merchantName: "TESCOS",
+                          merchantTotal: "628.21",
+                          items: [
+                            { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
+                            { quantity: "1x", itemName: "Playstation 5", netPrice: "5000.99" },
+                            { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
+                            { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
+                            { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
+                            { quantity: "2x", itemName: "Kitchen Towels", netPrice: "3.98" }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      date: "25th Jan",
                       total: "2487.63",
                       merchants: [
                         {
@@ -715,24 +733,6 @@ const TraceComponent: React.FC = () => {
                             { quantity: "1x", itemName: "Tablet Case", netPrice: "39.99" },
                             { quantity: "2x", itemName: "Stylus Pen", netPrice: "22.99" },
                             { quantity: "1x", itemName: "Portable Charger", netPrice: "49.99", discount: "8.00" }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      date: "25th Jan",
-                      total: "628.21",
-                      merchants: [
-                        {
-                          merchantName: "TESCOS",
-                          merchantTotal: "628.21",
-                          items: [
-                            { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
-                            { quantity: "1x", itemName: "Playstation 5", netPrice: "5000.99" },
-                            { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
-                            { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
-                            { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
-                            { quantity: "2x", itemName: "Kitchen Towels", netPrice: "3.98" }
                           ]
                         }
                       ]
