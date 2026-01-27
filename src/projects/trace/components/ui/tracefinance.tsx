@@ -386,6 +386,7 @@ export interface DayTotalProps {
   total: string;
   width?: string; // Default: 277px, can be overridden to "100%" or other values
   className?: string;
+  style?: React.CSSProperties; // Optional style prop for animations (e.g., scroll-linked opacity)
 }
 
 export interface RowIdentifierProps {
@@ -468,6 +469,8 @@ export interface DayBlockProps {
   }>;
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   className?: string;
+  dayTotalStyle?: React.CSSProperties; // Optional style for DayTotal (e.g., scroll-linked opacity)
+  dayTotalRef?: React.RefObject<HTMLDivElement>; // Optional ref for DayTotal (for scroll tracking)
 }
 
 export interface FinanceBoxProps {
@@ -507,14 +510,15 @@ export interface TextBoxProps {
 }
 
 // DayTotal - Date + TotalFrame
-export const DayTotal: React.FC<DayTotalProps> = ({
+export const DayTotal = React.forwardRef<HTMLDivElement, DayTotalProps>(({
   date,
   total,
   width = '277px',
   className = '',
-}) => {
+  style,
+}, ref) => {
   return (
-    <div className={`day-total ${className} ${styles.container}`}>
+    <div ref={ref} className={`day-total ${className} ${styles.container}`} style={style}>
       <Date date={date} />
       <TotalFrame total={total} />
 
@@ -538,7 +542,9 @@ export const DayTotal: React.FC<DayTotalProps> = ({
       `}</style>
     </div>
   );
-};
+});
+
+DayTotal.displayName = 'DayTotal';
 
 // RowIdentifier - MerchantFrame + MerchantTotalFrame
 export const RowIdentifier: React.FC<RowIdentifierProps> = ({
@@ -782,6 +788,8 @@ export const DayBlock: React.FC<DayBlockProps> = ({
   merchants,
   width = '277px',
   className = '',
+  dayTotalStyle,
+  dayTotalRef,
 }) => {
   // Calculate optimal PriceFrame width based on longest price in this day
   const calculateOptimalPriceWidth = (): number | undefined => {
@@ -824,7 +832,7 @@ export const DayBlock: React.FC<DayBlockProps> = ({
 
   return (
     <div className={`day-block ${className} ${styles.container}`}>
-      <DayTotal date={date} total={total} width="100%" />
+      <DayTotal ref={dayTotalRef} date={date} total={total} width="100%" style={dayTotalStyle} />
       <DayExpenses merchants={merchants} width="100%" priceFrameWidth={priceFrameWidth} />
 
       <style jsx>{`
