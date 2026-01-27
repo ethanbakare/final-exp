@@ -720,7 +720,7 @@ const TraceComponent: React.FC = () => {
                       ]
                     },
                     {
-                      date: "21st Dec",
+                      date: "21st Jan",
                       total: "628.21",
                       merchants: [
                         {
