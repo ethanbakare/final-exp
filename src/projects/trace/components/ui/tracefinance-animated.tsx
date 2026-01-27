@@ -85,7 +85,17 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
     const dayBlock = dayBlockRef.current;
     const dayTotal = dayTotalRef.current;
 
-    if (!container || !dayBlock || !dayTotal) return;
+    console.log('[AnimatedDayBlock] Setup:', {
+      container: !!container,
+      dayBlock: !!dayBlock,
+      dayTotal: !!dayTotal,
+      containerEl: container,
+    });
+
+    if (!container || !dayBlock || !dayTotal) {
+      console.log('[AnimatedDayBlock] Missing refs, aborting');
+      return;
+    }
 
     let ticking = false;
 
@@ -98,9 +108,17 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
 
       const hasUnstuck = dayBlockBottom < dayTotalBottom;
 
+      console.log('[AnimatedDayBlock] Update:', {
+        dayBlockBottom,
+        dayTotalBottom,
+        hasUnstuck,
+        pixelsPastUnstick: hasUnstuck ? dayTotalBottom - dayBlockBottom : 0,
+      });
+
       if (hasUnstuck) {
         const pixelsPastUnstick = Math.min(8, dayTotalBottom - dayBlockBottom);
         const opacity = Math.max(0, 1 - (pixelsPastUnstick / 8));
+        console.log('[AnimatedDayBlock] Setting opacity:', opacity);
         dayTotal.style.setProperty('--day-total-opacity', String(opacity));
       } else {
         dayTotal.style.setProperty('--day-total-opacity', '1');
@@ -108,6 +126,7 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
     };
 
     const handleScroll = () => {
+      console.log('[AnimatedDayBlock] Scroll event fired');
       if (!ticking) {
         requestAnimationFrame(() => {
           updateOpacity();
@@ -117,10 +136,12 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
       }
     };
 
+    console.log('[AnimatedDayBlock] Adding scroll listener to:', container);
     updateOpacity();
     container.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
+      console.log('[AnimatedDayBlock] Removing scroll listener');
       container.removeEventListener('scroll', handleScroll);
     };
   }, [containerRef, shouldReduceMotion]);
