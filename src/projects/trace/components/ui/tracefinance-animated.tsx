@@ -114,7 +114,6 @@ export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number; contai
         ref={dayTotalRef}
         style={{
           opacity: shouldReduceMotion ? 1 : dayTotalOpacity,
-          width: '100%'
         }}
         className={`day-total ${styles.container}`}
       >
@@ -129,13 +128,14 @@ export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number; contai
             gap: 4px;
             padding: var(--trace-daytotal-padding); /* 24px 12px 4px 12px */
             border-radius: 0px;
-            width: 100%;
+            width: ${width};
+            /* Background for sticky positioning - covers content underneath */
             background: var(--trace-bg-dark); /* #1c1917 - same as TextBox */
 
             /* Sticky positioning */
             position: sticky;
-            top: calc(0px - var(--trace-financebox-padding-top));
-            z-index: 10;
+            top: calc(0px - var(--trace-financebox-padding-top)); /* Compensate for FinanceBox top padding to stick flush to actual top */
+            z-index: 10; /* Appear above scrolling content */
           }
         `}</style>
       </motion.div>
