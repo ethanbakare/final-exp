@@ -9,6 +9,8 @@ import {
   TextBox,
   FinanceBox,
   DayBlock,
+  DayTotal,
+  DayExpenses,
   MerchantBlock,
   EmptyFinanceState,
   type TextBoxProps,
@@ -51,21 +53,59 @@ export const AnimatedMerchantBlock: React.FC<MerchantBlockProps & { index?: numb
 
 export const AnimatedDayBlock: React.FC<
   DayBlockProps & { index?: number; containerRef?: React.RefObject<HTMLDivElement> }
-> = ({ index = 0, containerRef, ...props }) => {
+> = ({
+  index = 0,
+  containerRef,
+  date,
+  total,
+  merchants,
+  width = '277px',
+  ...props
+}) => {
   const shouldReduceMotion = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
+  const dayBlockRef = useRef<HTMLDivElement>(null);
 
-  // Scroll-linked opacity: fades out as element scrolls past top of container
-  // When element top reaches container top (0px), opacity = 1
-  // When element top is 8px above container top (-8px), opacity = 0
+  // Scroll-linked opacity for DayTotal (sticky header)
+  // Tracks when the DayBlock scrolls past the FinanceBox container top
   const { scrollYProgress } = useScroll({
-    target: ref,
+    target: dayBlockRef,
     container: containerRef,
     offset: ['start start', 'start -8px'], // From 0px to -8px above container top
   });
 
-  // Map scroll progress (0 to 1) to opacity (1 to 0)
-  const scrollOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
+  // Map scroll progress (0 to 1) to opacity (1 to 0) for DayTotal fade
+  const dayTotalOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
+
+  // Calculate optimal PriceFrame width (same logic as DayBlock)
+  const calculateOptimalPriceWidth = (): number | undefined => {
+    const DEFAULT_WIDTH = 85;
+    const allPrices: string[] = [];
+
+    merchants.forEach(merchant => {
+      merchant.items.forEach(item => {
+        allPrices.push(item.netPrice);
+      });
+    });
+
+    if (allPrices.length === 0) return undefined;
+
+    const maxPriceLength = Math.max(...allPrices.map(p => p.length));
+
+    let calculatedWidth: number;
+    if (maxPriceLength <= 4) {
+      calculatedWidth = 50;
+    } else if (maxPriceLength <= 5) {
+      calculatedWidth = 55;
+    } else if (maxPriceLength <= 6) {
+      calculatedWidth = 65;
+    } else {
+      calculatedWidth = 75;
+    }
+
+    return calculatedWidth < DEFAULT_WIDTH ? calculatedWidth : undefined;
+  };
+
+  const priceFrameWidth = calculateOptimalPriceWidth();
 
   const animationProps = shouldReduceMotion
     ? {}
@@ -74,22 +114,34 @@ export const AnimatedDayBlock: React.FC<
         animate: { opacity: 1, y: 0 },
         exit: { opacity: 0 },
         transition: {
-          duration: ANIMATION_CONFIG.duration.normal, // 300ms - faster, cleaner
+          duration: ANIMATION_CONFIG.duration.normal,
           ease: ANIMATION_CONFIG.easing.standard,
-          delay: index * ANIMATION_CONFIG.stagger.items, // Stagger by 50ms
+          delay: index * ANIMATION_CONFIG.stagger.items,
         },
       };
 
   return (
     <motion.div
-      ref={ref}
+      ref={dayBlockRef}
       {...animationProps}
-      style={{
-        width: '100%',
-        opacity: scrollOpacity, // Apply scroll-linked opacity
-      }}
+      className={`day-block ${styles.container}`}
+      style={{ width: '100%' }}
     >
-      <DayBlock {...props} />
+      {/* DayTotal with scroll-linked opacity */}
+      <motion.div style={{ opacity: dayTotalOpacity, width: '100%' }}>
+        <DayTotal date={date} total={total} width="100%" />
+      </motion.div>
+
+      {/* DayExpenses (no fade) */}
+      <DayExpenses merchants={merchants} width="100%" priceFrameWidth={priceFrameWidth} />
+
+      <style jsx>{`
+        .day-block {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+      `}</style>
     </motion.div>
   );
 };
