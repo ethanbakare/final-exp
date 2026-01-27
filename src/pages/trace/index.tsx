@@ -230,6 +230,7 @@ export default function TracePage() {
         .trace-container {
           display: flex;
           flex-direction: column;
+          align-items: center; /* Center-align TextBox and Navbar */
           gap: 10px; /* 10px gap between TextBox and Navbar */
         }
       `}</style>

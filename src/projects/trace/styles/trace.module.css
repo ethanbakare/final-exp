@@ -366,7 +366,7 @@
   --trace-btn-processing-width: 247px; /* Full navbar width */
 
   /* TextBox / FinanceBox */
-  --trace-textbox-width: 247px;       /* Matches navbar width */
+  --trace-textbox-width: 301px;       /* Design spec width */
   --trace-textbox-height: 421px;
   --trace-textbox-radius: 16px;
   --trace-textbox-border: 1px;
