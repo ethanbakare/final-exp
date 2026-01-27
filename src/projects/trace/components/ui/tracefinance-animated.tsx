@@ -17,6 +17,7 @@ import {
   type MerchantBlockProps,
 } from './tracefinance';
 import { ANIMATION_CONFIG, SCROLL_CONFIG } from '@/projects/trace/config/animations';
+import styles from '@/projects/trace/styles/trace.module.css';
 
 /* ==================== ANIMATED MERCHANT BLOCK ==================== */
 
@@ -108,30 +109,56 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 
   // Show empty state if no days exist
   if (!days || days.length === 0) {
-    return (
-      <div className={`finance-box finance-box--empty ${className}`} ref={containerRef}>
-        <EmptyFinanceState />
+    const emptyAnimationProps = shouldReduceMotion
+      ? { initial: false, animate: false, exit: false }
+      : {
+          initial: 'initial',
+          animate: 'animate',
+          exit: 'exit',
+          variants: ANIMATION_CONFIG.variants.emptyState,
+          transition: { duration: ANIMATION_CONFIG.duration.fast }, // 150ms
+        };
 
-        <style jsx>{`
-          .finance-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 32px 12px 42px 12px;
-            gap: 10px;
-            border-radius: var(--trace-financebox-radius);
-            width: 100%;
-            height: 100%;
-          }
-        `}</style>
-      </div>
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div key="empty" {...emptyAnimationProps}>
+          <div className={`finance-box finance-box--empty ${className} ${styles.container}`} ref={containerRef}>
+            <EmptyFinanceState />
+
+            <style jsx>{`
+              .finance-box {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                padding: 32px 12px 42px 12px;
+                gap: 10px;
+                border-radius: var(--trace-financebox-radius);
+                width: 100%;
+                height: 100%;
+              }
+            `}</style>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
   // Render animated day blocks when entries exist
+  const firstEntryAnimationProps = shouldReduceMotion
+    ? { initial: false, animate: false, exit: false }
+    : {
+        initial: 'initial',
+        animate: 'animate',
+        variants: ANIMATION_CONFIG.variants.firstEntry,
+        transition: {
+          duration: ANIMATION_CONFIG.duration.normal, // 300ms
+          ease: ANIMATION_CONFIG.easing.standard,
+        },
+      };
+
   return (
-    <div className={`finance-box ${className}`} ref={containerRef}>
+    <div className={`finance-box ${className} ${styles.container}`} ref={containerRef}>
       <AnimatePresence mode="popLayout">
         {days.map((day, index) => (
           <AnimatedDayBlock
@@ -207,7 +234,7 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`text-box ${className}`}>
+    <div className={`text-box ${className} ${styles.container}`}>
       <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} />
 
       <style jsx>{`
