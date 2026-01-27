@@ -721,6 +721,14 @@ const TraceComponent: React.FC = () => {
               </div>
               <div className="button-label">TEXTBOX - COMPLETE FINANCE DISPLAY (301×421px)</div>
             </div>
+
+            {/* Empty State Display */}
+            <div className="button-grid box-wide-tall" style={{ background: '#ffffff' }}>
+              <div className="button-center">
+                <TextBox days={[]} />
+              </div>
+              <div className="button-label">TEXTBOX - EMPTY STATE (301×421px)</div>
+            </div>
           </div>
         </div>
       </div>
