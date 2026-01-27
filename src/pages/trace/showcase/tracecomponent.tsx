@@ -10,6 +10,7 @@ import {
   ProcessingImageButton
 } from '@/projects/trace/components/ui/tracebuttons';
 import { TRNavbar } from '@/projects/trace/components/ui/tracenavbar';
+import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
 import {
   Date as TraceDate,
   TotalFrame,
@@ -497,6 +498,13 @@ const TraceComponent: React.FC = () => {
               isDouble={true}
             >
               <ProcessingImageButton text="Processing Image" />
+            </ButtonGrid>
+
+            <ButtonGrid label="CLEAR EXPENSES MODAL - 247×141PX" isDouble={true}>
+              <TraceClearExpensesModal
+                onCancel={() => console.log('Cancel clicked')}
+                onDelete={() => console.log('Delete clicked')}
+              />
             </ButtonGrid>
           </div>
         </div>
