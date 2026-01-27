@@ -573,7 +573,7 @@ export const RowIdentifier: React.FC<RowIdentifierProps> = ({
         .row-identifier {
           display: flex;
           align-items: baseline;
-          gap: 4px;  /* Minimal spacing between merchant name and total */
+          gap: 12px;  /* Spacing between merchant name and total */
           padding: 6px 0;
           border-radius: 8px 8px 0 0;
           width: ${width};
