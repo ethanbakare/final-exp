@@ -682,7 +682,7 @@ const TraceComponent: React.FC = () => {
                 <TextBox
                   days={[
                     {
-                      date: "25th Jan",
+                      date: "21st Dec",
                       total: "2487.63",
                       merchants: [
                         {
@@ -720,7 +720,7 @@ const TraceComponent: React.FC = () => {
                       ]
                     },
                     {
-                      date: "21st Jan",
+                      date: "25th Jan",
                       total: "628.21",
                       merchants: [
                         {
