@@ -954,7 +954,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
             flex-direction: column;
             align-items: center;
             justify-content: flex-start; /* Align to top, not center */
-            padding: 80px 12px 32px 12px; /* Push down from top (80px top padding) */
+            padding: 32px 12px 42px 12px; /* Push down from top (80px top padding) */
             gap: 10px;
             border-radius: var(--trace-financebox-radius); /* 6px */
             width: 100%;
