@@ -28,6 +28,7 @@
 
 The Trace animation system needs to handle these primary scenarios:
 
+0. **Empty State → First Entry** - When a user adds their very first expense (voice or camera), transitioning from EmptyFinanceState to the first DayBlock with a celebratory animation
 1. **New MerchantBlock on Same Day** - When a user records an expense for a different merchant on an existing date (e.g., "TESCOS" already exists for Jan 26th, user adds "AMAZON" on same day)
 2. **New DayBlock for Different Date** - When a user records an expense for a date that doesn't exist in the current view
 3. **Directional Insertion** - New content can appear **above** existing content (existing slides down) or **below** existing content (triggers auto-scroll)
@@ -114,6 +115,55 @@ TextBox
 ---
 
 ## Entry Animation Strategies
+
+### Scenario 0: Empty State → First Entry Transition
+
+**User Flow**:
+User opens Trace for the first time OR has cleared all expenses → TextBox shows EmptyFinanceState → User records first expense (voice or camera) → First DayBlock appears, replacing empty state
+
+**Current Empty State** (from `tracefinance.tsx`):
+- EmptyTraceIcon: 48×48px receipt icon on dark background
+- EmptyTraceText: "No expenses logged yet" + "Use the buttons below to get started"
+- Centered in FinanceBox with flex layout
+
+**Animation Approach - "Fade Out Empty → Fade In First Entry"**:
+
+```
+Animation Sequence (500ms total):
+
+Phase 1: Empty State Exit (0-200ms)
+1. EmptyFinanceState fades out: opacity 1 → 0
+2. Slight upward float: translateY(0) → translateY(-8px)
+3. Scale down subtly: scale(1) → scale(0.95)
+
+Phase 2: Brief Pause (200-250ms)
+- Empty state removed from DOM
+- 50ms breathing room for visual clarity
+
+Phase 3: First Entry Entrance (250-500ms)
+1. First DayBlock inserts with: opacity 0, translateY(12px), scale(0.98)
+2. Animates to: opacity 1, translateY(0), scale(1)
+3. Uses spring easing for natural bounce-in feel
+4. Timeline:
+   - 250-350ms: DayTotal fades in from above
+   - 300-500ms: MerchantBlock content reveals with stagger
+```
+
+**Why This Works**:
+- **Clear Visual Transition**: User sees empty state explicitly replaced, not just content appearing
+- **Directional Flow**: Empty state exits upward, new content enters from below → feels like "pulling up" data
+- **Spring Animation**: Natural bounce-in makes first entry feel welcoming and alive
+- **Celebrates First Action**: Longer, more prominent animation for user's very first expense entry
+
+**Implementation Notes**:
+- Detect empty → non-empty state change in `FinanceBox` component
+- Use AnimatePresence with `mode="wait"` to sequence exit → enter
+- Different animation from subsequent entries (more celebration, longer duration)
+- Consider adding subtle success indicator (brief color pulse on DayTotal border?)
+
+**Edge Cases**:
+- User adds first entry while empty state is still animating in: Queue animation, don't interrupt
+- Multiple rapid entries: Only first entry gets special animation, subsequent use standard flow
 
 ### Scenario 1: New MerchantBlock on Existing Day
 
