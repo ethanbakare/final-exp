@@ -59,16 +59,17 @@ export function groupEntriesByDay(entries: ExpenseEntry[]): any[] {
     const dayTotal = dayEntries.reduce((sum, entry) => sum + entry.total, 0);
 
     return {
-      date: formatDate(date),
+      date: formatDate(date), // Formatted for display (e.g., "27th Jan")
+      dateOriginal: date, // Keep original ISO format for sorting (e.g., "2026-01-27")
       total: dayTotal.toFixed(2),
       merchants,
     };
   });
 
-  // Sort by date descending (most recent first)
+  // Sort by date descending (most recent first) using original ISO date
   return days.sort((a, b) => {
-    const dateA = new Date(a.date);
-    const dateB = new Date(b.date);
+    const dateA = new Date(a.dateOriginal);
+    const dateB = new Date(b.dateOriginal);
     return dateB.getTime() - dateA.getTime();
   });
 }

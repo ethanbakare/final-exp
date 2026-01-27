@@ -134,8 +134,9 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
       <AnimatePresence>
         {days.map((day, index) => (
           <AnimatedDayBlock
-            key={`${day.date}-${index}`}
+            key={day.dateOriginal || day.date} // Use original ISO date as stable key
             date={day.date}
+            dateOriginal={day.dateOriginal}
             total={day.total}
             merchants={day.merchants}
             width="100%"

@@ -453,7 +453,8 @@ export interface DayExpensesProps {
 }
 
 export interface DayBlockProps {
-  date: string;
+  date: string; // Formatted date for display (e.g., "27th Jan")
+  dateOriginal?: string; // Original ISO date for sorting (e.g., "2026-01-27")
   total: string;
   merchants: Array<{
     merchantName?: string; // Optional merchant name
