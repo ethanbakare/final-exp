@@ -30,19 +30,18 @@ export const AnimatedMerchantBlock: React.FC<MerchantBlockProps & { index?: numb
   const animationProps = shouldReduceMotion
     ? { initial: false, animate: false, exit: false }
     : {
-        initial: 'initial',
-        animate: 'animate',
-        exit: 'exit',
-        variants: ANIMATION_CONFIG.variants.merchantBlock,
+        initial: { opacity: 0, y: -8 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0 },
         transition: {
-          duration: ANIMATION_CONFIG.duration.slow, // 350ms
+          duration: ANIMATION_CONFIG.duration.normal, // 300ms
           ease: ANIMATION_CONFIG.easing.standard,
           delay: index * ANIMATION_CONFIG.stagger.items, // Stagger by 50ms
         },
       };
 
   return (
-    <motion.div layout {...animationProps}>
+    <motion.div {...animationProps} style={{ width: '100%' }}>
       <MerchantBlock {...props} />
     </motion.div>
   );
@@ -59,19 +58,18 @@ export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number }> = ({
   const animationProps = shouldReduceMotion
     ? { initial: false, animate: false, exit: false }
     : {
-        initial: 'initial',
-        animate: 'animate',
-        exit: 'exit',
-        variants: ANIMATION_CONFIG.variants.dayBlock,
+        initial: { opacity: 0, y: -8 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0 },
         transition: {
-          duration: ANIMATION_CONFIG.duration.slow, // 400ms
+          duration: ANIMATION_CONFIG.duration.normal, // 300ms - faster, cleaner
           ease: ANIMATION_CONFIG.easing.standard,
           delay: index * ANIMATION_CONFIG.stagger.items, // Stagger by 50ms
         },
       };
 
   return (
-    <motion.div layout {...animationProps}>
+    <motion.div {...animationProps} style={{ width: '100%' }}>
       <DayBlock {...props} />
     </motion.div>
   );
@@ -109,57 +107,31 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 
   // Show empty state if no days exist
   if (!days || days.length === 0) {
-    const emptyAnimationProps = shouldReduceMotion
-      ? { initial: false, animate: false, exit: false }
-      : {
-          initial: 'initial',
-          animate: 'animate',
-          exit: 'exit',
-          variants: ANIMATION_CONFIG.variants.emptyState,
-          transition: { duration: ANIMATION_CONFIG.duration.fast }, // 150ms
-        };
-
     return (
-      <AnimatePresence mode="wait">
-        <motion.div key="empty" {...emptyAnimationProps}>
-          <div className={`finance-box finance-box--empty ${className} ${styles.container}`} ref={containerRef}>
-            <EmptyFinanceState />
+      <div className={`finance-box finance-box--empty ${className} ${styles.container}`} ref={containerRef}>
+        <EmptyFinanceState />
 
-            <style jsx>{`
-              .finance-box {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: flex-start;
-                padding: 32px 12px 42px 12px;
-                gap: 10px;
-                border-radius: var(--trace-financebox-radius);
-                width: 100%;
-                height: 100%;
-              }
-            `}</style>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+        <style jsx>{`
+          .finance-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 32px 12px 42px 12px;
+            gap: 10px;
+            border-radius: var(--trace-financebox-radius);
+            width: 100%;
+            height: 100%;
+          }
+        `}</style>
+      </div>
     );
   }
 
   // Render animated day blocks when entries exist
-  const firstEntryAnimationProps = shouldReduceMotion
-    ? { initial: false, animate: false, exit: false }
-    : {
-        initial: 'initial',
-        animate: 'animate',
-        variants: ANIMATION_CONFIG.variants.firstEntry,
-        transition: {
-          duration: ANIMATION_CONFIG.duration.normal, // 300ms
-          ease: ANIMATION_CONFIG.easing.standard,
-        },
-      };
-
   return (
     <div className={`finance-box ${className} ${styles.container}`} ref={containerRef}>
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence>
         {days.map((day, index) => (
           <AnimatedDayBlock
             key={`${day.date}-${index}`}
