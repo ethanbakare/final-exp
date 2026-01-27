@@ -499,13 +499,19 @@ const TraceComponent: React.FC = () => {
             >
               <ProcessingImageButton text="Processing Image" />
             </ButtonGrid>
+          </div>
 
-            <ButtonGrid label="CLEAR EXPENSES MODAL - 247×141PX" isDouble={true}>
-              <TraceClearExpensesModal
-                onCancel={() => console.log('Cancel clicked')}
-                onDelete={() => console.log('Delete clicked')}
-              />
-            </ButtonGrid>
+          {/* Modal Component */}
+          <div className="seamless-grid" style={{ marginTop: '2rem' }}>
+            <div className="button-grid box-quad">
+              <div className="button-center">
+                <TraceClearExpensesModal
+                  onCancel={() => console.log('Cancel clicked')}
+                  onDelete={() => console.log('Delete clicked')}
+                />
+              </div>
+              <div className="button-label">CLEAR EXPENSES MODAL - 247×141PX</div>
+            </div>
           </div>
         </div>
 
