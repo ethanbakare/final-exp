@@ -8,7 +8,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { TextBox } from '@/projects/trace/components/ui/tracefinance';
+import { AnimatedTextBox } from '@/projects/trace/components/ui/tracefinance-animated';
 import TRNavbar from '@/projects/trace/components/ui/tracenavbar';
 import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
 import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
@@ -186,7 +186,7 @@ export default function TracePage() {
 
         {/* Wrapper container for TextBox + Navbar */}
         <div className="trace-container">
-          <TextBox days={groupedDays} />
+          <AnimatedTextBox days={groupedDays} />
           <TRNavbar
             state={navbarState}
             onUploadClick={handleUploadClick}
