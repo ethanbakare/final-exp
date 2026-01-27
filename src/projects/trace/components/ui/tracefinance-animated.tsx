@@ -108,54 +108,28 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 
   // Show empty state if no days exist
   if (!days || days.length === 0) {
-    const emptyAnimationProps = shouldReduceMotion
-      ? { initial: false, animate: false, exit: false }
-      : {
-          initial: 'initial',
-          animate: 'animate',
-          exit: 'exit',
-          variants: ANIMATION_CONFIG.variants.emptyState,
-          transition: { duration: ANIMATION_CONFIG.duration.fast }, // 150ms
-        };
-
     return (
-      <AnimatePresence mode="wait">
-        <motion.div key="empty" {...emptyAnimationProps}>
-          <div className={`finance-box finance-box--empty ${className}`} ref={containerRef}>
-            <EmptyFinanceState />
+      <div className={`finance-box finance-box--empty ${className}`} ref={containerRef}>
+        <EmptyFinanceState />
 
-            <style jsx>{`
-              .finance-box {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: flex-start;
-                padding: 32px 12px 42px 12px;
-                gap: 10px;
-                border-radius: var(--trace-financebox-radius);
-                width: 100%;
-                height: 100%;
-              }
-            `}</style>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+        <style jsx>{`
+          .finance-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 32px 12px 42px 12px;
+            gap: 10px;
+            border-radius: var(--trace-financebox-radius);
+            width: 100%;
+            height: 100%;
+          }
+        `}</style>
+      </div>
     );
   }
 
   // Render animated day blocks when entries exist
-  const firstEntryAnimationProps = shouldReduceMotion
-    ? { initial: false, animate: false, exit: false }
-    : {
-        initial: 'initial',
-        animate: 'animate',
-        variants: ANIMATION_CONFIG.variants.firstEntry,
-        transition: {
-          duration: ANIMATION_CONFIG.duration.normal, // 300ms
-          ease: ANIMATION_CONFIG.easing.standard,
-        },
-      };
-
   return (
     <div className={`finance-box ${className}`} ref={containerRef}>
       <AnimatePresence mode="popLayout">
