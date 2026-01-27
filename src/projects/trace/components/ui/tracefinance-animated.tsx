@@ -308,6 +308,33 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
           border: var(--trace-textbox-border) solid var(--trace-border-primary); /* 1px solid #44403c */
           border-radius: var(--trace-textbox-radius); /* 16px */
           box-shadow: var(--trace-shadow-textbox); /* 0px 4px 10.5px rgba(0, 0, 0, 0.06) */
+
+          /* Positioning context for gradient pseudo-element */
+          position: relative;
+        }
+
+        /* Bottom gradient - fades content scrolling upward */
+        .text-box::after {
+          content: '';
+          position: absolute;
+          bottom: 0;  /* Very bottom of textbox */
+          left: 0;    /* Full width from left */
+          right: 5px; /* 5px offset from right for scrollbar */
+          height: 24px;
+
+          /* Match parent's border-radius to stay within rounded corners */
+          border-bottom-left-radius: var(--trace-textbox-radius);
+          border-bottom-right-radius: var(--trace-textbox-radius);
+
+          /* Fade FROM solid (bottom) TO transparent (top) */
+          background: linear-gradient(
+            to top,
+            var(--trace-bg-dark) 0%,      /* Solid at bottom */
+            transparent 100%               /* Transparent at top */
+          );
+
+          pointer-events: none;  /* Don't block interactions */
+          z-index: 10;  /* Above content */
         }
       `}</style>
     </div>
