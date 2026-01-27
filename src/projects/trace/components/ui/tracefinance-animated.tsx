@@ -3,8 +3,8 @@
  * Framer Motion wrappers for finance components with entry/exit animations
  */
 
-import React, { useRef, useEffect, useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
+import React, { useRef, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   TextBox,
   FinanceBox,
@@ -49,31 +49,11 @@ export const AnimatedMerchantBlock: React.FC<MerchantBlockProps & { index?: numb
 
 /* ==================== ANIMATED DAY BLOCK ==================== */
 
-export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number; containerRef?: React.RefObject<HTMLElement> }> = ({
+export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number }> = ({
   index = 0,
-  containerRef,
   ...props
 }) => {
   const shouldReduceMotion = useReducedMotion();
-  const dayTotalRef = useRef<HTMLDivElement>(null);
-  const [opacity, setOpacity] = useState(1);
-
-  // Set up scroll-linked opacity for DayTotal
-  const { scrollYProgress } = useScroll({
-    target: dayTotalRef,
-    container: containerRef,
-    offset: ["start start", "start -8px"] // From 0px (opacity 1) to -8px (opacity 0)
-  });
-
-  // Map scroll progress to opacity: 0 → 1, 1 → 0
-  const dayTotalOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
-
-  // Convert MotionValue to state for regular style prop
-  useMotionValueEvent(dayTotalOpacity, "change", (latest) => {
-    if (!shouldReduceMotion) {
-      setOpacity(latest);
-    }
-  });
 
   const animationProps = shouldReduceMotion
     ? { initial: false, animate: false, exit: false }
@@ -90,11 +70,7 @@ export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number; contai
 
   return (
     <motion.div {...animationProps} style={{ width: '100%' }}>
-      <DayBlock
-        {...props}
-        dayTotalRef={dayTotalRef}
-        dayTotalStyle={{ opacity: shouldReduceMotion ? 1 : opacity }}
-      />
+      <DayBlock {...props} />
     </motion.div>
   );
 };
@@ -165,7 +141,6 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
             merchants={day.merchants}
             width="100%"
             index={index}
-            containerRef={containerRef}
           />
         ))}
       </AnimatePresence>
