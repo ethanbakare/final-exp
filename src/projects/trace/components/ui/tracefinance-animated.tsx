@@ -49,12 +49,21 @@ export const AnimatedMerchantBlock: React.FC<MerchantBlockProps & { index?: numb
 
 /* ==================== ANIMATED DAY BLOCK ==================== */
 
-export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number }> = ({
+interface AnimatedDayBlockWithFadeProps extends DayBlockProps {
+  index?: number;
+  containerRef?: React.RefObject<HTMLDivElement | null>; // FinanceBox scroll container
+}
+
+export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
   index = 0,
+  containerRef,
   ...props
 }) => {
   const shouldReduceMotion = useReducedMotion();
+  const dayBlockRef = useRef<HTMLDivElement>(null);
+  const dayTotalRef = useRef<HTMLDivElement>(null);
 
+  // Entry/exit animations (existing behavior - UNCHANGED)
   const animationProps = shouldReduceMotion
     ? { initial: false, animate: false, exit: false }
     : {
@@ -68,9 +77,61 @@ export const AnimatedDayBlock: React.FC<DayBlockProps & { index?: number }> = ({
         },
       };
 
+  // Scroll-linked fade effect (NEW)
+  useEffect(() => {
+    if (shouldReduceMotion) return; // Respect accessibility preference
+
+    const container = containerRef?.current;
+    const dayBlock = dayBlockRef.current;
+    const dayTotal = dayTotalRef.current;
+
+    if (!container || !dayBlock || !dayTotal) return;
+
+    let ticking = false;
+
+    const updateOpacity = () => {
+      const dayBlockRect = dayBlock.getBoundingClientRect();
+      const dayTotalRect = dayTotal.getBoundingClientRect();
+
+      const dayBlockBottom = dayBlockRect.bottom;
+      const dayTotalBottom = dayTotalRect.bottom;
+
+      const hasUnstuck = dayBlockBottom < dayTotalBottom;
+
+      if (hasUnstuck) {
+        const pixelsPastUnstick = Math.min(8, dayTotalBottom - dayBlockBottom);
+        const opacity = Math.max(0, 1 - (pixelsPastUnstick / 8));
+        dayTotal.style.setProperty('--day-total-opacity', String(opacity));
+      } else {
+        dayTotal.style.setProperty('--day-total-opacity', '1');
+      }
+    };
+
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          updateOpacity();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    updateOpacity();
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [containerRef, shouldReduceMotion]);
+
   return (
     <motion.div {...animationProps} style={{ width: '100%' }}>
-      <DayBlock {...props} />
+      <DayBlock
+        {...props}
+        ref={dayBlockRef}
+        dayTotalRef={dayTotalRef}
+      />
     </motion.div>
   );
 };
@@ -141,6 +202,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
             merchants={day.merchants}
             width="100%"
             index={index}
+            containerRef={containerRef} // Pass container ref for scroll tracking
           />
         ))}
       </AnimatePresence>

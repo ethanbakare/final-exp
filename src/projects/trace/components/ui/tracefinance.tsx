@@ -468,11 +468,13 @@ export interface DayBlockProps {
   }>;
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   className?: string;
+  dayTotalRef?: React.RefObject<HTMLDivElement | null>; // For scroll-linked fade
 }
 
 export interface FinanceBoxProps {
   days: Array<{
     date: string;
+    dateOriginal?: string; // Original ISO date for sorting and stable keys
     total: string;
     merchants: Array<{
       merchantName?: string; // Optional merchant name
@@ -491,6 +493,7 @@ export interface FinanceBoxProps {
 export interface TextBoxProps {
   days: Array<{
     date: string;
+    dateOriginal?: string; // Original ISO date for sorting and stable keys
     total: string;
     merchants: Array<{
       merchantName?: string; // Optional merchant name
@@ -507,38 +510,41 @@ export interface TextBoxProps {
 }
 
 // DayTotal - Date + TotalFrame
-export const DayTotal: React.FC<DayTotalProps> = ({
-  date,
-  total,
-  width = '277px',
-  className = '',
-}) => {
-  return (
-    <div className={`day-total ${className} ${styles.container}`}>
-      <Date date={date} />
-      <TotalFrame total={total} />
+export const DayTotal = React.forwardRef<HTMLDivElement, DayTotalProps>(
+  ({ date, total, width = '277px', className = '' }, ref) => {
+    return (
+      <div ref={ref} className={`day-total ${className} ${styles.container}`}>
+        <Date date={date} />
+        <TotalFrame total={total} />
 
-      <style jsx>{`
-        .day-total {
-          display: flex;
-          align-items: baseline;
-          justify-content: space-between;
-          gap: 4px;
-          padding: var(--trace-daytotal-padding); /* 24px 12px 4px 12px */
-          border-radius: 0px;
-          width: ${width};
-          /* Background for sticky positioning - covers content underneath */
-          background: var(--trace-bg-dark); /* #1c1917 - same as TextBox */
+        <style jsx>{`
+          .day-total {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 4px;
+            padding: var(--trace-daytotal-padding); /* 24px 12px 4px 12px */
+            border-radius: 0px;
+            width: ${width};
+            /* Background for sticky positioning - covers content underneath */
+            background: var(--trace-bg-dark); /* #1c1917 - same as TextBox */
 
-          /* Sticky positioning */
-          position: sticky;
-          top: calc(0px - var(--trace-financebox-padding-top)); /* Compensate for FinanceBox top padding to stick flush to actual top */
-          z-index: 10; /* Appear above scrolling content */
-        }
-      `}</style>
-    </div>
-  );
-};
+            /* Sticky positioning */
+            position: sticky;
+            top: calc(0px - var(--trace-financebox-padding-top)); /* Compensate for FinanceBox top padding to stick flush to actual top */
+            z-index: 10; /* Appear above scrolling content */
+
+            /* Scroll-linked opacity */
+            opacity: var(--day-total-opacity, 1);
+            transition: opacity 0.05s linear;
+          }
+        `}</style>
+      </div>
+    );
+  }
+);
+
+DayTotal.displayName = 'DayTotal';
 
 // RowIdentifier - MerchantFrame + MerchantTotalFrame
 export const RowIdentifier: React.FC<RowIdentifierProps> = ({
@@ -776,68 +782,66 @@ export const DayExpenses: React.FC<DayExpensesProps> = ({
 };
 
 // DayBlock - DayTotal + DayExpenses
-export const DayBlock: React.FC<DayBlockProps> = ({
-  date,
-  total,
-  merchants,
-  width = '277px',
-  className = '',
-}) => {
-  // Calculate optimal PriceFrame width based on longest price in this day
-  const calculateOptimalPriceWidth = (): number | undefined => {
-    const DEFAULT_WIDTH = 85;
-    const allPrices: string[] = [];
+export const DayBlock = React.forwardRef<HTMLDivElement, DayBlockProps>(
+  ({ date, dateOriginal, total, merchants, width = '277px', className = '', dayTotalRef }, ref) => {
+    // Calculate optimal PriceFrame width based on longest price in this day
+    const calculateOptimalPriceWidth = (): number | undefined => {
+      const DEFAULT_WIDTH = 85;
+      const allPrices: string[] = [];
 
-    // Collect all netPrice values from all merchants and items
-    merchants.forEach(merchant => {
-      merchant.items.forEach(item => {
-        allPrices.push(item.netPrice);
+      // Collect all netPrice values from all merchants and items
+      merchants.forEach(merchant => {
+        merchant.items.forEach(item => {
+          allPrices.push(item.netPrice);
+        });
       });
-    });
 
-    if (allPrices.length === 0) return undefined; // Use CSS variable default
+      if (allPrices.length === 0) return undefined; // Use CSS variable default
 
-    // Find the longest price string
-    const maxPriceLength = Math.max(...allPrices.map(p => p.length));
+      // Find the longest price string
+      const maxPriceLength = Math.max(...allPrices.map(p => p.length));
 
-    // Calculate width based on character count
-    // Examples: "2.50" (4) → 50px, "14.99" (5) → 55px, "104.99" (6) → 65px, "499.99" (6) → 65px
-    let calculatedWidth: number;
-    if (maxPriceLength <= 4) {
-      calculatedWidth = 50; // "2.50" → 50px
-    } else if (maxPriceLength <= 5) {
-      calculatedWidth = 55; // "14.99" → 55px
-    } else if (maxPriceLength <= 6) {
-      calculatedWidth = 65; // "104.99", "499.99" → 65px
-    } else if (maxPriceLength <= 7) {
-      calculatedWidth = 75; // "9999.99" → 75px
-    } else {
-      calculatedWidth = 85; // "99999.99" or longer → 85px (max)
-    }
+      // Calculate width based on character count
+      // Examples: "2.50" (4) → 50px, "14.99" (5) → 55px, "104.99" (6) → 65px, "499.99" (6) → 65px
+      let calculatedWidth: number;
+      if (maxPriceLength <= 4) {
+        calculatedWidth = 50; // "2.50" → 50px
+      } else if (maxPriceLength <= 5) {
+        calculatedWidth = 55; // "14.99" → 55px
+      } else if (maxPriceLength <= 6) {
+        calculatedWidth = 65; // "104.99", "499.99" → 65px
+      } else if (maxPriceLength <= 7) {
+        calculatedWidth = 75; // "9999.99" → 75px
+      } else {
+        calculatedWidth = 85; // "99999.99" or longer → 85px (max)
+      }
 
-    // CRITICAL CONSTRAINT: Only return width if it's SMALLER than default
-    // Never allow width to be larger than 85px
-    return calculatedWidth < DEFAULT_WIDTH ? calculatedWidth : undefined;
-  };
+      // CRITICAL CONSTRAINT: Only return width if it's SMALLER than default
+      // Never allow width to be larger than 85px
+      return calculatedWidth < DEFAULT_WIDTH ? calculatedWidth : undefined;
+    };
 
-  const priceFrameWidth = calculateOptimalPriceWidth();
+    const priceFrameWidth = calculateOptimalPriceWidth();
 
-  return (
-    <div className={`day-block ${className} ${styles.container}`}>
-      <DayTotal date={date} total={total} width="100%" />
-      <DayExpenses merchants={merchants} width="100%" priceFrameWidth={priceFrameWidth} />
+    return (
+      <div ref={ref} className={`day-block ${className} ${styles.container}`}>
+        <DayTotal ref={dayTotalRef} date={date} total={total} width="100%" />
+        <DayExpenses merchants={merchants} width="100%" priceFrameWidth={priceFrameWidth} />
 
-      <style jsx>{`
-        .day-block {
-          display: flex;
-          flex-direction: column;
-          gap: 0; /* Gap moved to DayTotal bottom padding (4px) */
-          width: ${width};
-        }
-      `}</style>
-    </div>
-  );
-};
+        <style jsx>{`
+          .day-block {
+            display: flex;
+            flex-direction: column;
+            gap: 0; /* Gap moved to DayTotal bottom padding (4px) */
+            width: ${width};
+          }
+        `}</style>
+      </div>
+    );
+  }
+);
+
+DayBlock.displayName = 'DayBlock';
 
 /* ==================== EMPTY STATE COMPONENTS ==================== */
 
