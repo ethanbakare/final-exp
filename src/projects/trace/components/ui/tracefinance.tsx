@@ -847,7 +847,7 @@ export const EmptyTraceIcon: React.FC<{ className?: string }> = ({
   return (
     <div className={`empty-icon ${className} ${styles.container}`}>
       <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="48" height="48" rx="8" fill="#252525"/>
+        <rect width="48" height="48" rx="8" fill="#292524"/>
         <path d="M31.1328 21.8846L31.1315 16.8992C31.1312 15.7948 30.2358 14.8997 29.1315 14.8997L19.1333 14.8997C18.0286 14.8997 17.1331 15.7954 17.1333 16.9002L17.1347 21.8846" stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round"/>
         <path d="M17.1328 29.5859L17.1346 32.7569C17.1347 32.9102 17.3001 33.0064 17.4334 32.9307L20.5509 31.1598C20.6123 31.125 20.6876 31.1251 20.7489 31.1601L24.0473 33.0436C24.1089 33.0788 24.1844 33.0787 24.2459 33.0435L27.532 31.1604C27.5935 31.1252 27.669 31.1251 27.7305 31.1602L30.8334 32.9297C30.9668 33.0057 31.1326 32.9094 31.1325 32.7558L31.1307 29.5859" stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round"/>
         <path d="M14.8242 25.8804L33.1768 25.8804" stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round"/>
@@ -882,7 +882,7 @@ export const EmptyTraceText: React.FC<{ className?: string }> = ({
           align-items: center;
           padding: 8px 10px;
           gap: 4px;
-          width: 277px;
+          max-width: 100%; /* Responsive to container */
           border-radius: 8px;
         }
 
@@ -953,8 +953,8 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center; /* Center empty state */
-            padding: 32px 12px; /* Updated padding for empty state */
+            justify-content: flex-start; /* Align to top, not center */
+            padding: 80px 12px 32px 12px; /* Push down from top (80px top padding) */
             gap: 10px;
             border-radius: var(--trace-financebox-radius); /* 6px */
             width: 100%;
