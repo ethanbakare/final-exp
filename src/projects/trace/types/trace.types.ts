@@ -33,6 +33,8 @@ export interface SpeakButtonProps extends BaseButtonProps {}
 
 export interface CloseButtonProps extends BaseButtonProps {}
 
+export interface ClearButtonProps extends BaseButtonProps {}
+
 export interface SendAudioButtonProps extends BaseButtonProps {
   isRecording?: boolean;
 }

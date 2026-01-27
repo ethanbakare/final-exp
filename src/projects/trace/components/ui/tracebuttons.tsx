@@ -9,6 +9,7 @@ import {
   UploadButtonProps,
   SpeakButtonProps,
   CloseButtonProps,
+  ClearButtonProps,
   SendAudioButtonProps,
   ProcessingButtonProps,
 } from '../../types/trace.types';
@@ -180,6 +181,63 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
 
       <style jsx>{`
         .close-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: var(--trace-button-height);
+          padding: 0 var(--trace-spacing-xl);
+          background: var(--trace-btn-light);
+          border: var(--trace-button-stroke) solid transparent;
+          border-radius: var(--trace-button-radius);
+          color: var(--trace-border-primary);
+          cursor: pointer;
+          transition: var(--trace-transition-fast);
+          user-select: none;
+        }
+
+        .icon-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          color: var(--trace-border-primary);
+        }
+      `}</style>
+    </button>
+  );
+};
+
+
+/* ==================== CLEAR BUTTON ==================== */
+// 56×44px, stone-50 background, trash/delete icon
+
+export const ClearButton: React.FC<ClearButtonProps> = ({
+  onClick,
+  className = '',
+}) => {
+  return (
+    <button
+      className={`clear-button ${className} ${styles.container}`}
+      onClick={onClick}
+      type="button"
+    >
+      {/* Delete/Trash Icon - From Receipt Scanner */}
+      <div className="icon-container">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g clipPath="url(#clip0_clear_button)">
+            <path d="M16 9V19H8V9H16ZM14.5 3H9.5L8.5 4H5V6H19V4H15.5L14.5 3ZM18 7H6V19C6 20.1 6.9 21 8 21H16C17.1 21 18 20.1 18 19V7Z" fill="currentColor"/>
+          </g>
+          <defs>
+            <clipPath id="clip0_clear_button">
+              <rect width="24" height="24" fill="white"/>
+            </clipPath>
+          </defs>
+        </svg>
+      </div>
+
+      <style jsx>{`
+        .clear-button {
           display: flex;
           align-items: center;
           justify-content: center;

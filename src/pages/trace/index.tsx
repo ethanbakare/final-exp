@@ -10,6 +10,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TextBox } from '@/projects/trace/components/ui/tracefinance';
 import TRNavbar from '@/projects/trace/components/ui/tracenavbar';
+import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
 import { groupEntriesByDay } from '@/projects/trace/utils/dataUtils';
 import { blobToBase64, fileToBase64 } from '@/projects/trace/utils/fileUtils';
 import Head from 'next/head';
@@ -144,6 +145,16 @@ export default function TracePage() {
     input.click();
   };
 
+  // Clear all entries handler
+  const handleClearAll = () => {
+    if (confirm('Are you sure you want to clear all expense entries? This cannot be undone.')) {
+      setEntries([]);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  };
+
   // Group entries by day for TextBox
   const groupedDays = groupEntriesByDay(entries);
 
@@ -156,6 +167,11 @@ export default function TracePage() {
       </Head>
 
       <div className="trace-page">
+        {/* Clear All Button - Fixed position top-right */}
+        <div className="clear-button-container">
+          <ClearButton onClick={handleClearAll} />
+        </div>
+
         {/* Wrapper container for TextBox + Navbar */}
         <div className="trace-container">
           <TextBox days={groupedDays} />
@@ -171,12 +187,20 @@ export default function TracePage() {
 
       <style jsx>{`
         .trace-page {
+          position: relative;
           min-height: 100vh;
           background: var(--trace-bg-dark);
           display: flex;
           justify-content: center;
           align-items: center;
           padding: 20px;
+        }
+
+        .clear-button-container {
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          z-index: 10;
         }
 
         .trace-container {

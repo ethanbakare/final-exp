@@ -4,6 +4,7 @@ import {
   UploadButton,
   SpeakButton,
   CloseButton,
+  ClearButton,
   SendAudioButton,
   ProcessingAudioButton,
   ProcessingImageButton
@@ -460,6 +461,10 @@ const TraceComponent: React.FC = () => {
 
             <ButtonGrid label="CLOSE BUTTON - 56×44PX">
               <CloseButton onClick={() => console.log('Close clicked')} />
+            </ButtonGrid>
+
+            <ButtonGrid label="CLEAR BUTTON - 56×44PX">
+              <ClearButton onClick={() => console.log('Clear clicked')} />
             </ButtonGrid>
 
             <ButtonGrid
