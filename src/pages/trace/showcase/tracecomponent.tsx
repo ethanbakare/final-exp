@@ -588,7 +588,7 @@ const TraceComponent: React.FC = () => {
               <Quantity quantity="2x" />
             </ButtonGrid>
 
-            <ButtonGrid label="ITEM NAME - 16PX">
+            <ButtonGrid label="ITEM NAME - 14PX">
               <ItemName itemName="Headphones" />
             </ButtonGrid>
 
