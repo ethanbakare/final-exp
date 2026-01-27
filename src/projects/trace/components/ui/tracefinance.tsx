@@ -240,7 +240,7 @@ export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
           justify-content: flex-end;
           height: 20px;
           /* DEBUG: Red border to visualize price container */
-          border: .2px solid red;
+          /* border: .2px solid red; */
         }
 
         .currency {
@@ -326,7 +326,7 @@ export const ItemName: React.FC<ItemNameProps> = ({
           line-height: var(--trace-lh-medium); /* 1.71 */
           color: var(--trace-text-secondary);
           /* DEBUG: Red border to visualize text bounding box */
-          border: .2px solid red;
+          /* border: .2px solid red; */
           /* Ellipsis overflow - width determined by parent flex layout */
           overflow: hidden;
           text-overflow: ellipsis;
@@ -604,7 +604,7 @@ export const QuantityItemName: React.FC<QuantityItemNameProps> = ({
           flex: 1;  /* Grow to fill available space */
           min-width: 0;  /* Allow flex items to shrink below content size */
           /* DEBUG: Green border to visualize QuantityItemName container */
-          border: .2px solid green;
+          /* border: .2px solid green; */
         }
       `}</style>
     </div>
