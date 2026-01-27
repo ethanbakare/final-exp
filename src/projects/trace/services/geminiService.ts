@@ -144,7 +144,7 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
           - CURRENCY: Defaults to GBP unless specified.
           - ITEMS: Extract specific items and their prices.
           - FORMATTING: Item names MUST start with a capital letter (e.g., "Coffee", "Phone charger").
-          - MERCHANT: If all items from same merchant, extract to merchant field. If multiple merchants, include in item names as "Item (Merchant)" (e.g., "Coffee (Starbucks)", "Charger (Argos)").
+          - MERCHANT: If all items from same merchant, extract to merchant field. If multiple merchants, incorporate naturally into item names where appropriate (e.g., "Starbucks coffee", "Nando's chicken"). If merchant doesn't fit naturally, use brackets (e.g., "Charger (Argos)") or omit.
           - If user says "it was five pounds for a coffee and three for a cake", total is 8.00.
           - Return ONLY valid JSON.`
         },
