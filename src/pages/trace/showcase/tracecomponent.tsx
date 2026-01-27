@@ -682,24 +682,12 @@ const TraceComponent: React.FC = () => {
                 <TextBox
                   days={[
                     {
-                      date: "14th Jul",
-                      total: "928.20",
+                      date: "25th Jan",
+                      total: "2487.63",
                       merchants: [
                         {
-                          merchantName: "TESCOS",
-                          merchantTotal: "628.21",
-                          items: [
-                            { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
-                            { quantity: "1x", itemName: "Playstation 5", netPrice: "5000.99" },
-                            { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
-                            { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
-                            { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
-                            { quantity: "2x", itemName: "Kitchen Towels", netPrice: "3.98" }
-                          ]
-                        },
-                        {
                           merchantName: "AMAZON",
-                          merchantTotal: "1247.88",
+                          merchantTotal: "2487.63",
                           items: [
                             { quantity: "1x", itemName: "Laptop Stand", netPrice: "299.99" },
                             { quantity: "2x", itemName: "USB-C Cable", netPrice: "15.99", discount: "2.00" },
@@ -711,7 +699,40 @@ const TraceComponent: React.FC = () => {
                             { quantity: "1x", itemName: "Webcam HD", netPrice: "129.99", discount: "15.00" },
                             { quantity: "4x", itemName: "Pen Set", netPrice: "6.75" },
                             { quantity: "1x", itemName: "Monitor Riser", netPrice: "65.99" },
-                            { quantity: "1x", itemName: "Keyboard Cover", netPrice: "18.99", discount: "3.00" }
+                            { quantity: "1x", itemName: "Keyboard Cover", netPrice: "18.99", discount: "3.00" },
+                            { quantity: "1x", itemName: "External SSD 1TB", netPrice: "149.99", discount: "20.00" },
+                            { quantity: "2x", itemName: "HDMI Cable", netPrice: "12.99" },
+                            { quantity: "1x", itemName: "USB Hub", netPrice: "34.99" },
+                            { quantity: "3x", itemName: "Cable Ties Pack", netPrice: "5.99" },
+                            { quantity: "1x", itemName: "Mousepad XL", netPrice: "24.99" },
+                            { quantity: "2x", itemName: "Screen Protector", netPrice: "14.99" },
+                            { quantity: "1x", itemName: "Laptop Sleeve", netPrice: "29.99" },
+                            { quantity: "4x", itemName: "Microfiber Cloth", netPrice: "8.99" },
+                            { quantity: "1x", itemName: "Phone Stand", netPrice: "19.99" },
+                            { quantity: "2x", itemName: "Charging Cable", netPrice: "11.99" },
+                            { quantity: "1x", itemName: "Bluetooth Speaker", netPrice: "79.99", discount: "15.00" },
+                            { quantity: "3x", itemName: "SD Card 64GB", netPrice: "18.99" },
+                            { quantity: "1x", itemName: "Tablet Case", netPrice: "39.99" },
+                            { quantity: "2x", itemName: "Stylus Pen", netPrice: "22.99" },
+                            { quantity: "1x", itemName: "Portable Charger", netPrice: "49.99", discount: "8.00" }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      date: "21st Dec",
+                      total: "628.21",
+                      merchants: [
+                        {
+                          merchantName: "TESCOS",
+                          merchantTotal: "628.21",
+                          items: [
+                            { quantity: "2x", itemName: "Headphones", netPrice: "104.99", discount: "3.99" },
+                            { quantity: "1x", itemName: "Playstation 5", netPrice: "5000.99" },
+                            { quantity: "1x", itemName: "Chino Trousers", netPrice: "14.99" },
+                            { quantity: "3x", itemName: "Organic Milk", netPrice: "2.50", discount: "0.50" },
+                            { quantity: "5x", itemName: "Energy Drink", netPrice: "6.25" },
+                            { quantity: "2x", itemName: "Kitchen Towels", netPrice: "3.98" }
                           ]
                         }
                       ]
