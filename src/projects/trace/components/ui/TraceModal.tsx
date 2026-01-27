@@ -71,10 +71,10 @@ const TraceModalButton: React.FC<ModalButtonProps> = ({
           min-width: unset;
         }
 
-        /* Outline variant - light border, transparent background */
+        /* Outline variant - light border with reduced opacity, transparent background */
         .modal-button--outline {
           background: transparent;
-          border: 2px solid var(--trace-btn-light); /* stone-50 */
+          border: 2px solid rgba(245, 245, 244, 0.35); /* stone-50 @ 35% opacity */
           color: var(--trace-btn-light);
         }
 
@@ -86,19 +86,19 @@ const TraceModalButton: React.FC<ModalButtonProps> = ({
           background: rgba(245, 245, 244, 0.2);
         }
 
-        /* Filled variant - orange background */
+        /* Filled variant - white background with dark text */
         .modal-button--filled {
-          background: var(--trace-btn-orange); /* orange-500 */
+          background: var(--trace-btn-light); /* stone-50 white */
           border: 2px solid transparent;
-          color: var(--trace-text-primary); /* white */
+          color: var(--trace-border-primary); /* stone-700 dark text */
         }
 
         .modal-button--filled:hover {
-          background: #ea580c; /* orange-600 */
+          background: rgba(245, 245, 244, 0.9); /* slightly dimmed */
         }
 
         .modal-button--filled:active {
-          background: #c2410c; /* orange-700 */
+          background: rgba(245, 245, 244, 0.8);
         }
       `}</style>
     </>
@@ -129,11 +129,11 @@ export const TraceClearExpensesModal: React.FC<TraceClearExpensesModalProps> = (
       <div className={`clear-card ${className} ${styles.container}`}>
         {/* Header Section */}
         <div className="clear-header">
-          <div className={`clear-title ${styles.InterMedium18}`}>
+          <div className={`clear-title ${styles.OpenRundeMedium18}`}>
             Clear Expenses
           </div>
-          <div className={`clear-message ${styles.InterRegular13}`}>
-            This action permanently removes expenses from your list. You sure?
+          <div className={`clear-message ${styles.OpenRundeRegular14}`}>
+            This action permanently removes expenses from your list
           </div>
         </div>
 
