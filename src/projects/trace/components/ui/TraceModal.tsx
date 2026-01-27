@@ -169,7 +169,7 @@ export const TraceClearExpensesModal: React.FC<TraceClearExpensesModalProps> = (
 
           width: 247px;
           min-width: 177px;
-          height: 141px;
+          height: 157px;
 
           background: var(--trace-bg-dark); /* #1c1917 */
           border: 1px solid var(--trace-border-primary); /* #44403c */
@@ -190,7 +190,7 @@ export const TraceClearExpensesModal: React.FC<TraceClearExpensesModalProps> = (
           gap: 4px;
 
           width: 247px;
-          height: 70px;
+          height: 86px;
 
           border-radius: 8px;
 
