@@ -198,7 +198,7 @@ export default function TracePage() {
 
         .clear-button-container {
           position: absolute;
-          top: 20px;
+          bottom: 20px;
           right: 20px;
           z-index: 10;
         }
