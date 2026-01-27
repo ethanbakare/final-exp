@@ -4,7 +4,6 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import styles from '@/projects/trace/styles/trace.module.css';
 
 /* ==================== TYPE DEFINITIONS ==================== */
@@ -511,7 +510,6 @@ export interface TextBoxProps {
 }
 
 // DayTotal - Date + TotalFrame
-// Uses motion.div to support MotionValues for scroll-linked animations
 export const DayTotal = React.forwardRef<HTMLDivElement, DayTotalProps>(({
   date,
   total,
@@ -520,7 +518,7 @@ export const DayTotal = React.forwardRef<HTMLDivElement, DayTotalProps>(({
   style,
 }, ref) => {
   return (
-    <motion.div ref={ref} className={`day-total ${className} ${styles.container}`} style={style}>
+    <div ref={ref} className={`day-total ${className} ${styles.container}`} style={style}>
       <Date date={date} />
       <TotalFrame total={total} />
 
@@ -542,7 +540,7 @@ export const DayTotal = React.forwardRef<HTMLDivElement, DayTotalProps>(({
           z-index: 10; /* Appear above scrolling content */
         }
       `}</style>
-    </motion.div>
+    </div>
   );
 });
 
