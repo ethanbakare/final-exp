@@ -243,10 +243,10 @@ export const ClearButton: React.FC<ClearButtonProps> = ({
           justify-content: center;
           height: var(--trace-button-height);
           padding: 0 var(--trace-spacing-xl);
-          background: var(--trace-btn-light);
+          background: var(--trace-bg-dark); /* TextBox background color */
           border: var(--trace-button-stroke) solid transparent;
           border-radius: var(--trace-button-radius);
-          color: var(--trace-border-primary);
+          color: var(--trace-btn-light); /* Icon color - previous button background */
           cursor: pointer;
           transition: var(--trace-transition-fast);
           user-select: none;
@@ -258,7 +258,7 @@ export const ClearButton: React.FC<ClearButtonProps> = ({
           justify-content: center;
           width: 24px;
           height: 24px;
-          color: var(--trace-border-primary);
+          color: var(--trace-btn-light); /* Icon color - previous button background */
         }
       `}</style>
     </button>
