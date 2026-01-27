@@ -67,4 +67,5 @@ export const SCROLL_CONFIG = {
   block: 'nearest' as const,
   inline: 'nearest' as const,
   delay: 50, // ms delay before scroll starts
+  fadeDistance: 8, // pixels - distance over which DayTotal text fades when scrolling out
 };

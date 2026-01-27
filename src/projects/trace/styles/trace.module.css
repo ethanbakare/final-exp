@@ -278,7 +278,7 @@
 
   /* Primary Backgrounds */
   --trace-bg-dark: #1c1917;          /* stone-950 - TextBox background, app bg */
-  --trace-bg-merchant: #29252466;    /* stone-900 @ 40% - MerchantBlock */
+  --trace-bg-merchant: #29252480;    /* stone-900 @ 50% - MerchantBlock */
   --trace-bg-showcase: #0a0a0a;      /* Super dark - Showcase page background */
   --trace-bg-demo: #18181b;          /* zinc-950 - Demo card backgrounds */
 

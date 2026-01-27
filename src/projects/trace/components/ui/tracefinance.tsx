@@ -533,8 +533,10 @@ export const DayTotal = React.forwardRef<HTMLDivElement, DayTotalProps>(
             position: sticky;
             top: calc(0px - var(--trace-financebox-padding-top)); /* Compensate for FinanceBox top padding to stick flush to actual top */
             z-index: 10; /* Appear above scrolling content */
+          }
 
-            /* Scroll-linked opacity */
+          /* Scroll-linked opacity - applied to children only, not background */
+          .day-total > :global(*) {
             opacity: var(--day-total-opacity, 1);
             transition: opacity 0.05s linear;
           }

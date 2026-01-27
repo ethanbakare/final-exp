@@ -106,18 +106,21 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
       const dayBlockBottom = dayBlockRect.bottom;
       const dayTotalBottom = dayTotalRect.bottom;
 
-      const hasUnstuck = dayBlockBottom < dayTotalBottom;
+      // Calculate distance between DayBlock bottom and DayTotal bottom
+      // When scrolling up, dayBlockBottom approaches dayTotalBottom from above
+      const distanceUntilExit = dayBlockBottom - dayTotalBottom;
 
       console.log('[AnimatedDayBlock] Update:', {
         dayBlockBottom,
         dayTotalBottom,
-        hasUnstuck,
-        pixelsPastUnstick: hasUnstuck ? dayTotalBottom - dayBlockBottom : 0,
+        distanceUntilExit,
+        inFadeZone: distanceUntilExit <= SCROLL_CONFIG.fadeDistance && distanceUntilExit >= 0,
       });
 
-      if (hasUnstuck) {
-        const pixelsPastUnstick = Math.min(8, dayTotalBottom - dayBlockBottom);
-        const opacity = Math.max(0, 1 - (pixelsPastUnstick / 8));
+      // Fade when DayBlock bottom is within fadeDistance of DayTotal bottom (approaching from above)
+      if (distanceUntilExit <= SCROLL_CONFIG.fadeDistance && distanceUntilExit >= 0) {
+        // Opacity goes from 1.0 (at fadeDistance away) to 0.0 (at 0px away)
+        const opacity = Math.max(0, distanceUntilExit / SCROLL_CONFIG.fadeDistance);
         console.log('[AnimatedDayBlock] Setting opacity:', opacity);
         dayTotal.style.setProperty('--day-total-opacity', String(opacity));
       } else {
