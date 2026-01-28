@@ -242,7 +242,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
           justify-content: flex-start;
           gap: 0;
           padding: var(--trace-financebox-padding-top) var(--trace-financebox-padding-horizontal)
-            calc(100% - 24px) var(--trace-financebox-padding-horizontal);
+            var(--trace-financebox-padding-bottom) var(--trace-financebox-padding-horizontal);
           border-radius: var(--trace-financebox-radius);
           width: 100%;
           flex: 1;
@@ -254,6 +254,11 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 
           /* Smooth scroll on iOS */
           -webkit-overflow-scrolling: touch;
+        }
+
+        /* Scroll spacer - allows last DayBlock to scroll to top */
+        .finance-box > :global(*):last-child {
+          margin-bottom: calc(var(--trace-textbox-height) - 100px);
         }
 
         /* Custom scrollbar styling - Modern iOS-style pill scrollbar */

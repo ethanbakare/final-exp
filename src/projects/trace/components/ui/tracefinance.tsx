@@ -1170,7 +1170,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           align-items: center;
           justify-content: flex-start;
           gap: 0; /* Gap moved to DayTotal top padding (24px) */
-          padding: var(--trace-financebox-padding-top) var(--trace-financebox-padding-horizontal) calc(100% - 24px) var(--trace-financebox-padding-horizontal); /* top, right, bottom (scroll spacer), left */
+          padding: var(--trace-financebox-padding-top) var(--trace-financebox-padding-horizontal) var(--trace-financebox-padding-bottom) var(--trace-financebox-padding-horizontal);
           border-radius: var(--trace-financebox-radius); /* 6px */
           width: 100%;
           height: 100%;
@@ -1181,6 +1181,11 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
 
           /* Smooth scroll on iOS */
           -webkit-overflow-scrolling: touch;
+        }
+
+        /* Scroll spacer - allows last DayBlock to scroll to top */
+        .finance-box > *:last-child {
+          margin-bottom: calc(var(--trace-textbox-height) - 100px);
         }
 
         /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
