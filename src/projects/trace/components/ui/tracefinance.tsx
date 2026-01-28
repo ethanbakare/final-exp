@@ -477,6 +477,7 @@ export interface DayTotalProps {
   date: string;
   total: string;
   width?: string; // Default: 277px, can be overridden to "100%" or other values
+  isFirst?: boolean; // First DayBlock gets reduced top padding (12px vs 24px)
   className?: string;
 }
 
@@ -559,6 +560,7 @@ export interface DayBlockProps {
     }>;
   }>;
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
+  isFirst?: boolean; // First DayBlock gets reduced top padding
   className?: string;
   dayTotalRef?: React.RefObject<HTMLDivElement | null>; // For scroll-linked fade
 }
@@ -604,7 +606,7 @@ export interface TextBoxProps {
 
 // DayTotal - Date + TotalFrame
 export const DayTotal = React.forwardRef<HTMLDivElement, DayTotalProps>(
-  ({ date, total, width = '277px', className = '' }, ref) => {
+  ({ date, total, width = '277px', isFirst = false, className = '' }, ref) => {
     return (
       <div ref={ref} className={`day-total ${className} ${styles.container}`}>
         <Date date={date} />
@@ -616,7 +618,7 @@ export const DayTotal = React.forwardRef<HTMLDivElement, DayTotalProps>(
             align-items: baseline;
             justify-content: space-between;
             gap: 4px;
-            padding: var(--trace-daytotal-padding); /* 24px 12px 4px 12px */
+            padding: ${isFirst ? '12px' : '24px'} 12px 4px 12px;
             border-radius: 0px;
             width: ${width};
             /* Background for sticky positioning - covers content underneath */
@@ -961,7 +963,7 @@ export const MasterBlockHolder: React.FC<MasterBlockHolderProps> = ({
 
 // DayBlock - DayTotal + DayExpenses
 export const DayBlock = React.forwardRef<HTMLDivElement, DayBlockProps>(
-  ({ date, dateOriginal, total, merchants, width = '277px', className = '', dayTotalRef }, ref) => {
+  ({ date, dateOriginal, total, merchants, width = '277px', isFirst = false, className = '', dayTotalRef }, ref) => {
     // Calculate optimal PriceFrame width based on longest price in this day
     const calculateOptimalPriceWidth = (): number | undefined => {
       const DEFAULT_WIDTH = 85;
@@ -1003,7 +1005,7 @@ export const DayBlock = React.forwardRef<HTMLDivElement, DayBlockProps>(
 
     return (
       <div ref={ref} className={`day-block ${className} ${styles.container}`}>
-        <DayTotal ref={dayTotalRef} date={date} total={total} width="100%" />
+        <DayTotal ref={dayTotalRef} date={date} total={total} width="100%" isFirst={isFirst} />
         <DayExpenses merchants={merchants} width="100%" priceFrameWidth={priceFrameWidth} />
 
         <style jsx>{`

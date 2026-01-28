@@ -154,6 +154,7 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
     <motion.div {...animationProps} style={{ width: '100%' }}>
       <DayBlock
         {...props}
+        isFirst={index === 0}
         ref={dayBlockRef}
         dayTotalRef={dayTotalRef}
       />
