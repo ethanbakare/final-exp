@@ -242,7 +242,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
           justify-content: flex-start;
           gap: 0;
           padding: var(--trace-financebox-padding-top) var(--trace-financebox-padding-horizontal)
-            var(--trace-financebox-padding-bottom) var(--trace-financebox-padding-horizontal);
+            calc(100% - 24px) var(--trace-financebox-padding-horizontal);
           border-radius: var(--trace-financebox-radius);
           width: 100%;
           flex: 1;
