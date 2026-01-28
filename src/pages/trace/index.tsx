@@ -170,9 +170,6 @@ export default function TracePage() {
   // Group entries by day for TextBox
   const groupedDays = groupEntriesByDay(entries);
 
-  // Grand total: sum of all entry totals across all days
-  const grandTotal = entries.reduce((sum, entry) => sum + entry.total, 0);
-
   return (
     <>
       <Head>
@@ -189,7 +186,7 @@ export default function TracePage() {
 
         {/* Wrapper container for TextBox + Navbar */}
         <div className="trace-container">
-          <AnimatedTextBox days={groupedDays} grandTotal={grandTotal} />
+          <AnimatedTextBox days={groupedDays} />
           <TRNavbar
             state={navbarState}
             onUploadClick={handleUploadClick}

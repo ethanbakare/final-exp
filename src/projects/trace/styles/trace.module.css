@@ -292,7 +292,6 @@
   --trace-text-secondary: #e7e5e4;
   --trace-text-second: #f5f5f4; /* stone-100 @ 30% - Item names, prices */
   --trace-text-tertiary: #78716c;    /* stone-500 - Merchant names, labels */
-  --trace-text-muted: #a8a29e;       /* stone-400 - Master total label */
   --trace-text-qty: #ffffff4d;       /* White @ 30% - Quantity badges (2x, 1x) */
 
   /* Border Colors */
@@ -330,8 +329,6 @@
   --trace-fs-itemname: 14px;           /* Line height: 1.71 (24px) */
   --trace-fs-button: 16px;             /* Line height: 1.44 (23px) */
   --trace-fs-processing: 16px;         /* Line height: 1.44 (23px) */
-  --trace-fs-master-currency: 18px;    /* Master total currency symbol (rounded from 17.89) */
-  --trace-fs-master-amount: 28px;      /* Master total amount value (rounded from 27.82) */
   --trace-fs-title: 24px;              /* Showcase section titles */
   --trace-fs-heading: 32px;            /* App header */
 
@@ -370,7 +367,7 @@
 
   /* TextBox / FinanceBox */
   --trace-textbox-width: 301px;       /* Design spec width */
-  --trace-textbox-height: 500px;
+  --trace-textbox-height: 421px;
   --trace-textbox-radius: 16px;
   --trace-textbox-border: 1px;
 

@@ -17,7 +17,6 @@ import {
   type MerchantBlockProps,
 } from './tracefinance';
 import { ANIMATION_CONFIG, SCROLL_CONFIG } from '@/projects/trace/config/animations';
-import { MasterBlockHolder } from './tracemasterblock';
 import styles from '@/projects/trace/styles/trace.module.css';
 
 /* ==================== ANIMATED MERCHANT BLOCK ==================== */
@@ -290,13 +289,11 @@ export interface AnimatedTextBoxProps extends TextBoxProps {
 
 export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
   days,
-  grandTotal = 0,
   onScrollToLatest,
   className = '',
 }) => {
   return (
     <div className={`text-box ${className} ${styles.container}`}>
-      <MasterBlockHolder total={grandTotal.toFixed(2)} fullWidth />
       <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} />
 
       <style jsx>{`
@@ -304,9 +301,9 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: flex-start;
+          justify-content: center;
           width: var(--trace-textbox-width); /* 301px */
-          height: var(--trace-textbox-height); /* 500px */
+          height: var(--trace-textbox-height); /* 421px */
           background: var(--trace-bg-dark); /* #1c1917 */
           border: var(--trace-textbox-border) solid var(--trace-border-primary); /* 1px solid #44403c */
           border-radius: var(--trace-textbox-radius); /* 16px */
@@ -320,22 +317,24 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
         .text-box::after {
           content: '';
           position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 5px;
+          bottom: 0;  /* Very bottom of textbox */
+          left: 0;    /* Full width from left */
+          right: 5px; /* 5px offset from right for scrollbar */
           height: 24px;
 
+          /* Match parent's border-radius to stay within rounded corners */
           border-bottom-left-radius: var(--trace-textbox-radius);
           border-bottom-right-radius: var(--trace-textbox-radius);
 
+          /* Fade FROM solid (bottom) TO transparent (top) */
           background: linear-gradient(
             to top,
-            var(--trace-bg-dark) 0%,
-            transparent 100%
+            var(--trace-bg-dark) 0%,      /* Solid at bottom */
+            transparent 100%               /* Transparent at top */
           );
 
-          pointer-events: none;
-          z-index: 10;
+          pointer-events: none;  /* Don't block interactions */
+          z-index: 10;  /* Above content */
         }
       `}</style>
     </div>

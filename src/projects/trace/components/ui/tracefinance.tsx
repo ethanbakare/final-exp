@@ -5,7 +5,6 @@
 
 import React from 'react';
 import styles from '@/projects/trace/styles/trace.module.css';
-import { MasterBlockHolder } from './tracemasterblock';
 
 /* ==================== TYPE DEFINITIONS ==================== */
 
@@ -507,7 +506,6 @@ export interface TextBoxProps {
       }>;
     }>;
   }>;
-  grandTotal?: number;
   className?: string;
 }
 
@@ -1042,12 +1040,10 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
 // TextBox - Dark container with border and shadow
 export const TextBox: React.FC<TextBoxProps> = ({
   days,
-  grandTotal = 0,
   className = '',
 }) => {
   return (
     <div className={`text-box ${className} ${styles.container}`}>
-      <MasterBlockHolder total={grandTotal.toFixed(2)} fullWidth />
       <FinanceBox days={days} />
 
       <style jsx>{`
@@ -1055,38 +1051,13 @@ export const TextBox: React.FC<TextBoxProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: flex-start;
+          justify-content: center;
           width: var(--trace-textbox-width); /* 301px */
-          height: var(--trace-textbox-height); /* 500px */
+          height: var(--trace-textbox-height); /* 421px */
           background: var(--trace-bg-dark); /* #1c1917 */
           border: var(--trace-textbox-border) solid var(--trace-border-primary); /* 1px solid #44403c */
           border-radius: var(--trace-textbox-radius); /* 16px */
           box-shadow: var(--trace-shadow-textbox); /* 0px 4px 10.5px rgba(0, 0, 0, 0.06) */
-
-          /* Positioning context for bottom gradient pseudo-element */
-          position: relative;
-        }
-
-        /* Bottom gradient - fades content scrolling upward */
-        .text-box::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 5px;
-          height: 24px;
-
-          border-bottom-left-radius: var(--trace-textbox-radius);
-          border-bottom-right-radius: var(--trace-textbox-radius);
-
-          background: linear-gradient(
-            to top,
-            var(--trace-bg-dark) 0%,
-            transparent 100%
-          );
-
-          pointer-events: none;
-          z-index: 10;
         }
       `}</style>
     </div>
