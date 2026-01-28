@@ -598,6 +598,7 @@ export interface TextBoxProps {
       }>;
     }>;
   }>;
+  grandTotal?: string;
   className?: string;
 }
 
@@ -1215,10 +1216,12 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
 // TextBox - Dark container with border and shadow
 export const TextBox: React.FC<TextBoxProps> = ({
   days,
+  grandTotal = '0.00',
   className = '',
 }) => {
   return (
     <div className={`text-box ${className} ${styles.container}`}>
+      <MasterBlockHolder total={grandTotal} fullWidth />
       <FinanceBox days={days} />
 
       <style jsx>{`
@@ -1226,9 +1229,8 @@ export const TextBox: React.FC<TextBoxProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          width: var(--trace-textbox-width); /* 301px */
-          height: var(--trace-textbox-height); /* 421px */
+          width: var(--trace-textbox-width); /* 360px */
+          height: var(--trace-textbox-height); /* 500px */
           background: var(--trace-bg-dark); /* #1c1917 */
           border: var(--trace-textbox-border) solid var(--trace-border-primary); /* 1px solid #44403c */
           border-radius: var(--trace-textbox-radius); /* 16px */

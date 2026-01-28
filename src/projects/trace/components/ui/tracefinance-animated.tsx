@@ -10,6 +10,7 @@ import {
   FinanceBox,
   DayBlock,
   MerchantBlock,
+  MasterBlockHolder,
   EmptyFinanceState,
   type TextBoxProps,
   type FinanceBoxProps,
@@ -206,7 +207,8 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
             gap: 10px;
             border-radius: var(--trace-financebox-radius);
             width: 100%;
-            height: 100%;
+            flex: 1;
+            min-height: 0;
           }
         `}</style>
       </div>
@@ -242,7 +244,8 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
             var(--trace-financebox-padding-bottom) var(--trace-financebox-padding-horizontal);
           border-radius: var(--trace-financebox-radius);
           width: 100%;
-          height: 100%;
+          flex: 1;
+          min-height: 0;
 
           /* Scrollable container */
           overflow-y: auto;
@@ -289,11 +292,13 @@ export interface AnimatedTextBoxProps extends TextBoxProps {
 
 export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
   days,
+  grandTotal = '0.00',
   onScrollToLatest,
   className = '',
 }) => {
   return (
     <div className={`text-box ${className} ${styles.container}`}>
+      <MasterBlockHolder total={grandTotal} fullWidth />
       <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} />
 
       <style jsx>{`
@@ -301,9 +306,8 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          width: var(--trace-textbox-width); /* 301px */
-          height: var(--trace-textbox-height); /* 421px */
+          width: var(--trace-textbox-width); /* 360px */
+          height: var(--trace-textbox-height); /* 500px */
           background: var(--trace-bg-dark); /* #1c1917 */
           border: var(--trace-textbox-border) solid var(--trace-border-primary); /* 1px solid #44403c */
           border-radius: var(--trace-textbox-radius); /* 16px */
