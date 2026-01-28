@@ -29,7 +29,7 @@ export const AnimatedMerchantBlock: React.FC<MerchantBlockProps & { index?: numb
   const shouldReduceMotion = useReducedMotion();
 
   const animationProps = shouldReduceMotion
-    ? { initial: false, animate: false, exit: false }
+    ? { initial: false, animate: false }
     : {
         initial: { opacity: 0, y: -8 },
         animate: { opacity: 1, y: 0 },
@@ -66,7 +66,7 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
 
   // Entry/exit animations (existing behavior - UNCHANGED)
   const animationProps = shouldReduceMotion
-    ? { initial: false, animate: false, exit: false }
+    ? { initial: false, animate: false }
     : {
         initial: { opacity: 0, y: -8 },
         animate: { opacity: 1, y: 0 },
