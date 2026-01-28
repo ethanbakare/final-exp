@@ -414,7 +414,7 @@ export const TotalAmtSpent: React.FC<TotalAmtSpentProps> = ({
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-small); /* 10px */
           font-weight: var(--trace-fw-medium); /* 500 */
-          line-height: 24px;
+          line-height: 1;
           color: var(--trace-text-muted); /* #A8A29E */
           white-space: nowrap;
           flex: none;
@@ -444,17 +444,16 @@ export const MasterTotalPrice: React.FC<MasterTotalPriceProps> = ({
           display: flex;
           flex-direction: row;
           justify-content: flex-end;
-          align-items: center;
+          align-items: baseline;
         }
 
         .master-currency {
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-master-currency); /* 18px */
           font-weight: var(--trace-fw-medium); /* 500 */
-          line-height: 48px;
+          line-height: 1;
           text-align: right;
           color: var(--trace-text-primary); /* #FFFFFF */
-          padding-top: 8px; /* Baseline-align with larger amount */
           flex: none;
         }
 
@@ -462,7 +461,7 @@ export const MasterTotalPrice: React.FC<MasterTotalPriceProps> = ({
           font-family: var(--trace-font-family);
           font-size: var(--trace-fs-master-amount); /* 28px */
           font-weight: var(--trace-fw-medium); /* 500 */
-          line-height: 48px;
+          line-height: 1;
           text-align: right;
           color: var(--trace-text-primary); /* #FFFFFF */
           flex: none;
@@ -910,12 +909,12 @@ export const MasterBlockHolder: React.FC<MasterBlockHolderProps> = ({
 
           flex: none;
           order: 0;
-          align-self: stretch;
           flex-grow: 0;
         }
 
         .master-block-holder.full-width {
           width: 100%;
+          align-self: stretch;
         }
 
         .master-block {
@@ -943,12 +942,11 @@ export const MasterBlockHolder: React.FC<MasterBlockHolderProps> = ({
           display: flex;
           flex-direction: row;
           justify-content: space-between;
-          align-items: flex-end;
+          align-items: baseline;
           padding: 0px 10px;
           gap: 14px;
 
           width: 100%;
-          height: 20.95px;
 
           flex: none;
           order: 0;
