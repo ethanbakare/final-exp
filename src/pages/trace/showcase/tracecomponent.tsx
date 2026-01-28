@@ -20,12 +20,15 @@ import {
   Quantity,
   ItemName,
   DiscountFrame,
+  TotalAmtSpent,
+  MasterTotalPrice,
   DayTotal,
   RowIdentifier,
   QuantityItemName,
   PriceFrame,
   ContentRow,
   MerchantBlock,
+  MasterBlockHolder,
   DayBlock,
   FinanceBox,
   TextBox
@@ -595,6 +598,14 @@ const TraceComponent: React.FC = () => {
             <ButtonGrid label="DISCOUNT FRAME - £ (9PX), AMOUNT (12PX)">
               <DiscountFrame discount="3.99" />
             </ButtonGrid>
+
+            <ButtonGrid label="TOTAL AMT SPENT - RED PILL + LABEL">
+              <TotalAmtSpent />
+            </ButtonGrid>
+
+            <ButtonGrid label="MASTER TOTAL PRICE - £ (18PX), AMOUNT (28PX)" isDouble={true}>
+              <MasterTotalPrice total="1,556.41" />
+            </ButtonGrid>
           </div>
 
           {/* Molecules */}
@@ -617,6 +628,10 @@ const TraceComponent: React.FC = () => {
 
             <ButtonGrid label="PRICE FRAME (NO DISCOUNT) - MOLECULE">
               <PriceFrame netPrice="5000.99" />
+            </ButtonGrid>
+
+            <ButtonGrid label="MASTER BLOCK HOLDER - MOLECULE" isDouble={true}>
+              <MasterBlockHolder total="1,556.41" />
             </ButtonGrid>
           </div>
 
