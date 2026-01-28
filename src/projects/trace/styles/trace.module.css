@@ -375,7 +375,7 @@
   --trace-textbox-border: 1px;
 
   /* FinanceBox Inner Padding */
-  --trace-financebox-padding-top: 8px;       /* Top padding */
+  --trace-financebox-padding-top: 0px;       /* Top padding */
   --trace-financebox-padding-bottom: 12px;   /* Bottom padding */
   --trace-financebox-padding-horizontal: 12px; /* Left and right padding */
   --trace-financebox-radius: 6px;
