@@ -258,7 +258,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 
         /* Scroll spacer - allows last DayBlock to scroll to top */
         .finance-box > :global(*):last-child {
-          margin-bottom: calc(var(--trace-textbox-height) - 100px);
+          margin-bottom: calc(var(--trace-textbox-height) - 150px);
         }
 
         /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
