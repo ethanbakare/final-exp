@@ -1,8 +1,15 @@
+---
+title: Connection Race Condition Issue
+created: 2026-02-05
+status: documented
+priority: low
+related: [REALTIME_EVENT_SYSTEM_FIX.md]
+summary: Quick start/stop causes WebRTC setRemoteDescription error. Recommended fix is adding a "connecting" state with loading animation.
+---
+
 # Connection Race Condition Issue
 
-**Status:** Not implemented - documented for future reference
 **Priority:** Low (rare edge case, not production-critical)
-**Date:** 2026-02-05
 
 ## The Problem
 
