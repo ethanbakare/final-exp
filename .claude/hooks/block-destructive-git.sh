@@ -47,4 +47,16 @@ if echo "$CMD" | grep -qE 'git branch\s+-D'; then
   exit 2
 fi
 
+# Block: Co-Authored-By: Claude in commit messages
+if echo "$CMD" | grep -qiE 'Co-Authored-By:.*Claude'; then
+  echo "BLOCKED: Do not include 'Co-Authored-By: Claude' in commit messages." >&2
+  exit 2
+fi
+
+# Block: Anthropic email addresses in commit messages
+if echo "$CMD" | grep -qiE '@anthropic\.com'; then
+  echo "BLOCKED: Do not include Anthropic email addresses in commit messages." >&2
+  exit 2
+fi
+
 exit 0
