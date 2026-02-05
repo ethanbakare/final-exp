@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import CoralStoneTorusDamped from './CoralStoneTorusDamped';
@@ -12,7 +12,7 @@ import { AudioData } from './types';
  * States:
  * - idle: Gentle breathing, waiting to start
  * - listening: Responds to user microphone input
- * - ai_thinking: Rapid pulsing via increased breath amplitude
+ * - ai_thinking: Continuous thin↔thick pulsing loop (goal toggles 0↔1)
  * - ai_speaking: Normal state, responds to AI audio
  */
 
@@ -37,23 +37,21 @@ const VELVET_CONFIG = {
 };
 
 /**
- * Map voice state to Velvet orb properties
+ * Map voice state to Velvet orb properties (excluding goal which is handled dynamically)
  */
 function getVelvetProps(voiceState: VoiceState) {
   switch (voiceState) {
     case 'ai_thinking':
-      // Rapid pulsing via large breath amplitude
+      // Pulsing loop: goal toggles 0↔1 (handled in component)
       return {
-        goal: 0,
         waveIntensity: 0.15,
-        breathAmp: 0.08, // Large amplitude for visible pulsing
-        idleAmp: 0.03,
+        breathAmp: 0.02, // Reduced to emphasize goal-based pulsing
+        idleAmp: 0.01,
       };
 
     case 'ai_speaking':
       // Normal state, responds to AI audio
       return {
-        goal: 0,
         waveIntensity: 0.25,
         breathAmp: 0.04,
         idleAmp: 0.03,
@@ -62,7 +60,6 @@ function getVelvetProps(voiceState: VoiceState) {
     case 'listening':
       // Audio-reactive, responds to user voice
       return {
-        goal: 0,
         waveIntensity: 0.18,
         breathAmp: 0.03,
         idleAmp: 0.02,
@@ -72,7 +69,6 @@ function getVelvetProps(voiceState: VoiceState) {
     default:
       // Gentle breathing
       return {
-        goal: 0,
         waveIntensity: 0.18,
         breathAmp: 0.03,
         idleAmp: 0.02,
@@ -88,6 +84,29 @@ export const VelvetOrb: React.FC<VelvetOrbProps> = ({
 }) => {
   const velvetProps = getVelvetProps(voiceState);
 
+  // AI thinking pulsing: Toggle goal between 0 (thin) and 1 (thick) every second
+  const [pulsingGoal, setPulsingGoal] = useState<number>(0);
+
+  useEffect(() => {
+    if (voiceState === 'ai_thinking') {
+      // Start pulsing immediately
+      setPulsingGoal(1); // Start with thick
+
+      // Toggle goal every 1 second
+      const interval = setInterval(() => {
+        setPulsingGoal(prev => prev === 0 ? 1 : 0);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      // Reset to thin (goal=0) for other states
+      setPulsingGoal(0);
+    }
+  }, [voiceState]);
+
+  // Determine final goal based on state
+  const finalGoal = voiceState === 'ai_thinking' ? pulsingGoal : 0;
+
   return (
     <Canvas style={{ width, height }}>
       {/* Lighting setup */}
@@ -97,7 +116,7 @@ export const VelvetOrb: React.FC<VelvetOrbProps> = ({
       {/* Velvet orb with state-based props */}
       <CoralStoneTorusDamped
         audioData={audioData}
-        goal={velvetProps.goal}
+        goal={finalGoal}
         scale={VELVET_CONFIG.scale}
         thinRadius={VELVET_CONFIG.thinRadius}
         thickRadius={VELVET_CONFIG.thickRadius}
