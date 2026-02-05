@@ -57,7 +57,7 @@ export default function VoiceInterfaceVariations() {
           <div className="variation-section">
             <h2>Variation 4: OpenAI Realtime</h2>
             <p className="description">
-              Walkie-talkie voice chat with AI
+              Conversational AI with Velvet orb visualization
             </p>
             <div className="variation-demo">
               <VoiceRealtimeOpenAI />
