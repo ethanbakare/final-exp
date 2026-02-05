@@ -2351,3 +2351,182 @@ export const MorphingRecordDarkToPillWaveProcessing: React.FC<MorphingRecordDark
     </>
   );
 };
+
+/* ============================================
+   MORPHING RECORD WIDE SIMPLE
+
+   Pattern: Icon Crossfade (no size change, no timer)
+   - RecordWideButton (76×44px pill, dark grey)
+   - Idle: White mic icon
+   - Recording: White stop square icon fades in
+   - Used for VoiceRealtimeOpenAI (Variation 4)
+
+   Unlike MorphingRecordWideToStop, this component:
+   - Does NOT show a timer
+   - Does NOT morph to larger size
+   - Stop icon is WHITE (not red)
+   ============================================ */
+
+export type RecordWideSimpleState = 'idle' | 'recording';
+
+interface MorphingRecordWideSimpleProps {
+  state: RecordWideSimpleState;
+  onRecordClick?: () => void;
+  onStopClick?: () => void;
+  className?: string;
+  disabled?: boolean;
+}
+
+export const MorphingRecordWideSimple: React.FC<MorphingRecordWideSimpleProps> = ({
+  state,
+  onRecordClick,
+  onStopClick,
+  className = '',
+  disabled = false
+}) => {
+  const handleClick = () => {
+    if (disabled) return;
+    if (state === 'idle') {
+      onRecordClick?.();
+    } else {
+      onStopClick?.();
+    }
+  };
+
+  return (
+    <>
+      <button
+        className={`record-wide-stop-button state-${state} ${className} ${styles.container}`}
+        onClick={handleClick}
+        disabled={disabled}
+        aria-label={state === 'idle' ? 'Start recording' : 'Stop recording'}
+      >
+        {/* Content container for icon crossfade */}
+        <div className="icon-container">
+          {/* Mic Icon - visible in idle state */}
+          <div className="mic-icon">
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 26 26"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M9.40583 6.84452C9.40583 4.85934 11.0151 3.25003 13.0003 3.25003C14.9855 3.25003 16.5948 4.85934 16.5948 6.84451V11.4855C16.5948 13.4707 14.9855 15.08 13.0003 15.08C11.0151 15.08 9.40583 13.4707 9.40583 11.4855V6.84452Z"
+                fill="white"
+              />
+              <path
+                d="M19.9282 13.3002C19.3867 16.6398 16.4897 19.1896 12.9971 19.1896C9.50541 19.1896 6.60896 16.6411 6.06641 13.3027M12.9965 22.75V19.3733M15.0926 22.75H10.9399M13.0003 15.08C11.0151 15.08 9.40583 13.4707 9.40583 11.4855V6.84452C9.40583 4.85934 11.0151 3.25003 13.0003 3.25003C14.9855 3.25003 16.5948 4.85934 16.5948 6.84451V11.4855C16.5948 13.4707 14.9855 15.08 13.0003 15.08Z"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+
+          {/* Stop Icon - visible in recording state (WHITE, not red) */}
+          <div className="stop-icon">
+            <div className="stop-square"></div>
+          </div>
+        </div>
+      </button>
+
+      <style jsx>{`
+        .record-wide-stop-button {
+          /* Auto layout */
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          padding: 0px 25px;
+          gap: 11.58px;
+
+          /* Size - matches RecordWideButton */
+          position: relative;
+          width: 76px;
+          height: 44px;
+
+          /* Style */
+          background: var(--VoiceDarkGrey_95);
+          border: none;
+          border-radius: 23.1579px;
+          cursor: pointer;
+
+          /* Inside auto layout */
+          flex: none;
+          order: 0;
+          flex-grow: 0;
+
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .record-wide-stop-button:hover {
+          transform: scale(1.02);
+          box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .record-wide-stop-button:active {
+          transform: scale(0.98);
+        }
+
+        .record-wide-stop-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* Icon container for crossfade */
+        .icon-container {
+          position: relative;
+          width: 26px;
+          height: 26px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        /* Mic icon - visible in idle */
+        .mic-icon {
+          position: absolute;
+          width: 26px;
+          height: 26px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          opacity: 1;
+          transition: opacity 0.2s ease;
+        }
+
+        /* Hide mic in recording state */
+        .record-wide-stop-button.state-recording .mic-icon {
+          opacity: 0;
+        }
+
+        /* Stop icon - visible in recording */
+        .stop-icon {
+          position: absolute;
+          width: 18px;
+          height: 18px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+
+        /* Show stop in recording state */
+        .record-wide-stop-button.state-recording .stop-icon {
+          opacity: 1;
+        }
+
+        /* Stop square - WHITE (not red) */
+        .stop-square {
+          width: 10px;
+          height: 10px;
+          background: white;
+          border-radius: 2px;
+        }
+      `}</style>
+    </>
+  );
+};

@@ -35,14 +35,14 @@ export const VoiceStateLabel: React.FC<VoiceStateLabelProps> = ({ state }) => {
           font-family: 'Open Runde', 'Inter', sans-serif;
           font-size: 16px;
           font-weight: 500;
-          color: var(--VoiceDarkGrey_30);  /* rgba(38,36,36,0.3) */
+          color: var(--VoiceDarkGrey_30, rgba(38, 36, 36, 0.3));
           text-align: center;
           opacity: 1;
           transition: color 200ms ease-out, opacity 200ms ease-out;
         }
 
         .voice-state-label.active {
-          color: var(--VoiceDarkGrey_90);  /* rgba(38,36,36,0.9) when active */
+          color: var(--VoiceDarkGrey_90, rgba(38, 36, 36, 0.9));
         }
       `}</style>
     </>

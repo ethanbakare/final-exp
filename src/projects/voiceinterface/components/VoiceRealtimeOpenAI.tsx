@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { RealtimeAgent, RealtimeSession, OpenAIRealtimeWebRTC } from '@openai/agents-realtime';
 import { VelvetOrb, VoiceState } from './orb/VelvetOrb';
 import { VoiceStateLabel, VoiceStateLabelState } from './ui/VoiceStateLabel';
+import { MorphingRecordWideSimple } from './ui/voicemorphingbuttons';
 import { AudioData } from '../types';
 import { AUDIO_BANDS } from '../constants';
 
@@ -9,10 +10,10 @@ import { AUDIO_BANDS } from '../constants';
  * Variation 4: OpenAI Realtime Voice Chat with Velvet Orb
  *
  * Architecture:
- * - Landscape card: Responsive (max-width: 900px)
+ * - Landscape card: Responsive (max-width: 1000px)
  * - Velvet orb: Audio-reactive 3D torus (400×400px, 300×300px on mobile)
  * - State label: Text below orb showing conversation state
- * - Mic button: Inside card at bottom (38×38px circle)
+ * - Record button: MorphingRecordWideSimple (76×44px pill, white mic/stop icons)
  *
  * Implementation:
  * - Automatic turn-taking: Click once → continuous listening → VAD detects turns
@@ -458,24 +459,13 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             <VoiceStateLabel state={getLabelState()} />
           </div>
 
-          {/* Button Container - Mic button at bottom inside card */}
+          {/* Button Container - Record/Stop button at bottom inside card */}
           <div className="button-container">
-            <button
-              className={`mic-button ${isConversationActive ? 'active' : 'idle'}`}
-              onClick={isConversationActive ? handleStopConversation : handleStartConversation}
-              aria-label={isConversationActive ? 'Stop conversation' : 'Start conversation'}
-            >
-              {isConversationActive ? (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="3" y="3" width="10" height="10" rx="2" fill="#ef4444" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 1C6.34315 1 5 2.34315 5 4V8C5 9.65685 6.34315 11 8 11C9.65685 11 11 9.65685 11 8V4C11 2.34315 9.65685 1 8 1Z" fill="currentColor" />
-                  <path d="M3.5 8C3.5 7.72386 3.27614 7.5 3 7.5C2.72386 7.5 2.5 7.72386 2.5 8C2.5 10.4853 4.28061 12.5586 6.625 12.9409V14.5H5.5C5.22386 14.5 5 14.7239 5 15C5 15.2761 5.22386 15.5 5.5 15.5H10.5C10.7761 15.5 11 15.2761 11 15C11 14.7239 10.7761 14.5 10.5 14.5H9.375V12.9409C11.7194 12.5586 13.5 10.4853 13.5 8C13.5 7.72386 13.2761 7.5 13 7.5C12.7239 7.5 12.5 7.72386 12.5 8C12.5 10.2091 10.7091 12 8.5 12H7.5C5.29086 12 3.5 10.2091 3.5 8Z" fill="currentColor" />
-                </svg>
-              )}
-            </button>
+            <MorphingRecordWideSimple
+              state={isConversationActive ? 'recording' : 'idle'}
+              onRecordClick={handleStartConversation}
+              onStopClick={handleStopConversation}
+            />
           </div>
 
           {/* Error display */}
@@ -503,12 +493,12 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           gap: 20px;
 
           width: 100%;
-          max-width: 900px;
+          max-width: 1000px;
           padding: 40px 20px 20px;
 
-          background: var(--VoiceBoxBg);
-          border: 1px solid var(--VoiceBoxOutline);
-          box-shadow: 0px 4px 12px var(--VoiceBoxShadow);
+          background: var(--VoiceBoxBg, #F7F6F4);
+          border: 1px solid var(--VoiceBoxOutline, #F2F2F2);
+          box-shadow: 0px 4px 12px var(--VoiceBoxShadow, rgba(0, 0, 0, 0.06));
           border-radius: 16px;
         }
 
@@ -533,37 +523,10 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           justify-content: center;
           align-items: center;
           width: 100%;
-          height: 38px;
+          height: 44px;
           padding: 0 12px;
           margin-top: 10px;
         }
-
-        /* Mic Button */
-        .mic-button {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 38px;
-          height: 38px;
-          border-radius: 19px;
-          border: none;
-          background: var(--VoiceDarkGrey_90);
-          color: var(--VoiceWhite);
-          cursor: pointer;
-          transition: all 200ms ease-out;
-          outline: none;
-        }
-
-        .mic-button:hover {
-          transform: scale(1.05);
-          box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .mic-button:active {
-          transform: scale(0.95);
-        }
-
-        /* No style change for active state - only icon changes color */
 
         /* Error Message */
         .error-message {
