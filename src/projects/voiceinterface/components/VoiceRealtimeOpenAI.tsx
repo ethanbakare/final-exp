@@ -223,14 +223,14 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     audioService.stop();
     console.log('[Audio] Microphone stopped, tracks released');
 
-    // Disconnect OpenAI session completely
+    // Close OpenAI session completely
     if (sessionRef.current) {
       try {
-        console.log('[OpenAI Realtime] Disconnecting session...');
-        await sessionRef.current.disconnect();
-        console.log('[OpenAI Realtime] Session disconnected');
+        console.log('[OpenAI Realtime] Closing session...');
+        sessionRef.current.close();
+        console.log('[OpenAI Realtime] Session closed');
       } catch (err) {
-        console.error('[OpenAI Realtime] Error during disconnect:', err);
+        console.error('[OpenAI Realtime] Error during close:', err);
       }
       sessionRef.current = null;
       agentRef.current = null;
@@ -267,7 +267,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       if (audioIntervalRef.current) clearInterval(audioIntervalRef.current);
       audioService.stop();
       if (sessionRef.current) {
-        sessionRef.current.disconnect();
+        sessionRef.current.close();
       }
     };
   }, []);
