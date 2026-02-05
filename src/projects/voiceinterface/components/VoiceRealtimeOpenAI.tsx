@@ -34,6 +34,11 @@ import { AUDIO_BANDS } from '../constants';
 
 type AppState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking' | 'complete';
 
+/** Minimum time (ms) to show ai_thinking state before triggering AI response.
+ *  VAD is configured with createResponse: false, so we manually send response.create
+ *  after this delay. No audio is lost because the AI hasn't started generating yet. */
+const MIN_THINKING_DURATION_MS = 5000;
+
 /**
  * Extract frequency band data from a Web Audio API AnalyserNode.
  */
@@ -87,6 +92,9 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   const micStreamRef = useRef<MediaStream | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
+  // Ref for delayed response.create timer
+  const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   /**
    * Setup Event Listeners for Session (Automatic Turn-Taking)
    *
@@ -105,11 +113,32 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       switch (event.type) {
         case 'input_audio_buffer.speech_started':
           console.log('[OpenAI Realtime] User started speaking');
+          // Cancel pending response.create if user interrupts during thinking
+          if (thinkingTimerRef.current) {
+            clearTimeout(thinkingTimerRef.current);
+            thinkingTimerRef.current = null;
+            console.log('[OpenAI Realtime] Thinking cancelled — user interrupted');
+          }
+          setAppState('listening');
           break;
 
         case 'input_audio_buffer.speech_stopped':
           console.log('[OpenAI Realtime] User stopped speaking (VAD)');
           setAppState('ai_thinking');
+
+          // Clear any existing timer (safety)
+          if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
+
+          // Schedule response.create after minimum thinking duration.
+          // VAD is configured with createResponse: false, so the AI won't
+          // respond until we explicitly send this event.
+          thinkingTimerRef.current = setTimeout(() => {
+            thinkingTimerRef.current = null;
+            console.log('[OpenAI Realtime] Thinking complete, triggering response...');
+            if (sessionRef.current) {
+              sessionRef.current.transport.sendEvent({ type: 'response.create' });
+            }
+          }, MIN_THINKING_DURATION_MS);
           break;
 
         case 'output_audio_buffer.started':
@@ -297,7 +326,19 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       });
       agentRef.current = agent;
 
-      const session = new RealtimeSession(agent, { transport });
+      const session = new RealtimeSession(agent, {
+        transport,
+        config: {
+          audio: {
+            input: {
+              turnDetection: {
+                type: 'semantic_vad',
+                createResponse: false, // We manually send response.create after thinking delay
+              },
+            },
+          },
+        },
+      });
       sessionRef.current = session;
 
       // 9. Set up event listeners BEFORE connecting
@@ -313,7 +354,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       console.log('[OpenAI Realtime] Got ephemeral token:', ephemeralKey.substring(0, 20) + '...');
 
       await session.connect({ apiKey: ephemeralKey });
-      console.log('[OpenAI Realtime] Connected, listening...');
+      console.log('[OpenAI Realtime] Connected (VAD: createResponse=false), listening...');
 
     } catch (err) {
       console.error('[OpenAI Realtime] Error starting conversation:', err);
@@ -335,10 +376,14 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   const handleStopConversation = () => {
     console.log('[OpenAI Realtime] Stopping conversation...');
 
-    // 1. Stop audio polling
+    // 1. Stop audio polling and pending thinking timer
     if (audioIntervalRef.current) {
       clearInterval(audioIntervalRef.current);
       audioIntervalRef.current = null;
+    }
+    if (thinkingTimerRef.current) {
+      clearTimeout(thinkingTimerRef.current);
+      thinkingTimerRef.current = null;
     }
 
     // 2. Close OpenAI session (synchronous — calls transport.close() internally)
@@ -386,6 +431,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   useEffect(() => {
     return () => {
       if (audioIntervalRef.current) clearInterval(audioIntervalRef.current);
+      if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
       if (sessionRef.current) {
         try { sessionRef.current.close(); } catch (_) {}
       }
