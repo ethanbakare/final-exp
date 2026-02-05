@@ -211,26 +211,36 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
    */
   const handleStopConversation = async () => {
     console.log('[OpenAI Realtime] Stopping conversation...');
-    setIsConversationActive(false);
-    setAppState('idle');
 
-    // Stop audio polling
+    // Stop audio polling FIRST
     if (audioIntervalRef.current) {
       clearInterval(audioIntervalRef.current);
       audioIntervalRef.current = null;
+      console.log('[Audio] Interval cleared');
     }
-    audioService.stop();
-    console.log('[OpenAI Realtime] Microphone stopped');
 
-    // Disconnect OpenAI session
+    // Stop audio service (releases MediaStream tracks)
+    audioService.stop();
+    console.log('[Audio] Microphone stopped, tracks released');
+
+    // Disconnect OpenAI session completely
     if (sessionRef.current) {
-      await sessionRef.current.disconnect();
+      try {
+        console.log('[OpenAI Realtime] Disconnecting session...');
+        await sessionRef.current.disconnect();
+        console.log('[OpenAI Realtime] Session disconnected');
+      } catch (err) {
+        console.error('[OpenAI Realtime] Error during disconnect:', err);
+      }
       sessionRef.current = null;
       agentRef.current = null;
-      console.log('[OpenAI Realtime] Session disconnected');
     }
 
+    // Update UI state LAST
+    setIsConversationActive(false);
+    setAppState('idle');
     setError('');
+    console.log('[OpenAI Realtime] Cleanup complete, ready for new conversation');
   };
 
   /**
@@ -290,7 +300,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             >
               {isConversationActive ? (
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="3" y="3" width="10" height="10" rx="2" fill="currentColor" />
+                  <rect x="3" y="3" width="10" height="10" rx="2" fill="#ef4444" />
                 </svg>
               ) : (
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -326,7 +336,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           gap: 20px;
 
           width: 100%;
-          max-width: 1000px;
+          max-width: 900px;
           padding: 40px 20px 20px;
 
           background: var(--VoiceBoxBg);
@@ -386,9 +396,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           transform: scale(0.95);
         }
 
-        .mic-button.active {
-          background: var(--VoiceRed, #ef4444);
-        }
+        /* No style change for active state - only icon changes color */
 
         /* Error Message */
         .error-message {
