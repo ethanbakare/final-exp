@@ -2,6 +2,7 @@ import React from 'react';
 import { VoiceTextBoxStandard } from '@/projects/voiceinterface/components/VoiceTextBoxStandard';
 import { VoiceTextBoxCheckClose } from '@/projects/voiceinterface/components/VoiceTextBoxCheckClose';
 import { VoiceTextWrapperLive } from '@/projects/voiceinterface/components/VoiceTextWrapperLive';
+import { VoiceRealtimeOpenAI } from '@/projects/voiceinterface/components/VoiceRealtimeOpenAI';
 
 /**
  * Voice Interface Variations Test Page
@@ -15,7 +16,7 @@ export default function VoiceInterfaceVariations() {
       <div className="variations-page">
         <div className="header">
           <h1>Voice Interface Variations</h1>
-          <p className="subtitle">All Three Variations</p>
+          <p className="subtitle">All Four Variations</p>
         </div>
 
         <div className="variations-container">
@@ -49,6 +50,17 @@ export default function VoiceInterfaceVariations() {
             </p>
             <div className="variation-demo">
               <VoiceTextWrapperLive />
+            </div>
+          </div>
+
+          {/* Variation 4: OpenAI Realtime */}
+          <div className="variation-section">
+            <h2>Variation 4: OpenAI Realtime</h2>
+            <p className="description">
+              Walkie-talkie voice chat with AI
+            </p>
+            <div className="variation-demo">
+              <VoiceRealtimeOpenAI />
             </div>
           </div>
         </div>
