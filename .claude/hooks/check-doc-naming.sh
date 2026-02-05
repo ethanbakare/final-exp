@@ -26,7 +26,7 @@ if echo "$FILENAME" | grep -qiE 'README'; then
 fi
 
 # Valid type prefixes (after project+number)
-VALID_TYPES="IMPL|BUG|DESIGN|REF|SPEC"
+VALID_TYPES="IMPL|BUG|DSGN|REF|SPEC"
 
 # Check pattern: {LETTERS}{NUMBERS}_{TYPE}_{NAME}.md
 # Examples: VI01_IMPL_NAME.md, TR02_BUG_ISSUE.md
@@ -36,7 +36,7 @@ if ! echo "$FILENAME" | grep -qE '^[A-Z]{1,3}[0-9]{1,3}_('"$VALID_TYPES"')_[A-Z0
   echo "Expected pattern: {PROJECT}{NUMBER}_{TYPE}_{NAME}.md" >&2
   echo "  - PROJECT: 1-3 letters (e.g., VI for Voice Interface, TR for Trace)" >&2
   echo "  - NUMBER: 1-3 digits (e.g., 01, 02)" >&2
-  echo "  - TYPE: IMPL, BUG, DESIGN, REF, or SPEC" >&2
+  echo "  - TYPE: IMPL, BUG, DSGN, REF, or SPEC" >&2
   echo "  - NAME: UPPERCASE_WITH_UNDERSCORES" >&2
   echo "" >&2
   echo "Examples:" >&2
