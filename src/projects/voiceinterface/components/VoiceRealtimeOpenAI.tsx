@@ -67,6 +67,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
 
       // 2. Create agent with instructions
       const agent = new RealtimeAgent({
+        name: "VoiceAssistant",
         instructions: "You are a friendly, conversational assistant. Keep responses concise and natural, as this is a voice conversation.",
       });
       agentRef.current = agent;
