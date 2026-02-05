@@ -12,8 +12,8 @@ import { AudioData } from './types';
  * States:
  * - idle: Gentle breathing, waiting to start
  * - listening: Responds to user microphone input
- * - ai_thinking: Thickens to show AI processing
- * - ai_speaking: Thins back, responds to AI audio
+ * - ai_thinking: Rapid pulsing via increased breath amplitude
+ * - ai_speaking: Normal state, responds to AI audio
  */
 
 export type VoiceState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking';
@@ -30,7 +30,7 @@ const VELVET_CONFIG = {
   scale: 1,
   thinRadius: 0.19,
   thickRadius: 0.3,
-  thickenSpeed: 1.2,
+  thickenSpeed: 0.6, // Faster for ai_thinking pulsing
   color1: '#6e6e6e',  // Peak highlights (grey)
   color2: '#464e48',  // Mid-tone base (dark grey-green)
   color3: '#695522',  // Valley hue shift (warm brown)
@@ -42,27 +42,35 @@ const VELVET_CONFIG = {
 function getVelvetProps(voiceState: VoiceState) {
   switch (voiceState) {
     case 'ai_thinking':
-      // Thicken orb, reduce wave intensity
+      // Rapid pulsing via large breath amplitude
       return {
-        goal: 1,
-        waveIntensity: 0.12,
-        breathAmp: 0.03,
-        idleAmp: 0.015,
+        goal: 0,
+        waveIntensity: 0.15,
+        breathAmp: 0.08, // Large amplitude for visible pulsing
+        idleAmp: 0.03,
       };
 
     case 'ai_speaking':
-      // Thin back, increase wave intensity for AI audio
+      // Normal state, responds to AI audio
       return {
         goal: 0,
         waveIntensity: 0.25,
-        breathAmp: 0.05,
+        breathAmp: 0.04,
         idleAmp: 0.03,
       };
 
     case 'listening':
+      // Audio-reactive, responds to user voice
+      return {
+        goal: 0,
+        waveIntensity: 0.18,
+        breathAmp: 0.03,
+        idleAmp: 0.02,
+      };
+
     case 'idle':
     default:
-      // Gentle breathing, normal wave response
+      // Gentle breathing
       return {
         goal: 0,
         waveIntensity: 0.18,
