@@ -1,36 +1,64 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { RealtimeAgent, RealtimeSession } from '@openai/agents-realtime';
+import { RealtimeAgent, RealtimeSession, OpenAIRealtimeWebRTC } from '@openai/agents-realtime';
 import { VelvetOrb, VoiceState } from './orb/VelvetOrb';
 import { VoiceStateLabel, VoiceStateLabelState } from './ui/VoiceStateLabel';
-import { audioService, AudioData } from '../services/audioService';
-import styles from '@/projects/voiceinterface/styles/voice.module.css';
+import { AudioData } from '../types';
+import { AUDIO_BANDS } from '../constants';
 
 /**
  * Variation 4: OpenAI Realtime Voice Chat with Velvet Orb
  *
  * Architecture:
- * - Landscape card: Responsive (max-width: 1000px)
+ * - Landscape card: Responsive (max-width: 900px)
  * - Velvet orb: Audio-reactive 3D torus (400×400px, 300×300px on mobile)
  * - State label: Text below orb showing conversation state
  * - Mic button: Inside card at bottom (38×38px circle)
  *
  * Implementation:
  * - Automatic turn-taking: Click once → continuous listening → VAD detects turns
- * - OpenAI Agents SDK (@openai/agents-realtime) with WebRTC
+ * - OpenAI Agents SDK (@openai/agents-realtime) with custom WebRTC transport
+ * - Shared mic stream (single getUserMedia) for both SDK and visualization
+ * - Dual Web Audio API AnalyserNodes: mic input + AI audio output
  * - Ephemeral token authentication
- * - Audio visualization via Web Audio API frequency analysis
+ *
+ * Event System (WebRTC mode):
+ * - transport_event passthrough gives access to raw API events via data channel
+ * - output_audio_buffer.started/stopped: AI speaking state (WebRTC-specific, reliable)
+ * - input_audio_buffer.speech_stopped: VAD detects user finished speaking
+ * - NOTE: session-level audio_start/audio_stopped do NOT fire in WebRTC mode
+ * - See REALTIME_EVENT_SYSTEM_FIX.md for full documentation
  *
  * State Flow:
  * IDLE → LISTENING (mic active) → AI_THINKING (VAD detects silence) → AI_SPEAKING → LISTENING (cycle)
- *
- * Visual States:
- * - IDLE: Orb breathing gently
- * - LISTENING: Orb responds to mic input
- * - AI_THINKING: Orb thickens (goal: 1)
- * - AI_SPEAKING: Orb thins and responds to AI audio
  */
 
 type AppState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking' | 'complete';
+
+/**
+ * Extract frequency band data from a Web Audio API AnalyserNode.
+ */
+function getAudioDataFromAnalyser(analyser: AnalyserNode, dataArray: Uint8Array<ArrayBuffer>, sampleRate: number): AudioData {
+  analyser.getByteFrequencyData(dataArray);
+  const binCount = analyser.frequencyBinCount;
+
+  const getAverage = (minFreq: number, maxFreq: number) => {
+    const minBin = Math.floor((minFreq * binCount) / (sampleRate / 2));
+    const maxBin = Math.floor((maxFreq * binCount) / (sampleRate / 2));
+    let sum = 0, count = 0;
+    for (let i = minBin; i <= maxBin; i++) { sum += dataArray[i]; count++; }
+    return count > 0 ? sum / count / 255 : 0;
+  };
+
+  const bass = getAverage(AUDIO_BANDS.BASS.min, AUDIO_BANDS.BASS.max);
+  const mid = getAverage(AUDIO_BANDS.MID.min, AUDIO_BANDS.MID.max);
+  const treble = getAverage(AUDIO_BANDS.TREBLE.min, AUDIO_BANDS.TREBLE.max);
+
+  let rms = 0;
+  for (let i = 0; i < dataArray.length; i++) { rms += (dataArray[i] / 255) ** 2; }
+  rms = Math.sqrt(rms / dataArray.length);
+
+  return { bass, mid, treble, rms };
+}
 
 export const VoiceRealtimeOpenAI: React.FC = () => {
   // State management
@@ -40,131 +68,152 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
 
   // Audio visualization state
   const [audioData, setAudioData] = useState<AudioData>({ bass: 0, mid: 0, treble: 0, rms: 0 });
-  const audioIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Ref to track appState inside intervals (closures capture stale state)
+  const appStateRef = useRef<AppState>('idle');
+  useEffect(() => { appStateRef.current = appState; }, [appState]);
 
   // Refs for OpenAI Realtime session
   const sessionRef = useRef<RealtimeSession | null>(null);
   const agentRef = useRef<RealtimeAgent | null>(null);
 
-  /**
-   * Initialize OpenAI Realtime Session
-   */
-  const initializeSession = async () => {
-    try {
-      console.log('[OpenAI Realtime] Initializing session...');
-
-      // 1. Get ephemeral token from our API
-      const response = await fetch('/api/voice-interface/openai-realtime-token');
-      if (!response.ok) {
-        throw new Error(`Failed to get token: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const ephemeralKey = data.key;
-
-      if (!ephemeralKey) {
-        throw new Error('Failed to get OpenAI ephemeral token');
-      }
-
-      console.log('[OpenAI Realtime] Got ephemeral token:', ephemeralKey.substring(0, 20) + '...');
-
-      // 2. Create agent with instructions
-      const agent = new RealtimeAgent({
-        name: "VoiceAssistant",
-        instructions: "You are a friendly, conversational assistant. Keep responses concise and natural, as this is a voice conversation.",
-      });
-      agentRef.current = agent;
-      console.log('[OpenAI Realtime] Agent created');
-
-      // 3. Create session
-      const session = new RealtimeSession(agent);
-      sessionRef.current = session;
-      console.log('[OpenAI Realtime] Session created');
-
-      // 4. Set up event listeners BEFORE connecting
-      setupSessionEventListeners(session);
-
-      // 5. Connect to OpenAI with ephemeral token
-      await session.connect({ apiKey: ephemeralKey });
-      console.log('[OpenAI Realtime] Session connected');
-
-      return session;
-
-    } catch (err) {
-      console.error('[OpenAI Realtime] Error initializing session:', err);
-      setError('Failed to connect to OpenAI. Please try again.');
-      setAppState('idle');
-      throw err;
-    }
-  };
+  // Refs for Web Audio API (dual analysers)
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const micAnalyserRef = useRef<AnalyserNode | null>(null);
+  const aiAnalyserRef = useRef<AnalyserNode | null>(null);
+  const micDataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const aiDataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
   /**
    * Setup Event Listeners for Session (Automatic Turn-Taking)
+   *
+   * Uses correct event names for the @openai/agents-realtime SDK:
+   * - transport_event: passthrough of ALL raw Realtime API events (for VAD, transcripts)
+   * - audio_start: AI starts generating audio (session-level event)
+   * - audio_stopped: AI stops generating audio (session-level event)
+   * - agent_start / agent_end: response lifecycle (session-level events)
+   * - error: connection/session errors
    */
   const setupSessionEventListeners = (session: RealtimeSession) => {
     console.log('[OpenAI Realtime] Setting up event listeners...');
 
-    // User stops speaking - VAD detects silence
-    session.on('input_audio_buffer.speech_stopped', () => {
-      console.log('[OpenAI Realtime] User stopped speaking (VAD detected silence)');
-      setAppState('ai_thinking');
+    // --- Raw API events via transport_event passthrough ---
+    session.on('transport_event', (event: any) => {
+      switch (event.type) {
+        case 'input_audio_buffer.speech_started':
+          console.log('[OpenAI Realtime] User started speaking');
+          break;
+
+        case 'input_audio_buffer.speech_stopped':
+          console.log('[OpenAI Realtime] User stopped speaking (VAD)');
+          setAppState('ai_thinking');
+          break;
+
+        case 'output_audio_buffer.started':
+          // Primary state trigger for AI speaking in WebRTC mode.
+          // The session-level audio_start event does NOT fire in WebRTC
+          // because audio flows through the media track, not data channel chunks.
+          console.log('[OpenAI Realtime] AI audio playback started');
+          setAppState('ai_speaking');
+          break;
+
+        case 'output_audio_buffer.stopped':
+          // Primary state trigger for end of AI speaking in WebRTC mode.
+          console.log('[OpenAI Realtime] AI audio playback stopped');
+          setAppState('listening');
+          break;
+
+        case 'conversation.item.input_audio_transcription.completed':
+          console.log('[OpenAI Realtime] User transcript:', event.transcript);
+          break;
+
+        case 'response.output_audio_transcript.done':
+          console.log('[OpenAI Realtime] AI transcript:', event.transcript);
+          break;
+
+        case 'session.created':
+          console.log('[OpenAI Realtime] Session created on server');
+          break;
+
+        case 'error':
+          console.error('[OpenAI Realtime] Raw API error:', event);
+          break;
+      }
     });
 
-    // User transcript completed (for logging/debugging)
-    session.on('input_audio_transcription.completed', (event: any) => {
-      const transcript = event.transcript || '';
-      console.log('[OpenAI Realtime] User transcript:', transcript);
+    // --- High-level session events ---
+
+    // NOTE: audio_start / audio_stopped do NOT fire in WebRTC mode.
+    // Audio flows through the media track, not data channel chunks.
+    // State transitions are handled by output_audio_buffer.started/stopped above.
+    // Keeping these as fallback logging in case of future SDK changes.
+    session.on('audio_start', () => {
+      console.log('[OpenAI Realtime] audio_start (session event, WebSocket-only fallback)');
     });
 
-    // AI starts responding
-    session.on('response.audio.started', () => {
-      console.log('[OpenAI Realtime] AI started speaking');
-      setAppState('ai_speaking');
+    session.on('audio_stopped', () => {
+      console.log('[OpenAI Realtime] audio_stopped (session event, WebSocket-only fallback)');
     });
 
-    // AI transcript events (for logging/debugging)
-    session.on('response.audio_transcript.delta', (event: any) => {
-      const delta = event.delta || '';
-      console.log('[OpenAI Realtime] AI transcript delta:', delta);
+    session.on('agent_start', () => {
+      console.log('[OpenAI Realtime] Agent started processing');
     });
 
-    session.on('response.audio_transcript.done', (event: any) => {
-      const transcript = event.transcript || '';
-      console.log('[OpenAI Realtime] AI transcript done:', transcript);
+    session.on('agent_end', () => {
+      console.log('[OpenAI Realtime] Agent finished processing');
     });
 
-    // AI finishes responding - back to listening
-    session.on('response.audio.done', () => {
-      console.log('[OpenAI Realtime] AI finished speaking, back to listening');
-      setAppState('listening');
-    });
-
-    // Response lifecycle complete
-    session.on('response.done', () => {
-      console.log('[OpenAI Realtime] Response cycle complete');
-      // State already set to 'listening' by response.audio.done
-    });
-
-    // Error handling
     session.on('error', (error: any) => {
       console.error('[OpenAI Realtime] Session error:', error);
       setError('Connection error. Please try again.');
       setAppState('idle');
       setIsConversationActive(false);
     });
+  };
 
-    // Connection state
-    session.on('connected', () => {
-      console.log('[OpenAI Realtime] Connected');
-    });
+  /**
+   * Clean up all audio resources (mic stream, analysers, AudioContext, audio element)
+   */
+  const cleanupAudio = () => {
+    if (micStreamRef.current) {
+      micStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log('[Audio] Mic track stopped:', track.label);
+      });
+      micStreamRef.current = null;
+    }
 
-    session.on('disconnected', () => {
-      console.log('[OpenAI Realtime] Disconnected');
-    });
+    if (micAnalyserRef.current) {
+      try { micAnalyserRef.current.disconnect(); } catch (_) {}
+      micAnalyserRef.current = null;
+    }
+    if (aiAnalyserRef.current) {
+      try { aiAnalyserRef.current.disconnect(); } catch (_) {}
+      aiAnalyserRef.current = null;
+    }
+
+    micDataArrayRef.current = null;
+    aiDataArrayRef.current = null;
+
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.srcObject = null;
+      audioElementRef.current = null;
+    }
   };
 
   /**
    * Start Conversation (Click Once)
+   *
+   * Sets up: mic capture → dual analysers → custom WebRTC transport → session → connect
    */
   const handleStartConversation = async () => {
     console.log('[OpenAI Realtime] Starting conversation...');
@@ -173,23 +222,98 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       setAppState('listening');
       setError('');
 
-      // Start audio service for microphone capture
-      await audioService.startMic();
-      console.log('[OpenAI Realtime] Microphone started');
+      // 1. Create AudioContext
+      const ctx = new AudioContext();
+      audioContextRef.current = ctx;
+      if (ctx.state === 'suspended') await ctx.resume();
 
-      // Poll audio data at 60fps (continuous)
+      // 2. Capture mic ONCE — shared with SDK and our mic analyser
+      const micStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+      micStreamRef.current = micStream;
+      console.log('[Audio] Microphone captured');
+
+      // 3. Create mic analyser
+      const micSource = ctx.createMediaStreamSource(micStream);
+      const micAnalyser = ctx.createAnalyser();
+      micAnalyser.fftSize = 2048;
+      micAnalyser.smoothingTimeConstant = 0.8;
+      micSource.connect(micAnalyser);
+      micAnalyserRef.current = micAnalyser;
+      micDataArrayRef.current = new Uint8Array(micAnalyser.frequencyBinCount);
+
+      // 4. Create audio element for AI output (SDK's ontrack will set srcObject)
+      const audioEl = document.createElement('audio');
+      audioEl.autoplay = true;
+      audioElementRef.current = audioEl;
+
+      // 5. Set up AI analyser when remote stream arrives
+      audioEl.addEventListener('playing', () => {
+        if (!aiAnalyserRef.current && audioEl.srcObject && audioContextRef.current) {
+          try {
+            const aiSource = audioContextRef.current.createMediaStreamSource(audioEl.srcObject as MediaStream);
+            const aiAnalyser = audioContextRef.current.createAnalyser();
+            aiAnalyser.fftSize = 2048;
+            aiAnalyser.smoothingTimeConstant = 0.8;
+            aiSource.connect(aiAnalyser);
+            // Do NOT connect to destination — the <audio> element already plays
+            // the AI audio via autoplay. Connecting here too causes echo/double playback.
+            aiAnalyserRef.current = aiAnalyser;
+            aiDataArrayRef.current = new Uint8Array(aiAnalyser.frequencyBinCount);
+            console.log('[Audio] AI analyser connected');
+          } catch (err) {
+            console.error('[Audio] Error setting up AI analyser:', err);
+          }
+        }
+      });
+
+      // 6. Start polling audio data at 60fps
       audioIntervalRef.current = setInterval(() => {
-        setAudioData(audioService.getAudioData());
+        const currentCtx = audioContextRef.current;
+        if (!currentCtx) return;
+
+        let data: AudioData = { bass: 0, mid: 0, treble: 0, rms: 0 };
+
+        if (appStateRef.current === 'ai_speaking' && aiAnalyserRef.current && aiDataArrayRef.current) {
+          data = getAudioDataFromAnalyser(aiAnalyserRef.current, aiDataArrayRef.current, currentCtx.sampleRate);
+        } else if (appStateRef.current === 'listening' && micAnalyserRef.current && micDataArrayRef.current) {
+          data = getAudioDataFromAnalyser(micAnalyserRef.current, micDataArrayRef.current, currentCtx.sampleRate);
+        }
+
+        setAudioData(data);
       }, 16);
 
-      // Initialize OpenAI session
-      if (!sessionRef.current) {
-        await initializeSession();
-      }
+      // 7. Create custom transport with our audioElement and micStream
+      const transport = new OpenAIRealtimeWebRTC({
+        audioElement: audioEl,
+        mediaStream: micStream,
+      });
 
-      console.log('[OpenAI Realtime] Conversation active, listening...');
-      // OpenAI SDK handles turn-taking automatically with VAD
-      // Microphone stays active throughout conversation
+      // 8. Create agent and session with custom transport
+      const agent = new RealtimeAgent({
+        name: "VoiceAssistant",
+        instructions: "You are a friendly, conversational assistant. Keep responses concise and natural, as this is a voice conversation.",
+      });
+      agentRef.current = agent;
+
+      const session = new RealtimeSession(agent, { transport });
+      sessionRef.current = session;
+
+      // 9. Set up event listeners BEFORE connecting
+      setupSessionEventListeners(session);
+
+      // 10. Get ephemeral token and connect
+      console.log('[OpenAI Realtime] Fetching ephemeral token...');
+      const response = await fetch('/api/voice-interface/openai-realtime-token');
+      if (!response.ok) throw new Error(`Failed to get token: ${response.statusText}`);
+      const tokenData = await response.json();
+      const ephemeralKey = tokenData.key;
+      if (!ephemeralKey) throw new Error('No ephemeral token received');
+      console.log('[OpenAI Realtime] Got ephemeral token:', ephemeralKey.substring(0, 20) + '...');
+
+      await session.connect({ apiKey: ephemeralKey });
+      console.log('[OpenAI Realtime] Connected, listening...');
 
     } catch (err) {
       console.error('[OpenAI Realtime] Error starting conversation:', err);
@@ -197,48 +321,45 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       setAppState('idle');
       setIsConversationActive(false);
 
-      // Cleanup on error
       if (audioIntervalRef.current) {
         clearInterval(audioIntervalRef.current);
         audioIntervalRef.current = null;
       }
-      audioService.stop();
+      cleanupAudio();
     }
   };
 
   /**
    * Stop/Clear Conversation (Click Again)
    */
-  const handleStopConversation = async () => {
+  const handleStopConversation = () => {
     console.log('[OpenAI Realtime] Stopping conversation...');
 
-    // Stop audio polling FIRST
+    // 1. Stop audio polling
     if (audioIntervalRef.current) {
       clearInterval(audioIntervalRef.current);
       audioIntervalRef.current = null;
-      console.log('[Audio] Interval cleared');
     }
 
-    // Stop audio service (releases MediaStream tracks)
-    audioService.stop();
-    console.log('[Audio] Microphone stopped, tracks released');
-
-    // Close OpenAI session completely
+    // 2. Close OpenAI session (synchronous — calls transport.close() internally)
     if (sessionRef.current) {
       try {
-        console.log('[OpenAI Realtime] Closing session...');
         sessionRef.current.close();
         console.log('[OpenAI Realtime] Session closed');
       } catch (err) {
-        console.error('[OpenAI Realtime] Error during close:', err);
+        console.error('[OpenAI Realtime] Error closing session:', err);
       }
       sessionRef.current = null;
       agentRef.current = null;
     }
 
-    // Update UI state LAST
+    // 3. Clean up all audio resources
+    cleanupAudio();
+
+    // 4. Update UI state LAST
     setIsConversationActive(false);
     setAppState('idle');
+    setAudioData({ bass: 0, mid: 0, treble: 0, rms: 0 });
     setError('');
     console.log('[OpenAI Realtime] Cleanup complete, ready for new conversation');
   };
@@ -265,10 +386,10 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   useEffect(() => {
     return () => {
       if (audioIntervalRef.current) clearInterval(audioIntervalRef.current);
-      audioService.stop();
       if (sessionRef.current) {
-        sessionRef.current.close();
+        try { sessionRef.current.close(); } catch (_) {}
       }
+      cleanupAudio();
     };
   }, []);
 
