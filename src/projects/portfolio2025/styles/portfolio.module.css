@@ -1020,6 +1020,10 @@
     gap: 48px;
   }
 
+  .eldugo-approach-main-img {
+    display: none;
+  }
+
   .eldugo-idea-content {
     flex-direction: column;
   }
@@ -1105,6 +1109,10 @@
     gap: 48px;
   }
 
+  .eldugo-approach-main-img {
+    display: none;
+  }
+
   .eldugo-logo-variation-grid {
     grid-template-columns: 1fr;
     gap: 32px;
@@ -1129,8 +1137,12 @@
 /* RESPONSIVE - Tablet Large (768px - 991px) */
 @media (min-width: 768px) and (max-width: 991px) {
   .eldugo-approach-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 32px;
+  }
+
+  .eldugo-approach-main-img {
+    display: none;
   }
 
   .eldugo-logo-variation-grid {

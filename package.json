@@ -17,6 +17,8 @@
     "@google/genai": "^1.38.0",
     "@openai/agents": "^0.4.5",
     "@portabletext/react": "^3.2.1",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "@sanity/client": "^6.12.3",
     "@sanity/image-url": "^1.1.0",
     "@sanity/vision": "^3.83.0",
@@ -39,6 +41,7 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.4.0",
+    "three": "^0.169.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
