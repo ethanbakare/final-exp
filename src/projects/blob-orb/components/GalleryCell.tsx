@@ -19,7 +19,7 @@ import GentleOrbThicken from "../variants/GentleOrbThicken";
 import CoralStone from "../variants/CoralStone";
 import CoralStoneTorusDamped from "../variants/CoralStoneTorusDamped";
 import CoralStoneMorph from "../variants/CoralStoneMorph";
-import { Trash2, Bookmark } from "lucide-react";
+import { Trash2, Bookmark, Check, X } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -165,6 +165,7 @@ const GalleryCell: React.FC<GalleryCellProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // IntersectionObserver: only render when visible
   useEffect(() => {
@@ -191,7 +192,7 @@ const GalleryCell: React.FC<GalleryCellProps> = ({
       onClick={onSelect}
       onDoubleClick={() => { if (!isDefault && onBookmarkToggle) onBookmarkToggle(); }}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => { setIsHovered(false); setConfirmingDelete(false); }}
       className="relative flex-none cursor-pointer select-none"
       style={{
         width: GALLERY_CELL_SIZE,
@@ -247,26 +248,58 @@ const GalleryCell: React.FC<GalleryCellProps> = ({
 
       {/* Delete button (top-left, always visible but subtle, not for Default) */}
       {!isDefault && onDelete && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="absolute top-2 left-2 p-1.5 rounded-md transition-all cursor-pointer"
-          style={{
-            backgroundColor: isHovered
-              ? (lightBg ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)")
-              : "transparent",
-            border: isHovered
-              ? "none"
-              : `${GALLERY_BORDER}px solid ${lightBg ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.2)"}`,
-            color: lightBg
-              ? (isHovered ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.07)")
-              : (isHovered ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.1)"),
-          }}
-        >
-          <Trash2 size={14} />
-        </button>
+        confirmingDelete ? (
+          <div className="absolute top-2 left-2 flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+                setConfirmingDelete(false);
+              }}
+              className="p-1.5 rounded-md transition-all cursor-pointer"
+              style={{
+                backgroundColor: lightBg ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)",
+                color: lightBg ? "rgba(34,197,94,0.8)" : "rgba(34,197,94,0.9)",
+              }}
+            >
+              <Check size={14} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmingDelete(false);
+              }}
+              className="p-1.5 rounded-md transition-all cursor-pointer"
+              style={{
+                backgroundColor: lightBg ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)",
+                color: lightBg ? "rgba(239,68,68,0.8)" : "rgba(239,68,68,0.9)",
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmingDelete(true);
+            }}
+            className="absolute top-2 left-2 p-1.5 rounded-md transition-all cursor-pointer"
+            style={{
+              backgroundColor: isHovered
+                ? (lightBg ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)")
+                : "transparent",
+              border: isHovered
+                ? "none"
+                : `${GALLERY_BORDER}px solid ${lightBg ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.2)"}`,
+              color: lightBg
+                ? (isHovered ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.07)")
+                : (isHovered ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.1)"),
+            }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )
       )}
 
       {/* Selection circle (top-right) */}

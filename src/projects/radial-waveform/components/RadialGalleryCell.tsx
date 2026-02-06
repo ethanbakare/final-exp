@@ -3,7 +3,7 @@ import type { RadialVariant, RadialSettings } from "../types";
 import RadialOutward from "../variants/RadialOutward";
 import RadialBidirectional from "../variants/RadialBidirectional";
 import RadialInward from "../variants/RadialInward";
-import { Trash2, Bookmark } from "lucide-react";
+import { Trash2, Bookmark, Check, X } from "lucide-react";
 
 const CELL_SIZE = 350;
 const CELL_BORDER = 0.8;
@@ -103,6 +103,7 @@ const RadialGalleryCell: React.FC<Props> = React.memo(({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -138,7 +139,7 @@ const RadialGalleryCell: React.FC<Props> = React.memo(({
       onClick={onSelect}
       onDoubleClick={() => { if (!isDefault && onBookmarkToggle) onBookmarkToggle(); }}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => { setIsHovered(false); setConfirmingDelete(false); }}
       className="relative flex-none cursor-pointer select-none overflow-hidden"
       style={{
         width: CELL_SIZE,
@@ -165,23 +166,55 @@ const RadialGalleryCell: React.FC<Props> = React.memo(({
 
       {/* Delete button (top-left, hover-reveal) */}
       {!isDefault && onDelete && (
-        <button
-          onClick={e => { e.stopPropagation(); onDelete(); }}
-          className="absolute top-2 left-2 p-1.5 rounded-md transition-all cursor-pointer"
-          style={{
-            backgroundColor: isHovered
-              ? (light ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)")
-              : "transparent",
-            border: isHovered
-              ? "none"
-              : `${CELL_BORDER}px solid ${light ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.2)"}`,
-            color: light
-              ? (isHovered ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.07)")
-              : (isHovered ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.1)"),
-          }}
-        >
-          <Trash2 size={14} />
-        </button>
+        confirmingDelete ? (
+          <div className="absolute top-2 left-2 flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+                setConfirmingDelete(false);
+              }}
+              className="p-1.5 rounded-md transition-all cursor-pointer"
+              style={{
+                backgroundColor: light ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)",
+                color: light ? "rgba(34,197,94,0.8)" : "rgba(34,197,94,0.9)",
+              }}
+            >
+              <Check size={14} />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmingDelete(false);
+              }}
+              className="p-1.5 rounded-md transition-all cursor-pointer"
+              style={{
+                backgroundColor: light ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)",
+                color: light ? "rgba(239,68,68,0.8)" : "rgba(239,68,68,0.9)",
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={e => { e.stopPropagation(); setConfirmingDelete(true); }}
+            className="absolute top-2 left-2 p-1.5 rounded-md transition-all cursor-pointer"
+            style={{
+              backgroundColor: isHovered
+                ? (light ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)")
+                : "transparent",
+              border: isHovered
+                ? "none"
+                : `${CELL_BORDER}px solid ${light ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.2)"}`,
+              color: light
+                ? (isHovered ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.07)")
+                : (isHovered ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.1)"),
+            }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )
       )}
 
       {/* Selection indicator (top-right) */}
