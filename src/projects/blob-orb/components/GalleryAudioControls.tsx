@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Mic, MicOff, Play, Pause, Square, Volume2, VolumeX,
-  Music, Upload, Trash2, Loader,
+  Music, Upload, Trash2, Loader, Check, X,
 } from "lucide-react";
 import { audioService } from "../services/audioService";
 
@@ -34,6 +34,7 @@ const GalleryAudioControls: React.FC<GalleryAudioControlsProps> = ({
   const [entries, setEntries] = useState<AudioEntry[]>([]);
   const [loadProgress, setLoadProgress] = useState<number | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -79,6 +80,7 @@ const GalleryAudioControls: React.FC<GalleryAudioControlsProps> = ({
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
+        setConfirmingDelete(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -248,12 +250,38 @@ const GalleryAudioControls: React.FC<GalleryAudioControlsProps> = ({
                     {entry.blob === null && <Loader size={10} className="inline animate-spin mr-1" />}
                     {entry.name}
                   </span>
-                  <button
-                    className="ml-1 opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-red-500 transition-opacity p-0.5"
-                    onClick={(e) => handleDelete(entry.name, e)}
-                  >
-                    <Trash2 size={11} />
-                  </button>
+                  {confirmingDelete === entry.name ? (
+                    <div className="flex items-center gap-0.5 ml-1">
+                      <button
+                        className="p-0.5 text-green-500 hover:text-green-600 transition-colors"
+                        onClick={(e) => {
+                          handleDelete(entry.name, e);
+                          setConfirmingDelete(null);
+                        }}
+                      >
+                        <Check size={12} />
+                      </button>
+                      <button
+                        className="p-0.5 text-red-400 hover:text-red-500 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmingDelete(null);
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="ml-1 opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-red-500 transition-opacity p-0.5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmingDelete(entry.name);
+                      }}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  )}
                 </div>
               ))
             )}
