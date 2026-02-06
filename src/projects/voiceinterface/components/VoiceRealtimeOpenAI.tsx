@@ -33,7 +33,7 @@ import { AUDIO_BANDS } from '../constants';
  * IDLE → LISTENING (mic active) → AI_THINKING (VAD detects silence) → AI_SPEAKING → LISTENING (cycle)
  */
 
-type AppState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking' | 'complete';
+type AppState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking';
 
 /** Minimum time (ms) to show ai_thinking state before triggering AI response.
  *  VAD is configured with createResponse: false, so we manually send response.create
@@ -424,7 +424,6 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
    * Map app state to VoiceStateLabelState for text label
    */
   const getLabelState = (): VoiceStateLabelState => {
-    if (appState === 'complete') return 'complete';
     return appState;
   };
 
@@ -444,19 +443,22 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     <>
       <div className="voice-realtime-container">
         <div className="voice-realtime-card">
-          {/* Velvet Orb - Audio-reactive visualization */}
-          <div className="orb-container">
-            <VelvetOrb
-              audioData={audioData}
-              voiceState={getVoiceState()}
-              width={400}
-              height={400}
-            />
-          </div>
+          {/* Orb + Label Group */}
+          <div className="orb-label-group">
+            {/* Velvet Orb - Audio-reactive visualization */}
+            <div className="orb-container">
+              <VelvetOrb
+                audioData={audioData}
+                voiceState={getVoiceState()}
+                width={400}
+                height={400}
+              />
+            </div>
 
-          {/* State Label - Text below orb */}
-          <div className="state-label-container">
-            <VoiceStateLabel state={getLabelState()} />
+            {/* State Label - Text below orb */}
+            <div className="state-label-container">
+              <VoiceStateLabel state={getLabelState()} />
+            </div>
           </div>
 
           {/* Button Container - Record/Stop button at bottom inside card */}
@@ -502,11 +504,20 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           border-radius: 16px;
         }
 
+        /* Orb + Label Group */
+        .orb-label-group {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          border: 0.5px solid orange; /* DEBUG */
+        }
+
         /* Orb Container */
         .orb-container {
           flex-shrink: 0;
           width: 400px;
           height: 400px;
+          border: 0.5px solid red; /* DEBUG */
         }
 
         /* State Label Container */
@@ -515,6 +526,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           width: 100%;
           text-align: center;
           padding: 0 20px;
+          border: 0.5px solid blue; /* DEBUG */
         }
 
         /* Button Container */
@@ -526,6 +538,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           height: 44px;
           padding: 0 12px;
           margin-top: 10px;
+          border: 0.5px solid green; /* DEBUG */
         }
 
         /* Error Message */

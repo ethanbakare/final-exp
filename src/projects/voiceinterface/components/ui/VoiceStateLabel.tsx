@@ -4,10 +4,10 @@ import React from 'react';
  * VoiceStateLabel - Display current conversation state as text
  *
  * Shows clear labels for each state in the conversation flow.
- * Text updates automatically when state changes.
+ * Text updates with a quick opacity fade transition.
  */
 
-export type VoiceStateLabelState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking' | 'complete';
+export type VoiceStateLabelState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking';
 
 export interface VoiceStateLabelProps {
   state: VoiceStateLabelState;
@@ -16,17 +16,15 @@ export interface VoiceStateLabelProps {
 const STATE_LABELS: Record<VoiceStateLabelState, string> = {
   idle: 'Ready when you are',
   listening: 'Listening...',
-  ai_thinking: 'AI is thinking...',
-  ai_speaking: 'AI is speaking...',
-  complete: 'Conversation complete',
+  ai_thinking: 'Thinking...',
+  ai_speaking: 'Speaking...',
 };
 
 export const VoiceStateLabel: React.FC<VoiceStateLabelProps> = ({ state }) => {
-  const isActive = state !== 'idle';
-
   return (
     <>
-      <div className={`voice-state-label ${isActive ? 'active' : ''}`}>
+      {/* Key forces re-render on state change, triggering fade animation */}
+      <div key={state} className="voice-state-label">
         {STATE_LABELS[state]}
       </div>
 
@@ -37,12 +35,16 @@ export const VoiceStateLabel: React.FC<VoiceStateLabelProps> = ({ state }) => {
           font-weight: 500;
           color: var(--VoiceDarkGrey_30, rgba(38, 36, 36, 0.3));
           text-align: center;
-          opacity: 1;
-          transition: color 200ms ease-out, opacity 200ms ease-out;
+          animation: fadeIn 150ms ease-out;
         }
 
-        .voice-state-label.active {
-          color: var(--VoiceDarkGrey_90, rgba(38, 36, 36, 0.9));
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
       `}</style>
     </>
