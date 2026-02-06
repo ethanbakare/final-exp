@@ -1,0 +1,139 @@
+[
+  {
+    "id": "g-9c4f913f-5bd3-49cc-a3be-58d58205595b",
+    "name": "Velvet",
+    "settings": {
+      "scale": 0.7,
+      "thinRadius": 0.19,
+      "thickRadius": 0.3,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.03,
+      "idleAmp": 0.02,
+      "color1": "#6e6e6e",
+      "color2": "#464e48",
+      "color3": "#695522",
+      "bgColor": "#FFFFFF"
+    },
+    "lastModified": 1769960216843,
+    "bookmarked": true
+  },
+  {
+    "id": "g-70d8a8ff-08e2-440b-a17a-c281625fb315",
+    "name": "Ember",
+    "settings": {
+      "scale": 0.7,
+      "thinRadius": 0.2,
+      "thickRadius": 0.3,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.26,
+      "breathAmp": 0.015,
+      "idleAmp": 0.02,
+      "color1": "#ffffff",
+      "color2": "#ffffff",
+      "color3": "#e8e3e3",
+      "bgColor": "#292424"
+    },
+    "lastModified": 1769962522863,
+    "bookmarked": true
+  },
+  {
+    "id": "g-680cfedb-eb2c-45f1-b4f5-73985dc66d49",
+    "name": "Nova",
+    "settings": {
+      "scale": 0.7,
+      "thinRadius": 0.19,
+      "thickRadius": 0.3,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.03,
+      "idleAmp": 0.02,
+      "color1": "#6e6e6e",
+      "color2": "#464e48",
+      "color3": "#695522",
+      "bgColor": "#f7f6f4"
+    },
+    "lastModified": 1769965402810
+  },
+  {
+    "id": "g-2a015f1e-e287-4f3e-8354-023892f6f868",
+    "name": "Zenron",
+    "settings": {
+      "scale": 0.7,
+      "thinRadius": 0.19,
+      "thickRadius": 0.3,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.03,
+      "idleAmp": 0.02,
+      "color1": "#fff5f0",
+      "color2": "#ffd6c0",
+      "color3": "#ffc4c4",
+      "bgColor": "#f7f6f4"
+    },
+    "lastModified": 1769967140849
+  },
+  {
+    "id": "g-704cbcd3-5df8-420d-b380-a848cdfe53a5",
+    "name": "Theta",
+    "settings": {
+      "scale": 0.4,
+      "thinRadius": 0.275,
+      "thickRadius": 0.35,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.03,
+      "idleAmp": 0.02,
+      "color1": "#ff2929",
+      "color2": "#ffd6c0",
+      "color3": "#ffc4c4",
+      "bgColor": "#f7f6f4"
+    },
+    "lastModified": 1769967321483,
+    "bookmarked": true
+  },
+  {
+    "id": "g-567c6e15-7886-498c-a5fc-9baad5d8082b",
+    "name": "Whimsy",
+    "settings": {
+      "scale": 0.4,
+      "thinRadius": 0.275,
+      "thickRadius": 0.35,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.03,
+      "idleAmp": 0.02,
+      "color1": "#944b2e",
+      "color2": "#ffa279",
+      "color3": "#ffc4c4",
+      "bgColor": "#f7f6f4"
+    },
+    "lastModified": 1769968386231,
+    "bookmarked": true
+  },
+  {
+    "id": "g-2361442e-27ed-49dc-8f91-3a6f2e02aa32",
+    "name": "Finigal",
+    "settings": {
+      "scale": 0.4,
+      "thinRadius": 0.275,
+      "thickRadius": 0.35,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.03,
+      "idleAmp": 0.02,
+      "color1": "#944b2e",
+      "color2": "#ffa279",
+      "color3": "#d17175",
+      "bgColor": "#f7f6f4"
+    },
+    "lastModified": 1769968434640
+  }
+]

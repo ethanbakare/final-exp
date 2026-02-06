@@ -1,0 +1,101 @@
+[
+  {
+    "id": "g-37901774-62c8-4138-b14f-e77b0ea6db96",
+    "name": "Zenith",
+    "settings": {
+      "scale": 0.15,
+      "thinRadius": 0.25,
+      "thickRadius": 0.4,
+      "thickenSpeed": 1,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.015,
+      "idleAmp": 0.04,
+      "color1": "#FFF5F0",
+      "color2": "#FFD6C0",
+      "color3": "#FFC4C4",
+      "bgColor": "#fff6f0"
+    },
+    "lastModified": 1769955002414
+  },
+  {
+    "id": "g-dad97c95-0a98-451c-9455-24119a95fdce",
+    "name": "Helix",
+    "settings": {
+      "scale": 0.5,
+      "thinRadius": 0.15,
+      "thickRadius": 0.25,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.015,
+      "idleAmp": 0.04,
+      "color1": "#942e33",
+      "color2": "#ff797d",
+      "color3": "#d17195",
+      "bgColor": "#fffafa"
+    },
+    "lastModified": 1769968626234,
+    "bookmarked": true
+  },
+  {
+    "id": "g-1255f45e-a944-40c9-bdf0-f8cbf8f75162",
+    "name": "Kyoto",
+    "settings": {
+      "scale": 0.5,
+      "thinRadius": 0.15,
+      "thickRadius": 0.25,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.015,
+      "idleAmp": 0.04,
+      "color1": "#080602",
+      "color2": "#efff08",
+      "color3": "#693a22",
+      "bgColor": "#fffafa"
+    },
+    "lastModified": 1769957341744,
+    "bookmarked": true
+  },
+  {
+    "id": "g-682758d6-056f-43c6-a48b-b298b507062f",
+    "name": "Glacier",
+    "settings": {
+      "scale": 0.5,
+      "thinRadius": 0.15,
+      "thickRadius": 0.25,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.15,
+      "breathAmp": 0.015,
+      "idleAmp": 0.04,
+      "color1": "#6e6e6e",
+      "color2": "#464e48",
+      "color3": "#695522",
+      "bgColor": "#fffafa"
+    },
+    "lastModified": 1769957494856,
+    "bookmarked": true
+  },
+  {
+    "id": "g-d251474e-82a7-4b34-9d25-ab57561b9bb0",
+    "name": "Venture",
+    "settings": {
+      "scale": 0.4,
+      "thinRadius": 0.205,
+      "thickRadius": 0.32,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.18,
+      "breathAmp": 0.015,
+      "idleAmp": 0.04,
+      "color1": "#944b2e",
+      "color2": "#ffa279",
+      "color3": "#d17175",
+      "bgColor": "#f7f6f4"
+    },
+    "lastModified": 1769967706927,
+    "bookmarked": true
+  }
+]

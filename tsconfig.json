@@ -35,6 +35,12 @@
       ],
       "@tictactoe/*": [
         "./src/projects/tictactoe/*"
+      ],
+      "@blob-orb/*": [
+        "./src/projects/blob-orb/*"
+      ],
+      "@radial-waveform/*": [
+        "./src/projects/radial-waveform/*"
       ]
     },
     "plugins": [
