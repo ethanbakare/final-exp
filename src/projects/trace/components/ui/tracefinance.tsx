@@ -562,7 +562,7 @@ export interface DayBlockProps {
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   isFirst?: boolean; // First DayBlock gets reduced top padding
   className?: string;
-  dayTotalRef?: React.RefObject<HTMLDivElement | null>; // For scroll-linked fade
+  dayTotalRef?: React.RefObject<HTMLDivElement>; // For scroll-linked fade
 }
 
 export interface FinanceBoxProps {
