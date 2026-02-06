@@ -6,6 +6,9 @@
 INPUT=$(cat)
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
+# Debug: Log what we received
+echo "[DEBUG] CMD received: $CMD" >> /tmp/hook-debug.log
+
 # Only check git commands
 if ! echo "$CMD" | grep -q 'git '; then
   exit 0

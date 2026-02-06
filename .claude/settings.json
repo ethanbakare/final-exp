@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-destructive-git.sh\""
+            "command": "bash /Users/ethan/Documents/projects/final-exp/.claude/hooks/block-destructive-git.sh"
           }
         ]
       }
