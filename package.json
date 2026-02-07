@@ -42,6 +42,7 @@
     "sanity": "^3.83.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "styled-components": "^6.3.8",
     "tailwind-merge": "^3.4.0",
     "three": "^0.169.0",
     "three-custom-shader-material": "^6.4.0",
