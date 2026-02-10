@@ -1458,11 +1458,11 @@
   display: block;
 }
 
-.al-section-05-desktop {
+.al-section-05-images .al-section-05-desktop {
   display: block;
 }
 
-.al-section-05-mobile {
+.al-section-05-images .al-section-05-mobile {
   display: none;
 }
 
@@ -1548,11 +1548,11 @@
     padding: 0 20px 50px;
   }
 
-  .al-section-05-desktop {
+  .al-section-05-images .al-section-05-desktop {
     display: none;
   }
 
-  .al-section-05-mobile {
+  .al-section-05-images .al-section-05-mobile {
     display: block;
   }
 
