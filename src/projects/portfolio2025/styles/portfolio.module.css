@@ -1400,6 +1400,12 @@
   gap: 3px;
 }
 
+/* --- Section 02 --- */
+
+.al-section-02 {
+  padding: 40px 0;
+}
+
 /* --- RESPONSIVE - ActiveLedger Tablet (max-width: 991px) --- */
 @media (max-width: 991px) {
   /* Section 01 tablet - stack columns vertically */
@@ -1434,6 +1440,10 @@
   .al-section1-paragraph {
     font-size: 12px;
     line-height: 16px;
+  }
+
+  .al-section-02 {
+    padding: 15px 0 45px;
   }
 
   .al-soleil-head {
