@@ -1403,6 +1403,23 @@
   gap: 3px;
 }
 
+/* --- RESPONSIVE - ActiveLedger Tablet (max-width: 991px) --- */
+@media (max-width: 991px) {
+  /* Section 01 tablet - stack columns vertically */
+  .al-section-01-outer {
+    padding: 102px 20px 88px;
+  }
+
+  .al-section-01-master {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .al-section-01-col2 {
+    gap: 12px;
+  }
+}
+
 /* --- RESPONSIVE - ActiveLedger Mobile (max-width: 768px) --- */
 @media (max-width: 768px) {
   .al-section1-head {
@@ -1434,19 +1451,5 @@
     padding: 4px;
     border-width: 1.2px;
     border-radius: 4px;
-  }
-
-  /* Section 01 mobile */
-  .al-section-01-outer {
-    padding: 102px 20px 88px;
-  }
-
-  .al-section-01-master {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .al-section-01-col2 {
-    gap: 12px;
   }
 }
