@@ -1236,11 +1236,16 @@
   --al-button-grey: #C7C7C7;
 }
 
-/* Container for all sections - 940px max-width */
+/* Container for all sections - full width, sections go edge-to-edge */
 .activeledger-container {
+  width: 100%;
+}
+
+/* Inner content wrapper - caps content at 940px */
+.al-section-content {
   max-width: 940px;
   margin: 0 auto;
-  width: 100%;
+  padding: 0 24px;
 }
 
 /* --- Section 1 Typography --- */
