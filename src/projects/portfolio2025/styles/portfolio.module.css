@@ -1302,10 +1302,14 @@
 /* Act Paragraph - Effra Normal 400, 23px */
 .al-act-paragraph {
   font-family: 'Effra', sans-serif;
-  font-weight: 400;
+  font-weight: 500;
   font-size: 23px;
   line-height: 26px;
   margin: 0;
+}
+
+.al-act-paragraph strong {
+  font-weight: 800;
 }
 
 /* Act Paragraph color variant */
