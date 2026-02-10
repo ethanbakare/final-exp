@@ -36,11 +36,48 @@ interface ActiveLedgerLayoutProps {
 export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }) => {
   return (
     <div className={styles['activeledger-container']}>
-      {/* Section 01 */}
-      <section className={styles['activeledger-section']}>
-        {images.section01.map((img, i) => (
-          <img key={`s01-${i}`} src={img.src} alt={img.alt} />
-        ))}
+      {/* Section 01 - Background image with overlay content */}
+      <section className={styles['al-section-01']}>
+        <img
+          src={images.section01[0].src}
+          alt={images.section01[0].alt}
+          className={styles['al-section-01-bg']}
+        />
+        <div className={styles['al-section-01-outer']}>
+          <div className={styles['al-section-01-master']}>
+            {/* Container 1 - Project Task header + paragraph */}
+            <div className={styles['al-section-01-col1']}>
+              <h2 className={styles['al-section1-head']}>Project Task</h2>
+              <p className={styles['al-section1-paragraph']}>
+                The rebrands goal was to visually reposition activeledger in the
+                blockchain space and improve its brand recognition.
+              </p>
+              <p className={styles['al-section1-paragraph']}>
+                It was important for the company to come across as a sustainable
+                Distributed Ledger Technology (DLT) brand in a sense a &ldquo;Red-hat
+                linux&rdquo; for blockchain rather than fall into the cryptocurrency space.
+              </p>
+            </div>
+
+            {/* Container 2 - Challenge + Tasks */}
+            <div className={styles['al-section-01-col2']}>
+              <div className={styles['al-section-01-col2-sub']}>
+                <h3 className={styles['al-section1-subheader']}>Challenge</h3>
+                <p className={styles['al-section1-paragraph']}>
+                  How might we differentiate activeledger in its market &amp; visually
+                  communicate it USP?
+                </p>
+              </div>
+              <div className={styles['al-section-01-col2-sub']}>
+                <h3 className={styles['al-section1-subheader']}>Tasks</h3>
+                <p className={styles['al-section1-paragraph']}>
+                  - Brand Strategy &amp; Audit<br />
+                  - Visual Identity &amp; Positioning
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Section 02 */}
