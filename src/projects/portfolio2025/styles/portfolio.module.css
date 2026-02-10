@@ -1464,10 +1464,18 @@
 
 .al-section-05-images .al-section-05-desktop {
   display: block;
+  width: 80%;
+  margin: 0 auto;
 }
 
 .al-section-05-images .al-section-05-mobile {
   display: none;
+}
+
+.al-section-05-images .al-section-05-mobile-quote {
+  display: none;
+  width: 80%;
+  margin: 0 auto;
 }
 
 /* --- Section 03 - Background image with gradient transition + text --- */
@@ -1561,6 +1569,10 @@
   }
 
   .al-section-05-images .al-section-05-mobile {
+    display: block;
+  }
+
+  .al-section-05-images .al-section-05-mobile-quote {
     display: block;
   }
 

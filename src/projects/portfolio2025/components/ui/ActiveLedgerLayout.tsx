@@ -138,7 +138,7 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
           <div className={styles['al-section-05-images']}>
             <img src={images.section05[0].src} alt={images.section05[0].alt} className={styles['al-section-05-desktop']} />
             <img src={images.section05[2].src} alt={images.section05[2].alt} className={styles['al-section-05-mobile']} />
-            <img src={images.section05[1].src} alt={images.section05[1].alt} className={styles['al-section-05-mobile']} />
+            <img src={images.section05[1].src} alt={images.section05[1].alt} className={styles['al-section-05-mobile-quote']} />
           </div>
         </div>
       </section>
