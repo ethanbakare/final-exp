@@ -1180,3 +1180,195 @@
     padding: 160px 0 220px;
   }
 }
+
+/* ============================================
+   ACTIVELEDGER - Portfolio Project Styles
+   ============================================ */
+
+/* @font-face declarations for Soleil */
+@font-face {
+  font-family: 'Soleil';
+  src: url('/fonts/Soleil/Soleil-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Soleil';
+  src: url('/fonts/Soleil/Soleil-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* @font-face declarations for Effra */
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra /Effra Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* @font-face declaration for Open Sans Light */
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/fonts/OpenSans/OpenSans-Light-webfont.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Page wrapper for ActiveLedger - white background */
+.activeledger-page-wrapper {
+  min-height: 100vh;
+  background: #ffffff;
+  padding: 0;
+  margin: 0;
+
+  /* ActiveLedger Color Variables */
+  --al-white: #ffffff;
+  --al-light-grey: #E2E2E2;
+  --al-soleil-blue: #0e1523;
+  --al-soleil-grey: #333333;
+  --al-act-grey: #4d4d4d;
+  --al-button-grey: #C7C7C7;
+}
+
+/* Container for all sections - 940px max-width */
+.activeledger-container {
+  max-width: 940px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* --- Section 1 Typography --- */
+
+/* Section 1 Header - Inter Medium 500, 30px */
+.al-section1-head {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 30px;
+  color: var(--al-white);
+  margin: 0;
+}
+
+/* Section 1 Subheader - Inter Medium 500, 20px */
+.al-section1-subheader {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--al-white);
+  margin: 0;
+}
+
+/* Section 1 Paragraph - Open Sans Light 300, 16px */
+.al-section1-paragraph {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--al-light-grey);
+  margin: 0;
+}
+
+/* --- General Typography (multi-section) --- */
+
+/* Soleil Header - Bold 700, 43px, center-aligned */
+.al-soleil-head {
+  font-family: 'Soleil', sans-serif;
+  font-weight: 700;
+  font-size: 43px;
+  line-height: 1.2;
+  text-align: center;
+  padding-bottom: 47px;
+  margin: 0;
+}
+
+/* Soleil Header color variants */
+.al-soleil-head-blue {
+  color: var(--al-soleil-blue);
+}
+
+.al-soleil-head-grey {
+  color: var(--al-soleil-grey);
+}
+
+/* Act Paragraph - Effra Normal 400, 23px */
+.al-act-paragraph {
+  font-family: 'Effra', sans-serif;
+  font-weight: 400;
+  font-size: 23px;
+  line-height: 26px;
+  margin: 0;
+}
+
+/* Act Paragraph color variant */
+.al-act-paragraph-grey {
+  color: var(--al-act-grey);
+}
+
+/* --- Non-clickable Button --- */
+
+/* Button div - Open Sans SemiBold 600, 14px */
+.al-button {
+  display: inline-block;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--al-button-grey);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  padding: 8px;
+  border: 1.6px solid var(--al-button-grey);
+  border-radius: 8px;
+  background: transparent;
+}
+
+/* --- ActiveLedger Sections --- */
+
+.activeledger-section {
+  width: 100%;
+}
+
+.activeledger-section img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* --- RESPONSIVE - ActiveLedger Mobile (max-width: 768px) --- */
+@media (max-width: 768px) {
+  .al-section1-head {
+    font-size: 21.5px;
+  }
+
+  .al-section1-subheader {
+    font-size: 16px;
+  }
+
+  .al-section1-paragraph {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .al-soleil-head {
+    font-size: 21px;
+    padding-bottom: 15px;
+  }
+
+  .al-act-paragraph {
+    font-size: 11px;
+    line-height: 14px;
+  }
+
+  .al-button {
+    font-size: 6px;
+    letter-spacing: 1.2px;
+    padding: 4px;
+    border-width: 1.2px;
+    border-radius: 4px;
+  }
+}
