@@ -1250,19 +1250,19 @@
 
 /* --- Section 1 Typography --- */
 
-/* Section 1 Header - Inter Medium 500, 30px */
+/* Section 1 Header - Inter SemiBold 600, 30px */
 .al-section1-head {
   font-family: var(--font-inter), 'Inter', sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 30px;
   color: var(--al-white);
   margin: 0;
 }
 
-/* Section 1 Subheader - Inter Medium 500, 20px */
+/* Section 1 Subheader - Inter SemiBold 600, 20px */
 .al-section1-subheader {
   font-family: var(--font-inter), 'Inter', sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 20px;
   color: var(--al-white);
   margin: 0;
