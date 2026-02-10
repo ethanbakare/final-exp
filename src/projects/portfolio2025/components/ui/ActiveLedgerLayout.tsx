@@ -64,8 +64,8 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
               <div className={styles['al-section-01-col2-sub']}>
                 <h3 className={styles['al-section1-subheader']}>Challenge</h3>
                 <p className={styles['al-section1-paragraph']}>
-                  How might we differentiate activeledger in its market &amp; visually
-                  communicate it USP?
+                  How might we differentiate activeledger in its market<br />
+                  &amp; visually communicate it USP?
                 </p>
               </div>
               <div className={styles['al-section-01-col2-sub']}>
