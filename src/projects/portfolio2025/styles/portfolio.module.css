@@ -1343,7 +1343,7 @@
 
 /* Section 3 padding */
 .sec3 {
-  padding-bottom: 256px;
+  padding-bottom: 300px;
 }
 
 /* --- Non-clickable Button --- */
@@ -1439,6 +1439,12 @@
   padding: 40px 0 140px;
 }
 
+/* --- Section 04 --- */
+
+.al-section-04 {
+  padding: 40px 0 140px;
+}
+
 /* --- Section 03 - Background image with gradient transition + text --- */
 
 .al-section-03 {
@@ -1510,6 +1516,10 @@
   }
 
   .al-section-02 {
+    padding: 15px 0 45px;
+  }
+
+  .al-section-04 {
     padding: 15px 0 45px;
   }
 
