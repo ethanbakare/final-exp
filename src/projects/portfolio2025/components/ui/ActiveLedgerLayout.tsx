@@ -101,7 +101,7 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
           <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-blue']}`}>
             What is Activeledger?
           </h1>
-          <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']}`}>
+          <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']} ${styles['al-act-paragraph-sec3']}`}>
             Blockchain is a distributed ledger technology (DLT) that stores records immutably on a public
             ledger across a decentralised network.{' '}
             <strong>

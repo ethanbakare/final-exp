@@ -1313,6 +1313,11 @@
   color: var(--al-act-grey);
 }
 
+/* Act Paragraph section-specific padding */
+.al-act-paragraph-sec3 {
+  padding-bottom: 256px;
+}
+
 /* --- Non-clickable Button --- */
 
 /* Button div - Open Sans SemiBold 600, 14px */
@@ -1486,6 +1491,10 @@
 
   .al-section-03-content {
     padding: 0 20px 100px;
+  }
+
+  .al-act-paragraph-sec3 {
+    padding-bottom: 54px;
   }
 
   .al-soleil-head {
