@@ -122,11 +122,25 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
         </div>
       </section>
 
-      {/* Section 05 */}
+      {/* Section 05 - Strategy text + images (desktop/mobile variants) */}
       <section className={styles['activeledger-section']}>
-        {images.section05.map((img, i) => (
-          <img key={`s05-${i}`} src={img.src} alt={img.alt} />
-        ))}
+        <div className={`${styles['al-section-content']} ${styles['al-section-05']}`}>
+          <div>
+            <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-grey']}`}>
+              Strategy
+            </h1>
+            <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']}`}>
+              A consultation session gave an idea what success looked like, the narrative in the
+              blockchain space and how Activeledger could uniquely position itself. The steps below
+              followed.
+            </p>
+          </div>
+          <div className={styles['al-section-05-images']}>
+            <img src={images.section05[0].src} alt={images.section05[0].alt} className={styles['al-section-05-desktop']} />
+            <img src={images.section05[2].src} alt={images.section05[2].alt} className={styles['al-section-05-mobile']} />
+            <img src={images.section05[1].src} alt={images.section05[1].alt} className={styles['al-section-05-mobile']} />
+          </div>
+        </div>
       </section>
 
       {/* Section 06 */}

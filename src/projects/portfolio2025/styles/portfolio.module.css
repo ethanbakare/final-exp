@@ -1445,6 +1445,27 @@
   padding: 40px 0 140px;
 }
 
+/* --- Section 05 --- */
+
+.al-section-05 {
+  padding-bottom: 103px;
+  text-align: center;
+}
+
+.al-section-05-images img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.al-section-05-desktop {
+  display: block;
+}
+
+.al-section-05-mobile {
+  display: none;
+}
+
 /* --- Section 03 - Background image with gradient transition + text --- */
 
 .al-section-03 {
@@ -1521,6 +1542,18 @@
 
   .al-section-04 {
     padding: 15px 0 45px;
+  }
+
+  .al-section-05 {
+    padding: 0 20px 50px;
+  }
+
+  .al-section-05-desktop {
+    display: none;
+  }
+
+  .al-section-05-mobile {
+    display: block;
   }
 
   .al-section-03-gradient {
