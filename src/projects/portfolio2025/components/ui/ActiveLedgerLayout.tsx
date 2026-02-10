@@ -89,11 +89,28 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
         </div>
       </section>
 
-      {/* Section 03 */}
-      <section className={styles['activeledger-section']}>
-        {images.section03.map((img, i) => (
-          <img key={`s03-${i}`} src={img.src} alt={img.alt} />
-        ))}
+      {/* Section 03 - Background image with gradient + text overlay */}
+      <section className={styles['al-section-03']}>
+        <img
+          src={images.section03[0].src}
+          alt={images.section03[0].alt}
+          className={styles['al-section-03-bg']}
+        />
+        <div className={styles['al-section-03-gradient']}></div>
+        <div className={`${styles['al-section-content']} ${styles['al-section-03-content']}`}>
+          <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-blue']}`}>
+            What is Activeledger?
+          </h1>
+          <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']}`}>
+            Blockchain is a distributed ledger technology (DLT) that stores records immutably on a public
+            ledger across a decentralised network.{' '}
+            <strong>
+              Activeledger is an open source DLT made for enterprise and developers
+            </strong>{' '}
+            which provides the benefits of blockchain (legacy tech) and more without its limitations
+            such as speed, high energy consumption etc.
+          </p>
+        </div>
       </section>
 
       {/* Section 04 */}
