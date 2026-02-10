@@ -1407,7 +1407,7 @@
 @media (max-width: 991px) {
   /* Section 01 tablet - stack columns vertically */
   .al-section-01-outer {
-    padding: 102px 20px 88px;
+    padding: 102px 40px 88px;
   }
 
   .al-section-01-master {
@@ -1422,6 +1422,10 @@
 
 /* --- RESPONSIVE - ActiveLedger Mobile (max-width: 768px) --- */
 @media (max-width: 768px) {
+  .al-section-01-outer {
+    padding: 102px 20px 88px;
+  }
+
   .al-section1-head {
     font-size: 21.5px;
   }
