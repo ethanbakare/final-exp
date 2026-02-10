@@ -125,7 +125,7 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
       {/* Section 05 - Strategy text + images (desktop/mobile variants) */}
       <section className={styles['activeledger-section']}>
         <div className={`${styles['al-section-content']} ${styles['al-section-05']}`}>
-          <div>
+          <div className={styles['al-section-05-text']}>
             <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-grey']}`}>
               Strategy
             </h1>

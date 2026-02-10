@@ -1452,6 +1452,10 @@
   text-align: center;
 }
 
+.al-section-05-text {
+  padding: 65px 0 94px;
+}
+
 .al-section-05-images img {
   width: 100%;
   height: auto;
@@ -1546,6 +1550,10 @@
 
   .al-section-05 {
     padding: 0 20px 50px;
+  }
+
+  .al-section-05-text {
+    padding: 0;
   }
 
   .al-section-05-images .al-section-05-desktop {
