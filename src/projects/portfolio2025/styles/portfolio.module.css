@@ -1512,6 +1512,13 @@
   text-align: center;
 }
 
+/* --- RESPONSIVE - ActiveLedger Content Cap (max-width: 945px) --- */
+@media (max-width: 945px) {
+  .al-section-content {
+    max-width: 95%;
+  }
+}
+
 /* --- RESPONSIVE - ActiveLedger Tablet (max-width: 991px) --- */
 @media (max-width: 991px) {
   /* Section 01 tablet - stack columns vertically */
