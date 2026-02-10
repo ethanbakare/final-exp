@@ -1211,6 +1211,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra /Effra Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra /Effra Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* @font-face declaration for Open Sans Light */
 @font-face {
   font-family: 'Open Sans';
@@ -1302,14 +1318,14 @@
 /* Act Paragraph - Effra Normal 400, 23px */
 .al-act-paragraph {
   font-family: 'Effra', sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 23px;
   line-height: 26px;
   margin: 0;
 }
 
 .al-act-paragraph strong {
-  font-weight: 800;
+  font-weight: 900;
 }
 
 /* Act Paragraph color variant */
