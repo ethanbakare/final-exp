@@ -1245,7 +1245,6 @@
 .al-section-content {
   max-width: 940px;
   margin: 0 auto;
-  padding: 0 24px;
 }
 
 /* --- Section 1 Typography --- */
@@ -1373,8 +1372,6 @@
 
 /* Master div - holds two columns side-by-side */
 .al-section-01-master {
-  max-width: 940px;
-  margin: 0 auto;
   display: flex;
   gap: 90px;
 }

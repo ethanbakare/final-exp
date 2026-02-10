@@ -44,7 +44,7 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
           className={styles['al-section-01-bg']}
         />
         <div className={styles['al-section-01-outer']}>
-          <div className={styles['al-section-01-master']}>
+          <div className={`${styles['al-section-content']} ${styles['al-section-01-master']}`}>
             {/* Container 1 - Project Task header + paragraph */}
             <div className={styles['al-section-01-col1']}>
               <h2 className={styles['al-section1-head']}>Project Task</h2>
