@@ -159,9 +159,25 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
 
       {/* Section 08 */}
       <section className={styles['activeledger-section']}>
-        {images.section08.map((img, i) => (
-          <img key={`s08-${i}`} src={img.src} alt={img.alt} />
-        ))}
+        <div className={`${styles['al-section-content']} ${styles['al-section-08-top']}`}>
+          <img src={images.section08[0].src} alt={images.section08[0].alt} className={styles['al-section-08-img']} />
+          <img src={images.section08[1].src} alt={images.section08[1].alt} className={styles['al-section-08-img']} />
+        </div>
+        <div className={`${styles['al-section-content']} ${styles['al-section-08-bottom']}`}>
+          <img src={images.section08[2].src} alt={images.section08[2].alt} className={styles['al-section-08-breakdown']} />
+          <div className={styles['sec8']}>
+            <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']}`}>
+              Blockchain is a term synonymous with the distributed ledger tech (DLT) space. The chosen
+              concept embodied its visual attributes and met the desired outcomes outlined in the strategy
+              session
+            </p>
+            <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']}`}>
+              <strong>Simple</strong> - Two interlocking &lsquo;block-like&rsquo; chain links.<br />
+              <strong>Distinct</strong> - Possessing the hidden form of an &ldquo;A&rdquo;.<br />
+              <strong>Memorable</strong> - Visually tied to the term blockchain.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* Section 09 */}
@@ -183,10 +199,10 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
       </section>
 
       {/* Section 11 */}
-      <section className={styles['activeledger-section']}>
-        {images.section11.map((img, i) => (
-          <img key={`s11-${i}`} src={img.src} alt={img.alt} />
-        ))}
+      <section className={styles['al-section-11']}>
+        <div className={`${styles['al-section-content']} ${styles['al-section-11-inner']}`}>
+          <img src={images.section11[0].src} alt={images.section11[0].alt} className={styles['al-section-11-img']} />
+        </div>
       </section>
 
       {/* Section 12 */}

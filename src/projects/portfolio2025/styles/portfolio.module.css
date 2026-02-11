@@ -1258,6 +1258,7 @@
   --al-soleil-grey: #333333;
   --al-act-grey: #4d4d4d;
   --al-button-grey: #C7C7C7;
+  --al-pale-blue: #E3E5F0;
 }
 
 /* Container for all sections - full width, sections go edge-to-edge */
@@ -1499,6 +1500,55 @@
   padding-left: 11px;
 }
 
+/* --- Section 08 --- */
+
+.al-section-08-top {
+  display: flex;
+  flex-direction: column;
+  gap: 81px;
+  padding-bottom: 81px;
+}
+
+.al-section-08-top .al-section-08-img {
+  width: 80%;
+  margin: 0 auto;
+}
+
+.al-section-08-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 70px;
+}
+
+.al-section-08-bottom .al-section-08-breakdown {
+  width: 90%;
+  margin: 0 auto;
+}
+
+/* Section 8 text padding */
+.sec8 {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding: 0 48px 140px;
+  text-align: left;
+}
+
+/* --- Section 11 --- */
+
+.al-section-11 {
+  width: 100%;
+  background-color: var(--al-pale-blue);
+}
+
+.al-section-11-inner .al-section-11-img {
+  width: 73%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  padding: 135px 0 100px;
+}
+
 /* --- Section 03 - Background image with gradient transition + text --- */
 
 .al-section-03 {
@@ -1650,5 +1700,27 @@
 
   .al-section-10 .al-section-10-pattern {
     width: 90%;
+  }
+
+  .al-section-08-top {
+    gap: 28px;
+    padding-bottom: 28px;
+  }
+
+  .al-section-08-top .al-section-08-img {
+    width: 90%;
+  }
+
+  .al-section-08-bottom {
+    gap: 30px;
+  }
+
+  .sec8 {
+    padding: 0 20px 65px;
+  }
+
+  .al-section-11-inner .al-section-11-img {
+    width: 90%;
+    padding: 60px 0 30px;
   }
 }

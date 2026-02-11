@@ -59,7 +59,6 @@ export default function ActiveLedgerPage() {
     ],
     section11: [
       { src: `${IMG}/011active.png`, alt: 'ActiveLedger Section 11' },
-      { src: `${IMG}/011activeIPAD.webp`, alt: 'ActiveLedger iPad' },
     ],
     section12: [
       { src: `${IMG}/012active.webp`, alt: 'ActiveLedger Section 12' },
