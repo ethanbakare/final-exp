@@ -143,11 +143,31 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
         </div>
       </section>
 
-      {/* Section 06 */}
-      <section className={styles['activeledger-section']}>
-        {images.section06.map((img, i) => (
-          <img key={`s06-${i}`} src={img.src} alt={img.alt} />
-        ))}
+      {/* Section 06 - Background image with text overlay */}
+      <section className={styles['al-section-06']}>
+        <img
+          src={images.section06[1].src}
+          alt={images.section06[1].alt}
+          className={styles['al-section-06-bg']}
+        />
+        <div className={styles['al-section-06-button-wrap']}>
+          <div className={styles['al-button']}>EXPLORATION</div>
+        </div>
+        <div className={`${styles['al-section-content']} ${styles['al-section-06-content']}`}>
+          <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-grey']}`}>
+            Attributes and Metaphors
+          </h1>
+          <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']} ${styles['sec6']}`}>
+            This was the first step in the exploration process, informed by the interactive
+            session earlier carried out. A list functional verbal traits and metaphors were
+            outlined. A snippet of which is shown below.
+          </p>
+          <img
+            src={images.section06[0].src}
+            alt={images.section06[0].alt}
+            className={styles['al-section-06-img']}
+          />
+        </div>
       </section>
 
       {/* Section 07 */}
