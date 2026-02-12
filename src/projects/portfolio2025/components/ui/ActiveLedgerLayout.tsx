@@ -170,11 +170,26 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
         </div>
       </section>
 
-      {/* Section 07 */}
+      {/* Section 07 - Sketches */}
       <section className={styles['activeledger-section']}>
-        {images.section07.map((img, i) => (
-          <img key={`s07-${i}`} src={img.src} alt={img.alt} />
-        ))}
+        <div className={styles['al-section-06-button-wrap']}>
+          <div className={styles['al-button']}>EXPLORATION</div>
+        </div>
+        <div className={`${styles['al-section-content']} ${styles['al-section-07-content']}`}>
+          <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-beige']}`}>
+            Sketches
+          </h1>
+          <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']} ${styles['sec7']}`}>
+            A series of grouped metaphors are explored through iterative sketches to
+            develop visual concepts. A portion of which is shown below, each row of
+            concepts beneath its own bucket of metaphors.
+          </p>
+          <img
+            src={images.section07[0].src}
+            alt={images.section07[0].alt}
+            className={styles['al-section-07-img']}
+          />
+        </div>
       </section>
 
       {/* Section 08 */}

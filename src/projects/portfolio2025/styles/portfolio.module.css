@@ -1380,8 +1380,8 @@
   color: var(--al-button-grey);
   text-transform: uppercase;
   letter-spacing: 3px;
-  padding: 8px;
-  border: 1.6px solid var(--al-button-grey);
+  padding: 8px 12px;
+  border: 1.8px solid var(--al-button-grey);
   border-radius: 8px;
   background: transparent;
 }
@@ -1544,6 +1544,25 @@
 /* Section 6 text padding */
 .sec6 {
   padding: 0 54px 94px;
+}
+
+/* --- Section 07 --- */
+
+.al-section-07-content {
+  text-align: center;
+}
+
+.al-section-07-content .al-section-07-img {
+  width: 63%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  padding-bottom: 162px;
+}
+
+/* Section 7 text padding */
+.sec7 {
+  padding: 10px 84px 118px;
 }
 
 /* --- Section 10 --- */
@@ -1837,5 +1856,13 @@
 
   .sec6 {
     padding: 0 20px 42px;
+  }
+
+  .al-section-07-content .al-section-07-img {
+    padding-bottom: 40px;
+  }
+
+  .sec7 {
+    padding: 10px 10px 35px;
   }
 }
