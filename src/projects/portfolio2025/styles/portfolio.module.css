@@ -1555,6 +1555,7 @@
 
 .al-section-07-content {
   text-align: center;
+  padding-top: 62px;
 }
 
 .al-section-07-content .al-section-07-img {
@@ -1835,8 +1836,13 @@
     width: 90%;
   }
 
+  .al-section-07-content {
+    padding-top: 0;
+  }
+
   .al-section-08-top .al-section-08-head {
-    padding-left: 5%;
+    text-align: center;
+    padding-left: 0;
   }
 
   .al-section-08-top .al-section-08-img {
