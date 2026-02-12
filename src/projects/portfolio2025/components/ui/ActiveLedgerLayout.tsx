@@ -237,7 +237,7 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
           <div className={styles['al-section-content']}>
             <img src={images.section10[0].src} alt={images.section10[0].alt} className={styles['al-section-10-icon']} />
             <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-grey']} ${styles['al-section-10-head']}`}>
-              Using a block shaped chain as a visual identity
+              Using a block shaped<br />chain as a visual identity
             </h1>
             <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']} ${styles['sec10']}`}>
               Activeledger&rsquo;s visual identity stems from the use of a single primary element present in
