@@ -154,7 +154,7 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
           <div className={styles['al-button']}>EXPLORATION</div>
         </div>
         <div className={`${styles['al-section-content']} ${styles['al-section-06-content']}`}>
-          <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-grey']}`}>
+          <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-blue']}`}>
             Attributes and Metaphors
           </h1>
           <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']} ${styles['sec6']}`}>
