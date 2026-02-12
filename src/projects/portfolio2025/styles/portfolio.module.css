@@ -1258,6 +1258,7 @@
   --al-soleil-grey: #333333;
   --al-act-grey: #4d4d4d;
   --al-button-grey: #C7C7C7;
+  --al-soleil-beige: #B8B8B8;
   --al-pale-blue: #E3E5F0;
 }
 
@@ -1322,6 +1323,10 @@
 
 .al-soleil-head-grey {
   color: var(--al-soleil-grey);
+}
+
+.al-soleil-head-beige {
+  color: var(--al-soleil-beige);
 }
 
 /* Act Paragraph - Effra Normal 400, 23px */
