@@ -1612,6 +1612,11 @@
   padding-top: 72px;
 }
 
+.al-section-10 .al-soleil-subhead {
+  max-width: 940px;
+  margin: 0 auto;
+}
+
 .al-section-10 .al-section-10-head {
   padding-bottom: 40px;
 }
@@ -1629,10 +1634,14 @@
 }
 
 .al-section-10-small-wrap {
+  max-width: 940px;
+  margin: 0 auto;
   padding: 0 220px;
 }
 
 .al-section-10-pattern-wrap {
+  max-width: 940px;
+  margin: 0 auto;
   padding: 48px 0 96px;
 }
 
