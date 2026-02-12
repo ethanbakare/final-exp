@@ -92,6 +92,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         <div className={styles['eldugo-section-content']}>
           <div className={styles['eldugo-approach-header']}>
             <div className={styles['header-el-caps']}>APPROACH</div>
+            <div className={styles['eldugo-divider-orange']}></div>
             <div className={styles['header-el-sp']}>
               Eldugo as a brand is characterised by three major themes
             </div>
@@ -130,29 +131,30 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
 
       {/* Idea Section (Section 19) - Logo concept */}
       <section className={styles['eldugo-section-idea']}>
-        <div className={styles['eldugo-section-content']}>
-          <div className={styles['eldugo-idea-header']}>
-            <div className={styles['header-el-caps']}>IDEA</div>
-            <div className={styles['header-el-sp']}>Visual interpretation of the Eldugo concept</div>
+        <div className={styles['eldugo-idea-header']}>
+          <div className={styles['header-el-caps']}>IDEA</div>
+          <div className={styles['eldugo-divider-orange']}></div>
+          <div className={styles['header-el-sp']}>
+            Concept, process and visual interpretation of the logo
           </div>
-          <div className={styles['eldugo-idea-content']}>
+        </div>
+        <div className={styles['eldugo-section-content']}>
+          <img src={images.idea.src} alt={images.idea.alt} className={styles['eldugo-idea-main-img']} />
+          <div className={styles['eldugo-note-row']}>
             <img src={images.noteCircle.src} alt={images.noteCircle.alt} className={styles['eldugo-note-circle']} />
-            <div className={styles['eldugo-idea-text']}>
-              <p className={styles['text-block-3']}>
-                The Eldugo brand as a whole embodies the concept of bringing culture into our everyday lives.
-              </p>
-              <p className={styles['text-block-3']}>
-                The brand does this by combining visual heritage i.e Ankara designs with modern products that we
-                use daily, such as bags, wallets and diaries etc.
-              </p>
+            <div className={styles['text-block-4']}>
+              NOTE. The term &ldquo;02&rdquo; and &ldquo;O3&rdquo; above refer to specific themes &ldquo;colour&rdquo; and &ldquo;style&rdquo;
             </div>
           </div>
-          <img src={images.idea.src} alt={images.idea.alt} className={styles['eldugo-idea-main-img']} />
         </div>
       </section>
 
       {/* Wordmark Section (Section 37) - Logo skeleton */}
       <section className={styles['eldugo-section-wordmark']}>
+        <div className={styles['eldugo-wordmark-header']}>
+          <div className={styles['header-el-caps']}>wordmark</div>
+          <div className={styles['eldugo-divider-orange']}></div>
+        </div>
         <div className={styles['eldugo-section-content']}>
           <img src={images.logoSkeleton.src} alt={images.logoSkeleton.alt} />
         </div>
@@ -171,25 +173,37 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
       {/* Logo Variation Section (Section 21) */}
       <section className={styles['eldugo-section-logo-variation']}>
         <div className={styles['eldugo-section-content']}>
-          <div className={styles['eldugo-logo-variation-grid']}>
-            <div className={styles['eldugo-logo-variation-text']}>
-              <h1 className={styles['el-header-main']}>Logo Variation</h1>
-              <p className={styles['text-block-3']}>
-                The logo for Eldugo was designed in a way where it could be used in a multitude of ways, while
-                still passing the same message and embodying the same identity of the Eldugo brand
-              </p>
-            </div>
-            <div className={styles['eldugo-logo-variation-img']}>
-              <img src={images.logoVariationConcept.src} alt={images.logoVariationConcept.alt} />
-            </div>
+          <h1 className={styles['el-header-main']}>Logo Variation</h1>
+          <div className={styles['text-block-5']}>
+            The logo for Eldugo was designed in a way where it could be<br />
+            used in a multitude of ways, while still passing the same<br />
+            message and embodying the same identity of the Eldugo brand
           </div>
+          <div className={`${styles['text-block-5']} ${styles['text-block-5-mobile']}`}>
+            The logo for Eldugo was designed in a way where it could be used in a multitude of ways, while
+            still passing the same message and embodying the same identity of the Eldugo brand
+          </div>
+          <img src={images.logoVariationConcept.src} alt={images.logoVariationConcept.alt} className={styles['eldugo-logo-variation-concept']} />
         </div>
       </section>
 
       {/* Logo Variation Details (Section 27) */}
       <section className={styles['eldugo-section-logo-details']}>
+        <div className={styles['eldugo-logo-details-header']}>
+          <div className={styles['header-el-caps']}>LOGO VARIATION</div>
+          <div className={styles['eldugo-divider-orange']}></div>
+          <div className={styles['header-el-sp']}>
+            Concept and process behind logo variation
+          </div>
+        </div>
+        <img src={images.logoVariationLarge.src} alt={images.logoVariationLarge.alt} className={styles['eldugo-logo-details-main-img']} />
         <div className={styles['eldugo-section-content']}>
-          <img src={images.logoVariationLarge.src} alt={images.logoVariationLarge.alt} />
+          <div className={styles['eldugo-note-row']}>
+            <img src={images.noteCircle.src} alt={images.noteCircle.alt} className={styles['eldugo-note-circle']} />
+            <div className={styles['text-block-4']}>
+              NOTE. The term &ldquo;01&rdquo; above refers to specific theme &ldquo;culture&rdquo;
+            </div>
+          </div>
         </div>
       </section>
 
@@ -262,6 +276,13 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
 
       {/* Price Tags - 2-column layout */}
       <section className={styles['eldugo-section-price-tags']}>
+        <div className={styles['eldugo-price-tags-header']}>
+          <div className={styles['header-el-caps']}>PRICE TAGS</div>
+          <div className={styles['eldugo-divider-orange']}></div>
+          <div className={styles['header-el-sp']}>
+            Tags with single ankara strips
+          </div>
+        </div>
         <div className={styles['eldugo-section-content']}>
           <div className={styles['eldugo-price-tags-grid']}>
             <img src={images.priceTagFrontBack.src} alt={images.priceTagFrontBack.alt} />
@@ -284,6 +305,11 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
 
       {/* Business Cards - Centered */}
       <section className={styles['eldugo-section-centered']}>
+        <div className={styles['eldugo-centered-header']}>
+          <div className={styles['header-el-caps']}>BUSINESS CARD</div>
+          <div className={styles['eldugo-divider-orange']}></div>
+          <div className={styles['header-el-sp']}>Main business card</div>
+        </div>
         <div className={styles['eldugo-section-content']}>
           <img src={images.businessCard.src} alt={images.businessCard.alt} />
         </div>
@@ -291,6 +317,11 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
 
       {/* Card Variations - Centered */}
       <section className={styles['eldugo-section-centered']}>
+        <div className={styles['eldugo-centered-header']}>
+          <div className={styles['header-el-caps']}>BUSINESS CARD</div>
+          <div className={styles['eldugo-divider-orange']}></div>
+          <div className={styles['header-el-sp']}>Possible card variations</div>
+        </div>
         <div className={styles['eldugo-section-content']}>
           <img src={images.cardVariations.src} alt={images.cardVariations.alt} />
         </div>

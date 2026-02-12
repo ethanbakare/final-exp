@@ -552,6 +552,21 @@
   margin: 0;
 }
 
+.text-block-4 {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 15px;
+  font-weight: 300;
+  color: #aba9aa;
+  line-height: 1.6;
+}
+
+.eldugo-note-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 32px;
+}
+
 .app-text {
   font-family: var(--font-montserrat), sans-serif;
   font-size: 15px;
@@ -613,7 +628,7 @@
 }
 
 .eldugo-approach-grid {
-  display: grid;
+  display: none;
   grid-template-columns: repeat(3, 1fr);
   gap: 32px;
   margin-top: 48px;
@@ -653,6 +668,7 @@
 .eldugo-idea-header {
   text-align: center;
   margin-bottom: 48px;
+  padding: 0 24px;
 }
 
 .eldugo-idea-content {
@@ -684,6 +700,11 @@
 }
 
 /* Wordmark Section (Section 37) */
+.eldugo-wordmark-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
 .eldugo-section-wordmark {
   background: #fff;
   padding: 64px 0;
@@ -699,6 +720,18 @@
 .eldugo-section-logo-variation {
   background: var(--el-bg-1);
   padding: 133px 0 183px;
+}
+
+.eldugo-section-logo-variation .el-header-main {
+  margin-bottom: 24px;
+}
+
+.eldugo-logo-variation-concept {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  display: block;
+  margin-top: 32px;
 }
 
 .eldugo-logo-variation-grid {
@@ -723,12 +756,17 @@
 }
 
 /* Logo Variation Details (Section 27) */
+.eldugo-logo-details-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
 .eldugo-section-logo-details {
   background: var(--el-bg-2);
   padding: 110px 0 34px;
 }
 
-.eldugo-section-logo-details img {
+.eldugo-logo-details-main-img {
   width: 100%;
   height: auto;
   display: block;
@@ -845,6 +883,11 @@
 }
 
 /* Price Tags - 2-column layout */
+.eldugo-price-tags-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
 .eldugo-section-price-tags {
   background: #fff;
   padding: 64px 0;
@@ -863,6 +906,11 @@
 }
 
 /* Centered Section (for single images) */
+.eldugo-centered-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
 .eldugo-section-centered {
   background: #fff;
   padding: 64px 0;
@@ -1016,6 +1064,7 @@
   }
 
   .eldugo-approach-grid {
+    display: grid;
     grid-template-columns: 1fr;
     gap: 48px;
   }
@@ -1024,18 +1073,13 @@
     display: none;
   }
 
-  .eldugo-idea-content {
-    flex-direction: column;
-  }
-
   .eldugo-note-circle {
     width: 32px;
     height: 32px;
   }
 
-  .eldugo-logo-variation-grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
+  .eldugo-visual-identity-img {
+    display: none;
   }
 
   .eldugo-variations-grid {
@@ -1105,6 +1149,7 @@
   }
 
   .eldugo-approach-grid {
+    display: grid;
     grid-template-columns: 1fr;
     gap: 48px;
   }
@@ -1113,14 +1158,18 @@
     display: none;
   }
 
-  .eldugo-logo-variation-grid {
-    grid-template-columns: 1fr;
-    gap: 32px;
+  .text-block-5 {
+    display: none;
   }
 
-  .eldugo-variations-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
+  .text-block-5-mobile {
+    display: block;
+    font-size: 18px;
+    line-height: 26px;
+  }
+
+  .eldugo-visual-identity-img {
+    display: none;
   }
 
   .eldugo-price-tags-grid {
@@ -1137,6 +1186,7 @@
 /* RESPONSIVE - Tablet Large (768px - 991px) */
 @media (min-width: 768px) and (max-width: 991px) {
   .eldugo-approach-grid {
+    display: grid;
     grid-template-columns: 1fr;
     gap: 32px;
   }
