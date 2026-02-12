@@ -1515,6 +1515,7 @@
   position: relative;
   z-index: 1;
   text-align: center;
+  padding-top: 72px;
 }
 
 .al-section-06-content .al-section-06-img {
@@ -1803,6 +1804,10 @@
 
   .al-section-17 {
     padding: 10px;
+  }
+
+  .al-section-06-content {
+    padding-top: 0;
   }
 
   .al-section-06-button-wrap {
