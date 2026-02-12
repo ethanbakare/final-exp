@@ -1739,6 +1739,7 @@
   max-width: 750px;
   margin: 0 auto;
   padding-top: 78px;
+  padding-bottom: 220px;
 }
 
 /* --- Section 17 --- */
@@ -1983,6 +1984,7 @@
 
   .al-section-14 .al-section-14-data {
     padding-top: 26px;
+    padding-bottom: 60px;
   }
 
   .al-section-17 {
