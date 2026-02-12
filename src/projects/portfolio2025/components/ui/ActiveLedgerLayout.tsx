@@ -192,9 +192,15 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
         </div>
       </section>
 
-      {/* Section 08 */}
+      {/* Section 08 - Logo Concept */}
       <section className={styles['activeledger-section']}>
-        <div className={`${styles['al-section-content']} ${styles['al-section-08-top']}`}>
+        <div className={styles['al-section-06-button-wrap']}>
+          <div className={styles['al-button']}>CONCEPT</div>
+        </div>
+        <div className={styles['al-section-08-top']}>
+          <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-slate']} ${styles['al-section-08-head']}`}>
+            Logo Concept
+          </h1>
           <img src={images.section08[0].src} alt={images.section08[0].alt} className={styles['al-section-08-img']} />
           <img src={images.section08[1].src} alt={images.section08[1].alt} className={styles['al-section-08-img']} />
         </div>

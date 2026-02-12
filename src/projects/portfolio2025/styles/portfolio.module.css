@@ -1275,6 +1275,7 @@
   --al-act-grey: #4d4d4d;
   --al-button-grey: #C7C7C7;
   --al-soleil-beige: #B8B8B8;
+  --al-soleil-slate: #8d939c;
   --al-pale-blue: #E3E5F0;
 }
 
@@ -1343,6 +1344,10 @@
 
 .al-soleil-head-beige {
   color: var(--al-soleil-beige);
+}
+
+.al-soleil-head-slate {
+  color: var(--al-soleil-slate);
 }
 
 /* Act Paragraph - Effra Normal 400, 23px */
@@ -1591,13 +1596,19 @@
 .al-section-08-top {
   display: flex;
   flex-direction: column;
-  gap: 81px;
-  padding-bottom: 81px;
+}
+
+.al-section-08-top .al-section-08-head {
+  text-align: left;
+  padding-left: 10%;
 }
 
 .al-section-08-top .al-section-08-img {
   width: 80%;
+  height: auto;
+  display: block;
   margin: 0 auto;
+  padding-bottom: 80px;
 }
 
 .al-section-08-bottom {
@@ -1811,13 +1822,13 @@
     width: 90%;
   }
 
-  .al-section-08-top {
-    gap: 28px;
-    padding-bottom: 28px;
+  .al-section-08-top .al-section-08-head {
+    padding-left: 5%;
   }
 
   .al-section-08-top .al-section-08-img {
     width: 90%;
+    padding-bottom: 28px;
   }
 
   .al-section-08-bottom {
