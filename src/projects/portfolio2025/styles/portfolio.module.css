@@ -1655,6 +1655,19 @@
   padding: 150px 0 220px;
 }
 
+/* --- Section 14 --- */
+
+.al-section-14 .al-section-14-img {
+  width: 80%;
+  margin: 0 auto;
+  padding-bottom: 220px;
+}
+
+.al-section-14 .al-section-14-data {
+  max-width: 750px;
+  margin: 0 auto;
+}
+
 /* --- Section 17 --- */
 
 .al-section-17 {
@@ -1846,6 +1859,10 @@
 
   .al-section-13 {
     padding: 30px 10px 52px;
+  }
+
+  .al-section-14 .al-section-14-img {
+    padding-bottom: 60px;
   }
 
   .al-section-17 {
