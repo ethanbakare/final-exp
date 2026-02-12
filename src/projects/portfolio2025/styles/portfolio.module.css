@@ -1597,6 +1597,7 @@
 .al-section-08-top {
   display: flex;
   flex-direction: column;
+  padding-top: 62px;
 }
 
 .al-section-08-top .al-section-08-head {
@@ -1837,6 +1838,10 @@
   }
 
   .al-section-07-content {
+    padding-top: 0;
+  }
+
+  .al-section-08-top {
     padding-top: 0;
   }
 
