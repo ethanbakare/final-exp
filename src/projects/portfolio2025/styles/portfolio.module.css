@@ -1350,6 +1350,18 @@
   color: var(--al-soleil-slate);
 }
 
+/* Soleil Subheader - SemiBold 600, 30px */
+.al-soleil-subhead {
+  font-family: 'Soleil', sans-serif;
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 1.2;
+  text-align: center;
+  padding-bottom: 15px;
+  margin: 0;
+  color: var(--al-soleil-blue);
+}
+
 /* Act Paragraph - Effra Normal 400, 23px */
 .al-act-paragraph {
   font-family: 'Effra', sans-serif;
@@ -1368,9 +1380,20 @@
   color: var(--al-act-grey);
 }
 
+/* Act Small - reduced size variant of act-paragraph */
+.al-act-small {
+  font-size: 16px;
+  line-height: 20px;
+}
+
 /* Section 3 padding */
 .sec3 {
   padding-bottom: 300px;
+}
+
+/* Section 10 text padding */
+.sec10 {
+  padding: 0 40px 85px;
 }
 
 /* --- Non-clickable Button --- */
@@ -1573,14 +1596,32 @@
 
 /* --- Section 10 --- */
 
+.al-section-10 {
+  text-align: center;
+}
+
+.al-section-10 .al-section-content {
+  padding-top: 72px;
+}
+
+.al-section-10 .al-section-10-head {
+  padding-bottom: 40px;
+}
+
 .al-section-10 .al-section-10-icon {
   max-width: 207px;
   padding-bottom: 15px;
+  margin: 0 auto;
 }
 
 .al-section-10 .al-section-10-breakdown {
   width: 76%;
   padding-bottom: 100px;
+  margin: 0 auto;
+}
+
+.al-section-10-small-wrap {
+  padding: 0 220px;
 }
 
 .al-section-10-pattern-wrap {
@@ -1590,6 +1631,7 @@
 .al-section-10 .al-section-10-pattern {
   width: 62%;
   padding-left: 11px;
+  margin: 0 auto;
 }
 
 /* --- Section 08 --- */
@@ -1737,6 +1779,10 @@
     padding: 32px 20px 100px;
   }
 
+  .sec10 {
+    padding: 0 40px 65px;
+  }
+
   .al-section-17 {
     padding: 20px;
   }
@@ -1819,6 +1865,24 @@
     border-radius: 4px;
   }
 
+  .al-soleil-subhead {
+    font-size: 14px;
+    padding-bottom: 8px;
+  }
+
+  .al-act-small {
+    font-size: 8px;
+    line-height: 12px;
+  }
+
+  .al-section-10 .al-section-content {
+    padding-top: 0;
+  }
+
+  .al-section-10 .al-section-10-head {
+    padding-bottom: 15px;
+  }
+
   .al-section-10 .al-section-10-icon {
     width: 30%;
     padding-bottom: 0;
@@ -1829,12 +1893,20 @@
     padding-bottom: 90px;
   }
 
+  .al-section-10-small-wrap {
+    padding: 0 30px;
+  }
+
   .al-section-10-pattern-wrap {
     padding: 18px 0 50px;
   }
 
   .al-section-10 .al-section-10-pattern {
     width: 90%;
+  }
+
+  .sec10 {
+    padding: 0 20px 35px;
   }
 
   .al-section-07-content {

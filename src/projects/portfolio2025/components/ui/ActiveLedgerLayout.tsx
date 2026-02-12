@@ -230,9 +230,32 @@ export const ActiveLedgerLayout: React.FC<ActiveLedgerLayoutProps> = ({ images }
 
       {/* Section 10 */}
       <section className={styles['activeledger-section']}>
-        <div className={`${styles['al-section-content']} ${styles['al-section-10']}`}>
-          <img src={images.section10[0].src} alt={images.section10[0].alt} className={styles['al-section-10-icon']} />
-          <img src={images.section10[1].src} alt={images.section10[1].alt} className={styles['al-section-10-breakdown']} />
+        <div className={styles['al-section-06-button-wrap']}>
+          <div className={styles['al-button']}>BRAND IDENTITY</div>
+        </div>
+        <div className={styles['al-section-10']}>
+          <div className={styles['al-section-content']}>
+            <img src={images.section10[0].src} alt={images.section10[0].alt} className={styles['al-section-10-icon']} />
+            <h1 className={`${styles['al-soleil-head']} ${styles['al-soleil-head-grey']} ${styles['al-section-10-head']}`}>
+              Using a block shaped chain as a visual identity
+            </h1>
+            <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']} ${styles['sec10']}`}>
+              Activeledger&rsquo;s visual identity stems from the use of a single primary element present in
+              the logo &ldquo;a block-shaped chain&rdquo;. This central piece is used to form a variety of patterns
+              which extends across visual collateral to form a strong and flexible identity.
+            </p>
+            <img src={images.section10[1].src} alt={images.section10[1].alt} className={styles['al-section-10-breakdown']} />
+          </div>
+          <h2 className={styles['al-soleil-subhead']}>
+            Brand Pattern Exploration
+          </h2>
+          <div className={styles['al-section-10-small-wrap']}>
+            <p className={`${styles['al-act-paragraph']} ${styles['al-act-paragraph-grey']} ${styles['al-act-small']}`}>
+              A strong yet flexible system for patterns. With the top left sample
+              coincidentally resembling &ldquo;0&rsquo;s&rdquo; and &ldquo;1&rsquo;s&rdquo; the binary digits a computer
+              understands, subtly referencing digitisation.
+            </p>
+          </div>
           <div className={styles['al-section-10-pattern-wrap']}>
             <img src={images.section10[2].src} alt={images.section10[2].alt} className={styles['al-section-10-pattern']} />
           </div>
