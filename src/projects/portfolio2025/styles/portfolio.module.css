@@ -1724,9 +1724,21 @@
   padding-bottom: 220px;
 }
 
+.al-section-14 .al-soleil-subhead {
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+.al-section-14-text-wrap {
+  max-width: 940px;
+  margin: 0 auto;
+  text-align: center;
+}
+
 .al-section-14 .al-section-14-data {
   max-width: 750px;
   margin: 0 auto;
+  padding-top: 78px;
 }
 
 /* --- Section 17 --- */
@@ -1963,6 +1975,14 @@
 
   .al-section-14 .al-section-14-img {
     padding-bottom: 60px;
+  }
+
+  .al-section-14-text-wrap {
+    padding: 0 15px;
+  }
+
+  .al-section-14 .al-section-14-data {
+    padding-top: 26px;
   }
 
   .al-section-17 {
