@@ -1549,6 +1549,14 @@
   padding: 135px 0 100px;
 }
 
+/* --- Section 13 --- */
+
+.al-section-13 {
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+}
+
 /* --- Section 03 - Background image with gradient transition + text --- */
 
 .al-section-03 {
@@ -1604,6 +1612,10 @@
 
   .al-section-01-col2 {
     gap: 12px;
+  }
+
+  .al-section-13 {
+    padding: 0 20px;
   }
 }
 
@@ -1722,5 +1734,9 @@
   .al-section-11-inner .al-section-11-img {
     width: 90%;
     padding: 60px 0 30px;
+  }
+
+  .al-section-13 {
+    padding: 0 10px;
   }
 }
