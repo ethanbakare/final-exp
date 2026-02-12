@@ -1558,6 +1558,12 @@
   padding: 150px 0 220px;
 }
 
+/* --- Section 17 --- */
+
+.al-section-17 {
+  padding: 90px;
+}
+
 /* --- Section 03 - Background image with gradient transition + text --- */
 
 .al-section-03 {
@@ -1617,6 +1623,10 @@
 
   .al-section-13 {
     padding: 32px 20px 100px;
+  }
+
+  .al-section-17 {
+    padding: 20px;
   }
 }
 
@@ -1739,5 +1749,9 @@
 
   .al-section-13 {
     padding: 30px 10px 52px;
+  }
+
+  .al-section-17 {
+    padding: 10px;
   }
 }
