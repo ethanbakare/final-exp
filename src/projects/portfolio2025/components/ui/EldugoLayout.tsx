@@ -8,51 +8,61 @@ interface EldugoImage {
 
 interface EldugoLayoutProps {
   images: {
-    // Hero
+    // Section 01 - Hero
     hero: EldugoImage;
     heroMobile: EldugoImage;
     textLogo: EldugoImage;
-    // Approach
+    // Section 02 - Approach
     approachHelp: EldugoImage;
     approachCul: EldugoImage;
     approachCol: EldugoImage;
     approachSty: EldugoImage;
+    // Section 03 - Advertise
     advertise1: EldugoImage;
-    // Idea
+    // Section 04 - Idea
     idea: EldugoImage;
     noteCircle: EldugoImage;
-    // Wordmark
+    // Section 05 - Wordmark
     logoSkeleton: EldugoImage;
+    // Section 06 - Logo Anim
     logoAnim1: EldugoImage;
+    // Section 07 - Flaunt
     flaunt: EldugoImage;
-    // Logo Variation
+    // Section 08 - Logo Variation
     logoVariationConcept: EldugoImage;
+    // Section 09 - Logo Variation Details
     logoVariationLarge: EldugoImage;
+    // Section 10 - Logo Anim 2
     logoAnim2: EldugoImage;
-    // Variations Gallery
+    // Section 11 - Variations Gallery
     variationTopLeft: EldugoImage;
     variationTopRight: EldugoImage;
     variationBottomLeft: EldugoImage;
     variationBottomRight: EldugoImage;
-    // Visual Identity
+    // Section 12 - Visual Identity
     visualIdentity: EldugoImage;
-    // Brand Applications
+    // Section 13 - Advertise 2
     advertise2: EldugoImage;
+    // Section 14 - Brand Mockup
     brandMockup: EldugoImage;
+    // Section 15 - Bag Square
     bagSquare: EldugoImage;
-    // Product Applications
+    // Section 16 - Price Tags
     priceTagFrontBack: EldugoImage;
     priceTagFront: EldugoImage;
+    // Section 17 - Shirt
     shirt: EldugoImage;
+    // Section 18 - Bag
     bag1: EldugoImage;
-    // Business Cards
+    // Section 19 - Business Card
     businessCard: EldugoImage;
+    // Section 20 - Card Variations
     cardVariations: EldugoImage;
-    // Other Projects
+    // Section 21 - Other Projects
     projectImv: EldugoImage;
     projectActdeck: EldugoImage;
     projectMagma: EldugoImage;
-    // Navigation
+    // Section 22 - Navigation
     arrow: EldugoImage;
     etLogo: EldugoImage;
   };
@@ -60,22 +70,22 @@ interface EldugoLayoutProps {
 
 /**
  * Eldugo Layout Component
- * Displays the complete Eldugo brand identity presentation with:
- * - Hero section with overlay
- * - Approach (3-column grid)
- * - Logo development sections
- * - Product and brand mockups
- * - Related projects and footer
+ * Displays 22 sections for the Eldugo brand identity presentation:
+ * Sections 01-04: Hero, Approach, Advertise, Idea
+ * Sections 05-10: Wordmark, Logo Anim, Flaunt, Logo Variation, Logo Details, Logo Anim 2
+ * Sections 11-15: Variations Gallery, Visual Identity, Advertise 2, Brand Mockup, Bag Square
+ * Sections 16-20: Price Tags, Shirt, Bag, Business Card, Card Variations
+ * Sections 21-22: Other Projects, Navigation (not yet rendered)
  */
 export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
   return (
     <div className={styles['eldugo-container']}>
-      {/* Hero Section - DESKTOP ONLY (hidden on mobile) */}
+      {/* Section 01 - Hero (DESKTOP ONLY, hidden on mobile) */}
       <section className={styles['eldugo-section-hero-desktop']}>
         <img src={images.hero.src} alt={images.hero.alt} className={styles['eldugo-hero-bg']} />
       </section>
 
-      {/* Hero Section - MOBILE ONLY (hidden on desktop) */}
+      {/* Section 01 - Hero (MOBILE ONLY, hidden on desktop) */}
       <section
         className={styles['eldugo-section-hero-mobile']}
         style={{ backgroundImage: `url(${images.heroMobile.src})` }}
@@ -87,7 +97,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Approach Section (Section 36) - 3-column grid */}
+      {/* Section 02 - Approach (3-column grid) */}
       <section className={styles['eldugo-section-approach']}>
         <div className={styles['eldugo-section-content']}>
           <div className={styles['eldugo-approach-header']}>
@@ -124,12 +134,12 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Advertisement 1 - Full width */}
+      {/* Section 03 - Advertise (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.advertise1.src} alt={images.advertise1.alt} />
       </section>
 
-      {/* Idea Section (Section 19) - Logo concept */}
+      {/* Section 04 - Idea (logo concept) */}
       <section className={styles['eldugo-section-idea']}>
         <div className={styles['eldugo-idea-header']}>
           <div className={styles['header-el-caps']}>IDEA</div>
@@ -149,7 +159,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Wordmark Section (Section 37) - Logo skeleton */}
+      {/* Section 05 - Wordmark (logo skeleton) */}
       <section className={styles['eldugo-section-wordmark']}>
         <div className={styles['eldugo-wordmark-header']}>
           <div className={styles['header-el-caps']}>wordmark</div>
@@ -160,17 +170,17 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Logo Animation 1 - Full width */}
+      {/* Section 06 - Logo Anim (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.logoAnim1.src} alt={images.logoAnim1.alt} />
       </section>
 
-      {/* Flaunt - Full width */}
+      {/* Section 07 - Flaunt (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.flaunt.src} alt={images.flaunt.alt} />
       </section>
 
-      {/* Logo Variation Section (Section 21) */}
+      {/* Section 08 - Logo Variation */}
       <section className={styles['eldugo-section-logo-variation']}>
         <div className={styles['eldugo-section-content']}>
           <h1 className={styles['el-header-main']}>Logo Variation</h1>
@@ -187,7 +197,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Logo Variation Details (Section 27) */}
+      {/* Section 09 - Logo Variation Details */}
       <section className={styles['eldugo-section-logo-details']}>
         <div className={styles['eldugo-logo-details-header']}>
           <div className={styles['header-el-caps']}>LOGO VARIATION</div>
@@ -207,12 +217,12 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Logo Animation 2 - Full width */}
+      {/* Section 10 - Logo Anim 2 (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.logoAnim2.src} alt={images.logoAnim2.alt} />
       </section>
 
-      {/* Logo Variations Section (Section 38) - Header + 2x2 grid */}
+      {/* Section 11 - Variations Gallery (header + 2x2 grid) */}
       <section className={styles['eldugo-section-variations']}>
         <div className={styles['eldugo-variations-header']}>
           <div className={styles['header-el-caps']}>LOGO VARIATIONS</div>
@@ -233,7 +243,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Visual Identity Section (Section 39) */}
+      {/* Section 12 - Visual Identity */}
       <section className={styles['eldugo-section-visual-identity']}>
         <div className={styles['eldugo-visual-identity-content']}>
           <div className={styles['eldugo-visual-identity-text']}>
@@ -259,22 +269,22 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         <img src={images.visualIdentity.src} alt={images.visualIdentity.alt} className={styles['eldugo-visual-identity-img']} />
       </section>
 
-      {/* Advertisement 2 - Full width */}
+      {/* Section 13 - Advertise 2 (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.advertise2.src} alt={images.advertise2.alt} />
       </section>
 
-      {/* Brand Mockup - Full width */}
+      {/* Section 14 - Brand Mockup (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.brandMockup.src} alt={images.brandMockup.alt} />
       </section>
 
-      {/* Square Bag - Full width */}
+      {/* Section 15 - Bag Square (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.bagSquare.src} alt={images.bagSquare.alt} />
       </section>
 
-      {/* Price Tags - 2-column layout */}
+      {/* Section 16 - Price Tags (2-column layout) */}
       <section className={styles['eldugo-section-price-tags']}>
         <div className={styles['eldugo-price-tags-header']}>
           <div className={styles['header-el-caps']}>PRICE TAGS</div>
@@ -291,19 +301,19 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Shirt - Full width */}
+      {/* Section 17 - Shirt (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.shirt.src} alt={images.shirt.alt} />
       </section>
 
-      {/* Bag Mockup - Centered */}
+      {/* Section 18 - Bag (centered) */}
       <section className={styles['eldugo-section-centered']}>
         <div className={styles['eldugo-section-content']}>
           <img src={images.bag1.src} alt={images.bag1.alt} />
         </div>
       </section>
 
-      {/* Business Cards - Centered */}
+      {/* Section 19 - Business Card (centered) */}
       <section className={styles['eldugo-section-centered']}>
         <div className={styles['eldugo-centered-header']}>
           <div className={styles['header-el-caps']}>BUSINESS CARD</div>
@@ -315,7 +325,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Card Variations - Centered */}
+      {/* Section 20 - Card Variations (centered) */}
       <section className={styles['eldugo-section-centered']}>
         <div className={styles['eldugo-centered-header']}>
           <div className={styles['header-el-caps']}>BUSINESS CARD</div>

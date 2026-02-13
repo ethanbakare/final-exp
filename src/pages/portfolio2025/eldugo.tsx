@@ -21,73 +21,93 @@ const montserrat = Montserrat({
 
 /**
  * Eldugo Portfolio Page
- * Displays the Eldugo brand identity project with 11+ sections:
- * - Hero with overlay
- * - Approach (3-column grid)
- * - Logo development sections
- * - Product and brand applications
- * - Related projects
+ * Displays the Eldugo brand identity project with 22 sections:
+ * Sections 01-04: Hero, Approach, Advertise, Idea
+ * Sections 05-10: Wordmark, Logo Anim, Flaunt, Logo Variation, Logo Details, Logo Anim 2
+ * Sections 11-15: Variations Gallery, Visual Identity, Advertise 2, Brand Mockup, Bag Square
+ * Sections 16-20: Price Tags, Shirt, Bag, Business Card, Card Variations
+ * Sections 21-22: Other Projects, Navigation
  */
 export default function EldugoPage() {
   const eldugoImages = {
-    // Hero
-    hero: { src: '/images/portfolio2025/eldugo/01-intro.webp', alt: 'Eldugo Intro' },
-    heroMobile: { src: '/images/portfolio2025/eldugo/hero-mobile.webp', alt: 'Eldugo Hero Mobile' },
-    textLogo: { src: '/images/portfolio2025/eldugo/02-text-logo.webp', alt: 'Eldugo Logo' },
+    // Section 01 - Hero
+    hero: { src: '/images/portfolio2025/eldugo/01-hero.webp', alt: 'Eldugo Intro' },
+    heroMobile: { src: '/images/portfolio2025/eldugo/01v2-hero-mobile.webp', alt: 'Eldugo Hero Mobile' },
+    textLogo: { src: '/images/portfolio2025/eldugo/01v3-text-logo.webp', alt: 'Eldugo Logo' },
 
-    // Approach
-    approachHelp: { src: '/images/portfolio2025/eldugo/03-approach-help.webp', alt: 'Approach' },
-    approachCul: { src: '/images/portfolio2025/eldugo/04-approach-cul.webp', alt: 'Culture' },
-    approachCol: { src: '/images/portfolio2025/eldugo/05-approach-col.webp', alt: 'Color' },
-    approachSty: { src: '/images/portfolio2025/eldugo/06-approach-sty.webp', alt: 'Style' },
-    advertise1: { src: '/images/portfolio2025/eldugo/07-advertise-1.webp', alt: 'Advertisement' },
+    // Section 02 - Approach
+    approachHelp: { src: '/images/portfolio2025/eldugo/02-approach-help.webp', alt: 'Approach' },
+    approachCul: { src: '/images/portfolio2025/eldugo/02v2-approach-cul.webp', alt: 'Culture' },
+    approachCol: { src: '/images/portfolio2025/eldugo/02v3-approach-col.webp', alt: 'Color' },
+    approachSty: { src: '/images/portfolio2025/eldugo/02v4-approach-sty.webp', alt: 'Style' },
 
-    // Idea
-    idea: { src: '/images/portfolio2025/eldugo/08-idea.webp', alt: 'Logo Idea' },
-    noteCircle: { src: '/images/portfolio2025/eldugo/09-note-circle.png', alt: 'Note' },
+    // Section 03 - Advertise
+    advertise1: { src: '/images/portfolio2025/eldugo/03-advertise.webp', alt: 'Advertisement' },
 
-    // Wordmark
-    logoSkeleton: { src: '/images/portfolio2025/eldugo/10-logo-skeleton.webp', alt: 'Logo Skeleton' },
-    logoAnim1: { src: '/images/portfolio2025/eldugo/11-logo-anim-1.gif', alt: 'Animation 1' },
-    flaunt: { src: '/images/portfolio2025/eldugo/12-flaunt.webp', alt: 'Flaunt' },
+    // Section 04 - Idea
+    idea: { src: '/images/portfolio2025/eldugo/04-idea.webp', alt: 'Logo Idea' },
+    noteCircle: { src: '/images/portfolio2025/eldugo/04v2-note-circle.png', alt: 'Note' },
 
-    // Logo Variation
-    logoVariationConcept: { src: '/images/portfolio2025/eldugo/13-logo-variation-concept.webp', alt: 'Variation Concept' },
-    logoVariationLarge: { src: '/images/portfolio2025/eldugo/14-logo-variation-large.webp', alt: 'Variation Large' },
-    logoAnim2: { src: '/images/portfolio2025/eldugo/15-logo-anim-2.gif', alt: 'Animation 2' },
+    // Section 05 - Wordmark
+    logoSkeleton: { src: '/images/portfolio2025/eldugo/05-logo-skeleton.webp', alt: 'Logo Skeleton' },
 
-    // Variations Gallery
-    variationTopLeft: { src: '/images/portfolio2025/eldugo/16-variation-top-left.webp', alt: 'Top Left' },
-    variationTopRight: { src: '/images/portfolio2025/eldugo/17-variation-top-right.webp', alt: 'Top Right' },
-    variationBottomLeft: { src: '/images/portfolio2025/eldugo/18-variation-bottom-left.webp', alt: 'Bottom Left' },
-    variationBottomRight: { src: '/images/portfolio2025/eldugo/19-variation-bottom-right.webp', alt: 'Bottom Right' },
+    // Section 06 - Logo Anim
+    logoAnim1: { src: '/images/portfolio2025/eldugo/06-logo-anim.gif', alt: 'Animation 1' },
 
-    // Visual Identity
-    visualIdentity: { src: '/images/portfolio2025/eldugo/20-visual-identity.jpg', alt: 'Visual Identity' },
+    // Section 07 - Flaunt
+    flaunt: { src: '/images/portfolio2025/eldugo/07-flaunt.webp', alt: 'Flaunt' },
 
-    // Brand Applications
-    advertise2: { src: '/images/portfolio2025/eldugo/21-advertise-2.webp', alt: 'Advertisement 2' },
-    brandMockup: { src: '/images/portfolio2025/eldugo/22-brand-mockup.jpg', alt: 'Brand Mockup' },
-    bagSquare: { src: '/images/portfolio2025/eldugo/23-bag-square.webp', alt: 'Square Bag' },
+    // Section 08 - Logo Variation
+    logoVariationConcept: { src: '/images/portfolio2025/eldugo/08-logo-variation-concept.webp', alt: 'Variation Concept' },
 
-    // Product Applications
-    priceTagFrontBack: { src: '/images/portfolio2025/eldugo/24-price-tag-front-back.png', alt: 'Price Tag' },
-    priceTagFront: { src: '/images/portfolio2025/eldugo/25-price-tag-front.png', alt: 'Price Tag Front' },
-    shirt: { src: '/images/portfolio2025/eldugo/26-shirt.webp', alt: 'Shirt' },
-    bag1: { src: '/images/portfolio2025/eldugo/27-bag-1.webp', alt: 'Bag Mockup' },
+    // Section 09 - Logo Variation Details
+    logoVariationLarge: { src: '/images/portfolio2025/eldugo/09-logo-variation-large.webp', alt: 'Variation Large' },
 
-    // Business Cards
-    businessCard: { src: '/images/portfolio2025/eldugo/28-business-card.webp', alt: 'Business Card' },
-    cardVariations: { src: '/images/portfolio2025/eldugo/29-card-variations.webp', alt: 'Card Variations' },
+    // Section 10 - Logo Anim 2
+    logoAnim2: { src: '/images/portfolio2025/eldugo/10-logo-anim.gif', alt: 'Animation 2' },
 
-    // Other Projects
-    projectImv: { src: '/images/portfolio2025/eldugo/30-project-imv.jpg', alt: 'Ideas Made Visual' },
-    projectActdeck: { src: '/images/portfolio2025/eldugo/31-project-actdeck.jpg', alt: 'Activeledger' },
-    projectMagma: { src: '/images/portfolio2025/eldugo/32-project-magma.jpg', alt: 'Magma Deck' },
+    // Section 11 - Variations Gallery
+    variationTopLeft: { src: '/images/portfolio2025/eldugo/11-variation-top-left.webp', alt: 'Top Left' },
+    variationTopRight: { src: '/images/portfolio2025/eldugo/11v2-variation-top-right.webp', alt: 'Top Right' },
+    variationBottomLeft: { src: '/images/portfolio2025/eldugo/11v3-variation-bottom-left.webp', alt: 'Bottom Left' },
+    variationBottomRight: { src: '/images/portfolio2025/eldugo/11v4-variation-bottom-right.webp', alt: 'Bottom Right' },
 
-    // Navigation
-    arrow: { src: '/images/portfolio2025/eldugo/33-arrow.png', alt: 'Arrow' },
-    etLogo: { src: '/images/portfolio2025/eldugo/34-et-logo.png', alt: 'ET Logo' },
+    // Section 12 - Visual Identity
+    visualIdentity: { src: '/images/portfolio2025/eldugo/12-visual-identity.jpg', alt: 'Visual Identity' },
+
+    // Section 13 - Advertise 2
+    advertise2: { src: '/images/portfolio2025/eldugo/13-advertise.webp', alt: 'Advertisement 2' },
+
+    // Section 14 - Brand Mockup
+    brandMockup: { src: '/images/portfolio2025/eldugo/14-brand-mockup.jpg', alt: 'Brand Mockup' },
+
+    // Section 15 - Bag Square
+    bagSquare: { src: '/images/portfolio2025/eldugo/15-bag-square.webp', alt: 'Square Bag' },
+
+    // Section 16 - Price Tags
+    priceTagFrontBack: { src: '/images/portfolio2025/eldugo/16-price-tag-front-back.png', alt: 'Price Tag' },
+    priceTagFront: { src: '/images/portfolio2025/eldugo/16v2-price-tag-front.png', alt: 'Price Tag Front' },
+
+    // Section 17 - Shirt
+    shirt: { src: '/images/portfolio2025/eldugo/17-shirt.webp', alt: 'Shirt' },
+
+    // Section 18 - Bag
+    bag1: { src: '/images/portfolio2025/eldugo/18-bag.webp', alt: 'Bag Mockup' },
+
+    // Section 19 - Business Card
+    businessCard: { src: '/images/portfolio2025/eldugo/19-business-card.webp', alt: 'Business Card' },
+
+    // Section 20 - Card Variations
+    cardVariations: { src: '/images/portfolio2025/eldugo/20-card-variations.webp', alt: 'Card Variations' },
+
+    // Section 21 - Other Projects
+    projectImv: { src: '/images/portfolio2025/eldugo/21-project-imv.jpg', alt: 'Ideas Made Visual' },
+    projectActdeck: { src: '/images/portfolio2025/eldugo/21v2-project-actdeck.jpg', alt: 'Activeledger' },
+    projectMagma: { src: '/images/portfolio2025/eldugo/21v3-project-magma.jpg', alt: 'Magma Deck' },
+
+    // Section 22 - Navigation
+    arrow: { src: '/images/portfolio2025/eldugo/22-arrow.png', alt: 'Arrow' },
+    etLogo: { src: '/images/portfolio2025/eldugo/22v2-et-logo.png', alt: 'ET Logo' },
   };
 
   return (
