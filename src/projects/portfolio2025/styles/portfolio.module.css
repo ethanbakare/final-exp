@@ -1909,10 +1909,12 @@
 
   .al-section-05-images .al-section-05-mobile {
     display: block;
+    padding-top: 30px;
   }
 
   .al-section-05-images .al-section-05-mobile-quote {
     display: block;
+    padding-top: 35px;
   }
 
   .al-section-03-gradient {
