@@ -17,7 +17,7 @@ interface EldugoLayoutProps {
     approachCul: EldugoImage;
     approachCol: EldugoImage;
     approachSty: EldugoImage;
-    // Section 03 - Advertise
+    // Section 03 - Banner
     advertise1: EldugoImage;
     // Section 04 - Idea
     idea: EldugoImage;
@@ -41,7 +41,7 @@ interface EldugoLayoutProps {
     variationBottomRight: EldugoImage;
     // Section 12 - Visual Identity
     visualIdentity: EldugoImage;
-    // Section 13 - Advertise 2
+    // Section 13 - Banner 2
     advertise2: EldugoImage;
     // Section 14 - Brand Mockup
     brandMockup: EldugoImage;
@@ -71,9 +71,9 @@ interface EldugoLayoutProps {
 /**
  * Eldugo Layout Component
  * Displays 22 sections for the Eldugo brand identity presentation:
- * Sections 01-04: Hero, Approach, Advertise, Idea
+ * Sections 01-04: Hero, Approach, Banner, Idea
  * Sections 05-10: Wordmark, Logo Anim, Flaunt, Logo Variation, Logo Details, Logo Anim 2
- * Sections 11-15: Variations Gallery, Visual Identity, Advertise 2, Brand Mockup, Bag Square
+ * Sections 11-15: Variations Gallery, Visual Identity, Banner 2, Brand Mockup, Bag Square
  * Sections 16-20: Price Tags, Shirt, Bag, Business Card, Card Variations
  * Sections 21-22: Other Projects, Navigation (not yet rendered)
  */
@@ -134,7 +134,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Section 03 - Advertise (full width) */}
+      {/* Section 03 - Banner (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.advertise1.src} alt={images.advertise1.alt} />
       </section>
@@ -269,7 +269,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         <img src={images.visualIdentity.src} alt={images.visualIdentity.alt} className={styles['eldugo-visual-identity-img']} />
       </section>
 
-      {/* Section 13 - Advertise 2 (full width) */}
+      {/* Section 13 - Banner 2 (full width) */}
       <section className={styles['eldugo-section-full-img']}>
         <img src={images.advertise2.src} alt={images.advertise2.alt} />
       </section>

@@ -22,9 +22,9 @@ const montserrat = Montserrat({
 /**
  * Eldugo Portfolio Page
  * Displays the Eldugo brand identity project with 22 sections:
- * Sections 01-04: Hero, Approach, Advertise, Idea
+ * Sections 01-04: Hero, Approach, Banner, Idea
  * Sections 05-10: Wordmark, Logo Anim, Flaunt, Logo Variation, Logo Details, Logo Anim 2
- * Sections 11-15: Variations Gallery, Visual Identity, Advertise 2, Brand Mockup, Bag Square
+ * Sections 11-15: Variations Gallery, Visual Identity, Banner 2, Brand Mockup, Bag Square
  * Sections 16-20: Price Tags, Shirt, Bag, Business Card, Card Variations
  * Sections 21-22: Other Projects, Navigation
  */
@@ -41,8 +41,8 @@ export default function EldugoPage() {
     approachCol: { src: '/images/portfolio2025/eldugo/02v3-approach-col.webp', alt: 'Color' },
     approachSty: { src: '/images/portfolio2025/eldugo/02v4-approach-sty.webp', alt: 'Style' },
 
-    // Section 03 - Advertise
-    advertise1: { src: '/images/portfolio2025/eldugo/03-advertise.webp', alt: 'Advertisement' },
+    // Section 03 - Banner
+    advertise1: { src: '/images/portfolio2025/eldugo/03-banner.webp', alt: 'Eldugo Banner' },
 
     // Section 04 - Idea
     idea: { src: '/images/portfolio2025/eldugo/04-idea.webp', alt: 'Logo Idea' },
@@ -75,8 +75,8 @@ export default function EldugoPage() {
     // Section 12 - Visual Identity
     visualIdentity: { src: '/images/portfolio2025/eldugo/12-visual-identity.jpg', alt: 'Visual Identity' },
 
-    // Section 13 - Advertise 2
-    advertise2: { src: '/images/portfolio2025/eldugo/13-advertise.webp', alt: 'Advertisement 2' },
+    // Section 13 - Banner 2
+    advertise2: { src: '/images/portfolio2025/eldugo/13-banner.webp', alt: 'Eldugo Banner 2' },
 
     // Section 14 - Brand Mockup
     brandMockup: { src: '/images/portfolio2025/eldugo/14-brand-mockup.jpg', alt: 'Brand Mockup' },
