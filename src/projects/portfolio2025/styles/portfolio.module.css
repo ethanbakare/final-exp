@@ -533,7 +533,18 @@
   font-weight: 400;
   color: #c5c3c4;
   letter-spacing: 0.05em;
-  margin: 0 0 12px 0;
+  display: inline-block;
+  padding: 20px 0;
+  margin: 0;
+}
+
+.header-el-caps::after {
+  content: '';
+  display: block;
+  height: 2px;
+  background-color: #c5c3c4;
+  width: 100%;
+  margin-left: 20px;
 }
 
 .header-el-sp {
@@ -541,6 +552,7 @@
   font-size: 19px;
   font-weight: 300;
   color: #c5c3c4;
+  padding: 17px 0 0 7px;
   margin: 0 0 32px 0;
 }
 
@@ -617,7 +629,7 @@
 }
 
 .eldugo-approach-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 48px;
 }
 
@@ -683,7 +695,7 @@
 }
 
 .eldugo-idea-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 48px;
   padding: 0 24px;
 }
@@ -718,7 +730,7 @@
 
 /* Section 05 - Wordmark (logo skeleton) */
 .eldugo-wordmark-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 32px;
 }
 
@@ -780,7 +792,7 @@
 
 /* Section 09 - Logo Variation Details */
 .eldugo-logo-details-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 48px;
 }
 
@@ -802,12 +814,8 @@
 }
 
 .eldugo-variations-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 64px;
-}
-
-.eldugo-variations-header .header-el-caps {
-  margin-bottom: 16px;
 }
 
 .eldugo-variations-header .header-el-sp {
@@ -815,10 +823,7 @@
 }
 
 .eldugo-divider-orange {
-  width: 120px;
-  height: 3px;
-  background-color: #da9002;
-  margin: 0 auto;
+  display: none;
 }
 
 .eldugo-variations-container {
@@ -907,7 +912,7 @@
 
 /* Section 16 - Price Tags (2-column layout) */
 .eldugo-price-tags-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 48px;
 }
 
@@ -930,7 +935,7 @@
 
 /* Sections 18, 19, 20 - Centered Section (Bag, Business Card, Card Variations) */
 .eldugo-centered-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 48px;
 }
 
@@ -952,7 +957,7 @@
 }
 
 .eldugo-section-other-projects .header-el-caps {
-  text-align: center;
+  text-align: left;
   margin-bottom: 64px;
 }
 
@@ -1044,11 +1049,18 @@
 /* RESPONSIVE - Mobile Small (479px and below) */
 @media (max-width: 479px) {
   .header-el-caps {
-    font-size: 20px;
+    font-size: 15px;
+    padding-bottom: 8px;
+    padding-top: 0;
+  }
+
+  .header-el-caps::after {
+    margin-left: 13px;
   }
 
   .header-el-sp {
     font-size: 15px;
+    padding: 8px 0 0 7px;
   }
 
   .text-block-3 {
@@ -1167,11 +1179,18 @@
 /* RESPONSIVE - Tablet Small (480px - 767px) */
 @media (min-width: 480px) and (max-width: 767px) {
   .header-el-caps {
-    font-size: 22px;
+    font-size: 15px;
+    padding-bottom: 8px;
+    padding-top: 0;
+  }
+
+  .header-el-caps::after {
+    margin-left: 13px;
   }
 
   .header-el-sp {
     font-size: 16px;
+    padding: 8px 0 0 7px;
   }
 
   .text-block-3 {
