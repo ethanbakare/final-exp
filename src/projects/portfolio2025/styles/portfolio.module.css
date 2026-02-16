@@ -577,7 +577,7 @@
   margin-top: 16px;
 }
 
-/* Hero Section - DESKTOP ONLY (hidden on mobile) */
+/* Section 01 - Hero (DESKTOP ONLY, hidden on mobile) */
 .eldugo-section-hero-desktop {
   width: 100%;
 }
@@ -588,7 +588,7 @@
   display: block;
 }
 
-/* Hero Section - MOBILE ONLY (hidden on desktop) */
+/* Section 01 - Hero (MOBILE ONLY, hidden on desktop) */
 .eldugo-section-hero-mobile {
   display: none;
   width: 100%;
@@ -610,7 +610,7 @@
   margin-bottom: 32px;
 }
 
-/* Approach Section (Section 36) - 3-column grid */
+/* Section 02 - Approach (3-column grid) */
 .eldugo-section-approach {
   background: var(--el-bg-3);
   padding: 88px 0 270px;
@@ -649,7 +649,7 @@
   max-width: 280px;
 }
 
-/* Full-width Image Sections */
+/* Full-width Image Sections (shared by Sections 03, 07, 10, 13, 14, 15, 17) */
 .eldugo-section-full-img {
   width: 100%;
 }
@@ -660,7 +660,7 @@
   display: block;
 }
 
-/* Logo Anim Section (Section 06) */
+/* Section 06 - Logo Anim */
 .eldugo-section-logo-anim {
   width: 100%;
 }
@@ -676,7 +676,7 @@
   margin: 0 auto;
 }
 
-/* Idea Section (Section 19) */
+/* Section 04 - Idea (logo concept) */
 .eldugo-section-idea {
   background: var(--el-bg-1);
   padding: 85px 0;
@@ -716,7 +716,7 @@
   display: block;
 }
 
-/* Wordmark Section (Section 05) */
+/* Section 05 - Wordmark (logo skeleton) */
 .eldugo-wordmark-header {
   text-align: center;
   margin-bottom: 32px;
@@ -739,7 +739,7 @@
   margin: 0 auto;
 }
 
-/* Logo Variation Section (Section 21) */
+/* Section 08 - Logo Variation */
 .eldugo-section-logo-variation {
   background: var(--el-bg-1);
   padding: 133px 0 183px;
@@ -778,7 +778,7 @@
   display: block;
 }
 
-/* Logo Variation Details (Section 27) */
+/* Section 09 - Logo Variation Details */
 .eldugo-logo-details-header {
   text-align: center;
   margin-bottom: 48px;
@@ -795,7 +795,7 @@
   display: block;
 }
 
-/* Logo Variations Section (Section 38) - Header + 2x2 grid */
+/* Section 11 - Variations Gallery (header + 2x2 grid) */
 .eldugo-section-variations {
   background: #f6f6f6;
   padding: 88px 0 120px;
@@ -847,7 +847,7 @@
   border: 2px solid blue;
 }
 
-/* Legacy grid for backwards compatibility */
+/* Section 11 - Legacy grid for backwards compatibility */
 .eldugo-variations-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -860,7 +860,7 @@
   display: block;
 }
 
-/* Visual Identity Section (Section 39) */
+/* Section 12 - Visual Identity */
 .eldugo-section-visual-identity {
   background: #fff;
   padding: 0;
@@ -905,7 +905,7 @@
   display: block;
 }
 
-/* Price Tags - 2-column layout */
+/* Section 16 - Price Tags (2-column layout) */
 .eldugo-price-tags-header {
   text-align: center;
   margin-bottom: 48px;
@@ -928,7 +928,7 @@
   display: block;
 }
 
-/* Centered Section (for single images) */
+/* Sections 18, 19, 20 - Centered Section (Bag, Business Card, Card Variations) */
 .eldugo-centered-header {
   text-align: center;
   margin-bottom: 48px;
@@ -945,7 +945,7 @@
   display: block;
 }
 
-/* Other Projects - 3-column grid */
+/* Section 21 - Other Projects (3-column grid) */
 .eldugo-section-other-projects {
   background: #fff;
   padding: 88px 0 120px;
@@ -987,7 +987,7 @@
   text-align: center;
 }
 
-/* Footer */
+/* Section 22 - Navigation / Footer */
 .eldugo-footer {
   background: #000;
   color: #fff;
@@ -1073,7 +1073,7 @@
     padding: 0 16px;
   }
 
-  /* Mobile: Hide desktop hero section, show mobile hero section */
+  /* Section 01 Mobile: Hide desktop hero, show mobile hero */
   .eldugo-section-hero-desktop {
     display: none;
   }
