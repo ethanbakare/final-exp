@@ -578,8 +578,8 @@
 
 .eldugo-note-row {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 8px;
   margin-top: 32px;
 }
 
@@ -749,7 +749,6 @@
   width: 15px;
   height: 15px;
   flex-shrink: 0;
-  margin-top: 4px;
 }
 
 .eldugo-idea-text {
@@ -1172,6 +1171,10 @@
   .eldugo-note-circle {
     width: 15px;
     height: 15px;
+  }
+
+  .eldugo-note-row {
+    gap: 6px;
   }
 
   .eldugo-visual-identity-img {
