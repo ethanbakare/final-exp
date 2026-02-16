@@ -185,13 +185,17 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         <div className={styles['eldugo-section-content']}>
           <h1 className={styles['el-header-main']}>Logo Variation</h1>
           <div className={styles['text-block-5']}>
-            The logo for Eldugo was designed in a way where it could be<br />
-            used in a multitude of ways, while still passing the same<br />
-            message and embodying the same identity of the Eldugo brand
+            Flowers come in a broad variety of colours; and african<br />
+            fabrics likewise, displaying a diverse range of patterns.<br /><br />
+            This idea of variety is employed in the logo variation.<br />
+            The flower petals in the logo change colour and<br />
+            embody the print of various african fabrics, With this<br />
+            the logo sports a different look in specific scenarios<br />
+            e.g. media campaigns, public holidays etc.
           </div>
           <div className={`${styles['text-block-5']} ${styles['text-block-5-mobile']}`}>
-            The logo for Eldugo was designed in a way where it could be used in a multitude of ways, while
-            still passing the same message and embodying the same identity of the Eldugo brand
+            Flowers come in a broad variety of colours; and african fabrics likewise, displaying a diverse range of patterns.<br /><br />
+            This idea of variety is employed in the logo variation. The flower petals in the logo change colour and embody the print of various african fabrics, With this the logo sports a different look in specific scenarios e.g. media campaigns, public holidays etc.
           </div>
           <img src={images.logoVariationConcept.src} alt={images.logoVariationConcept.alt} className={styles['eldugo-logo-variation-concept']} />
         </div>

@@ -580,6 +580,7 @@
 .eldugo-note-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   margin-top: 32px;
 }
@@ -723,7 +724,6 @@
 .eldugo-section-idea {
   background: var(--el-bg-1);
   padding: 85px 0 0 0;
-  border: .2px solid blue;
 }
 
 .eldugo-idea-header {
@@ -735,7 +735,6 @@
 
 .eldugo-section-idea .eldugo-section-content {
   padding-top: 170px;
-  border: .2px solid red;
   padding-bottom: 26px;
 }
 
@@ -772,6 +771,7 @@
   text-align: left;
   max-width: 940px;
   margin: 0 auto 32px;
+  padding: 0 24px;
 }
 
 .eldugo-section-wordmark {
@@ -884,14 +884,12 @@
   justify-content: space-between;
   padding: 0 117px;
   margin-bottom: 48px;
-  border: 2px solid red;
 }
 
 .eldugo-variations-row img {
   max-width: 200px;
   height: auto;
   display: block;
-  border: 2px solid blue;
 }
 
 /* Section 11 - Legacy grid for backwards compatibility */
