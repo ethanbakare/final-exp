@@ -721,7 +721,8 @@
 /* Section 04 - Idea (logo concept) */
 .eldugo-section-idea {
   background: var(--el-bg-1);
-  padding: 85px 0;
+  padding: 85px 0 0 0;
+  border: .2px solid blue;
 }
 
 .eldugo-idea-header {
@@ -733,6 +734,7 @@
 
 .eldugo-section-idea .eldugo-section-content {
   padding-top: 170px;
+  border: .2px solid red;
   padding-bottom: 26px;
 }
 
@@ -744,8 +746,8 @@
 }
 
 .eldugo-note-circle {
-  width: 40px;
-  height: 40px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   margin-top: 4px;
 }
@@ -1159,8 +1161,8 @@
   }
 
   .eldugo-note-circle {
-    width: 32px;
-    height: 32px;
+    width: 15px;
+    height: 15px;
   }
 
   .eldugo-visual-identity-img {
@@ -1340,7 +1342,7 @@
   }
 
   .eldugo-section-idea {
-    padding: 120px 0;
+    padding: 120px 0 0 0;
   }
 
   .eldugo-section-logo-variation {
