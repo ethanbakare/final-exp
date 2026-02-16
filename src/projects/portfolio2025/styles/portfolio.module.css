@@ -684,11 +684,11 @@
 }
 
 .eldugo-approach-card-col img {
-  padding: 0;
+  margin-right: 20px;
 }
 
 .eldugo-approach-card-sty img {
-  padding: 0;
+  margin-right: 45px;
 }
 
 /* Full-width Image Sections (shared by Sections 03, 07, 10, 13, 14, 15, 17) */
@@ -729,6 +729,11 @@
   max-width: 940px;
   margin: 0 auto 48px;
   padding: 0 24px;
+}
+
+.eldugo-section-idea .eldugo-section-content {
+  padding-top: 170px;
+  padding-bottom: 26px;
 }
 
 .eldugo-idea-content {
@@ -1145,6 +1150,12 @@
 
   .eldugo-approach-main-img {
     display: none;
+  }
+
+  .eldugo-section-idea .eldugo-section-content {
+    padding-top: 0;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .eldugo-note-circle {
