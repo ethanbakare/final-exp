@@ -170,9 +170,11 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
         </div>
       </section>
 
-      {/* Section 06 - Logo Anim (full width) */}
-      <section className={styles['eldugo-section-full-img']}>
-        <img src={images.logoAnim1.src} alt={images.logoAnim1.alt} />
+      {/* Section 06 - Logo Anim */}
+      <section className={styles['eldugo-section-logo-anim']}>
+        <div className={styles['eldugo-logo-anim-wrapper']}>
+          <img src={images.logoAnim1.src} alt={images.logoAnim1.alt} />
+        </div>
       </section>
 
       {/* Section 07 - Flaunt (full width) */}

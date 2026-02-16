@@ -659,6 +659,22 @@
   display: block;
 }
 
+/* Logo Anim Section (Section 06) */
+.eldugo-section-logo-anim {
+  width: 100%;
+}
+
+.eldugo-logo-anim-wrapper {
+  padding: 60px;
+}
+
+.eldugo-logo-anim-wrapper img {
+  width: 80%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
 /* Idea Section (Section 19) */
 .eldugo-section-idea {
   background: var(--el-bg-1);
@@ -1108,6 +1124,14 @@
     padding: 48px 16px 32px;
   }
 
+  .eldugo-logo-anim-wrapper {
+    padding: 0;
+  }
+
+  .eldugo-logo-anim-wrapper img {
+    width: 100%;
+  }
+
   .eldugo-price-tags-grid {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -1170,6 +1194,14 @@
 
   .eldugo-visual-identity-img {
     display: none;
+  }
+
+  .eldugo-logo-anim-wrapper {
+    padding: 0;
+  }
+
+  .eldugo-logo-anim-wrapper img {
+    width: 100%;
   }
 
   .eldugo-price-tags-grid {
