@@ -1011,6 +1011,11 @@
   display: block;
 }
 
+/* Sections 19, 20 - Consecutive centered sections gap */
+.eldugo-section-centered + .eldugo-section-centered {
+  margin-top: 3px;
+}
+
 /* Section 21 - Other Projects (3-column grid) */
 .eldugo-section-other-projects {
   background: #fff;
