@@ -210,7 +210,9 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
             Concept and process behind logo variation
           </div>
         </div>
-        <img src={images.logoVariationLarge.src} alt={images.logoVariationLarge.alt} className={styles['eldugo-logo-details-main-img']} />
+        <div className={styles['eldugo-logo-details-img-wrap']}>
+          <img src={images.logoVariationLarge.src} alt={images.logoVariationLarge.alt} className={styles['eldugo-logo-details-main-img']} />
+        </div>
         <div className={styles['eldugo-section-content']}>
           <div className={styles['eldugo-note-row']}>
             <img src={images.noteCircle.src} alt={images.noteCircle.alt} className={styles['eldugo-note-circle']} />

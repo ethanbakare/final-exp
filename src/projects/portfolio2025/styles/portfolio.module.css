@@ -846,6 +846,12 @@
   margin-top: 3px;
 }
 
+.eldugo-logo-details-img-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 68px 10px 85px;
+}
+
 .eldugo-logo-details-main-img {
   width: 100%;
   max-width: 1050px;
@@ -1244,6 +1250,10 @@
 
   .eldugo-section-logo-details {
     padding: 30px 0 14px;
+  }
+
+  .eldugo-logo-details-img-wrap {
+    padding: 191px 0 213px;
   }
 
   .eldugo-section-wordmark {
