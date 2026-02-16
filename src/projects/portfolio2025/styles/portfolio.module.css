@@ -842,6 +842,7 @@
 .eldugo-section-logo-details {
   background: var(--el-bg-2);
   padding: 110px 0 34px;
+  margin-top: 3px;
 }
 
 .eldugo-logo-details-main-img {
@@ -908,6 +909,12 @@
 .eldugo-section-visual-identity {
   background: #fff;
   padding: 0;
+  margin-top: 3px;
+}
+
+/* Section 13 - Banner 2 (margin-top gap after Visual Identity) */
+.eldugo-section-visual-identity + .eldugo-section-full-img {
+  margin-top: 3px;
 }
 
 .eldugo-visual-identity-content {
