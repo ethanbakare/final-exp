@@ -86,10 +86,8 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
       </section>
 
       {/* Section 01 - Hero (MOBILE ONLY, hidden on desktop) */}
-      <section
-        className={styles['eldugo-section-hero-mobile']}
-        style={{ backgroundImage: `url(${images.heroMobile.src})` }}
-      >
+      <section className={styles['eldugo-section-hero-mobile']}>
+        <img src={images.heroMobile.src} alt={images.heroMobile.alt} className={styles['eldugo-hero-mobile-bg']} />
         <img src={images.textLogo.src} alt={images.textLogo.alt} className={styles['eldugo-hero-logo']} />
         <div className={styles['text-block-3']}>
           Eldugo is a brand which works predominantly within the industry of creating and selling handmade
