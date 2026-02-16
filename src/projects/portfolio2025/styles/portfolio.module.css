@@ -1242,6 +1242,10 @@
   .eldugo-logo-variation-concept {
     margin-top: 50px;
   }
+
+  .eldugo-section-logo-variation {
+    padding: 56px 0 81px;
+  }
 }
 
 /* RESPONSIVE - Tablet Small (480px - 767px) */
@@ -1320,6 +1324,10 @@
 
   .eldugo-logo-variation-concept {
     margin-top: 50px;
+  }
+
+  .eldugo-section-logo-variation {
+    padding: 56px 0 81px;
   }
 }
 
