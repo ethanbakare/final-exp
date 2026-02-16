@@ -498,6 +498,7 @@
   --el-bg-1: #f6f5f5;
   --el-bg-2: #f6f4f5;
   --el-bg-3: #f6f6f6;
+  --el-dark: #1e1d1d;
 
   min-height: 100vh;
   background: var(--el-bg-page);
@@ -572,7 +573,7 @@
   font-family: var(--font-montserrat), sans-serif;
   font-size: 12px;
   font-weight: 300;
-  color: #1e1d1d;
+  color: var(--el-dark);
   line-height: 1.6;
 }
 
@@ -1169,8 +1170,8 @@
   }
 
   .eldugo-note-circle {
-    width: 15px;
-    height: 15px;
+    width: 8px;
+    height: 8px;
   }
 
   .eldugo-note-row {
