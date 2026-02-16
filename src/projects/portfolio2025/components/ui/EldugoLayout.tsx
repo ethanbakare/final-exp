@@ -293,9 +293,9 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
       {/* Section 16 - Price Tags (2-column layout) */}
       <section className={styles['eldugo-section-price-tags']}>
         <div className={styles['eldugo-price-tags-header']}>
-          <div className={styles['header-el-caps']}>PRICE TAGS</div>
-          <div className={styles['eldugo-divider-orange']}></div>
-          <div className={styles['header-el-sp']}>
+          <div className={`${styles['header-el-caps']} ${styles['eldugo-color-muted-999']} ${styles['eldugo-header-caps-muted-999']}`}>PRICE TAGS</div>
+          <div className={`${styles['eldugo-divider-orange']} ${styles['eldugo-divider-muted-999']}`}></div>
+          <div className={`${styles['header-el-sp']} ${styles['eldugo-color-muted-999']}`}>
             Tags with single ankara strips
           </div>
         </div>
@@ -313,7 +313,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
       </section>
 
       {/* Section 18 - Bag (centered) */}
-      <section className={styles['eldugo-section-centered']}>
+      <section className={`${styles['eldugo-section-centered']} ${styles['eldugo-section-18']}`}>
         <div className={styles['eldugo-section-content']}>
           <img src={images.bag1.src} alt={images.bag1.alt} />
         </div>

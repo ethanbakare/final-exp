@@ -493,6 +493,7 @@
   --el-orange: #da9002;
   --el-black: #262626;
   --el-grey: #888786;
+  --el-muted-999: #999999;
   --el-biz: #e6e6e6;
   --el-bg-page: #F8F7F4;
   --el-bg-1: #f6f5f5;
@@ -558,6 +559,20 @@
   max-width: 400px;
 }
 
+/* Color utility classes */
+.eldugo-color-muted-999 {
+  color: var(--el-muted-999);
+}
+
+.eldugo-divider-muted-999 {
+  background-color: var(--el-muted-999);
+}
+
+/* Header utility classes */
+.eldugo-header-caps-muted-999::after {
+  background-color: var(--el-muted-999);
+}
+
 .text-block-3 {
   font-family: var(--font-montserrat), sans-serif;
   font-size: 21.5px;
@@ -582,7 +597,6 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 32px;
 }
 
 .app-text {
@@ -795,7 +809,6 @@
 .eldugo-section-logo-variation {
   background: var(--el-bg-1);
   padding: 133px 0 183px;
-  border: .2px solid blueviolet;
 }
 
 .eldugo-section-logo-variation .el-header-main {
@@ -805,7 +818,6 @@
 .eldugo-logo-variation-concept {
   width: 100%;
   max-width: 560px;
-  border: .2px solid red;
   height: auto;
   display: block;
   margin-top: 107px;
@@ -849,7 +861,6 @@
 .eldugo-logo-details-img-wrap {
   display: flex;
   justify-content: center;
-  border: .2px solid red;
   padding: 191px 0 213px;
 }
 
@@ -979,7 +990,11 @@
 }
 
 .eldugo-section-price-tags {
-  background: #fff;
+  background-color: #fff;
+  background-image: url("/images/portfolio2025/eldugo/0-eldugo-main-tag.webp");
+  background-position: 50% 100%;
+  background-size: cover;
+  background-repeat: no-repeat;
   padding: 64px 0;
   margin-top: 3px;
 }
@@ -1022,6 +1037,17 @@
 .eldugo-section-centered {
   background: #fff;
   padding: 64px 0;
+}
+
+/* Section 18 - Bag */
+.eldugo-section-18 {
+  background: #F5F5F7;
+}
+
+/* Sections 19, 20 - Business Card backgrounds */
+.eldugo-section-19,
+.eldugo-section-20 {
+  background: #E6E6E6;
 }
 
 .eldugo-section-centered img {
@@ -1346,9 +1372,15 @@
     padding: 40px 0 120px;
   }
 
+  .eldugo-approach-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 72px;
+    padding-top: 0;
+  }
+
   .eldugo-approach-main-img {
-    width: 83%;
-    margin-top: 50px;
+    display: none;
   }
 
   .text-block-5 {
@@ -1406,9 +1438,15 @@
     padding: 40px 0 160px;
   }
 
+  .eldugo-approach-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 56px;
+    padding-top: 0;
+  }
+
   .eldugo-approach-main-img {
-    width: 83%;
-    margin-top: 75px;
+    display: none;
   }
 
   .eldugo-logo-variation-grid {
