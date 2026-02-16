@@ -638,7 +638,7 @@
 /* Section 02 - Approach (3-column grid) */
 .eldugo-section-approach {
   background: var(--el-bg-3);
-  padding: 90px 0 270px;
+  padding: 88px 0 270px;
 }
 
 .eldugo-approach-header {
@@ -647,10 +647,13 @@
 }
 
 .eldugo-approach-main-img {
-  width: 100%;
+  width: 1000px;
+  max-width: 100%;
   height: auto;
   display: block;
-  margin-bottom: 64px;
+  margin-top: 151px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .eldugo-approach-grid {
@@ -1093,7 +1096,8 @@
   }
 
   .app-text {
-    font-size: 13px;
+    font-size: 15px;
+    padding-top: 20px;
   }
 
   .el-header-main {
@@ -1221,17 +1225,12 @@
   }
 
   .eldugo-section-approach {
-    padding: 64px 0 150px;
-  }
-
-  .eldugo-approach-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 48px;
+    padding: 40px 0 120px;
   }
 
   .eldugo-approach-main-img {
-    display: none;
+    width: 83%;
+    margin-top: 50px;
   }
 
   .text-block-5 {
@@ -1277,14 +1276,13 @@
 
 /* RESPONSIVE - Tablet Large (768px - 991px) */
 @media (min-width: 768px) and (max-width: 991px) {
-  .eldugo-approach-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 32px;
+  .eldugo-section-approach {
+    padding: 40px 0 160px;
   }
 
   .eldugo-approach-main-img {
-    display: none;
+    width: 83%;
+    margin-top: 75px;
   }
 
   .eldugo-logo-variation-grid {
