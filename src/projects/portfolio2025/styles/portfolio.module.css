@@ -626,7 +626,7 @@
 /* Section 02 - Approach (3-column grid) */
 .eldugo-section-approach {
   background: var(--el-bg-3);
-  padding: 88px 0 270px;
+  padding: 90px 0 270px;
 }
 
 .eldugo-approach-header {
@@ -646,6 +646,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 32px;
   margin-top: 48px;
+  padding-top: 150px;
 }
 
 .eldugo-approach-card {
@@ -1101,7 +1102,7 @@
   }
 
   .eldugo-section-approach {
-    padding: 48px 0 120px;
+    padding: 33px 0 120px;
   }
 
   .eldugo-approach-grid {
