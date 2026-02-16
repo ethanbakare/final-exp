@@ -1125,6 +1125,7 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 48px;
+    padding-top: 0;
   }
 
   .eldugo-approach-main-img {
