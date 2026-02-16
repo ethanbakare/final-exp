@@ -570,7 +570,7 @@
 
 .text-block-4 {
   font-family: var(--font-montserrat), sans-serif;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 300;
   color: #aba9aa;
   line-height: 1.6;
@@ -1163,6 +1163,10 @@
 
   .eldugo-idea-main-img {
     padding-bottom: 50px;
+  }
+
+  .text-block-4 {
+    font-size: 8px;
   }
 
   .eldugo-note-circle {
