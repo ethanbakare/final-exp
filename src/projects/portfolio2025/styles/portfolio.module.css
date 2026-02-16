@@ -836,6 +836,7 @@
   text-align: left;
   max-width: 940px;
   margin: 0 auto 48px;
+  padding: 0 24px;
 }
 
 .eldugo-section-logo-details {
@@ -859,6 +860,7 @@
   text-align: left;
   max-width: 940px;
   margin: 0 auto 64px;
+  padding: 0 24px;
 }
 
 .eldugo-variations-header .header-el-sp {
@@ -872,7 +874,7 @@
 .eldugo-variations-container {
   max-width: 940px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 24px;
 }
 
 .eldugo-variations-container:first-of-type {
@@ -915,7 +917,7 @@
 .eldugo-visual-identity-content {
   max-width: 940px;
   margin: 0 auto;
-  padding: 88px 16px 48px;
+  padding: 88px 24px 48px;
 }
 
 .eldugo-visual-identity-text {
@@ -956,6 +958,7 @@
   text-align: left;
   max-width: 940px;
   margin: 0 auto 48px;
+  padding: 0 24px;
 }
 
 .eldugo-section-price-tags {
@@ -980,6 +983,7 @@
   text-align: left;
   max-width: 940px;
   margin: 0 auto 48px;
+  padding: 0 24px;
 }
 
 .eldugo-section-centered {
@@ -1130,6 +1134,16 @@
     padding: 0 20px;
   }
 
+  .eldugo-idea-header,
+  .eldugo-wordmark-header,
+  .eldugo-logo-details-header,
+  .eldugo-variations-header,
+  .eldugo-variations-container,
+  .eldugo-price-tags-header,
+  .eldugo-centered-header {
+    padding: 0 20px;
+  }
+
   /* Section 01 Mobile: Hide desktop hero, show mobile hero */
   .eldugo-section-hero-desktop {
     display: none;
@@ -1204,7 +1218,7 @@
   }
 
   .eldugo-visual-identity-content {
-    padding: 48px 16px 32px;
+    padding: 48px 20px 32px;
   }
 
   .eldugo-section-wordmark {
