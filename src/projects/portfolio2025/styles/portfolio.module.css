@@ -715,7 +715,7 @@
   display: block;
 }
 
-/* Wordmark Section (Section 37) */
+/* Wordmark Section (Section 05) */
 .eldugo-wordmark-header {
   text-align: center;
   margin-bottom: 32px;
@@ -723,13 +723,19 @@
 
 .eldugo-section-wordmark {
   background: #fff;
-  padding: 64px 0;
+  padding: 135px 0 250px;
+  margin-top: 3px;
+}
+
+.eldugo-section-wordmark .eldugo-section-content {
+  padding-top: 130px;
 }
 
 .eldugo-section-wordmark img {
-  width: 100%;
+  width: 70%;
   height: auto;
   display: block;
+  margin: 0 auto;
 }
 
 /* Logo Variation Section (Section 21) */
@@ -1124,6 +1130,14 @@
     padding: 48px 16px 32px;
   }
 
+  .eldugo-section-wordmark {
+    padding: 20px 0 145px;
+  }
+
+  .eldugo-section-wordmark .eldugo-section-content {
+    padding-top: 86px;
+  }
+
   .eldugo-logo-anim-wrapper {
     padding: 0;
   }
@@ -1194,6 +1208,14 @@
 
   .eldugo-visual-identity-img {
     display: none;
+  }
+
+  .eldugo-section-wordmark {
+    padding: 20px 0 145px;
+  }
+
+  .eldugo-section-wordmark .eldugo-section-content {
+    padding-top: 86px;
   }
 
   .eldugo-logo-anim-wrapper {
