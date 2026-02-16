@@ -804,9 +804,10 @@
 .eldugo-logo-variation-concept {
   width: 100%;
   max-width: 560px;
+  border: .2px solid red;
   height: auto;
   display: block;
-  margin-top: 32px;
+  margin-top: 107px;
 }
 
 .eldugo-logo-variation-grid {
@@ -1237,6 +1238,10 @@
     gap: 32px;
     text-align: center;
   }
+
+  .eldugo-logo-variation-concept {
+    margin-top: 50px;
+  }
 }
 
 /* RESPONSIVE - Tablet Small (480px - 767px) */
@@ -1311,6 +1316,10 @@
   .eldugo-projects-grid {
     grid-template-columns: 1fr;
     gap: 32px;
+  }
+
+  .eldugo-logo-variation-concept {
+    margin-top: 50px;
   }
 }
 
