@@ -320,7 +320,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
       </section>
 
       {/* Section 19 - Business Card (centered) */}
-      <section className={styles['eldugo-section-centered']}>
+      <section className={`${styles['eldugo-section-centered']} ${styles['eldugo-section-19']}`}>
         <div className={styles['eldugo-centered-header']}>
           <div className={styles['header-el-caps']}>BUSINESS CARD</div>
           <div className={styles['eldugo-divider-orange']}></div>
@@ -332,7 +332,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
       </section>
 
       {/* Section 20 - Card Variations (centered) */}
-      <section className={styles['eldugo-section-centered']}>
+      <section className={`${styles['eldugo-section-centered']} ${styles['eldugo-section-20']}`}>
         <div className={styles['eldugo-centered-header']}>
           <div className={styles['header-el-caps']}>BUSINESS CARD</div>
           <div className={styles['eldugo-divider-orange']}></div>

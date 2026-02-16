@@ -974,7 +974,7 @@
 .eldugo-price-tags-header {
   text-align: left;
   max-width: 940px;
-  margin: 0 auto 48px;
+  margin: 0 auto 0;
   padding: 0 24px;
 }
 
@@ -1005,8 +1005,18 @@
 .eldugo-centered-header {
   text-align: left;
   max-width: 940px;
-  margin: 0 auto 48px;
+  margin: 0 auto 0;
   padding: 0 24px;
+}
+
+/* Section 19 - Business Card image padding */
+.eldugo-section-19 .eldugo-section-content {
+  padding-top: 182px;
+}
+
+/* Section 20 - Card Variations image padding */
+.eldugo-section-20 .eldugo-section-content {
+  padding-top: 76px;
 }
 
 .eldugo-section-centered {
@@ -1295,6 +1305,15 @@
 
   .eldugo-section-logo-variation {
     padding: 56px 0 81px;
+  }
+
+  .eldugo-section-19 .eldugo-section-content {
+    padding-top: 45px;
+    padding-bottom: 55px;
+  }
+
+  .eldugo-section-20 .eldugo-section-content {
+    padding-top: 62px;
   }
 }
 
