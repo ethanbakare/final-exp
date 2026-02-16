@@ -107,21 +107,21 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
           </div>
           <img src={images.approachHelp.src} alt={images.approachHelp.alt} className={styles['eldugo-approach-main-img']} />
           <div className={styles['eldugo-approach-grid']}>
-            <div className={styles['eldugo-approach-card']}>
+            <div className={`${styles['eldugo-approach-card']} ${styles['eldugo-approach-card-cul']}`}>
               <img src={images.approachCul.src} alt={images.approachCul.alt} />
               <div className={styles['app-text']}>
                 Eldugo strongly identifies with its roots within African heritage, especially the practice of
                 using Ankara strips to design unique pieces
               </div>
             </div>
-            <div className={styles['eldugo-approach-card']}>
+            <div className={`${styles['eldugo-approach-card']} ${styles['eldugo-approach-card-col']}`}>
               <img src={images.approachCol.src} alt={images.approachCol.alt} />
               <div className={styles['app-text']}>
                 Eldugo as a brand is identified by its use of its primary colour orange, along with a
                 combination of grey and beige variations
               </div>
             </div>
-            <div className={styles['eldugo-approach-card']}>
+            <div className={`${styles['eldugo-approach-card']} ${styles['eldugo-approach-card-sty']}`}>
               <img src={images.approachSty.src} alt={images.approachSty.alt} />
               <div className={styles['app-text']}>
                 Eldugo&apos;s style is minimal, by attaching Ankara strips on plain canvas and letting the strip

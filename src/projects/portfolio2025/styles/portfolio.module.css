@@ -586,9 +586,9 @@
 .app-text {
   font-family: var(--font-montserrat), sans-serif;
   font-size: 15px;
-  font-weight: 300;
+  font-weight: 400;
   color: #aba9aa;
-  line-height: 1.6;
+  line-height: 1.2;
   margin-top: 16px;
 }
 
@@ -672,10 +672,23 @@
 }
 
 .eldugo-approach-card img {
-  width: 100%;
+  width: 80%;
   height: auto;
   display: block;
   max-width: 280px;
+}
+
+/* Individual approach card overrides — adjust per-card image positioning */
+.eldugo-approach-card-cul img {
+  padding: 0;
+}
+
+.eldugo-approach-card-col img {
+  padding: 0;
+}
+
+.eldugo-approach-card-sty img {
+  padding: 0;
 }
 
 /* Full-width Image Sections (shared by Sections 03, 07, 10, 13, 14, 15, 17) */
@@ -1096,8 +1109,10 @@
   }
 
   .app-text {
-    font-size: 15px;
-    padding-top: 20px;
+    font-size: 16px;
+    padding-top: 15px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .el-header-main {
@@ -1124,7 +1139,7 @@
   .eldugo-approach-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 48px;
+    gap: 72px;
     padding-top: 0;
   }
 
