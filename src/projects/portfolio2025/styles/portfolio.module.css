@@ -917,6 +917,11 @@
   margin-top: 3px;
 }
 
+/* Sections 14, 15 - Consecutive full-width image sections gap */
+.eldugo-section-full-img + .eldugo-section-full-img {
+  margin-top: 3px;
+}
+
 .eldugo-visual-identity-content {
   max-width: 940px;
   margin: 0 auto;
@@ -967,6 +972,12 @@
 .eldugo-section-price-tags {
   background: #fff;
   padding: 64px 0;
+  margin-top: 3px;
+}
+
+/* Section 17 - Shirt (margin-top gap after Price Tags) */
+.eldugo-section-price-tags + .eldugo-section-full-img {
+  margin-top: 3px;
 }
 
 .eldugo-price-tags-grid {
