@@ -553,7 +553,7 @@
   font-weight: 300;
   color: #c5c3c4;
   padding: 17px 0 0 7px;
-  margin: 0 0 32px 0;
+  margin: 0;
 }
 
 .text-block-3 {
@@ -696,7 +696,8 @@
 
 .eldugo-idea-header {
   text-align: left;
-  margin-bottom: 48px;
+  max-width: 940px;
+  margin: 0 auto 48px;
   padding: 0 24px;
 }
 
@@ -731,7 +732,8 @@
 /* Section 05 - Wordmark (logo skeleton) */
 .eldugo-wordmark-header {
   text-align: left;
-  margin-bottom: 32px;
+  max-width: 940px;
+  margin: 0 auto 32px;
 }
 
 .eldugo-section-wordmark {
@@ -793,7 +795,8 @@
 /* Section 09 - Logo Variation Details */
 .eldugo-logo-details-header {
   text-align: left;
-  margin-bottom: 48px;
+  max-width: 940px;
+  margin: 0 auto 48px;
 }
 
 .eldugo-section-logo-details {
@@ -815,7 +818,8 @@
 
 .eldugo-variations-header {
   text-align: left;
-  margin-bottom: 64px;
+  max-width: 940px;
+  margin: 0 auto 64px;
 }
 
 .eldugo-variations-header .header-el-sp {
@@ -913,7 +917,8 @@
 /* Section 16 - Price Tags (2-column layout) */
 .eldugo-price-tags-header {
   text-align: left;
-  margin-bottom: 48px;
+  max-width: 940px;
+  margin: 0 auto 48px;
 }
 
 .eldugo-section-price-tags {
@@ -936,7 +941,8 @@
 /* Sections 18, 19, 20 - Centered Section (Bag, Business Card, Card Variations) */
 .eldugo-centered-header {
   text-align: left;
-  margin-bottom: 48px;
+  max-width: 940px;
+  margin: 0 auto 48px;
 }
 
 .eldugo-section-centered {
