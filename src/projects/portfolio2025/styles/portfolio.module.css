@@ -553,7 +553,7 @@
   font-size: 19px;
   font-weight: 300;
   color: #c5c3c4;
-  padding: 0 0 0 7px;
+  padding: 17px 0 0 7px;
   margin: 0;
   max-width: 400px;
 }
@@ -836,7 +836,7 @@
 .eldugo-logo-details-header {
   text-align: left;
   max-width: 940px;
-  margin: 0 auto 48px;
+  margin: 0 auto 0;
   padding: 0 24px;
 }
 
@@ -1134,7 +1134,7 @@
 
   .header-el-sp {
     font-size: 15px;
-    padding: 0 0 0 7px;
+    padding: 8px 0 0 7px;
   }
 
   .text-block-3 {
@@ -1311,7 +1311,7 @@
 
   .header-el-sp {
     font-size: 16px;
-    padding: 0 0 0 7px;
+    padding: 8px 0 0 7px;
   }
 
   .text-block-3 {
