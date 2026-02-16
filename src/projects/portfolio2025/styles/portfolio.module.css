@@ -849,7 +849,7 @@
 .eldugo-logo-details-img-wrap {
   display: flex;
   justify-content: center;
-  padding: 68px 10px 85px;
+  padding: 191px 0 213px;
 }
 
 .eldugo-logo-details-main-img {
@@ -1253,7 +1253,7 @@
   }
 
   .eldugo-logo-details-img-wrap {
-    padding: 191px 0 213px;
+    padding: 68px 10px 85px;
   }
 
   .eldugo-section-wordmark {
