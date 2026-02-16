@@ -728,7 +728,7 @@
 .eldugo-idea-header {
   text-align: left;
   max-width: 940px;
-  margin: 0 auto 48px;
+  margin: 0 auto 0px;
   padding: 0 24px;
 }
 
@@ -764,6 +764,7 @@
   width: 100%;
   height: auto;
   display: block;
+  padding-top: 44px;
 }
 
 /* Section 05 - Wordmark (logo skeleton) */
@@ -1158,6 +1159,10 @@
     padding-top: 0;
     padding-left: 10px;
     padding-right: 10px;
+  }
+
+  .eldugo-idea-main-img {
+    padding-bottom: 50px;
   }
 
   .eldugo-note-circle {
