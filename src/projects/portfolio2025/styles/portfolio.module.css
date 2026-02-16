@@ -795,6 +795,7 @@
 .eldugo-section-logo-variation {
   background: var(--el-bg-1);
   padding: 133px 0 183px;
+  border: .2px solid blueviolet;
 }
 
 .eldugo-section-logo-variation .el-header-main {
@@ -1238,6 +1239,10 @@
 
   .eldugo-visual-identity-content {
     padding: 48px 20px 32px;
+  }
+
+  .eldugo-section-logo-details {
+    padding: 30px 0 14px;
   }
 
   .eldugo-section-wordmark {
