@@ -1,6 +1,6 @@
 # Ollama Case Study — V1 Page Plan
 
-The V1 page is illustration-focused: 80% visuals, 20% copy. Showcase existing work with brief contextual framing. Target audience: AI recruiters, PMs in AI companies.
+80% visuals, 20% copy. ~20-25 lines of copy total across the whole page. Target audience: AI recruiters, PMs in AI companies.
 
 ---
 
@@ -59,103 +59,176 @@ All originals are 2100px+. Resized versions (1200px) in `/resized/`.
 
 ## Page Sections
 
-### 1. Hero
+### 1. Hero / Intro
 
-**Image:** `terminal.png` — running llama entering terminal window
-**Why this image:** Active pose, communicates the product (terminal), double meaning of "runs." Speaks directly to the target audience of developers/PMs who know what a terminal is.
+**Background:** Dark (matching Ollama's brand)
+**Image:** `terminal.png` — running llama entering terminal window (Variation 2)
+**Why this image:** Active pose, communicates the product (terminal), double meaning of "runs." Speaks directly to developers/PMs.
+**Variation rejected:** Lounging/carrot llama from GPU RICH — too passive, doesn't communicate product.
 
-**Copy direction:**
-- Project title: Ollama Brand Case Study
-- Subtitle: brief framing line (who Ollama is, what this project explores)
-- Stats as contextual proof, not a data section: 166k GitHub stars, 190k Discord, 5M monthly visits
-- These stats frame why this brand matters, not a deep dive into the data
+**Copy:** One line max + stats. No project scope block. No "this project aims to..."
 
-**Variation considered but rejected:** Lounging/carrot llama from GPU RICH pose — too passive, doesn't communicate product.
+> Ollama helps people run LLMs locally — with a mascot that makes a technical product feel approachable.
+
+Stats as contextual proof: **166K GitHub stars · 190K Discord · 5M monthly visits**
+
+Optionally a single subtle label underneath: "Brand illustration exploration" or "Visual identity & character exploration" — just to type the work. Not a paragraph.
 
 ---
 
 ### 2. Visual Audit
 
-**Image:** `audit v.png`
-**Copy direction:** Short intro — what was audited, where the brand currently shows up (website, GitHub, CLI, Discord, X, model library, docs). Let the collage image do the talking. 2-3 sentences max.
+**Background:** Light
+**Image:** `audit v.png` — scattered card collage (tweets, event photos, email newsletter, LlamaIndex partnership, sticker sheet, merch)
+
+**Copy:** 2-3 lines intro + 3 short callouts.
+
+> Before drawing anything, I audited how Ollama's brand showed up across touchpoints — live events, social media, website, email, and partnerships. Three things stood out:
+
+1. A lovable mascot that makes the brand approachable and sticky
+2. Visual storytelling through emotive illustrations, especially on Twitter and at events
+3. A genuine love for open source, visible in how they partner and communicate
+
+This section proves you looked before you made. Separates "I drew some llamas" from "I studied a brand and then drew some llamas." The cards are the evidence.
 
 ---
 
 ### 3. Mood Board
 
+**Background:** Light
 **Image:** `moodboard.png`
-**Copy direction:** What informed the illustration direction — Japanese illustration influences, Noritake's style DNA, Duolingo's mascot strategy as a reference for character-driven brand personality. Keep it brief, the board speaks visually.
+
+**Copy:** 2-3 lines on stylistic heritage and how the context differs.
+
+> The character's line-art style shares DNA with illustrator Noritake and Duolingo's mascot system — chunky proportions, thick outlines, minimal detail. But Ollama's audience is developers working in terminals, not language learners. The character needs to feel at home in technical contexts while staying warm and approachable.
+
+Gives the reader the "why" — not copying Duolingo, noting the heritage and explaining how context differs. PM/design lead thinking.
 
 ---
 
 ### 4. Character Bible
 
+**Background:** Light (grid) → Dark (carousel, if included)
+
 **Primary assets:**
-- `Group 430.png` — the full expression/pose grid
-- `dark mode.mp4` — the carousel video (8s, auto-play muted) showing pose-switching with model names
-- `sketch 1.gif` + `sketch 2.gif` — process sketches (V.0 and V.1)
+- `Group 430.png` — full expression/pose grid (~11 poses)
+- `dark mode.mp4` — carousel video (8s, auto-play muted), pose-switching with model names
+- `sketch 1.gif` + `sketch 2.gif` — process sketches (V.0 → V.1)
 - `Area.gif` — sunglasses close-up as accent
 
-**Layout:** Grid approach — 2-up on mobile, 3x3 on desktop. The grid is the minimum viable version. Optionally: dark carousel with emoji selectors (as designed in the carousel concept).
+**Layout approach:**
+1. Full grid first — all 11 poses visible at once. Responsive: 2-up mobile, 3-3-3 or 4-3-4 desktop. This gives the "at a glance" view.
+2. Below the grid: dark carousel with emoji selectors. Dark version is stronger — spotlight effect gives it a stage/presentation feel, creates contrast with the rest of the page (mostly light backgrounds). Light version feels flat — character doesn't pop the same way.
+3. For speed, if cutting one: cut the carousel, ship the grid. The grid alone communicates "this character has range."
 
-**Copy direction:** How the character was developed — from pencil sketches (V.0) through refinement (V.1) to the final expression sheet. The llama isn't a static logo; it's a full character with emotional range. Each pose maps to a brand moment. Brief — 3-4 sentences, then let the grid and video carry it.
+**Video placement:** `dark mode.mp4` after or alongside the grid. Auto-play muted. Strongest motion asset — bridges character illustration with product functionality.
 
-**Video placement:** `dark mode.mp4` should sit after or alongside the grid. Auto-play muted. This is the strongest motion asset — it bridges character illustration with product functionality (model names appearing as the llama switches poses).
+**Copy:** 2 lines on what a character bible does.
+
+> A character bible establishes the emotional range of the mascot — each expression becomes an atomic unit that gets deployed across posters, announcements, social content, and product communications. It's the foundation everything else is built from.
 
 ---
 
 ### 5. Product Posters
 
-**Images (scrolling gallery or stacked):**
-- `gpu rich dark.png` — GPU Rich flex moment
-- `it's time to build.png` — builder energy
-- `magic words.png` — `ollama run phi3` (best product-experience piece)
-- `ollama enlightenment.png` — model awareness / zen
-- `ollama rocks.png` — personality / energy
+**Background:** Could alternate dark/light per poster
 
-**Supporting animation:** `aaa.gif` or `Laptop.gif` for process/motion
+**Images — these are the posters where the mascot meets the product (terminal):**
+- `magic words.png` — wizard llama + terminal showing `ollama run phi3`. The standout piece. Only poster where the character is literally inside the terminal doing what the user does.
+- `terminal.png` — running llama entering macOS terminal window. Double meaning of "runs." (Also used in hero — can appear in both contexts)
+- `it's time to build.png` — headband llama coding on laptop. The act of building with the tool.
 
-**Copy direction:** Each poster captures a different facet of the Ollama experience. "Magic words" is the standout — it's the only piece where the character is literally inside the terminal doing what the user does. Brief contextual line per poster, or a single intro paragraph and let them scroll.
+**Supporting animation:** `aaa.gif` (animated "It's time to build") or `Laptop.gif` / `Laptop 2.mp4`
 
-**Note on repurposing:** `opensource celebration.png` (confetti llama) — originally captioned "When an open source model drops" but the illustration itself works for "Finish downloading a new model." The confetti is the emotion, not the event. Can be recaptioned if used in a "culture of use" context.
+**Copy:** 2-3 lines connecting character to product.
+
+> The posters put the mascot where the product actually lives — in the terminal. Each one takes a real Ollama interaction (typing a command, running a model, building with the tool) and gives it a visual identity. The character isn't decorating the product — it's narrating the experience.
+
+That last line matters. Frames the posters as strategic, not decorative.
 
 ---
 
 ### 6. Model Announcements
 
-**Images:**
-- `dolphin.png`
-- `google gemma.png`
+**Background:** Light
 
-**Copy direction:** Scalable template system for new model support announcements. These are functional deliverables — they could ship at volume. Show the system, not just the individual cards. Brief — this section demonstrates production-ready thinking.
+**Images:**
+- `dolphin.png` — Dolphin model card
+- `google gemma.png` — Gemma model card
+
+**Copy:** 2-3 lines on scalability.
+
+> Ollama's most frequent public communication is announcing new model support. These templates create a repeatable system — swap the model name and mascot pose, and each announcement gets its own personality while staying on-brand. Designed to scale across dozens of model releases.
+
+A PM reads that and thinks "this person understands content systems, not just one-off design."
 
 ---
 
 ### 7. Community & Values
 
-**Images:**
-- `We love open source.png` — the group piece
-- `opensource celebration.png` — confetti celebration
-- `IMG_2608.PNG` — dark variant of group piece (optional)
+**Background:** Light
 
-**Copy direction:** Open source isn't just a license, it's the culture Ollama was built in. These pieces celebrate that community — the "Ollama & Friends" branding turns integrations into relationships. Brief, values-driven copy.
+**Images — these are the pieces about brand voice, values, and developer culture:**
+- `We love open source.png` — group llama, "Ollama & Friends"
+- `opensource celebration.png` — party horn llama with confetti (celebrates model drops / community moments)
+- `ollama rocks.png` — rock star llama with guitar (open source attitude)
+- `ollama enlightenment.png` — meditating llama with model names orbiting (the zen of local AI)
+- `gpu rich dark.png` — llama lounging on stacked GPUs (developer meme culture)
+
+**Copy:** 2-3 lines on brand voice in community.
+
+> Beyond product, the mascot carries the brand's voice in community spaces — celebrating open source, reacting to model drops, and living in developer meme culture. These pieces are designed for the spaces where developers actually talk: Discord, Twitter, group chats.
+
+GPU RICH is the strongest community piece — proves understanding of developer humor, not just brand design. Make sure it's visible.
+
+**Note on repurposing:** `opensource celebration.png` — originally captioned "When an open source model drops" but the illustration works for "Finish downloading a new model." The confetti is the emotion, not the event. Can be recaptioned in V2 if used in a "culture of use" context.
 
 ---
 
 ### 8. Closing
 
-**Copy-driven section.** No new illustration needed — optionally repurpose one image as a bookend.
+**Background:** Dark or light
+**Copy-driven.** No new illustration needed — optionally repurpose one image as bookend.
 
-**Copy direction:** What V2 would explore — the "culture of using Ollama" (download rituals, inference experience, failure states, power user moments). Tease the depth without executing it. Frame this as "what's next" rather than "what's missing." End with author info / contact.
+**Copy:** 1-2 lines. V2 tease.
+
+> V1 focused on character exploration and illustration — establishing the mascot's range and putting it to work across product, announcements, and community. V2 goes deeper into the lived experience of using Ollama day-to-day.
+
+Don't explain V2 in detail. Just signal more is coming. Shows the work is ongoing and thinking goes beyond what's shown.
+
+---
+
+## Section Summary
+
+| # | Section | Background | Copy needed |
+|---|---|---|---|
+| 1 | Hero / Intro | Dark | One line + stats |
+| 2 | Visual Audit | Light | 2-3 lines + 3 callouts |
+| 3 | Mood Board | Light | 2-3 lines on stylistic heritage |
+| 4 | Character Bible | Light (grid) → Dark (carousel) | 2 lines on what a character bible does |
+| 5 | Product Posters | Alternating dark/light | 2-3 lines connecting character to product |
+| 6 | Model Announcements | Light | 2-3 lines on scalability |
+| 7 | Community & Values | Light | 2-3 lines on brand voice in community |
+| 8 | Closing | Dark or light | 1-2 lines, V2 tease |
+
+---
+
+## Key Decisions
+
+- **Product Posters (Section 5)** = posters where the mascot meets the terminal/product: magic words, terminal, it's time to build
+- **Community & Values (Section 7)** = posters about brand voice, culture, values: we love open source, open source celebration, ollama rocks, ollama enlightenment, GPU rich
+- These are distinct categories. Product Posters narrate the experience of using Ollama. Community & Values carry the brand's voice in social/community spaces.
+- **SimilarWeb data:** NOT in V1. Select stats only in hero (5M visits, 166k stars, 190k Discord). Full data is V2.
+- **Dark carousel preferred** over light for character bible — spotlight effect, contrast with mostly-light page.
+- **Grid is the MVP** for character bible — if cutting one, cut the carousel.
+- **intro.gif** could serve as loading state or opening card (has project framing baked in).
 
 ---
 
 ## Implementation Notes
 
-- **Ratio:** 80% images, 20% copy. Let the work breathe.
-- **Dark/light:** Dark background recommended (matches Ollama's brand, makes illustrations pop). `gpu rich light.png` available as light mode fallback.
-- **Video:** `dark mode.mp4` auto-play muted is the hero motion piece. Place in Character Bible section.
-- **Process story:** sketch 1.gif → sketch 2.gif → Group 430.png shows the V.0 → V.1 → final evolution.
-- **Target audience:** AI recruiters and PMs. They need to see: technical understanding (you know the product and space), UX thinking (you understand user journeys), illustration/brand design skill (the visual work itself).
-- **SimilarWeb data:** Do NOT include raw data sections or screenshots in V1. Use select stats (5M visits, 166k stars, 190k Discord) as contextual proof in the hero only. Full data analysis is V2 territory.
-- **intro.gif:** Could serve as a loading state or opening card. Already has project framing text baked in.
+- Total copy: ~20-25 lines across the whole page. Reader spends 80% looking at pictures, 20% reading.
+- Each section has a brief "why this matters" framing, then visuals take over.
+- Process story in Character Bible: `sketch 2.gif` (V.0) → `sketch 1.gif` (V.1) → `Group 430.png` (final)
+- `dark mode.mp4` auto-play muted in Character Bible section — the hero motion asset
+- Build following portfolio2025 pattern: components in `src/projects/ollama/components/`, page in `src/pages/`
