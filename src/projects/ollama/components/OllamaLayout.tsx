@@ -1,7 +1,6 @@
 import React from 'react';
 import styles from '@/projects/ollama/styles/ollama.module.css';
-import { Terminal } from './Terminal';
-import { OllamaMascot } from './OllamaMascot';
+import { OllamaTerminal } from './OllamaTerminal';
 
 interface OllamaImage {
   src: string;
@@ -10,8 +9,6 @@ interface OllamaImage {
 
 interface OllamaLayoutProps {
   images: {
-    // Section 01 - Hero
-    // (mascot is a component, no image prop needed)
     // Section 02 - Visual Audit
     visualAudit: OllamaImage;
     // Section 03 - Mood Board
@@ -36,7 +33,7 @@ interface OllamaLayoutProps {
 
 /**
  * Ollama Layout Component
- * Displays the Ollama brand case study page.
+ * Full case study page for the Ollama brand.
  * Section 01: Hero / Intro
  * Section 02: Visual Audit
  * Section 03: Mood Board
@@ -53,10 +50,7 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
       <section className={styles['ollama-hero-banner']}>
         <div className={styles['ollama-hero-card']}>
           <div className={styles['ollama-hero-component']}>
-            <div className={styles['ollama-terminal-group']}>
-              <OllamaMascot />
-              <Terminal />
-            </div>
+            <OllamaTerminal />
           </div>
           <div className={styles['ollama-hero-body']}>
             <div className={styles['ollama-description-wrapper']}>

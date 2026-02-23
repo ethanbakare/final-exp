@@ -2,8 +2,9 @@
    Ollama Case Study — Module CSS
    ============================================== */
 
-/* --- Color Variables --- */
-.ollama-container {
+/* --- Color Variables (shared across container and components page) --- */
+.ollama-container,
+.ollama-components-page {
   /* Backgrounds */
   --ollama-bg-dark: #201F1E;
   --ollama-bg-terminal: #282625;
@@ -165,6 +166,89 @@
 }
 
 /* ==============================================
+   Components Showcase Page
+   ============================================== */
+
+.ollama-components-page {
+  width: 100%;
+  min-height: 100vh;
+  background: #ffffff;
+  color-scheme: light;
+}
+
+.ollama-components-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 24px;
+}
+
+.ollama-components-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 48px;
+  color: #1a1a1a;
+}
+
+.ollama-components-section {
+  margin-bottom: 64px;
+}
+
+.ollama-components-heading {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1a1a1a;
+}
+
+.ollama-components-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+  max-width: 600px;
+}
+
+.ollama-components-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 40px;
+  border-radius: 12px;
+}
+
+.ollama-expression-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.ollama-expression-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f5f5f5;
+}
+
+.ollama-expression-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.ollama-expression-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  text-align: center;
+}
+
+/* ==============================================
    Responsive — Mobile
    ============================================== */
 
@@ -202,5 +286,13 @@
   .ollama-hero-description {
     font-size: 16px;
     letter-spacing: -0.5px;
+  }
+
+  .ollama-expression-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ollama-components-preview {
+    padding: 40px 20px;
   }
 }
