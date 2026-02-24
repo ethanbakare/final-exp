@@ -46,7 +46,7 @@
   gap: 25px;
   flex: 1 0 auto;
   align-self: stretch;
-  padding-bottom: 60px;
+  padding-bottom: 120px;
   border-radius: 12px;
   background: var(--ollama-bg-dark);
   overflow: hidden;
