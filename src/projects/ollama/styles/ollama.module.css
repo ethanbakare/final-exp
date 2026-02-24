@@ -6,6 +6,7 @@
 .ollama-container,
 .ollama-components-page {
   /* Backgrounds */
+  --ollama-bg-white: #FFFFFF;
   --ollama-bg-dark: #201F1E;
   --ollama-bg-terminal: #282625;
   --ollama-bg-page: rgba(255, 255, 255, 0.30);
@@ -22,6 +23,10 @@
   --ollama-terminal-border: #6A6767;
 
   width: 100%;
+}
+
+.ollama-container {
+  background: var(--ollama-bg-white);
 }
 
 /* ==============================================
@@ -164,6 +169,22 @@
   font-weight: 400;
   line-height: 143.75%;
   letter-spacing: -1px;
+}
+
+/* ==============================================
+   Section 02 — Visual Audit
+   ============================================== */
+
+.ollama-section-image {
+  width: 100%;
+  padding: 20px;
+}
+
+.ollama-section-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
 }
 
 /* ==============================================
