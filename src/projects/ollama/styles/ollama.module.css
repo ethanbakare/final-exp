@@ -293,7 +293,7 @@
   width: 120px;
   height: 120px;
   object-fit: contain;
-  margin: 16px 0;
+  margin: 24px 0;
 }
 
 .ollama-expression-label {
