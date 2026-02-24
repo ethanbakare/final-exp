@@ -141,7 +141,7 @@
 
 .ollama-hero-body {
   display: flex;
-  padding: 0 230px;
+  padding: 0 24px;
   justify-content: center;
   align-items: center;
 }
@@ -333,14 +333,6 @@
   .ollama-mascot {
     width: 71px;
     height: auto;
-  }
-
-  .ollama-hero-body {
-    padding: 0 24px;
-  }
-
-  .ollama-description-wrapper {
-    max-width: 476px;
   }
 
   .ollama-hero-description {
