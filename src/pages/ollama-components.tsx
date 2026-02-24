@@ -13,6 +13,8 @@ const expressions = [
   { name: 'ROFL', file: 'rofl' },
   { name: 'Salute', file: 'salute' },
   { name: 'Write That Down', file: 'writethatdown' },
+  { name: 'Smirk', file: 'smirk' },
+  { name: 'Party', file: 'party' },
 ];
 
 export default function OllamaComponentsPage() {
