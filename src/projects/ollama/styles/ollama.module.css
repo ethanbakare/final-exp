@@ -325,6 +325,7 @@
 
   .ollama-hero-card {
     border-radius: 0;
+    padding-bottom: 180px;
   }
 
   .ollama-hero-component {
