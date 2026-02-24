@@ -330,14 +330,6 @@
     padding: 100px 24px 0;
   }
 
-  .ollama-terminal-group {
-    width: 100%;
-  }
-
-  .terminal {
-    width: 100%;
-  }
-
   .ollama-mascot {
     width: 71px;
     height: auto;
@@ -345,6 +337,10 @@
 
   .ollama-hero-body {
     padding: 0 24px;
+  }
+
+  .ollama-description-wrapper {
+    max-width: 476px;
   }
 
   .ollama-hero-description {
