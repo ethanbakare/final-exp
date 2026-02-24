@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { OllamaTerminal } from '@/projects/ollama/components/OllamaTerminal';
 import styles from '@/projects/ollama/styles/ollama.module.css';
 
@@ -18,6 +18,8 @@ const expressions = [
 ];
 
 export default function OllamaComponentsPage() {
+  const [showCardBg, setShowCardBg] = useState(true);
+
   return (
     <div className={styles['ollama-components-page']}>
       <div className={styles['ollama-components-inner']}>
@@ -36,13 +38,27 @@ export default function OllamaComponentsPage() {
 
         {/* Expression Grid — all mascot variants */}
         <section className={styles['ollama-components-section']}>
-          <h2 className={styles['ollama-components-heading']}>Expressions</h2>
+          <div className={styles['ollama-toggle-row']}>
+            <h2 className={styles['ollama-components-heading']}>Expressions</h2>
+            <div
+              className={styles['ollama-toggle-container']}
+              onClick={() => setShowCardBg(!showCardBg)}
+            >
+              <div className={`${styles['ollama-toggle-switch']} ${showCardBg ? styles['active'] : ''}`}>
+                <div className={styles['ollama-toggle-slider']} />
+              </div>
+            </div>
+          </div>
           <p className={styles['ollama-components-desc']}>
             All mascot expressions — each is an atomic unit deployed across posters, announcements, and social content.
           </p>
           <div className={styles['ollama-expression-grid']}>
             {expressions.map((expr) => (
-              <div key={expr.file} className={styles['ollama-expression-card']}>
+              <div
+                key={expr.file}
+                className={styles['ollama-expression-card']}
+                style={showCardBg ? undefined : { background: 'transparent' }}
+              >
                 <img
                   src={`/images/ollama/${expr.file}.webp`}
                   alt={`Ollama ${expr.name} expression`}
