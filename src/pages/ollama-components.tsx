@@ -43,11 +43,13 @@ export default function OllamaComponentsPage() {
           <div className={styles['ollama-expression-grid']}>
             {expressions.map((expr) => (
               <div key={expr.file} className={styles['ollama-expression-card']}>
-                <img
-                  src={`/images/ollama/${expr.file}.webp`}
-                  alt={`Ollama ${expr.name} expression`}
-                  className={styles['ollama-expression-img']}
-                />
+                <div className={styles['ollama-expression-img-holder']}>
+                  <img
+                    src={`/images/ollama/${expr.file}.webp`}
+                    alt={`Ollama ${expr.name} expression`}
+                    className={styles['ollama-expression-img']}
+                  />
+                </div>
                 <span className={styles['ollama-expression-label']}>{expr.name}</span>
               </div>
             ))}

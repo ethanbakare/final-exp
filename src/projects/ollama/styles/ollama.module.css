@@ -235,9 +235,18 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
+.ollama-expression-img-holder {
+  width: 615px;
+  height: 654px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .ollama-expression-img {
-  width: 80px;
-  height: 80px;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
 }
 
