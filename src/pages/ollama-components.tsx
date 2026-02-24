@@ -27,7 +27,7 @@ export default function OllamaComponentsPage() {
           <p className={styles['ollama-components-desc']}>
             The running llama entering a macOS terminal window. These two elements always appear together.
           </p>
-          <div className={styles['ollama-components-preview']} style={{ background: '#201F1E' }}>
+          <div className={styles['ollama-components-preview']}>
             <OllamaTerminal />
           </div>
         </section>
