@@ -407,6 +407,7 @@
 
   .ollama-stats-row {
     gap: 40px;
+    align-items: flex-start;
   }
 
   .ollama-stat-value {
