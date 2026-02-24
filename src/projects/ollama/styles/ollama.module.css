@@ -363,6 +363,10 @@
     letter-spacing: -0.5px;
   }
 
+  .ollama-section-image {
+    padding: 8px;
+  }
+
   .ollama-expression-grid {
     grid-template-columns: repeat(2, 1fr);
   }
