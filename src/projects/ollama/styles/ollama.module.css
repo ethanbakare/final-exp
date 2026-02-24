@@ -44,7 +44,7 @@
   flex-direction: column;
   align-items: center;
   gap: 25px;
-  flex: 1 0 0;
+  flex: 1 0 auto;
   align-self: stretch;
   border-radius: 12px;
   background: var(--ollama-bg-dark);
@@ -273,8 +273,10 @@
 
 .ollama-expression-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+  max-width: 75%;
+  margin: 0 auto;
 }
 
 .ollama-expression-card {
