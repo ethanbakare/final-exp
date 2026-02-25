@@ -658,7 +658,7 @@
   }
 
   .ollama-section-image {
-    padding: 10px;
+    padding: 0 10px 10px;
   }
 
   .ollama-audit-container img {
@@ -666,7 +666,7 @@
   }
 
   .ollama-moodboard-section {
-    padding: 10px;
+    padding: 0 10px 10px;
   }
 
   .ollama-moodboard-content {
@@ -693,7 +693,7 @@
   }
 
   .ollama-charbible-section {
-    padding: 10px;
+    padding: 0 10px 10px;
   }
 
   .ollama-charbible-content {
