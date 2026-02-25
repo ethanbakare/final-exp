@@ -654,35 +654,15 @@
   background: var(--ollama-bg-active);
 }
 
-.expr-selector-icon-wrapper {
-  position: relative;
+.expr-selector-img {
   width: 100%;
   height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  object-fit: contain;
   transition: transform 0.2s ease;
 }
 
-.expr-selector-icon-wrapper-scaled {
+.expr-selector-img-scaled {
   transform: scale(1.2);
-}
-
-.expr-selector-outline {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: var(--ollama-bg-white);
-  pointer-events: none;
-}
-
-.expr-selector-emoji {
-  position: relative;
-  width: 82%;
-  height: 82%;
-  object-fit: contain;
-  z-index: 1;
 }
 
 /* ==============================================

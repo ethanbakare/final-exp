@@ -49,18 +49,13 @@ export const ExpressionSelector: React.FC<ExpressionSelectorProps> = ({
             aria-label={`Select ${expr.name} expression`}
             aria-pressed={isActive}
           >
-            <div
-              className={`${styles['expr-selector-icon-wrapper']} ${
-                isActive || isHovered ? styles['expr-selector-icon-wrapper-scaled'] : ''
+            <img
+              src={`/images/ollama/expr-${expr.file}.webp`}
+              alt={`${expr.name} emoji`}
+              className={`${styles['expr-selector-img']} ${
+                isActive || isHovered ? styles['expr-selector-img-scaled'] : ''
               }`}
-            >
-              <div className={styles['expr-selector-outline']} aria-hidden="true" />
-              <img
-                src={`/images/ollama/emoji-${expr.file}.webp`}
-                alt={`${expr.name} emoji`}
-                className={styles['expr-selector-emoji']}
-              />
-            </div>
+            />
           </button>
         );
       })}
