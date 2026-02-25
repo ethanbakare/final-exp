@@ -690,8 +690,16 @@
     font-size: 14px;
   }
 
+  .ollama-expression-img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+  }
+
   .ollama-expression-grid {
     grid-template-columns: repeat(2, 1fr);
+    max-width: 100%;
   }
 
   .ollama-components-preview {
