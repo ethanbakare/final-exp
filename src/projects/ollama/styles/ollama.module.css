@@ -357,62 +357,62 @@
 
 /* Stacking keyframes — 7 images, 12s cycle
    Stack-up accelerates:   gaps 5%, 4.5%, 4%, 3.5%, 3%, 2.5% (0.6s → 0.3s)
-   Hold:                   22.5–47% all visible (~2.9s)
+   Hold:                   22.5–54.5% all visible (~3.8s)
    Unstack decelerates:    gaps 2.5%, 3%, 3.5%, 4%, 4.5%, 5% (0.3s → 0.6s)
-   Empty:                  69.5–100% placeholder visible (~3.7s) */
+   Empty:                  77–100% placeholder visible (~2.8s) */
 @keyframes moodboard-stack-1 {
   0% { opacity: 0; }
   0.1% { opacity: 1; }
-  69.4% { opacity: 1; }
-  69.5% { opacity: 0; }
+  76.9% { opacity: 1; }
+  77% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-2 {
   0%, 5% { opacity: 0; }
   5.1% { opacity: 1; }
-  64.4% { opacity: 1; }
-  64.5% { opacity: 0; }
+  71.9% { opacity: 1; }
+  72% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-3 {
   0%, 9.5% { opacity: 0; }
   9.6% { opacity: 1; }
-  59.9% { opacity: 1; }
-  60% { opacity: 0; }
+  67.4% { opacity: 1; }
+  67.5% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-4 {
   0%, 13.5% { opacity: 0; }
   13.6% { opacity: 1; }
-  55.9% { opacity: 1; }
-  56% { opacity: 0; }
+  63.4% { opacity: 1; }
+  63.5% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-5 {
   0%, 17% { opacity: 0; }
   17.1% { opacity: 1; }
-  52.4% { opacity: 1; }
-  52.5% { opacity: 0; }
+  59.9% { opacity: 1; }
+  60% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-6 {
   0%, 20% { opacity: 0; }
   20.1% { opacity: 1; }
-  49.4% { opacity: 1; }
-  49.5% { opacity: 0; }
+  56.9% { opacity: 1; }
+  57% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-7 {
   0%, 22.5% { opacity: 0; }
   22.6% { opacity: 1; }
-  46.9% { opacity: 1; }
-  47% { opacity: 0; }
+  54.4% { opacity: 1; }
+  54.5% { opacity: 0; }
   100% { opacity: 0; }
 }
 
