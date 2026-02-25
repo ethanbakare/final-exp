@@ -579,8 +579,10 @@
 }
 
 .ollama-expression-img {
-  width: 100%;
-  height: auto;
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  margin: 24px 0;
 }
 
 .ollama-expression-label {
