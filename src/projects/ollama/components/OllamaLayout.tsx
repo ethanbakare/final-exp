@@ -102,6 +102,11 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
         <div className={styles['ollama-moodboard-content']}>
           <h2 className={styles['ollama-moodboard-title']}>Moodboard</h2>
           <div className={styles['ollama-moodboard-collage']}>
+            <div className={styles['ollama-moodboard-placeholder']}>
+              <svg width="71" height="71" viewBox="0 0 71 71" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17.5391 35.0703H52.6094M35.0742 52.6055L35.0742 17.5352" stroke="#201F1E" strokeOpacity="0.07" strokeWidth="5.84505" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
             <img
               className={styles['ollama-moodboard-img-1']}
               src="/images/ollama/moodboard-duolingo.webp"
@@ -126,6 +131,16 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
               className={styles['ollama-moodboard-img-5']}
               src="/images/ollama/moodboard-toast-notion.webp"
               alt="Toast notification illustration reference"
+            />
+            <img
+              className={styles['ollama-moodboard-img-6']}
+              src="/images/ollama/moodboard-notiontools.webp"
+              alt="Notion tools and integrations reference"
+            />
+            <img
+              className={styles['ollama-moodboard-img-7']}
+              src="/images/ollama/moodboard-noritakestare.webp"
+              alt="Noritake stare illustration reference"
             />
           </div>
           <p className={styles['ollama-moodboard-description']}>

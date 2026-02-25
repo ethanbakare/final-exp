@@ -262,6 +262,21 @@
   aspect-ratio: 760 / 467;
 }
 
+/* Dashed placeholder — always visible behind images */
+.ollama-moodboard-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 47.4%;
+  height: 46.5%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+  border: 5px solid rgba(32, 31, 30, 0.07);
+}
+
 .ollama-moodboard-collage img {
   position: absolute;
   opacity: 0;
@@ -273,7 +288,7 @@
   width: 71.8%;
   left: 14.1%;
   top: 12%;
-  animation: moodboard-stack-1 8s infinite linear;
+  animation: moodboard-stack-1 10s infinite linear;
 }
 
 /* Image 2: noritake */
@@ -281,7 +296,7 @@
   width: 41%;
   left: 23.1%;
   bottom: 7.8%;
-  animation: moodboard-stack-2 8s infinite linear;
+  animation: moodboard-stack-2 10s infinite linear;
 }
 
 /* Image 3: notionstack */
@@ -289,7 +304,7 @@
   width: 66.4%;
   left: 6.1%;
   bottom: 2%;
-  animation: moodboard-stack-3 8s infinite linear;
+  animation: moodboard-stack-3 10s infinite linear;
 }
 
 /* Image 4: laptopwindow */
@@ -297,7 +312,7 @@
   width: 44%;
   left: 25.4%;
   bottom: 8.9%;
-  animation: moodboard-stack-4 8s infinite linear;
+  animation: moodboard-stack-4 10s infinite linear;
 }
 
 /* Image 5: toast notion */
@@ -305,10 +320,26 @@
   width: 76.2%;
   right: 11%;
   top: 26.5%;
-  animation: moodboard-stack-5 8s infinite linear;
+  animation: moodboard-stack-5 10s infinite linear;
 }
 
-/* Stacking keyframes — instant appear, instant disappear */
+/* Image 6: notiontools */
+.ollama-moodboard-img-6 {
+  width: 54.8%;
+  right: 12%;
+  bottom: 11.2%;
+  animation: moodboard-stack-6 10s infinite linear;
+}
+
+/* Image 7: noritakestare */
+.ollama-moodboard-img-7 {
+  width: 29.2%;
+  left: 25.4%;
+  bottom: 8.9%;
+  animation: moodboard-stack-7 10s infinite linear;
+}
+
+/* Stacking keyframes — 7 images, instant appear/disappear, 10s cycle */
 @keyframes moodboard-stack-1 {
   0% { opacity: 0; }
   0.1% { opacity: 1; }
@@ -318,32 +349,48 @@
 }
 
 @keyframes moodboard-stack-2 {
-  0%, 10% { opacity: 0; }
-  10.1% { opacity: 1; }
+  0%, 7% { opacity: 0; }
+  7.1% { opacity: 1; }
   74.9% { opacity: 1; }
   75% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-3 {
-  0%, 20% { opacity: 0; }
-  20.1% { opacity: 1; }
+  0%, 14% { opacity: 0; }
+  14.1% { opacity: 1; }
   74.9% { opacity: 1; }
   75% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-4 {
-  0%, 30% { opacity: 0; }
-  30.1% { opacity: 1; }
+  0%, 21% { opacity: 0; }
+  21.1% { opacity: 1; }
   74.9% { opacity: 1; }
   75% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-5 {
-  0%, 40% { opacity: 0; }
-  40.1% { opacity: 1; }
+  0%, 28% { opacity: 0; }
+  28.1% { opacity: 1; }
+  74.9% { opacity: 1; }
+  75% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-6 {
+  0%, 35% { opacity: 0; }
+  35.1% { opacity: 1; }
+  74.9% { opacity: 1; }
+  75% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-7 {
+  0%, 42% { opacity: 0; }
+  42.1% { opacity: 1; }
   74.9% { opacity: 1; }
   75% { opacity: 0; }
   100% { opacity: 0; }
@@ -565,6 +612,15 @@
   .ollama-moodboard-title {
     font-size: 24px;
     letter-spacing: -1.2px;
+  }
+
+  .ollama-moodboard-placeholder {
+    border-width: 3px;
+  }
+
+  .ollama-moodboard-placeholder svg {
+    width: 40px;
+    height: 40px;
   }
 
   .ollama-moodboard-description {
