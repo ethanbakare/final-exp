@@ -94,7 +94,9 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
 
       {/* Section 02 — Visual Audit */}
       <section className={styles['ollama-section-image']}>
-        <img src={images.visualAudit.src} alt={images.visualAudit.alt} />
+        <div className={styles['ollama-audit-container']}>
+          <img src={images.visualAudit.src} alt={images.visualAudit.alt} />
+        </div>
       </section>
 
       {/* Section 03 — Mood Board */}

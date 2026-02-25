@@ -10,8 +10,14 @@
   --ollama-bg-dark: #201F1E;
   --ollama-bg-terminal: #282625;
   --ollama-bg-page: rgba(255, 255, 255, 0.30);
+  --ollama-bg-warm-light: #FBFAF9;
+  --ollama-bg-warm: #F7F6F5;
 
-  /* Text */
+  /* Text — dark on light */
+  --ollama-text-heading: rgba(32, 31, 30, 0.30);
+  --ollama-text-body: rgba(32, 31, 30, 0.40);
+
+  /* Text — light on dark */
   --ollama-text-muted: rgba(253, 253, 253, 0.60);
 
   /* Terminal controls */
@@ -21,6 +27,9 @@
 
   /* Borders */
   --ollama-terminal-border: #6A6767;
+
+  /* Shared radius */
+  --ollama-radius-card: 12px;
 
   width: 100%;
 }
@@ -52,7 +61,7 @@
   flex: 1 0 auto;
   align-self: stretch;
   padding-bottom: 240px;
-  border-radius: 12px;
+  border-radius: var(--ollama-radius-card);
   background: var(--ollama-bg-dark);
   overflow: hidden;
 }
@@ -218,11 +227,17 @@
   padding: 0 20px 20px;
 }
 
-.ollama-section-image img {
+.ollama-audit-container {
+  width: 100%;
+  background: var(--ollama-bg-warm);
+  border-radius: var(--ollama-radius-card);
+  overflow: hidden;
+}
+
+.ollama-audit-container img {
   width: 100%;
   height: auto;
   display: block;
-  border-radius: 12px;
 }
 
 /* ==============================================
@@ -241,12 +256,12 @@
   justify-content: center;
   align-items: center;
   gap: 90px;
-  background: #FBFAF9;
-  border-radius: 12px;
+  background: var(--ollama-bg-warm-light);
+  border-radius: var(--ollama-radius-card);
 }
 
 .ollama-moodboard-title {
-  color: rgba(32, 31, 30, 0.30);
+  color: var(--ollama-text-heading);
   text-align: center;
   font-family: 'Inter', sans-serif;
   font-size: 36px;
@@ -402,7 +417,7 @@
 
 .ollama-moodboard-description {
   max-width: 700px;
-  color: rgba(32, 31, 30, 0.40);
+  color: var(--ollama-text-body);
   text-align: center;
   font-family: 'Inter', sans-serif;
   font-size: 16px;
@@ -427,12 +442,12 @@
   justify-content: center;
   align-items: center;
   gap: 90px;
-  background: #FBFAF9;
-  border-radius: 12px;
+  background: var(--ollama-bg-warm-light);
+  border-radius: var(--ollama-radius-card);
 }
 
 .ollama-charbible-title {
-  color: rgba(32, 31, 30, 0.30);
+  color: var(--ollama-text-heading);
   text-align: center;
   font-family: 'Inter', sans-serif;
   font-size: 36px;
@@ -443,7 +458,7 @@
 
 .ollama-charbible-description {
   max-width: 700px;
-  color: rgba(32, 31, 30, 0.40);
+  color: var(--ollama-text-body);
   text-align: center;
   font-family: 'Inter', sans-serif;
   font-size: 16px;
@@ -502,7 +517,7 @@
   justify-content: center;
   align-items: center;
   padding: 80px 40px;
-  border-radius: 12px;
+  border-radius: var(--ollama-radius-card);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
