@@ -28,6 +28,9 @@
   /* Borders */
   --ollama-terminal-border: #6A6767;
 
+  /* Interactive states */
+  --ollama-bg-active: rgba(32, 31, 30, 0.06);
+
   /* Shared radius */
   --ollama-radius-card: 12px;
 
@@ -615,6 +618,73 @@
   letter-spacing: 1px;
 }
 
+/* --- Expression Selector --- */
+
+.expr-selector {
+  display: inline-flex;
+  padding: 10px 32px;
+  justify-content: center;
+  align-items: center;
+  gap: 32px;
+  border-radius: 24px;
+  background: var(--ollama-bg-warm-light);
+  flex-wrap: wrap;
+}
+
+.expr-selector-frame {
+  display: flex;
+  width: 100px;
+  height: 100px;
+  padding: 9px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.expr-selector-frame:hover {
+  opacity: 0.85;
+}
+
+.expr-selector-frame-active {
+  opacity: 1;
+  background: var(--ollama-bg-active);
+}
+
+.expr-selector-icon-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.expr-selector-icon-wrapper-scaled {
+  transform: scale(1.2);
+}
+
+.expr-selector-outline {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.expr-selector-emoji {
+  position: relative;
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  z-index: 1;
+}
+
 /* ==============================================
    Responsive — Mobile
    ============================================== */
@@ -724,5 +794,18 @@
 
   .ollama-components-preview {
     padding: 40px 20px;
+  }
+
+  .expr-selector {
+    padding: 10px 16px;
+    gap: 12px;
+    border-radius: 16px;
+  }
+
+  .expr-selector-frame {
+    width: 72px;
+    height: 72px;
+    padding: 6px;
+    border-radius: 10px;
   }
 }

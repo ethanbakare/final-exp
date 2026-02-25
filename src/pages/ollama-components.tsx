@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { OllamaTerminal } from '@/projects/ollama/components/OllamaTerminal';
+import { ExpressionSelector } from '@/projects/ollama/components/ExpressionSelector';
 import styles from '@/projects/ollama/styles/ollama.module.css';
 
 const expressions = [
@@ -19,6 +20,7 @@ const expressions = [
 
 export default function OllamaComponentsPage() {
   const [showCardBg, setShowCardBg] = useState(true);
+  const [activeExpression, setActiveExpression] = useState<string | undefined>('party');
 
   return (
     <div className={styles['ollama-components-page']}>
@@ -33,6 +35,22 @@ export default function OllamaComponentsPage() {
           </p>
           <div className={styles['ollama-components-preview']} style={{ background: '#201F1E' }}>
             <OllamaTerminal />
+          </div>
+        </section>
+
+        {/* Expression Selector — interactive emoji picker */}
+        <section className={styles['ollama-components-section']}>
+          <h2 className={styles['ollama-components-heading']}>Expression Selector</h2>
+          <p className={styles['ollama-components-desc']}>
+            An interactive menu for switching between mascot expressions. Click to activate, hover to preview.
+          </p>
+          <div className={styles['ollama-components-preview']}>
+            <ExpressionSelector
+              activeExpression={activeExpression}
+              onSelect={(file) =>
+                setActiveExpression(file === activeExpression ? undefined : file)
+              }
+            />
           </div>
         </section>
 
