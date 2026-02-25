@@ -4,7 +4,6 @@ import { OllamaLayout } from '@/projects/ollama/components/OllamaLayout';
 export default function OllamaPage() {
   const images = {
     visualAudit: { src: '/images/ollama/visual-audit.webp', alt: 'Ollama visual audit collage' },
-    moodboard: { src: '/images/ollama/moodboard.webp', alt: 'Ollama mood board' },
     characterBible: { src: '/images/ollama/character-bible.webp', alt: 'Ollama character bible' },
     magicWords: { src: '/images/ollama/magic-words.webp', alt: 'Just type the magic words poster' },
     terminalPoster: { src: '/images/ollama/terminal.webp', alt: 'Ollama runs on terminal poster' },

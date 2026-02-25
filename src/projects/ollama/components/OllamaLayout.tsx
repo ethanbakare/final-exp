@@ -11,8 +11,7 @@ interface OllamaLayoutProps {
   images: {
     // Section 02 - Visual Audit
     visualAudit: OllamaImage;
-    // Section 03 - Mood Board
-    moodboard: OllamaImage;
+    // Section 03 - Mood Board (images hardcoded in component for animation)
     // Section 04 - Character Bible
     characterBible: OllamaImage;
     // Section 05 - Product Posters
@@ -99,7 +98,42 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
       </section>
 
       {/* Section 03 — Mood Board */}
-      {/* TODO: Implement */}
+      <section className={styles['ollama-moodboard-section']}>
+        <div className={styles['ollama-moodboard-content']}>
+          <h2 className={styles['ollama-moodboard-title']}>Moodboard</h2>
+          <div className={styles['ollama-moodboard-collage']}>
+            <img
+              className={styles['ollama-moodboard-img-1']}
+              src="/images/ollama/moodboard-duolingo.webp"
+              alt="Duolingo character expressions reference"
+            />
+            <img
+              className={styles['ollama-moodboard-img-2']}
+              src="/images/ollama/moodboard-noritake.webp"
+              alt="Noritake illustration style reference"
+            />
+            <img
+              className={styles['ollama-moodboard-img-3']}
+              src="/images/ollama/moodboard-notionstack.webp"
+              alt="Notion-style character illustrations reference"
+            />
+            <img
+              className={styles['ollama-moodboard-img-4']}
+              src="/images/ollama/moodboard-laptopwindow.webp"
+              alt="Laptop window illustration reference"
+            />
+            <img
+              className={styles['ollama-moodboard-img-5']}
+              src="/images/ollama/moodboard-toast-notion.webp"
+              alt="Toast notification illustration reference"
+            />
+          </div>
+          <p className={styles['ollama-moodboard-description']}>
+            A minimalist visual style reminiscent of Noritake&apos;s illustration work, with a mascot as vibrant
+            and opinionated as Duolingo — living in terminals and context windows, built for technical audiences.
+          </p>
+        </div>
+      </section>
 
       {/* Section 04 — Character Bible */}
       {/* TODO: Implement */}

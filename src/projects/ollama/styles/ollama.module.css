@@ -226,6 +226,141 @@
 }
 
 /* ==============================================
+   Section 03 — Mood Board
+   ============================================== */
+
+.ollama-moodboard-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-moodboard-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: #FBFAF9;
+  border-radius: 12px;
+}
+
+.ollama-moodboard-title {
+  color: rgba(32, 31, 30, 0.30);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+}
+
+.ollama-moodboard-collage {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  aspect-ratio: 760 / 467;
+}
+
+.ollama-moodboard-collage img {
+  position: absolute;
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Image 1: duolingo */
+.ollama-moodboard-img-1 {
+  width: 71.8%;
+  left: 14.1%;
+  top: 12%;
+  animation: moodboard-stack-1 8s infinite linear;
+}
+
+/* Image 2: noritake */
+.ollama-moodboard-img-2 {
+  width: 41%;
+  left: 23.1%;
+  bottom: 7.8%;
+  animation: moodboard-stack-2 8s infinite linear;
+}
+
+/* Image 3: notionstack */
+.ollama-moodboard-img-3 {
+  width: 66.4%;
+  left: 6.1%;
+  bottom: 2%;
+  animation: moodboard-stack-3 8s infinite linear;
+}
+
+/* Image 4: laptopwindow */
+.ollama-moodboard-img-4 {
+  width: 44%;
+  left: 25.4%;
+  bottom: 8.9%;
+  animation: moodboard-stack-4 8s infinite linear;
+}
+
+/* Image 5: toast notion */
+.ollama-moodboard-img-5 {
+  width: 76.2%;
+  right: 11%;
+  top: 26.5%;
+  animation: moodboard-stack-5 8s infinite linear;
+}
+
+/* Stacking keyframes — instant appear, instant disappear */
+@keyframes moodboard-stack-1 {
+  0% { opacity: 0; }
+  0.1% { opacity: 1; }
+  74.9% { opacity: 1; }
+  75% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-2 {
+  0%, 10% { opacity: 0; }
+  10.1% { opacity: 1; }
+  74.9% { opacity: 1; }
+  75% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-3 {
+  0%, 20% { opacity: 0; }
+  20.1% { opacity: 1; }
+  74.9% { opacity: 1; }
+  75% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-4 {
+  0%, 30% { opacity: 0; }
+  30.1% { opacity: 1; }
+  74.9% { opacity: 1; }
+  75% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-5 {
+  0%, 40% { opacity: 0; }
+  40.1% { opacity: 1; }
+  74.9% { opacity: 1; }
+  75% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.ollama-moodboard-description {
+  max-width: 700px;
+  color: rgba(32, 31, 30, 0.40);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: -0.8px;
+}
+
+/* ==============================================
    Components Showcase Page
    ============================================== */
 
@@ -416,6 +551,24 @@
 
   .ollama-section-image {
     padding: 10px;
+  }
+
+  .ollama-moodboard-section {
+    padding: 10px;
+  }
+
+  .ollama-moodboard-content {
+    padding: 60px 24px;
+    gap: 50px;
+  }
+
+  .ollama-moodboard-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-moodboard-description {
+    font-size: 14px;
   }
 
   .ollama-expression-grid {
