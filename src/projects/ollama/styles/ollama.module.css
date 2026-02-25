@@ -235,9 +235,10 @@
 }
 
 .ollama-audit-container img {
-  width: 100%;
+  width: 80vw;
   height: auto;
   display: block;
+  margin: 0 auto;
 }
 
 /* ==============================================
@@ -658,6 +659,10 @@
 
   .ollama-section-image {
     padding: 10px;
+  }
+
+  .ollama-audit-container img {
+    width: 100%;
   }
 
   .ollama-moodboard-section {
