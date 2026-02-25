@@ -151,7 +151,41 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
       </section>
 
       {/* Section 04 — Character Bible */}
-      {/* TODO: Implement */}
+      <section className={styles['ollama-charbible-section']}>
+        <div className={styles['ollama-charbible-content']}>
+          <h2 className={styles['ollama-charbible-title']}>Character bible</h2>
+          <div className={styles['ollama-expression-grid']}>
+            {[
+              { name: 'Sunglasses', file: 'sunglasses' },
+              { name: 'Party', file: 'party' },
+              { name: 'Pleading', file: 'pleading' },
+              { name: 'Salute', file: 'salute' },
+              { name: 'Crying', file: 'crying' },
+              { name: 'Write That Down', file: 'writethatdown' },
+              { name: 'Frightened', file: 'frightened' },
+              { name: 'ROFL', file: 'rofl' },
+              { name: 'Running', file: 'running' },
+              { name: 'Drooling', file: 'drooling' },
+              { name: 'Thinking', file: 'thinking' },
+              { name: 'Smirk', file: 'smirk' },
+            ].map((expr) => (
+              <div key={expr.file} className={styles['ollama-expression-card']}>
+                <img
+                  src={`/images/ollama/${expr.file}.webp`}
+                  alt={`Ollama ${expr.name} expression`}
+                  className={styles['ollama-expression-img']}
+                />
+                <span className={styles['ollama-expression-label']}>{expr.name}</span>
+              </div>
+            ))}
+          </div>
+          <p className={styles['ollama-charbible-description']}>
+            A character bible establishes the emotional range of the mascot — each expression becomes an
+            atomic unit that gets deployed across posters, announcements, social content, and product
+            communications. It&apos;s the foundation everything else is built from.
+          </p>
+        </div>
+      </section>
 
       {/* Section 05 — Product Posters */}
       {/* TODO: Implement */}

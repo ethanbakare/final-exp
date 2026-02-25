@@ -412,6 +412,47 @@
 }
 
 /* ==============================================
+   Section 04 — Character Bible
+   ============================================== */
+
+.ollama-charbible-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-charbible-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: #FBFAF9;
+  border-radius: 12px;
+}
+
+.ollama-charbible-title {
+  color: rgba(32, 31, 30, 0.30);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+}
+
+.ollama-charbible-description {
+  max-width: 700px;
+  color: rgba(32, 31, 30, 0.40);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: -0.8px;
+}
+
+/* ==============================================
    Components Showcase Page
    ============================================== */
 
@@ -628,6 +669,24 @@
   }
 
   .ollama-moodboard-description {
+    font-size: 14px;
+  }
+
+  .ollama-charbible-section {
+    padding: 10px;
+  }
+
+  .ollama-charbible-content {
+    padding: 60px 24px;
+    gap: 50px;
+  }
+
+  .ollama-charbible-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-charbible-description {
     font-size: 14px;
   }
 
