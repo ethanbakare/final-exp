@@ -339,12 +339,16 @@
   animation: moodboard-stack-7 10s infinite linear;
 }
 
-/* Stacking keyframes — 7 images, instant appear/disappear, 10s cycle */
+/* Stacking keyframes — 7 images, 10s cycle
+   0–42%: images appear one by one (stack up)
+   42–50%: all visible (hold)
+   50–80%: images disappear in reverse (7 first, 1 last)
+   80–100%: empty placeholder visible */
 @keyframes moodboard-stack-1 {
   0% { opacity: 0; }
   0.1% { opacity: 1; }
-  74.9% { opacity: 1; }
-  75% { opacity: 0; }
+  79.9% { opacity: 1; }
+  80% { opacity: 0; }
   100% { opacity: 0; }
 }
 
@@ -359,40 +363,40 @@
 @keyframes moodboard-stack-3 {
   0%, 14% { opacity: 0; }
   14.1% { opacity: 1; }
-  74.9% { opacity: 1; }
-  75% { opacity: 0; }
+  69.9% { opacity: 1; }
+  70% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-4 {
   0%, 21% { opacity: 0; }
   21.1% { opacity: 1; }
-  74.9% { opacity: 1; }
-  75% { opacity: 0; }
+  64.9% { opacity: 1; }
+  65% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-5 {
   0%, 28% { opacity: 0; }
   28.1% { opacity: 1; }
-  74.9% { opacity: 1; }
-  75% { opacity: 0; }
+  59.9% { opacity: 1; }
+  60% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-6 {
   0%, 35% { opacity: 0; }
   35.1% { opacity: 1; }
-  74.9% { opacity: 1; }
-  75% { opacity: 0; }
+  54.9% { opacity: 1; }
+  55% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-7 {
   0%, 42% { opacity: 0; }
   42.1% { opacity: 1; }
-  74.9% { opacity: 1; }
-  75% { opacity: 0; }
+  49.9% { opacity: 1; }
+  50% { opacity: 0; }
   100% { opacity: 0; }
 }
 
