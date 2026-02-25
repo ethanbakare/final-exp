@@ -54,12 +54,7 @@ export const ExpressionSelector: React.FC<ExpressionSelectorProps> = ({
                 isActive || isHovered ? styles['expr-selector-icon-wrapper-scaled'] : ''
               }`}
             >
-              <img
-                src={`/images/ollama/outline-${expr.file}.webp`}
-                alt=""
-                className={styles['expr-selector-outline']}
-                aria-hidden="true"
-              />
+              <div className={styles['expr-selector-outline']} aria-hidden="true" />
               <img
                 src={`/images/ollama/emoji-${expr.file}.webp`}
                 alt={`${expr.name} emoji`}
