@@ -288,7 +288,7 @@
   width: 71.8%;
   left: 14.1%;
   top: 12%;
-  animation: moodboard-stack-1 10s infinite linear;
+  animation: moodboard-stack-1 12s infinite linear;
 }
 
 /* Image 2: noritake */
@@ -296,7 +296,7 @@
   width: 41%;
   left: 23.1%;
   bottom: 7.8%;
-  animation: moodboard-stack-2 10s infinite linear;
+  animation: moodboard-stack-2 12s infinite linear;
 }
 
 /* Image 3: notionstack */
@@ -304,7 +304,7 @@
   width: 66.4%;
   left: 6.1%;
   bottom: 2%;
-  animation: moodboard-stack-3 10s infinite linear;
+  animation: moodboard-stack-3 12s infinite linear;
 }
 
 /* Image 4: laptopwindow */
@@ -312,7 +312,7 @@
   width: 44%;
   left: 25.4%;
   bottom: 8.9%;
-  animation: moodboard-stack-4 10s infinite linear;
+  animation: moodboard-stack-4 12s infinite linear;
 }
 
 /* Image 5: toast notion */
@@ -320,7 +320,7 @@
   width: 76.2%;
   right: 11%;
   top: 26.5%;
-  animation: moodboard-stack-5 10s infinite linear;
+  animation: moodboard-stack-5 12s infinite linear;
 }
 
 /* Image 6: notiontools */
@@ -328,7 +328,7 @@
   width: 54.8%;
   right: 12%;
   bottom: 11.2%;
-  animation: moodboard-stack-6 10s infinite linear;
+  animation: moodboard-stack-6 12s infinite linear;
 }
 
 /* Image 7: noritakestare */
@@ -336,67 +336,67 @@
   width: 29.2%;
   left: 25.4%;
   bottom: 8.9%;
-  animation: moodboard-stack-7 10s infinite linear;
+  animation: moodboard-stack-7 12s infinite linear;
 }
 
-/* Stacking keyframes — 7 images, 10s cycle
-   0–42%: images appear one by one (stack up)
-   42–50%: all visible (hold)
-   50–80%: images disappear in reverse (7 first, 1 last)
-   80–100%: empty placeholder visible */
+/* Stacking keyframes — 7 images, 12s cycle
+   0–30%: images appear one by one (stack up, ~0.6s each)
+   30–47%: all visible (hold ~2s)
+   47–77%: images disappear in reverse (7 first, 1 last, ~0.6s each)
+   77–100%: empty placeholder visible (~2.8s) */
 @keyframes moodboard-stack-1 {
   0% { opacity: 0; }
   0.1% { opacity: 1; }
-  79.9% { opacity: 1; }
-  80% { opacity: 0; }
+  76.9% { opacity: 1; }
+  77% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-2 {
-  0%, 7% { opacity: 0; }
-  7.1% { opacity: 1; }
-  74.9% { opacity: 1; }
-  75% { opacity: 0; }
+  0%, 5% { opacity: 0; }
+  5.1% { opacity: 1; }
+  71.9% { opacity: 1; }
+  72% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-3 {
-  0%, 14% { opacity: 0; }
-  14.1% { opacity: 1; }
-  69.9% { opacity: 1; }
-  70% { opacity: 0; }
+  0%, 10% { opacity: 0; }
+  10.1% { opacity: 1; }
+  66.9% { opacity: 1; }
+  67% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-4 {
-  0%, 21% { opacity: 0; }
-  21.1% { opacity: 1; }
-  64.9% { opacity: 1; }
-  65% { opacity: 0; }
+  0%, 15% { opacity: 0; }
+  15.1% { opacity: 1; }
+  61.9% { opacity: 1; }
+  62% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-5 {
-  0%, 28% { opacity: 0; }
-  28.1% { opacity: 1; }
-  59.9% { opacity: 1; }
-  60% { opacity: 0; }
+  0%, 20% { opacity: 0; }
+  20.1% { opacity: 1; }
+  56.9% { opacity: 1; }
+  57% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-6 {
-  0%, 35% { opacity: 0; }
-  35.1% { opacity: 1; }
-  54.9% { opacity: 1; }
-  55% { opacity: 0; }
+  0%, 25% { opacity: 0; }
+  25.1% { opacity: 1; }
+  51.9% { opacity: 1; }
+  52% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-7 {
-  0%, 42% { opacity: 0; }
-  42.1% { opacity: 1; }
-  49.9% { opacity: 1; }
-  50% { opacity: 0; }
+  0%, 30% { opacity: 0; }
+  30.1% { opacity: 1; }
+  46.9% { opacity: 1; }
+  47% { opacity: 0; }
   100% { opacity: 0; }
 }
 
