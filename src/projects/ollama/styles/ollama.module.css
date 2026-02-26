@@ -760,6 +760,7 @@
   left: 50%;
   transform: translateX(-50%);
   width: 29.4%;
+  max-width: 250px;
   height: 69.3%;
   pointer-events: none;
 }
