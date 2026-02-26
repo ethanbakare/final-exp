@@ -235,13 +235,13 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
           <div className={styles['eldugo-divider-orange']}></div>
           <div className={styles['header-el-sp']}>Possible logo variations</div>
         </div>
-        <div className={styles['eldugo-variations-container']}>
+        <div className={`${styles['eldugo-variations-container']} ${styles['eldugo-variations-container-first']}`}>
           <div className={styles['eldugo-variations-row']}>
             <img src={images.variationTopLeft.src} alt={images.variationTopLeft.alt} />
             <img src={images.variationTopRight.src} alt={images.variationTopRight.alt} />
           </div>
         </div>
-        <div className={styles['eldugo-variations-container']}>
+        <div className={`${styles['eldugo-variations-container']} ${styles['eldugo-variations-container-second']}`}>
           <div className={styles['eldugo-variations-row']}>
             <img src={images.variationBottomLeft.src} alt={images.variationBottomLeft.alt} />
             <img src={images.variationBottomRight.src} alt={images.variationBottomRight.alt} />
@@ -250,7 +250,7 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
       </section>
 
       {/* Section 12 - Visual Identity */}
-      <section className={styles['eldugo-section-visual-identity']}>
+      <section className={`${styles['eldugo-section-visual-identity']} ${styles['eldugo-bg-f6f4f5']}`}>
         <div className={styles['eldugo-visual-identity-content']}>
           <div className={styles['eldugo-visual-identity-text']}>
             <h1 className={styles['el-header-main']}>Visual Identity</h1>
@@ -271,7 +271,6 @@ export const EldugoLayout: React.FC<EldugoLayoutProps> = ({ images }) => {
             </div>
           </div>
         </div>
-        <div className={styles['eldugo-divider-orange-wide']}></div>
         <img src={images.visualIdentity.src} alt={images.visualIdentity.alt} className={styles['eldugo-visual-identity-img']} />
       </section>
 
