@@ -60,10 +60,10 @@ export const ExpressionShowcase: React.FC = () => {
     }
   };
 
-  // SVG progress ring — Figma: 50×50 ellipse, 9px center stroke, white 40%
-  const ringRadius = 25;
-  const ringStroke = 9;
-  const ringSvgSize = ringRadius * 2 + ringStroke; // 59
+  // SVG progress ring — scaled from Figma (50px ring, 9px stroke in 2216px stage)
+  const ringRadius = 10;
+  const ringStroke = 3;
+  const ringSvgSize = ringRadius * 2 + ringStroke; // 23
   const circumference = 2 * Math.PI * ringRadius;
   const dashOffset = circumference * (1 - progress);
 
