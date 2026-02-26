@@ -709,13 +709,15 @@
   align-items: center;
 }
 
-/* Soft ambient light — large radial glow, centred above the stage */
+/* Soft ambient light — large radial glow, centred above the stage.
+   Figma: 2589×1421 ellipse in 2216×1254 stage = 116.8% × 113.3%.
+   Positioned at (-186.72, -746.67) → centred horizontally, top ≈ -59.5%. */
 .showcase-soft-light {
   position: absolute;
-  width: 2589px;
-  height: 1421px;
+  width: 116.8%;
+  height: 113.3%;
   left: 50%;
-  top: -60%;
+  top: -59.5%;
   transform: translateX(-50%);
   border-radius: 50%;
   opacity: 0.1;
