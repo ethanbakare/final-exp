@@ -55,11 +55,11 @@ export default function OllamaComponentsPage() {
           </div>
         </section>
 
-        {/* Expression Selector (Copy) */}
+        {/* Expression Selector — Dark Mode */}
         <section className={styles['ollama-components-section']}>
-          <h2 className={styles['ollama-components-heading']}>Expression Selector (Copy)</h2>
+          <h2 className={styles['ollama-components-heading']}>Expression Selector (Dark Mode)</h2>
           <p className={styles['ollama-components-desc']}>
-            An interactive menu for switching between mascot expressions. Click to activate, hover to preview.
+            Dark mode variant of the expression selector.
           </p>
           <div className={styles['ollama-components-preview']}>
             <ExpressionSelector
