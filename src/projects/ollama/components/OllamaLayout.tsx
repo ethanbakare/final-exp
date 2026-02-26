@@ -183,9 +183,10 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
             ))}
           </div>
           <p className={styles['ollama-charbible-description']}>
-            A character bible establishes the emotional range of the mascot — each expression becomes an
-            atomic unit that gets deployed across posters, announcements, social content, and product
-            communications. It&apos;s the foundation everything else is built from.
+            The character bible is the source of truth — setting the standard for how expressive,
+            emotive, and charged future illustrations should feel. Each expression lands without
+            explanation, instantly understood and emotionally resonant in the way only the best
+            memes are.
           </p>
         </div>
       </section>
