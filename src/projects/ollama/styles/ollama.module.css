@@ -720,7 +720,7 @@
   top: -59.5%;
   transform: translateX(-50%);
   border-radius: 50%;
-  opacity: 0.1;
+  opacity: 0.04;
   background: radial-gradient(50% 50% at 50% 50%, #FFF 0%, rgba(255, 255, 255, 0) 100%);
   pointer-events: none;
 }
