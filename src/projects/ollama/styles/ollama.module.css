@@ -695,15 +695,15 @@
   overflow: hidden;
 }
 
-/* Stage — fixed size, never compresses. On mobile, edges are cropped.
-   Uses left+transform to stay centred when wider than clip container. */
+/* Stage — fixed height, width crops when viewport narrows.
+   Height never changes; only the sides get clipped on smaller screens. */
 .showcase-stage {
   position: relative;
   width: 100%;
   min-width: 800px;
+  height: 487px;
   left: 50%;
   transform: translateX(-50%);
-  aspect-ratio: 2216 / 1254;
   background: var(--ollama-bg-dark);
   overflow: hidden;
   display: flex;
