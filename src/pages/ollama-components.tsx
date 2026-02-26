@@ -61,12 +61,13 @@ export default function OllamaComponentsPage() {
           <p className={styles['ollama-components-desc']}>
             Dark mode variant of the expression selector.
           </p>
-          <div className={styles['ollama-components-preview']}>
+          <div className={styles['ollama-components-preview']} style={{ background: '#201F1E' }}>
             <ExpressionSelector
               activeExpression={activeExpression}
               onSelect={(file) =>
                 setActiveExpression(file === activeExpression ? undefined : file)
               }
+              dark
             />
           </div>
         </section>

@@ -698,6 +698,20 @@
   transform: scale(1.2);
 }
 
+/* --- Expression Selector — Dark Mode --- */
+
+.expr-selector-dark {
+  background: rgba(247, 246, 245, 0.05);
+}
+
+.expr-selector-dark .expr-selector-frame-active {
+  background: rgba(255, 255, 255, 0.20);
+}
+
+.expr-selector-frame-desaturated {
+  filter: saturate(0.18);
+}
+
 /* ==============================================
    Expression Showcase — Stage + Selector
    ============================================== */

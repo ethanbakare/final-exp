@@ -19,16 +19,19 @@ interface ExpressionSelectorProps {
   activeExpression?: string;
   /** Callback when an expression is clicked */
   onSelect?: (file: string) => void;
+  /** Dark mode variant for use on dark backgrounds */
+  dark?: boolean;
 }
 
 export const ExpressionSelector: React.FC<ExpressionSelectorProps> = ({
   activeExpression,
   onSelect,
+  dark = false,
 }) => {
   const [hoveredExpression, setHoveredExpression] = useState<string | null>(null);
 
   return (
-    <div className={styles['expr-selector']}>
+    <div className={`${styles['expr-selector']} ${dark ? styles['expr-selector-dark'] : ''}`}>
       {expressions.map((expr) => {
         const isActive = activeExpression === expr.file;
         const isHovered = hoveredExpression === expr.file;
@@ -36,6 +39,7 @@ export const ExpressionSelector: React.FC<ExpressionSelectorProps> = ({
         const frameClasses = [
           styles['expr-selector-frame'],
           isActive ? styles['expr-selector-frame-active'] : '',
+          dark && !isActive ? styles['expr-selector-frame-desaturated'] : '',
         ]
           .filter(Boolean)
           .join(' ');
