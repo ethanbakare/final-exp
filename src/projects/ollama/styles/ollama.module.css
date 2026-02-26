@@ -719,13 +719,15 @@
   overflow: hidden;
 }
 
-/* Stage — fixed height, width crops when viewport narrows.
-   Height never changes; only the sides get clipped on smaller screens. */
+/* Stage — uses Figma aspect ratio on desktop/tablet for correct proportions.
+   On narrow viewports, min-height prevents it from getting too short
+   while min-width + centering lets the sides crop. */
 .showcase-stage {
   position: relative;
   width: 100%;
   min-width: 800px;
-  height: 487px;
+  aspect-ratio: 2216 / 1254;
+  min-height: 487px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--ollama-bg-dark);
