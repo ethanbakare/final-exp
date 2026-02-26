@@ -788,12 +788,6 @@
     --expr-padding: 6px;
     --expr-frame-radius: 8px;
     gap: 6px;
-    max-width: 216px;
-  }
-
-  .expr-selector-frame {
-    width: 36px;
-    height: 36px;
-    padding: 3px;
+    max-width: 276px;
   }
 }
