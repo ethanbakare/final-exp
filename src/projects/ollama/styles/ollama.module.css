@@ -16,6 +16,7 @@
   /* Text — dark on light */
   --ollama-text-heading: rgba(32, 31, 30, 0.30);
   --ollama-text-body: rgba(32, 31, 30, 0.40);
+  --ollama-text-body-strong: rgba(32, 31, 30, 0.60);
 
   /* Text — light on dark */
   --ollama-text-muted: rgba(253, 253, 253, 0.60);
@@ -230,6 +231,69 @@
   font-size: 10.892px;
   font-weight: 500;
   letter-spacing: 0.545px;
+}
+
+/* ==============================================
+   Approach Section (before Visual Audit)
+   ============================================== */
+
+.ollama-approach-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-approach-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 432px;
+  background: var(--ollama-bg-white);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-approach-text {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 857px;
+  padding: 10px;
+}
+
+.ollama-approach-title {
+  color: var(--ollama-text-body-strong);
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -0.2px;
+}
+
+.ollama-approach-body {
+  color: var(--ollama-text-body-strong);
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -0.2px;
+}
+
+.ollama-approach-list {
+  color: var(--ollama-text-body-strong);
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -0.2px;
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ollama-approach-list li::before {
+  content: attr(data-num) ". ";
 }
 
 /* ==============================================
@@ -887,6 +951,22 @@
 
   .ollama-stat-value {
     font-size: 20px;
+  }
+
+  .ollama-approach-section {
+    padding: 0 10px 10px;
+  }
+
+  .ollama-approach-content {
+    min-height: 320px;
+    padding: 40px 0;
+  }
+
+  .ollama-approach-title,
+  .ollama-approach-body,
+  .ollama-approach-list {
+    font-size: 16px;
+    letter-spacing: -0.5px;
   }
 
   .ollama-section-image {
