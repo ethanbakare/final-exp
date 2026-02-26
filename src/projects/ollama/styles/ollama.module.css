@@ -625,6 +625,7 @@
 
 .expr-selector {
   display: inline-flex;
+  flex-wrap: wrap;
   padding: 8px;
   justify-content: center;
   align-items: center;
