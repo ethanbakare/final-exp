@@ -686,11 +686,22 @@
   padding: 0 20px;
 }
 
+/* Clip container — crops stage edges on mobile, keeps border-radius */
+.showcase-stage-clip {
+  width: 100%;
+  border-radius: var(--ollama-radius-card);
+  overflow: hidden;
+}
+
+/* Stage — fixed size, never compresses. On mobile, edges are cropped.
+   Uses left+transform to stay centred when wider than clip container. */
 .showcase-stage {
   position: relative;
   width: 100%;
+  min-width: 800px;
+  left: 50%;
+  transform: translateX(-50%);
   aspect-ratio: 2216 / 1254;
-  border-radius: var(--ollama-radius-card);
   background: var(--ollama-bg-dark);
   overflow: hidden;
   display: flex;
@@ -698,60 +709,77 @@
   align-items: center;
 }
 
-/* Soft ambient light — large radial glow behind character */
+/* Soft ambient light — large radial glow, centred above the stage */
 .showcase-soft-light {
   position: absolute;
-  width: 117%;
-  height: 113%;
-  left: -8.4%;
-  top: -59.5%;
+  width: 2589px;
+  height: 1421px;
+  left: 50%;
+  top: -60%;
+  transform: translateX(-50%);
   border-radius: 50%;
   opacity: 0.1;
   background: radial-gradient(50% 50% at 50% 50%, #FFF 0%, rgba(255, 255, 255, 0) 100%);
   pointer-events: none;
 }
 
-/* Spotlight beam — trapezoid gradient from top */
+/* Spotlight — Figma SVG with inner shadow filter */
 .showcase-spotlight {
   position: absolute;
-  width: 29.4%;
-  height: 69.3%;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 100%);
-  clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
+  width: 29.4%;
+  height: 69.3%;
   pointer-events: none;
 }
 
-/* Character + shadow group */
-.showcase-character-group {
+.showcase-spotlight-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Character area — centres the character box + floor shadow */
+.showcase-character-area {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 22.4%;
+  justify-content: flex-end;
+  width: 250px;
+  height: 230px;
   z-index: 1;
 }
 
-/* Floor shadow beneath character */
+/* Floor shadow — static, never changes size or position */
 .showcase-floor-shadow {
   position: absolute;
   bottom: 0;
-  width: 100%;
-  height: 12.4%;
+  width: 250px;
+  height: 28px;
   border-radius: 50%;
   opacity: 0.3;
   background: rgba(255, 255, 255, 0.20);
 }
 
+/* Character box — fixed size, image bottom-aligned */
+.showcase-character-box {
+  position: absolute;
+  bottom: 14px;
+  width: 190px;
+  height: 220px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
 /* Stage character image */
 .showcase-character {
-  width: 76%;
+  width: 100%;
   height: auto;
+  max-height: 100%;
   object-fit: contain;
-  position: relative;
-  z-index: 1;
+  object-position: bottom;
 }
 
 /* Cycle timer — bottom right */
@@ -888,12 +916,7 @@
     gap: 16px;
   }
 
-  .showcase-stage {
+  .showcase-stage-clip {
     border-radius: 8px;
-  }
-
-  .showcase-cycle-timer {
-    right: 12px;
-    bottom: 12px;
   }
 }
