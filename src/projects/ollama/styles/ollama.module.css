@@ -625,7 +625,7 @@
 
 .expr-selector {
   display: inline-flex;
-  padding: 8px 20px;
+  padding: 8px;
   justify-content: center;
   align-items: center;
   gap: 12px;
