@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { OllamaTerminal } from '@/projects/ollama/components/OllamaTerminal';
 import { ExpressionSelector } from '@/projects/ollama/components/ExpressionSelector';
+import { ExpressionShowcase } from '@/projects/ollama/components/ExpressionShowcase';
 import styles from '@/projects/ollama/styles/ollama.module.css';
 
 const expressions = [
@@ -51,6 +52,17 @@ export default function OllamaComponentsPage() {
                 setActiveExpression(file === activeExpression ? undefined : file)
               }
             />
+          </div>
+        </section>
+
+        {/* Expression Showcase — stage + auto-cycling selector */}
+        <section className={styles['ollama-components-section']}>
+          <h2 className={styles['ollama-components-heading']}>Expression Showcase</h2>
+          <p className={styles['ollama-components-desc']}>
+            The mascot on stage, cycling through expressions. Click any expression to jump to it, or let it auto-advance.
+          </p>
+          <div className={styles['ollama-components-preview']} style={{ background: '#201F1E' }}>
+            <ExpressionShowcase />
           </div>
         </section>
 

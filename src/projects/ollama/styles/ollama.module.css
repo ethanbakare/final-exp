@@ -674,6 +674,98 @@
 }
 
 /* ==============================================
+   Expression Showcase — Stage + Selector
+   ============================================== */
+
+.showcase-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  padding: 0 20px;
+}
+
+.showcase-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2216 / 1254;
+  border-radius: var(--ollama-radius-card);
+  background: var(--ollama-bg-dark);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Soft ambient light — large radial glow behind character */
+.showcase-soft-light {
+  position: absolute;
+  width: 117%;
+  height: 113%;
+  left: -8.4%;
+  top: -59.5%;
+  border-radius: 50%;
+  opacity: 0.1;
+  background: radial-gradient(50% 50% at 50% 50%, #FFF 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
+/* Spotlight beam — trapezoid gradient from top */
+.showcase-spotlight {
+  position: absolute;
+  width: 29.4%;
+  height: 69.3%;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 100%);
+  clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
+  pointer-events: none;
+}
+
+/* Character + shadow group */
+.showcase-character-group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 22.4%;
+  z-index: 1;
+}
+
+/* Floor shadow beneath character */
+.showcase-floor-shadow {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 12.4%;
+  border-radius: 50%;
+  opacity: 0.3;
+  background: rgba(255, 255, 255, 0.20);
+}
+
+/* Stage character image */
+.showcase-character {
+  width: 76%;
+  height: auto;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+}
+
+/* Cycle timer — bottom right */
+.showcase-cycle-timer {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* ==============================================
    Responsive — Mobile
    ============================================== */
 
@@ -789,5 +881,19 @@
     --expr-frame-radius: 8px;
     gap: 6px;
     max-width: 276px;
+  }
+
+  .showcase-wrapper {
+    padding: 0;
+    gap: 16px;
+  }
+
+  .showcase-stage {
+    border-radius: 8px;
+  }
+
+  .showcase-cycle-timer {
+    right: 12px;
+    bottom: 12px;
   }
 }
