@@ -39,7 +39,7 @@
 
   /* Expression selector */
   --expr-padding: 8px;
-  --expr-frame-radius: 12px;
+  --expr-frame-radius: 6px;
 
   width: 100%;
 }
