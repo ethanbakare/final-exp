@@ -55,6 +55,22 @@ export default function OllamaComponentsPage() {
           </div>
         </section>
 
+        {/* Expression Selector (Copy) */}
+        <section className={styles['ollama-components-section']}>
+          <h2 className={styles['ollama-components-heading']}>Expression Selector (Copy)</h2>
+          <p className={styles['ollama-components-desc']}>
+            An interactive menu for switching between mascot expressions. Click to activate, hover to preview.
+          </p>
+          <div className={styles['ollama-components-preview']}>
+            <ExpressionSelector
+              activeExpression={activeExpression}
+              onSelect={(file) =>
+                setActiveExpression(file === activeExpression ? undefined : file)
+              }
+            />
+          </div>
+        </section>
+
         {/* Expression Showcase — stage + auto-cycling selector */}
         <section className={styles['ollama-components-section']}>
           <h2 className={styles['ollama-components-heading']}>Expression Showcase</h2>
