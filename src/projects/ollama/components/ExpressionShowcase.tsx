@@ -20,8 +20,17 @@ const CYCLE_DURATION = 5000; // ms per expression
 export const ExpressionShowcase: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 768px)');
+    setIsMobile(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
   const activeExpression = EXPRESSIONS[activeIndex];
 
@@ -79,7 +88,7 @@ export const ExpressionShowcase: React.FC = () => {
           <div className={styles['showcase-spotlight']}>
             <svg
               viewBox="0 0 651 869"
-              preserveAspectRatio="none"
+              preserveAspectRatio={isMobile ? 'xMidYMid meet' : 'none'}
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
               className={styles['showcase-spotlight-svg']}
