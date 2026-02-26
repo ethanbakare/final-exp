@@ -292,8 +292,15 @@
   gap: 0;
 }
 
+.ollama-approach-list li {
+  position: relative;
+  padding-left: 24px;
+}
+
 .ollama-approach-list li::before {
-  content: attr(data-num) ". ";
+  content: attr(data-num) ".";
+  position: absolute;
+  left: 0;
 }
 
 /* ==============================================
