@@ -60,10 +60,10 @@ export const ExpressionShowcase: React.FC = () => {
     }
   };
 
-  // SVG progress ring calculations
-  const ringRadius = 20;
-  const ringStroke = 4;
-  const ringSize = (ringRadius + ringStroke) * 2;
+  // SVG progress ring — Figma: 50×50 ellipse, 9px center stroke, white 40%
+  const ringRadius = 25;
+  const ringStroke = 9;
+  const ringSvgSize = ringRadius * 2 + ringStroke; // 59
   const circumference = 2 * Math.PI * ringRadius;
   const dashOffset = circumference * (1 - progress);
 
@@ -148,35 +148,38 @@ export const ExpressionShowcase: React.FC = () => {
             </div>
           </div>
 
-          {/* Cycle timer — progress ring */}
-          <div className={styles['showcase-cycle-timer']}>
-            <svg
-              width={ringSize}
-              height={ringSize}
-              viewBox={`0 0 ${ringSize} ${ringSize}`}
-            >
-              <circle
-                cx={ringRadius + ringStroke}
-                cy={ringRadius + ringStroke}
-                r={ringRadius}
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.15)"
-                strokeWidth={ringStroke}
-              />
-              <circle
-                cx={ringRadius + ringStroke}
-                cy={ringRadius + ringStroke}
-                r={ringRadius}
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.5)"
-                strokeWidth={ringStroke}
-                strokeDasharray={circumference}
-                strokeDashoffset={dashOffset}
-                strokeLinecap="round"
-                transform={`rotate(-90 ${ringRadius + ringStroke} ${ringRadius + ringStroke})`}
-              />
-            </svg>
-          </div>
+        </div>
+
+        {/* Cycle timer — positioned in clip container so it never gets cropped */}
+        <div className={styles['showcase-cycle-timer']}>
+          <svg
+            width={ringSvgSize}
+            height={ringSvgSize}
+            viewBox={`0 0 ${ringSvgSize} ${ringSvgSize}`}
+          >
+            {/* Track ring */}
+            <circle
+              cx={ringSvgSize / 2}
+              cy={ringSvgSize / 2}
+              r={ringRadius}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.15)"
+              strokeWidth={ringStroke}
+            />
+            {/* Progress ring */}
+            <circle
+              cx={ringSvgSize / 2}
+              cy={ringSvgSize / 2}
+              r={ringRadius}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.4)"
+              strokeWidth={ringStroke}
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${ringSvgSize / 2} ${ringSvgSize / 2})`}
+            />
+          </svg>
         </div>
       </div>
 

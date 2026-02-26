@@ -686,8 +686,10 @@
   padding: 0 20px;
 }
 
-/* Clip container — crops stage edges on mobile, keeps border-radius */
+/* Clip container — crops stage edges on mobile, keeps border-radius.
+   position: relative so the cycle timer can anchor to its visible edges. */
 .showcase-stage-clip {
+  position: relative;
   width: 100%;
   border-radius: var(--ollama-radius-card);
   overflow: hidden;
@@ -784,11 +786,12 @@
   object-position: bottom;
 }
 
-/* Cycle timer — bottom right */
+/* Cycle timer — anchored to the clip container's visible edges,
+   so it never gets cropped when the stage overflows on mobile. */
 .showcase-cycle-timer {
   position: absolute;
-  right: 20px;
-  bottom: 20px;
+  right: 10px;
+  bottom: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
