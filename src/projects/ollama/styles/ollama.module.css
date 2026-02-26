@@ -101,6 +101,9 @@
   width: 71px;
   height: auto;
   display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
 }
 
 /* --- Terminal --- */
@@ -619,6 +622,9 @@
   height: 120px;
   object-fit: contain;
   margin: 24px 0;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
 }
 
 .ollama-expression-label {
