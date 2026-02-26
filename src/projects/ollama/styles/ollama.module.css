@@ -628,7 +628,7 @@
   padding: 8px;
   justify-content: center;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   border-radius: 14px;
   background: var(--ollama-bg-warm-light);
 }
