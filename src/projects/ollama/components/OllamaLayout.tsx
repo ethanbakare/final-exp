@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from '@/projects/ollama/styles/ollama.module.css';
 import { OllamaTerminal } from './OllamaTerminal';
+import { ExpressionShowcase } from './ExpressionShowcase';
 
 interface OllamaImage {
   src: string;
@@ -187,6 +188,11 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
             communications. It&apos;s the foundation everything else is built from.
           </p>
         </div>
+      </section>
+
+      {/* Expression Showcase */}
+      <section className={styles['ollama-showcase-section']}>
+        <ExpressionShowcase />
       </section>
 
       {/* Section 05 — Product Posters */}
