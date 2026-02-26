@@ -28,6 +28,9 @@
   /* Borders */
   --ollama-terminal-border: #6A6767;
 
+  /* Text — components page */
+  --ollama-text-light: #FDFDFD;
+
   /* Interactive states */
   --ollama-bg-active: rgba(32, 31, 30, 0.06);
 
@@ -52,7 +55,7 @@
   align-items: center;
   gap: 51px;
   align-self: stretch;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.00) 15.98%, #FFF 103.53%), var(--ollama-bg-page);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.00) 15.98%, var(--ollama-bg-white) 103.53%), var(--ollama-bg-page);
   backdrop-filter: blur(45px);
 }
 
@@ -493,7 +496,7 @@
   font-size: 36px;
   font-weight: 700;
   margin-bottom: 48px;
-  color: #FDFDFD;
+  color: var(--ollama-text-light);
 }
 
 .ollama-components-section {
@@ -505,7 +508,7 @@
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #FDFDFD;
+  color: var(--ollama-text-light);
 }
 
 .ollama-components-desc {
@@ -562,7 +565,7 @@
 .ollama-toggle-slider {
   width: 12px;
   height: 12px;
-  background: #FFFFFF;
+  background: var(--ollama-bg-white);
   border-radius: 50%;
   position: absolute;
   top: 2px;
@@ -626,8 +629,8 @@
   justify-content: center;
   align-items: center;
   gap: 12px;
-  border-radius: 28px;
-  background: #000000;
+  border-radius: 14px;
+  background: var(--ollama-bg-warm-light);
 }
 
 .expr-selector-frame {
@@ -779,7 +782,7 @@
   .expr-selector {
     padding: 6px 12px;
     gap: 6px;
-    border-radius: 20px;
+    border-radius: 10px;
   }
 
   .expr-selector-frame {
