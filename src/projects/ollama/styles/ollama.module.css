@@ -693,7 +693,6 @@
   align-items: center;
   gap: 24px;
   width: 100%;
-  padding: 0 20px;
 }
 
 /* Clip container — crops stage edges on mobile, keeps border-radius.
@@ -931,7 +930,6 @@
   }
 
   .showcase-wrapper {
-    padding: 0;
     gap: 16px;
   }
 
