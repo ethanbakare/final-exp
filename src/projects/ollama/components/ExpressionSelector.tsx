@@ -11,6 +11,7 @@ const expressions = [
   { name: 'Thinking', file: 'thinking' },
   { name: 'ROFL', file: 'rofl' },
   { name: 'Drooling', file: 'drooling' },
+  { name: 'Crying', file: 'crying' },
 ];
 
 interface ExpressionSelectorProps {
