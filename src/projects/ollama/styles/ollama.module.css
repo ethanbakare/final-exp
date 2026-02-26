@@ -818,6 +818,7 @@
   min-width: 800px;
   aspect-ratio: 2216 / 1254;
   min-height: 487px;
+  max-height: 700px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--ollama-bg-dark);
