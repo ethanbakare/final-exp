@@ -61,7 +61,7 @@ export default function OllamaComponentsPage() {
           <p className={styles['ollama-components-desc']}>
             The mascot on stage, cycling through expressions. Click any expression to jump to it, or let it auto-advance.
           </p>
-          <div className={styles['ollama-components-preview']} style={{ background: '#201F1E' }}>
+          <div className={styles['ollama-components-preview']} style={{ background: '#FFFFFF', border: 'none' }}>
             <ExpressionShowcase />
           </div>
         </section>
