@@ -798,6 +798,7 @@
   align-items: center;
   gap: 24px;
   width: 100%;
+  height: calc(100vh - 40px);
 }
 
 /* Clip container — crops stage edges on mobile, keeps border-radius.
@@ -805,18 +806,20 @@
 .showcase-stage-clip {
   position: relative;
   width: 100%;
+  flex: 1;
+  min-height: 0;
   border-radius: var(--ollama-radius-card);
   overflow: hidden;
 }
 
-/* Stage — uses Figma aspect ratio on desktop/tablet for correct proportions.
+/* Stage — fills the clip container on desktop via height: 100%.
    On narrow viewports, min-height prevents it from getting too short
    while min-width + centering lets the sides crop. */
 .showcase-stage {
   position: relative;
   width: 100%;
   min-width: 800px;
-  aspect-ratio: 2216 / 1254;
+  height: 100%;
   min-height: 487px;
   left: 50%;
   transform: translateX(-50%);
@@ -1057,10 +1060,17 @@
   }
 
   .showcase-wrapper {
+    height: auto;
     gap: 16px;
   }
 
   .showcase-stage-clip {
+    flex: initial;
     border-radius: 8px;
+  }
+
+  .showcase-stage {
+    height: auto;
+    aspect-ratio: 2216 / 1254;
   }
 }

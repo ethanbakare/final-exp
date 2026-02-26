@@ -93,6 +93,24 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
         </div>
       </section>
 
+      {/* Approach — context before the Visual Audit */}
+      <section className={styles['ollama-approach-section']}>
+        <div className={styles['ollama-approach-content']}>
+          <div className={styles['ollama-approach-text']}>
+            <p className={styles['ollama-approach-title']}>Approach</p>
+            <p className={styles['ollama-approach-body']}>
+              Audited how Ollama&apos;s brand showed up across touchpoints — live events,
+              social media, website, email, and partnerships. Three things stood out:
+            </p>
+            <ol className={styles['ollama-approach-list']}>
+              <li data-num="1">A lovable mascot that makes the brand approachable and sticky</li>
+              <li data-num="2">Visual storytelling through emotive illustrations, especially on Twitter and at events</li>
+              <li data-num="3">A genuine love for open source, visible in how they partner and communicate</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
       {/* Section 02 — Visual Audit */}
       <section className={styles['ollama-section-image']}>
         <div className={styles['ollama-audit-container']}>
