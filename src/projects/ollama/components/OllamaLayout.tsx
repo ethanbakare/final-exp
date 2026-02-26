@@ -55,9 +55,9 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
           <div className={styles['ollama-hero-body']}>
             <div className={styles['ollama-description-wrapper']}>
               <p className={styles['ollama-hero-description']}>
-                Ollama helps people run LLMs locally on their laptops, sporting a mascot
-                central to its brand identity and communication — giving the technical product
-                a more approachable presence.
+                Ollama lets you run open-source LLMs locally. This project? It&apos;s a personal
+                exploration of how its mascot and visual identity system narrates the product
+                — and the community values built around it.
               </p>
               <div className={styles['ollama-stats-row']}>
                 <div className={styles['ollama-stat']}>
