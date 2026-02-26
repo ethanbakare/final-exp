@@ -37,6 +37,10 @@
   /* Shared radius */
   --ollama-radius-card: 12px;
 
+  /* Expression selector */
+  --expr-padding: 8px;
+  --expr-frame-radius: 12px;
+
   width: 100%;
 }
 
@@ -626,11 +630,11 @@
 .expr-selector {
   display: inline-flex;
   flex-wrap: wrap;
-  padding: 8px;
+  padding: var(--expr-padding);
   justify-content: center;
   align-items: center;
   gap: 8px;
-  border-radius: 14px;
+  border-radius: calc(var(--expr-frame-radius) + var(--expr-padding));
   background: var(--ollama-bg-warm-light);
 }
 
@@ -641,7 +645,7 @@
   padding: 4px;
   justify-content: center;
   align-items: center;
-  border-radius: 12px;
+  border-radius: var(--expr-frame-radius);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -781,15 +785,14 @@
   }
 
   .expr-selector {
-    padding: 6px 12px;
+    --expr-padding: 6px;
+    --expr-frame-radius: 8px;
     gap: 6px;
-    border-radius: 10px;
   }
 
   .expr-selector-frame {
     width: 36px;
     height: 36px;
     padding: 3px;
-    border-radius: 8px;
   }
 }
