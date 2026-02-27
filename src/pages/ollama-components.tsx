@@ -55,6 +55,23 @@ export default function OllamaComponentsPage() {
           </div>
         </section>
 
+        {/* Expression Selector V2 — light background, desaturated inactive emojis */}
+        <section className={styles['ollama-components-section']}>
+          <h2 className={styles['ollama-components-heading']}>Expression Selector V2</h2>
+          <p className={styles['ollama-components-desc']}>
+            Light background with desaturated inactive emojis. Active emoji at full saturation.
+          </p>
+          <div className={styles['ollama-components-preview']}>
+            <ExpressionSelector
+              activeExpression={activeExpression}
+              onSelect={(file) =>
+                setActiveExpression(file === activeExpression ? undefined : file)
+              }
+              desaturateInactive
+            />
+          </div>
+        </section>
+
         {/* Expression Selector — Dark Mode */}
         <section className={styles['ollama-components-section']}>
           <h2 className={styles['ollama-components-heading']}>Expression Selector (Dark Mode)</h2>

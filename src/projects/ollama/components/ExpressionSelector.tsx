@@ -21,12 +21,15 @@ interface ExpressionSelectorProps {
   onSelect?: (file: string) => void;
   /** Dark mode variant for use on dark backgrounds */
   dark?: boolean;
+  /** Desaturate inactive emojis (keeps light background) */
+  desaturateInactive?: boolean;
 }
 
 export const ExpressionSelector: React.FC<ExpressionSelectorProps> = ({
   activeExpression,
   onSelect,
   dark = false,
+  desaturateInactive = false,
 }) => {
   const [hoveredExpression, setHoveredExpression] = useState<string | null>(null);
 
@@ -39,7 +42,7 @@ export const ExpressionSelector: React.FC<ExpressionSelectorProps> = ({
         const frameClasses = [
           styles['expr-selector-frame'],
           isActive ? styles['expr-selector-frame-active'] : '',
-          dark && !isActive ? styles['expr-selector-frame-desaturated'] : '',
+          (dark || desaturateInactive) && !isActive ? styles['expr-selector-frame-desaturated'] : '',
         ]
           .filter(Boolean)
           .join(' ');
