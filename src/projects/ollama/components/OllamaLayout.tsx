@@ -211,7 +211,7 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
 
       {/* Expression Showcase */}
       <section className={styles['ollama-showcase-section']}>
-        <ExpressionShowcase />
+        <ExpressionShowcase desaturateInactive />
       </section>
 
       {/* Section 05 — Product Posters */}
