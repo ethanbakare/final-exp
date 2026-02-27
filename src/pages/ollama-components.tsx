@@ -22,6 +22,7 @@ const expressions = [
 export default function OllamaComponentsPage() {
   const [showCardBg, setShowCardBg] = useState(true);
   const [activeExpression, setActiveExpression] = useState<string | undefined>('party');
+  const [showcaseV2, setShowcaseV2] = useState(false);
 
   return (
     <div className={styles['ollama-components-page']}>
@@ -91,12 +92,22 @@ export default function OllamaComponentsPage() {
 
         {/* Expression Showcase — stage + auto-cycling selector */}
         <section className={styles['ollama-components-section']}>
-          <h2 className={styles['ollama-components-heading']}>Expression Showcase</h2>
+          <div className={styles['ollama-toggle-row']}>
+            <h2 className={styles['ollama-components-heading']}>Expression Showcase</h2>
+            <div
+              className={styles['ollama-toggle-container']}
+              onClick={() => setShowcaseV2(!showcaseV2)}
+            >
+              <div className={`${styles['ollama-toggle-switch']} ${showcaseV2 ? styles['active'] : ''}`}>
+                <div className={styles['ollama-toggle-slider']} />
+              </div>
+            </div>
+          </div>
           <p className={styles['ollama-components-desc']}>
-            The mascot on stage, cycling through expressions. Click any expression to jump to it, or let it auto-advance.
+            The mascot on stage, cycling through expressions. Toggle to switch between V1 and V2 selector.
           </p>
           <div className={styles['ollama-components-preview']} style={{ background: '#FFFFFF', border: 'none' }}>
-            <ExpressionShowcase />
+            <ExpressionShowcase desaturateInactive={showcaseV2} />
           </div>
         </section>
 

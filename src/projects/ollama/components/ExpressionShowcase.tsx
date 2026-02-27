@@ -17,7 +17,12 @@ const EXPRESSIONS = [
 
 const CYCLE_DURATION = 5000; // ms per expression
 
-export const ExpressionShowcase: React.FC = () => {
+interface ExpressionShowcaseProps {
+  /** Use desaturated inactive emojis in the selector (V2 style) */
+  desaturateInactive?: boolean;
+}
+
+export const ExpressionShowcase: React.FC<ExpressionShowcaseProps> = ({ desaturateInactive = false }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -197,6 +202,7 @@ export const ExpressionShowcase: React.FC = () => {
       <ExpressionSelector
         activeExpression={activeExpression}
         onSelect={handleSelect}
+        desaturateInactive={desaturateInactive}
       />
     </div>
   );
