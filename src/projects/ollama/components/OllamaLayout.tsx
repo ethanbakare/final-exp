@@ -13,8 +13,6 @@ interface OllamaLayoutProps {
     // Section 02 - Visual Audit
     visualAudit: OllamaImage;
     // Section 03 - Mood Board (images hardcoded in component for animation)
-    // Section 04 - Character Bible
-    characterBible: OllamaImage;
     // Section 05 - Product Posters
     magicWords: OllamaImage;
     terminalPoster: OllamaImage;
