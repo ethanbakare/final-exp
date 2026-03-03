@@ -609,7 +609,7 @@
   width: 550px;
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .ollama-poster-img-light {
@@ -672,7 +672,7 @@
   width: 550px;
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .ollama-announcements-description {
@@ -728,7 +728,7 @@
   width: 650px;
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 /* Community Values — Dark Grid Section */
@@ -759,7 +759,7 @@
   width: 450px;
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .ollama-community-description {
