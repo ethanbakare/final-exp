@@ -14,9 +14,9 @@ interface OllamaLayoutProps {
     visualAudit: OllamaImage;
     // Section 03 - Mood Board (images hardcoded in component for animation)
     // Section 05 - Product Posters
-    magicWords: OllamaImage;
     terminalPoster: OllamaImage;
-    itsTimeToBuild: OllamaImage;
+    modelsAtYourFingertips: OllamaImage;
+    magicWords: OllamaImage;
     // Section 06 - Model Announcements
     dolphin: OllamaImage;
     gemma: OllamaImage;
@@ -213,7 +213,31 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
       </section>
 
       {/* Section 05 — Product Posters */}
-      {/* TODO: Implement */}
+      <section className={styles['ollama-posters-section']}>
+        <div className={styles['ollama-posters-content']}>
+          <h2 className={styles['ollama-posters-title']}>Product posters</h2>
+          <div className={styles['ollama-posters-grid']}>
+            <img
+              src={images.terminalPoster.src}
+              alt={images.terminalPoster.alt}
+              className={styles['ollama-poster-img']}
+            />
+            <img
+              src={images.modelsAtYourFingertips.src}
+              alt={images.modelsAtYourFingertips.alt}
+              className={styles['ollama-poster-img']}
+            />
+            <img
+              src={images.magicWords.src}
+              alt={images.magicWords.alt}
+              className={`${styles['ollama-poster-img']} ${styles['ollama-poster-img-light']}`}
+            />
+          </div>
+          <p className={styles['ollama-posters-description']}>
+            The mascot isn&apos;t decorating the product — it&apos;s living in it.
+          </p>
+        </div>
+      </section>
 
       {/* Section 06 — Model Announcements */}
       {/* TODO: Implement */}

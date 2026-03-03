@@ -569,6 +569,67 @@
 }
 
 /* ==============================================
+   Section 05 — Product Posters
+   ============================================== */
+
+.ollama-posters-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-posters-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: var(--ollama-bg-warm-light);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-posters-title {
+  color: var(--ollama-text-heading);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+}
+
+.ollama-posters-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 90px;
+}
+
+.ollama-poster-img {
+  width: 600px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.ollama-poster-img-light {
+  box-shadow:
+    0 2px 6px 2px rgba(0, 0, 0, 0.08),
+    0 1px 2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.ollama-posters-description {
+  max-width: 700px;
+  color: var(--ollama-text-body);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: -0.8px;
+}
+
+/* ==============================================
    Components Showcase Page
    ============================================== */
 
@@ -1046,6 +1107,32 @@
   .ollama-expression-grid {
     grid-template-columns: repeat(2, 1fr);
     max-width: 100%;
+  }
+
+  .ollama-posters-section {
+    padding: 0 10px 10px;
+  }
+
+  .ollama-posters-content {
+    padding: 60px 24px;
+    gap: 50px;
+  }
+
+  .ollama-posters-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-posters-grid {
+    gap: 50px;
+  }
+
+  .ollama-poster-img {
+    width: 100%;
+  }
+
+  .ollama-posters-description {
+    font-size: 14px;
   }
 
   .ollama-components-preview {
