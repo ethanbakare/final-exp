@@ -606,7 +606,7 @@
 }
 
 .ollama-poster-img {
-  width: 600px;
+  width: 550px;
   max-width: 100%;
   height: auto;
   border-radius: 8px;
@@ -669,7 +669,7 @@
 }
 
 .ollama-announcement-img {
-  width: 580px;
+  width: 550px;
   max-width: 100%;
   height: auto;
   border-radius: 8px;
@@ -702,7 +702,7 @@
   justify-content: center;
   align-items: center;
   gap: 90px;
-  background: var(--ollama-bg-warm);
+  background: var(--ollama-bg-warm-light);
   border-radius: var(--ollama-radius-card);
 }
 
@@ -721,11 +721,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 34px;
+  gap: 64px;
 }
 
 .ollama-community-stack-img {
-  width: 750px;
+  width: 650px;
   max-width: 100%;
   height: auto;
   border-radius: 8px;
@@ -752,7 +752,7 @@
 }
 
 .ollama-community-grid-img {
-  width: 508px;
+  width: 500px;
   max-width: 100%;
   height: auto;
   border-radius: 8px;
