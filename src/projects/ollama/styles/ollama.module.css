@@ -1167,12 +1167,13 @@
   }
 
   .ollama-posters-section {
-    padding: 0 10px 10px;
+    padding: 0;
   }
 
   .ollama-posters-content {
     padding: 60px 24px;
     gap: 50px;
+    border-radius: 0;
   }
 
   .ollama-posters-title {
