@@ -630,6 +630,63 @@
 }
 
 /* ==============================================
+   Section 06 — Model Announcements
+   ============================================== */
+
+.ollama-announcements-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-announcements-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: var(--ollama-bg-dark);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-announcements-title {
+  color: rgba(253, 253, 253, 0.60);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+  opacity: 0.9;
+}
+
+.ollama-announcements-grid {
+  display: flex;
+  align-items: flex-start;
+  gap: 90px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ollama-announcement-img {
+  width: 580px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.ollama-announcements-description {
+  max-width: 700px;
+  color: rgba(253, 253, 253, 0.40);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: -0.8px;
+}
+
+/* ==============================================
    Components Showcase Page
    ============================================== */
 
@@ -1132,6 +1189,32 @@
   }
 
   .ollama-posters-description {
+    font-size: 14px;
+  }
+
+  .ollama-announcements-section {
+    padding: 0 10px 10px;
+  }
+
+  .ollama-announcements-content {
+    padding: 60px 24px;
+    gap: 50px;
+  }
+
+  .ollama-announcements-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-announcements-grid {
+    gap: 50px;
+  }
+
+  .ollama-announcement-img {
+    width: 100%;
+  }
+
+  .ollama-announcements-description {
     font-size: 14px;
   }
 

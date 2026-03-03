@@ -240,7 +240,27 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
       </section>
 
       {/* Section 06 — Model Announcements */}
-      {/* TODO: Implement */}
+      <section className={styles['ollama-announcements-section']}>
+        <div className={styles['ollama-announcements-content']}>
+          <h2 className={styles['ollama-announcements-title']}>Model Announcements</h2>
+          <div className={styles['ollama-announcements-grid']}>
+            <img
+              src={images.gemma.src}
+              alt={images.gemma.alt}
+              className={styles['ollama-announcement-img']}
+            />
+            <img
+              src={images.dolphin.src}
+              alt={images.dolphin.alt}
+              className={styles['ollama-announcement-img']}
+            />
+          </div>
+          <p className={styles['ollama-announcements-description']}>
+            A repeatable template for every new model — swap the name, the artwork,
+            the pose. The system scales, the brand stays consistent.
+          </p>
+        </div>
+      </section>
 
       {/* Section 07 — Community & Values */}
       {/* TODO: Implement */}
