@@ -748,7 +748,7 @@
 .ollama-community-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 90px;
+  gap: 48px;
 }
 
 .ollama-community-grid-img {
