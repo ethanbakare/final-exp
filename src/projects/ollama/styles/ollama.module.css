@@ -744,6 +744,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  border:#F15959;
   gap: 90px;
   background: var(--ollama-bg-dark);
   border-radius: var(--ollama-radius-card);
