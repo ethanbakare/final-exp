@@ -740,11 +740,10 @@
 
 .ollama-community-dark {
   display: flex;
-  padding: 100px 50px;
+  padding: 150px 50px;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  border: 2px solid #F15959;
   gap: 90px;
   background: var(--ollama-bg-dark);
   border-radius: var(--ollama-radius-card);
