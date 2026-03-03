@@ -663,7 +663,7 @@
 .ollama-announcements-grid {
   display: flex;
   align-items: flex-start;
-  gap: 90px;
+  gap: 45px;
   flex-wrap: wrap;
   justify-content: center;
 }
