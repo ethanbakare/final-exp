@@ -731,7 +731,12 @@
   border-radius: 8px;
 }
 
-/* Community Values — Dark Sub-section */
+/* Community Values — Dark Grid Section */
+
+.ollama-community-dark-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
 
 .ollama-community-dark {
   display: flex;
@@ -742,7 +747,6 @@
   gap: 90px;
   background: var(--ollama-bg-dark);
   border-radius: var(--ollama-radius-card);
-  align-self: stretch;
 }
 
 .ollama-community-grid {
@@ -1326,10 +1330,14 @@
     width: 100%;
   }
 
+  .ollama-community-dark-section {
+    padding: 0;
+  }
+
   .ollama-community-dark {
     padding: 60px 24px;
     gap: 50px;
-    border-radius: 8px;
+    border-radius: 0;
   }
 
   .ollama-community-grid {

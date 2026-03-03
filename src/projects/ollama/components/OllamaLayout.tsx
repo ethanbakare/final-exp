@@ -285,34 +285,38 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
               className={styles['ollama-community-stack-img']}
             />
           </div>
-          <div className={styles['ollama-community-dark']}>
-            <div className={styles['ollama-community-grid']}>
-              <img
-                src={images.itsTimeToBuild.src}
-                alt={images.itsTimeToBuild.alt}
-                className={styles['ollama-community-grid-img']}
-              />
-              <img
-                src={images.openSourceCelebration.src}
-                alt={images.openSourceCelebration.alt}
-                className={styles['ollama-community-grid-img']}
-              />
-              <img
-                src={images.ollamaRocks.src}
-                alt={images.ollamaRocks.alt}
-                className={styles['ollama-community-grid-img']}
-              />
-              <img
-                src={images.letHimCook.src}
-                alt={images.letHimCook.alt}
-                className={styles['ollama-community-grid-img']}
-              />
-            </div>
-            <p className={styles['ollama-community-description']}>
-              Visualising a brand&apos;s values gives its community something to rally
-              around — a shared belief made tangible.
-            </p>
+        </div>
+      </section>
+
+      {/* Section 07b — Community & Values (dark grid) */}
+      <section className={styles['ollama-community-dark-section']}>
+        <div className={styles['ollama-community-dark']}>
+          <div className={styles['ollama-community-grid']}>
+            <img
+              src={images.itsTimeToBuild.src}
+              alt={images.itsTimeToBuild.alt}
+              className={styles['ollama-community-grid-img']}
+            />
+            <img
+              src={images.openSourceCelebration.src}
+              alt={images.openSourceCelebration.alt}
+              className={styles['ollama-community-grid-img']}
+            />
+            <img
+              src={images.ollamaRocks.src}
+              alt={images.ollamaRocks.alt}
+              className={styles['ollama-community-grid-img']}
+            />
+            <img
+              src={images.letHimCook.src}
+              alt={images.letHimCook.alt}
+              className={styles['ollama-community-grid-img']}
+            />
           </div>
+          <p className={styles['ollama-community-description']}>
+            Visualising a brand&apos;s values gives its community something to rally
+            around — a shared belief made tangible.
+          </p>
         </div>
       </section>
 
