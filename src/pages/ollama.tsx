@@ -15,6 +15,7 @@ export default function OllamaPage() {
     ollamaRocks: { src: '/images/ollama/cs-ollama-rocks.webp', alt: 'Ollama rocks illustration' },
     ollamaEnlightenment: { src: '/images/ollama/cs-ollama-enlightenment.webp', alt: 'Ollama enlightenment illustration' },
     gpuRich: { src: '/images/ollama/cs-gpu-rich.webp', alt: 'GPU Rich illustration' },
+    letHimCook: { src: '/images/ollama/cs-let-him-cook.webp', alt: 'Let him cook illustration' },
   };
 
   return <OllamaLayout images={images} />;
