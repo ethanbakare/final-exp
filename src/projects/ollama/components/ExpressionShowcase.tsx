@@ -15,7 +15,7 @@ const EXPRESSIONS = [
   'crying',
 ] as const;
 
-const CYCLE_DURATION = 5000; // ms per expression
+const CYCLE_DURATION = 4000; // ms per expression
 
 interface ExpressionShowcaseProps {
   /** Use desaturated inactive emojis in the selector (V2 style) */
