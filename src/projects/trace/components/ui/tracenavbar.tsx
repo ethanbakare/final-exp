@@ -579,21 +579,44 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           width: 100%;
         }
 
-        /* Processing states expand to full container width */
-        .full-width.state-processing_image .left-button-tracker {
+        /* Idle: both buttons share available space equally */
+        .full-width .left-button-tracker {
+          flex: 1;
+          width: auto;
+        }
+
+        .full-width .left-morph-button {
           width: 100%;
         }
 
-        .full-width.state-processing_image .left-morph-button {
+        .full-width .right-button-tracker {
+          flex: 1;
+          width: auto;
+        }
+
+        .full-width .right-morph-button {
           width: 100%;
+        }
+
+        /* Processing states expand to full container width */
+        .full-width.state-processing_image .left-button-tracker {
+          flex: none;
+          width: 100%;
+        }
+
+        .full-width.state-processing_audio .left-button-tracker {
+          flex: none;
+          width: 0;
         }
 
         .full-width.state-processing_audio .right-button-tracker {
+          flex: none;
           width: 100%;
         }
 
-        .full-width.state-processing_audio .right-morph-button {
-          width: 100%;
+        .full-width.state-processing_image .right-button-tracker {
+          flex: none;
+          width: 0;
         }
       `}</style>
     </div>
