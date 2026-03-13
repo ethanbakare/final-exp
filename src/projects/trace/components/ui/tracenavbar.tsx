@@ -30,10 +30,11 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
   onCloseClick,
   onSendAudioClick,
   disabled = false,
+  fullWidth = false,
   className = '',
 }) => {
   return (
-    <div className={`trnavbar-container state-${state} ${className} ${styles.container}`}>
+    <div className={`trnavbar-container state-${state} ${fullWidth ? 'full-width' : ''} ${className} ${styles.container}`}>
       {/* MORPHING BUTTONS GROUP: Visible in idle/recording, fades out in processing */}
       <div className="morphing-group">
         {/* LEFT BUTTON TRACKER: Upload → Close */}
@@ -569,6 +570,30 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           to {
             transform: rotate(360deg);
           }
+        }
+
+        /* ========================================
+           FULL WIDTH MODE (for use inside TextBox)
+           ======================================== */
+        .full-width {
+          width: 100%;
+        }
+
+        /* Processing states expand to full container width */
+        .full-width.state-processing_image .left-button-tracker {
+          width: 100%;
+        }
+
+        .full-width.state-processing_image .left-morph-button {
+          width: 100%;
+        }
+
+        .full-width.state-processing_audio .right-button-tracker {
+          width: 100%;
+        }
+
+        .full-width.state-processing_audio .right-morph-button {
+          width: 100%;
         }
       `}</style>
     </div>

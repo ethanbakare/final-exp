@@ -10,14 +10,14 @@ import { TRNavbar } from './tracenavbar';
 import type { TRNavbarProps } from '@/projects/trace/types/trace.types';
 import styles from '@/projects/trace/styles/trace.module.css';
 
-export const TRNavbarV2: React.FC<TRNavbarProps> = (props) => {
+export const TRNavbarV2: React.FC<Omit<TRNavbarProps, 'fullWidth'>> = (props) => {
   return (
     <div className={`trnavbar-v2-wrapper ${styles.container}`}>
-      <TRNavbar {...props} />
+      <TRNavbar {...props} fullWidth />
 
       <style jsx>{`
         .trnavbar-v2-wrapper {
-          padding: 10px 0;
+          padding: 10px 12px;
           display: flex;
           justify-content: center;
           width: 100%;

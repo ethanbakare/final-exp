@@ -183,6 +183,7 @@ export interface TRNavbarProps {
   onCloseClick?: () => void;
   onSendAudioClick?: () => void; // Parent component manages audio blob from recording state
   disabled?: boolean;
+  fullWidth?: boolean; // When true, processing state expands to 100% of parent instead of fixed 247px
   className?: string;
 }
 
