@@ -587,6 +587,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
 
         .full-width .left-morph-button {
           width: 100%;
+          background: var(--trace-btn-light-80);
         }
 
         .full-width .right-button-tracker {
@@ -596,6 +597,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
 
         .full-width .right-morph-button {
           width: 100%;
+          background: var(--trace-btn-light-80);
         }
 
         /* Processing states expand to full container width */
