@@ -10,6 +10,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatedTextBox } from '@/projects/trace/components/ui/tracefinance-animated';
 import TRNavbar from '@/projects/trace/components/ui/tracenavbar';
+import { TRNavbarV2 } from '@/projects/trace/components/ui/tracenavbar-v2';
 import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
 import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
 import { TraceModalOverlay } from '@/projects/trace/components/ui/TraceModalOverlay';
@@ -187,15 +188,20 @@ export default function TracePage() {
           <ClearButton onClick={handleClearAll} />
         </div>
 
-        {/* Wrapper container for TextBox + Navbar */}
+        {/* Wrapper container for TextBox with Navbar inside */}
         <div className="trace-container">
-          <AnimatedTextBox days={groupedDays} grandTotal={grandTotal} />
-          <TRNavbar
-            state={navbarState}
-            onUploadClick={handleUploadClick}
-            onSpeakClick={handleStartRecording}
-            onCloseClick={handleCancelRecording}
-            onSendAudioClick={handleSendAudio}
+          <AnimatedTextBox
+            days={groupedDays}
+            grandTotal={grandTotal}
+            navbar={
+              <TRNavbarV2
+                state={navbarState}
+                onUploadClick={handleUploadClick}
+                onSpeakClick={handleStartRecording}
+                onCloseClick={handleCancelRecording}
+                onSendAudioClick={handleSendAudio}
+              />
+            }
           />
         </div>
 

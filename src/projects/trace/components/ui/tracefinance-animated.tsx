@@ -294,18 +294,21 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 
 export interface AnimatedTextBoxProps extends TextBoxProps {
   onScrollToLatest?: () => void;
+  navbar?: React.ReactNode;
 }
 
 export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
   days,
   grandTotal = '0.00',
   onScrollToLatest,
+  navbar,
   className = '',
 }) => {
   return (
-    <div className={`text-box ${className} ${styles.container}`}>
+    <div className={`text-box ${navbar ? 'text-box--with-navbar' : ''} ${className} ${styles.container}`}>
       <MasterBlockHolder total={grandTotal} fullWidth />
       <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} />
+      {navbar}
 
       <style jsx>{`
         .text-box {
@@ -323,11 +326,15 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
           position: relative;
         }
 
+        /* Taller when navbar is inside */
+        .text-box--with-navbar {
+          height: calc(var(--trace-textbox-height) + var(--trace-button-height) + 20px); /* 500 + 44 + 20 padding = 564px */
+        }
+
         /* Bottom gradient - fades content scrolling upward */
         .text-box::after {
           content: '';
           position: absolute;
-          bottom: 0;  /* Very bottom of textbox */
           left: 0;    /* Full width from left */
           right: 5px; /* 5px offset from right for scrollbar */
           height: 24px;
@@ -345,6 +352,15 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
 
           pointer-events: none;  /* Don't block interactions */
           z-index: 10;  /* Above content */
+        }
+
+        /* Position gradient above navbar when navbar is inside */
+        .text-box--with-navbar::after {
+          bottom: calc(var(--trace-button-height) + 20px); /* Above navbar + padding */
+        }
+
+        .text-box:not(.text-box--with-navbar)::after {
+          bottom: 0;
         }
       `}</style>
     </div>
