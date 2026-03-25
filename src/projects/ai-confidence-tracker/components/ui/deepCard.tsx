@@ -516,7 +516,7 @@ export const DeepCard: React.FC<DeepCardProps> = ({
           min-height: 216px;
           background: var(--MainBoxBg);
           border: 1px solid var(--MainBoxOutline);
-          box-shadow: 0px 4px 12px var(--darkGrey06);
+          box-shadow: 0px 4px 12px var(--darkGrey09);
           border-radius: 16px;
           flex: none;
           order: 0;
