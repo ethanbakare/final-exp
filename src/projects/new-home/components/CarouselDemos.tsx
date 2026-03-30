@@ -4,6 +4,7 @@ import styles from '../styles/new-home.module.css';
 import DemoCard from './DemoCard';
 
 const PreviewOllama = dynamic(() => import('./previews/PreviewOllama'), { ssr: false });
+const PreviewTrace = dynamic(() => import('./previews/PreviewTrace'), { ssr: false });
 
 const CarouselDemos: React.FC = () => {
   return (
@@ -44,7 +45,7 @@ const CarouselDemos: React.FC = () => {
           innerBg="#965935"
           className="card card-trace"
         >
-          <div className="placeholder" />
+          <PreviewTrace />
         </DemoCard>
 
         {/* card-2: Voice UI — col 1, row 2, label bottom-center */}
