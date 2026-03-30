@@ -36,6 +36,7 @@ const HeroBanner: React.FC = () => {
           align-items: center;
           padding: 163px 0 15px;
           width: 100%;
+          max-width: 1160px;
         }
 
         .hero-component {
