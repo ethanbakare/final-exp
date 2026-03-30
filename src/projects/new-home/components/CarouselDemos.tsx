@@ -158,11 +158,9 @@ const CarouselDemos: React.FC = () => {
         }
 
         .container :global(.voice-blob) {
-          position: absolute;
-          inset: 0;
           width: 100%;
-          height: 100%;
-          object-fit: cover;
+          height: auto;
+          object-fit: contain;
           pointer-events: none;
           user-select: none;
         }
