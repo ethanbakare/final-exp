@@ -13,23 +13,11 @@ const DUMMY_DAYS = [
     total: '5,246.99',
     merchants: [
       {
-        merchantName: 'Headphones',
-        merchantTotal: '104.99',
+        merchantName: 'TESCOS',
+        merchantTotal: '628.21',
         items: [
           { quantity: '2x', itemName: 'Headphones', netPrice: '104.99', discount: '3.99' },
-        ],
-      },
-      {
-        merchantName: 'Playstation 5',
-        merchantTotal: '499.99',
-        items: [
           { quantity: '1x', itemName: 'Playstation 5', netPrice: '499.99' },
-        ],
-      },
-      {
-        merchantName: 'Chino Trousers',
-        merchantTotal: '14.99',
-        items: [
           { quantity: '1x', itemName: 'Chino Trousers', netPrice: '14.99' },
         ],
       },
