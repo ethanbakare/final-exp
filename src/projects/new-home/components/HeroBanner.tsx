@@ -129,11 +129,6 @@ const HeroBanner: React.FC = () => {
           .hero-banner {
             padding: 120px 0 15px;
           }
-
-          .hero-cta-group {
-            flex-direction: column;
-            align-items: center;
-          }
         }
       `}</style>
     </section>
