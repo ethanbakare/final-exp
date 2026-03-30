@@ -55,6 +55,7 @@ const PreviewTrace: React.FC = () => {
           flex-direction: column;
           overflow: hidden;
           pointer-events: none;
+          will-change: transform;
         }
       `}</style>
     </div>
