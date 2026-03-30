@@ -80,6 +80,13 @@ const CarouselDemos: React.FC = () => {
           overflow: visible;
         }
 
+        @media (max-width: 620px) {
+          .carousel-demos {
+            padding: 0 20px;
+            box-sizing: border-box;
+          }
+        }
+
         .carousel-header {
           display: flex;
           padding-bottom: 20px;

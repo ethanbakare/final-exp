@@ -70,7 +70,7 @@ const CarouselBrand: React.FC = () => {
         .container {
           display: grid;
           grid-template-columns: repeat(3, 381px);
-          grid-template-rows: repeat(2, 298px);
+          grid-auto-rows: 298px;
           gap: 15px;
           justify-content: center;
         }
@@ -85,7 +85,6 @@ const CarouselBrand: React.FC = () => {
         @media (max-width: 1200px) {
           .container {
             grid-template-columns: repeat(2, 381px);
-            grid-template-rows: repeat(3, 298px);
           }
         }
 
@@ -93,11 +92,11 @@ const CarouselBrand: React.FC = () => {
         @media (max-width: 800px) {
           .container {
             grid-template-columns: 1fr;
-            grid-template-rows: auto;
+            grid-auto-rows: auto;
           }
 
           .container :global(.card) {
-            min-height: 260px;
+            aspect-ratio: 381 / 298;
           }
 
           .carousel-brand {
