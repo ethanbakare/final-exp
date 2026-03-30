@@ -114,6 +114,7 @@ const HeroBanner: React.FC = () => {
 
         .btn-solid {
           background: var(--accent-orange);
+          border: 2px solid transparent;
         }
 
         .btn-solid span {
