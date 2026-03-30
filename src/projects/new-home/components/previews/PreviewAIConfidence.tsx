@@ -50,9 +50,10 @@ const PreviewAIConfidence: React.FC = () => {
 
         .bg-image {
           position: absolute;
-          inset: -20px;
-          width: calc(100% + 40px);
-          height: calc(100% + 40px);
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
           object-fit: cover;
           pointer-events: none;
         }
