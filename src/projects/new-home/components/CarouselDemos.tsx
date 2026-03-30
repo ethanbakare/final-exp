@@ -98,6 +98,7 @@ const CarouselDemos: React.FC = () => {
           grid-template-columns: repeat(4, 282px);
           grid-template-rows: 321px 321px;
           gap: 10px;
+          justify-content: center;
         }
 
         .container :global(.card-ai-confidence) {
@@ -143,6 +144,7 @@ const CarouselDemos: React.FC = () => {
           .container {
             grid-template-columns: repeat(2, 282px);
             grid-template-rows: 321px 321px 321px 321px;
+            justify-content: center;
           }
 
           .container :global(.card-ai-confidence) {
