@@ -10,11 +10,11 @@ import { TRNavbarV2 } from '@/projects/trace/components/ui/tracenavbar-v2';
 const DUMMY_DAYS = [
   {
     date: '14th Jul',
-    total: '5,246.99',
+    total: '720.97',
     merchants: [
       {
         merchantName: 'TESCOS',
-        merchantTotal: '628.21',
+        merchantTotal: '720.97',
         items: [
           { quantity: '2x', itemName: 'Headphones', netPrice: '104.99', discount: '3.99' },
           { quantity: '1x', itemName: 'Playstation 5', netPrice: '499.99' },
@@ -29,7 +29,7 @@ const PreviewTrace: React.FC = () => {
   return (
     <div className="preview-trace">
       <div className={`trace-frame ${traceStyles.container}`}>
-        <MasterBlockHolder total="14.99" />
+        <MasterBlockHolder total="720.97" />
         <FinanceBox days={DUMMY_DAYS} />
         <TRNavbarV2 state="idle" />
       </div>
