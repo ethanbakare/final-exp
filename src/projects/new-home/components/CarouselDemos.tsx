@@ -6,6 +6,7 @@ import DemoCard from './DemoCard';
 const PreviewOllama = dynamic(() => import('./previews/PreviewOllama'), { ssr: false });
 const PreviewTrace = dynamic(() => import('./previews/PreviewTrace'), { ssr: false });
 const PreviewAIConfidence = dynamic(() => import('./previews/PreviewAIConfidence'), { ssr: false });
+const PreviewClipstream = dynamic(() => import('./previews/PreviewClipstream'), { ssr: false });
 
 const CarouselDemos: React.FC = () => {
   return (
@@ -77,6 +78,7 @@ const CarouselDemos: React.FC = () => {
           className="card card-clipstream"
         >
           <div className="clipstream-bg" />
+          <PreviewClipstream />
         </DemoCard>
       </div>
 
