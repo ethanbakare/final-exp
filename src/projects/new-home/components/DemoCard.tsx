@@ -1,30 +1,60 @@
 import React from 'react';
 import styles from '../styles/new-home.module.css';
 
+type LabelPosition =
+  | 'bottom-center'
+  | 'bottom-left'
+  | 'bottom-right'
+  | 'top-left'
+  | 'top-right';
+
 interface DemoCardProps {
   label: string;
   href?: string;
   labelBg?: string;
   labelTextColor?: string;
+  labelPosition?: LabelPosition;
   innerBg?: string;
   children: React.ReactNode;
   className?: string;
 }
+
+const getLabelStyles = (position: LabelPosition): React.CSSProperties => {
+  switch (position) {
+    case 'top-left':
+      return { top: 0, left: '10px', borderRadius: '0 0 12px 12px' };
+    case 'top-right':
+      return { top: 0, right: '10px', borderRadius: '0 0 12px 12px' };
+    case 'bottom-left':
+      return { bottom: 0, left: '10px', borderRadius: '12px 12px 0 0' };
+    case 'bottom-right':
+      return { bottom: 0, right: '10px', borderRadius: '12px 12px 0 0' };
+    case 'bottom-center':
+    default:
+      return { bottom: 0, left: '50%', transform: 'translateX(-50%)', borderRadius: '12px 12px 0 0' };
+  }
+};
 
 const DemoCard: React.FC<DemoCardProps> = ({
   label,
   href,
   labelBg = 'rgba(34, 34, 34, 0.70)',
   labelTextColor = 'rgba(255, 255, 255, 0.70)',
+  labelPosition = 'bottom-center',
   innerBg,
   children,
   className,
 }) => {
+  const labelPositionStyles = getLabelStyles(labelPosition);
+
   const cardContent = (
     <div className="card-outer">
       <div className="card-inner" style={innerBg ? { background: innerBg } : undefined}>
         {children}
-        <div className="label" style={{ background: labelBg }}>
+        <div
+          className="label"
+          style={{ background: labelBg, ...labelPositionStyles }}
+        >
           <span className={styles.OpenRundeMedium14} style={{ color: labelTextColor }}>
             {label}
           </span>
@@ -67,15 +97,14 @@ const DemoCard: React.FC<DemoCardProps> = ({
 
         .label {
           position: absolute;
-          bottom: 0;
           display: flex;
           padding: 4px 10px;
           justify-content: center;
           align-items: center;
           gap: 5.877px;
-          border-radius: 12px 12px 0 0;
           backdrop-filter: blur(2px);
           box-shadow: 0 -6px 19px 0 rgba(255, 255, 255, 0.24) inset;
+          white-space: nowrap;
         }
       `}</style>
     </div>

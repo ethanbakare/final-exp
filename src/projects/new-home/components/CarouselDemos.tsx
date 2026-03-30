@@ -10,56 +10,62 @@ const CarouselDemos: React.FC = () => {
       </div>
 
       <div className="container">
-        {/* card-4: AI Confidence — col 1-2, row 1 (wide) */}
+        {/* card-4: AI Confidence — col 1-2, row 1 (wide), label top-right */}
         <DemoCard
           label="AI Confidence tracker"
           href="/ai-confidence-tracker"
           labelBg="rgba(128, 34, 63, 0.40)"
+          labelPosition="top-right"
           className="card card-ai-confidence"
         >
           <div className="placeholder" />
         </DemoCard>
 
-        {/* card-1: Ollama — col 3, row 1 */}
+        {/* card-1: Ollama — col 3, row 1, label bottom-center */}
         <DemoCard
           label="Ollama"
+          labelBg="rgba(255, 255, 255, 0.30)"
+          labelPosition="bottom-center"
           className="card card-ollama"
         >
-          <div className="placeholder" />
+          <div className="placeholder placeholder-dark" />
         </DemoCard>
 
-        {/* card-3: Trace AI — col 4, row 1-2 (tall) */}
+        {/* card-3: Trace AI — col 4, row 1-2 (tall), label top-left */}
         <DemoCard
           label="Trace AI"
           href="/trace"
           labelBg="rgba(255, 255, 255, 0.30)"
           labelTextColor="rgba(49, 49, 49, 0.70)"
+          labelPosition="top-left"
           innerBg="#965935"
           className="card card-trace"
         >
           <div className="placeholder" />
         </DemoCard>
 
-        {/* card-2: Voice UI — col 1, row 2 */}
+        {/* card-2: Voice UI — col 1, row 2, label bottom-center */}
         <DemoCard
           label="Voice UI Library"
           href="/voiceinterface/variations"
           labelBg="rgba(113, 113, 113, 0.50)"
           labelTextColor="rgba(255, 255, 255, 0.80)"
+          labelPosition="bottom-center"
           className="card card-voice"
         >
-          <div className="placeholder" />
+          <div className="placeholder placeholder-light" />
         </DemoCard>
 
-        {/* card-5: Clipstream — col 2-3, row 2 (wide) */}
+        {/* card-5: Clipstream — col 2-3, row 2 (wide), label bottom-center */}
         <DemoCard
           label="Clipstream"
           href="/clipperstream"
           labelBg="rgba(113, 113, 113, 0.50)"
           labelTextColor="rgba(255, 255, 255, 0.80)"
+          labelPosition="bottom-center"
           className="card card-clipstream"
         >
-          <div className="placeholder" />
+          <div className="placeholder placeholder-light" />
         </DemoCard>
       </div>
 
@@ -91,10 +97,11 @@ const CarouselDemos: React.FC = () => {
 
         .container {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           grid-template-rows: 321px 321px;
           gap: 10px;
           width: 100%;
+          max-width: 1160px;
         }
 
         .container :global(.card-ai-confidence) {
@@ -125,13 +132,57 @@ const CarouselDemos: React.FC = () => {
         .placeholder {
           width: 100%;
           height: 100%;
-          background: var(--card-inner-bg);
         }
 
-        @media (max-width: 768px) {
+        .placeholder-dark {
+          background: #1A1A19;
+        }
+
+        .placeholder-light {
+          background: #F7F6F4;
+        }
+
+        /* Tablet: rearrange to 2 columns */
+        @media (max-width: 1024px) {
+          .container {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: auto;
+          }
+
+          .container :global(.card-ai-confidence) {
+            grid-column: 1 / span 2;
+            grid-row: auto;
+          }
+
+          .container :global(.card-ollama) {
+            grid-column: 1;
+            grid-row: auto;
+          }
+
+          .container :global(.card-trace) {
+            grid-column: 2;
+            grid-row: auto;
+          }
+
+          .container :global(.card-voice) {
+            grid-column: 1;
+            grid-row: auto;
+          }
+
+          .container :global(.card-clipstream) {
+            grid-column: 2;
+            grid-row: auto;
+          }
+
+          .container :global(.card) {
+            min-height: 280px;
+          }
+        }
+
+        /* Mobile: single column */
+        @media (max-width: 600px) {
           .container {
             grid-template-columns: 1fr;
-            grid-template-rows: auto;
           }
 
           .container :global(.card-ai-confidence),
@@ -141,10 +192,6 @@ const CarouselDemos: React.FC = () => {
           .container :global(.card-clipstream) {
             grid-column: 1;
             grid-row: auto;
-          }
-
-          .container :global(.card) {
-            min-height: 280px;
           }
         }
       `}</style>
