@@ -116,11 +116,11 @@ const PreviewAIConfidence: React.FC = () => {
         }
 
         .underline-medium {
-          background: #F59E0B;
+          background: var(--confidence-medium);
         }
 
         .underline-low {
-          background: #EF4444;
+          background: var(--confidence-low);
         }
 
         .highlight {
@@ -133,7 +133,7 @@ const PreviewAIConfidence: React.FC = () => {
           right: -2px;
           top: 1px;
           bottom: 0;
-          background: #FEE2E2;
+          background: var(--confidence-low-bg);
           border-radius: 4px 4px 0 0;
           mix-blend-mode: multiply;
           z-index: -1;
@@ -149,7 +149,7 @@ const PreviewAIConfidence: React.FC = () => {
           padding: 0 10px 0 5px;
           height: 18px;
           border-radius: 20px;
-          background: #EF4444;
+          background: var(--confidence-low);
         }
 
         .badge-dot {

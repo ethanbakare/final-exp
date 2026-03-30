@@ -43,7 +43,7 @@ const CarouselDemos: React.FC = () => {
           labelBg="rgba(255, 255, 255, 0.30)"
           labelTextColor="rgba(49, 49, 49, 0.70)"
           labelPosition="top-left"
-          innerBg="#965935"
+          innerBg="var(--preview-trace-bg)"
           className="card card-trace"
         >
           <PreviewTrace />
@@ -56,7 +56,7 @@ const CarouselDemos: React.FC = () => {
           labelBg="rgba(113, 113, 113, 0.50)"
           labelTextColor="rgba(255, 255, 255, 0.80)"
           labelPosition="bottom-center"
-          innerBg="#F7F6F4"
+          innerBg="var(--preview-voice-bg)"
           className="card card-voice"
         >
           <img
@@ -150,18 +150,18 @@ const CarouselDemos: React.FC = () => {
         }
 
         .placeholder-dark {
-          background: #1A1A19;
+          background: var(--preview-ollama-bg);
         }
 
         .placeholder-light {
-          background: #F7F6F4;
+          background: var(--preview-voice-bg);
         }
 
         .clipstream-bg {
           position: absolute;
           inset: 0;
-          background-color: #F5F5F5;
-          background-image: radial-gradient(circle, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+          background-color: var(--preview-clipstream-bg);
+          background-image: radial-gradient(circle, var(--preview-clipstream-dots) 1px, transparent 1px);
           background-size: 16px 16px;
         }
 

@@ -78,6 +78,18 @@
   --label-bg-dark: rgba(34, 34, 34, 0.70);
   --label-bg-light: rgba(255, 255, 255, 0.30);
   --label-bg-grey: rgba(113, 113, 113, 0.50);
+
+  /* Preview card backgrounds */
+  --preview-ollama-bg: #1A1A19;
+  --preview-trace-bg: #965935;
+  --preview-voice-bg: #F7F6F4;
+  --preview-clipstream-bg: #F0EBEB;
+  --preview-clipstream-dots: rgba(0, 0, 0, 0.08);
+
+  /* Confidence highlights */
+  --confidence-low: #EF4444;
+  --confidence-medium: #F59E0B;
+  --confidence-low-bg: #FEE2E2;
 }
 
 

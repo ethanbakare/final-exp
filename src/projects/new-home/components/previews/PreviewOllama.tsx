@@ -51,7 +51,7 @@ const PreviewOllama: React.FC = () => {
           display: flex;
           justify-content: center;
           align-items: center;
-          background: #1A1A19;
+          background: var(--preview-ollama-bg);
         }
 
         .character-box {
