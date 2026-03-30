@@ -76,10 +76,8 @@ const CarouselDemos: React.FC = () => {
           justify-content: center;
           align-items: center;
           gap: 10px;
-          max-width: 1160px;
           width: 100%;
-          padding: 0 20px;
-          box-sizing: border-box;
+          overflow: visible;
         }
 
         .carousel-header {
@@ -97,10 +95,9 @@ const CarouselDemos: React.FC = () => {
 
         .container {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(4, 282px);
           grid-template-rows: 321px 321px;
           gap: 10px;
-          width: 1160px;
         }
 
         .container :global(.card-ai-confidence) {
@@ -144,8 +141,7 @@ const CarouselDemos: React.FC = () => {
         /* Tablet: rearrange to 2 columns when 4-col no longer fits */
         @media (max-width: 1200px) {
           .container {
-            width: 574px;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(2, 282px);
             grid-template-rows: 321px 321px 321px 321px;
           }
 
