@@ -76,7 +76,7 @@ const CarouselDemos: React.FC = () => {
           labelPosition="bottom-center"
           className="card card-clipstream"
         >
-          <div className="placeholder placeholder-light" />
+          <div className="clipstream-bg" />
         </DemoCard>
       </div>
 
@@ -155,6 +155,14 @@ const CarouselDemos: React.FC = () => {
 
         .placeholder-light {
           background: #F7F6F4;
+        }
+
+        .clipstream-bg {
+          position: absolute;
+          inset: 0;
+          background-color: #F5F5F5;
+          background-image: radial-gradient(circle, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+          background-size: 16px 16px;
         }
 
         .container :global(.voice-blob) {
