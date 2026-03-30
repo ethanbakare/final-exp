@@ -116,7 +116,7 @@ const DemoCard: React.FC<DemoCardProps> = ({
       <a
         href={href}
         className={className}
-        style={{ textDecoration: 'none', display: 'flex' }}
+        style={{ textDecoration: 'none', display: 'flex', cursor: 'pointer' }}
         {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       >
         {cardContent}
