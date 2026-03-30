@@ -55,7 +55,7 @@ const PreviewAIConfidence: React.FC = () => {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transform: rotate(-90deg);
+          transform: rotate(-90deg) scale(1.9);
           transform-origin: center center;
           pointer-events: none;
         }
