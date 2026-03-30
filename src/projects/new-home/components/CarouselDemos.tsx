@@ -5,6 +5,7 @@ import DemoCard from './DemoCard';
 
 const PreviewOllama = dynamic(() => import('./previews/PreviewOllama'), { ssr: false });
 const PreviewTrace = dynamic(() => import('./previews/PreviewTrace'), { ssr: false });
+const PreviewAIConfidence = dynamic(() => import('./previews/PreviewAIConfidence'), { ssr: false });
 
 const CarouselDemos: React.FC = () => {
   return (
@@ -22,7 +23,7 @@ const CarouselDemos: React.FC = () => {
           labelPosition="top-right"
           className="card card-ai-confidence"
         >
-          <div className="placeholder" />
+          <PreviewAIConfidence />
         </DemoCard>
 
         {/* card-1: Ollama — col 3, row 1, label bottom-center */}
