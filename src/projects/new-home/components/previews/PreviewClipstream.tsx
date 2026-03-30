@@ -2,20 +2,23 @@ import React from 'react';
 import clipStyles from '@/projects/clipperstream/styles/clipper.module.css';
 import { CloseButton } from '@/projects/clipperstream/components/ui/clipbuttons';
 
-// Static waveform bar heights matching Figma pattern
-// Ghost bars (inactive, low opacity) followed by active bars (brighter, varied heights)
+// Bar heights from Figma vectors (in px): 7.2 = short, 10.8 = medium, 14.4 = tall
+// Opacity: first 18 bars are ghost (0.10), rest are active (0.30)
+// ~31 bars visible in the 223px waveform container
 const BARS: Array<{ h: number; active: boolean }> = [
-  // Ghost bars (inactive region)
-  ...Array(18).fill(null).map(() => ({ h: 0.5, active: false })),
-  // Active bars (recording region with varied heights)
-  { h: 0.5, active: true }, { h: 0.5, active: true }, { h: 0.5, active: true },
-  { h: 0.7, active: true }, { h: 0.7, active: true }, { h: 0.7, active: true },
-  { h: 1.0, active: true }, { h: 1.0, active: true }, { h: 0.7, active: true },
-  { h: 1.0, active: true }, { h: 0.5, active: true }, { h: 0.75, active: true },
-  { h: 0.75, active: true }, { h: 0.75, active: true }, { h: 1.0, active: true },
-  { h: 1.0, active: true }, { h: 0.5, active: true }, { h: 0.75, active: true },
-  { h: 1.0, active: true }, { h: 1.0, active: true }, { h: 0.5, active: true },
-  { h: 0.75, active: true }, { h: 0.75, active: true },
+  // Ghost bars — all short (7.2px)
+  { h: 7.2, active: false }, { h: 7.2, active: false }, { h: 7.2, active: false },
+  { h: 7.2, active: false }, { h: 7.2, active: false }, { h: 7.2, active: false },
+  { h: 7.2, active: false }, { h: 7.2, active: false }, { h: 7.2, active: false },
+  { h: 7.2, active: false }, { h: 7.2, active: false }, { h: 7.2, active: false },
+  { h: 7.2, active: false }, { h: 7.2, active: false }, { h: 7.2, active: false },
+  { h: 7.2, active: false }, { h: 7.2, active: false }, { h: 7.2, active: false },
+  // Active bars — varied heights
+  { h: 7.2, active: true },  { h: 7.2, active: true },  { h: 7.2, active: true },
+  { h: 10.8, active: true }, { h: 10.8, active: true }, { h: 14.4, active: true },
+  { h: 14.4, active: true }, { h: 10.8, active: true }, { h: 7.2, active: true },
+  { h: 10.8, active: true }, { h: 10.8, active: true }, { h: 10.8, active: true },
+  { h: 7.2, active: true },
 ];
 
 const PreviewClipstream: React.FC = () => {
@@ -26,7 +29,7 @@ const PreviewClipstream: React.FC = () => {
           {/* Close button — from Clipstream */}
           <CloseButton />
 
-          {/* Waveform container */}
+          {/* Waveform container — matches Figma WaveClipper */}
           <div className="waveform-container">
             <div className="waveform-bars">
               {BARS.map((bar, i) => (
@@ -34,7 +37,7 @@ const PreviewClipstream: React.FC = () => {
                   key={i}
                   className="bar"
                   style={{
-                    height: `${bar.h * 14.4}px`,
+                    height: `${bar.h}px`,
                     opacity: bar.active ? 0.3 : 0.1,
                   }}
                 />
@@ -42,7 +45,7 @@ const PreviewClipstream: React.FC = () => {
             </div>
           </div>
 
-          {/* Timer + Stop */}
+          {/* Timer + Stop button */}
           <div className="timer-stop-group">
             <div className="timer">
               <span className={clipStyles.JetBrainsMonoMedium16}>0:26</span>
@@ -87,6 +90,8 @@ const PreviewClipstream: React.FC = () => {
           border-radius: 28.8px;
           background: rgba(255, 255, 255, 0.10);
           box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
+          height: 42px;
+          box-sizing: border-box;
         }
 
         .waveform-container {
@@ -94,26 +99,22 @@ const PreviewClipstream: React.FC = () => {
           padding: 0 10.8px;
           justify-content: center;
           align-items: center;
-          gap: 7.2px;
           flex: 1;
-          border-radius: 7.2px;
+          height: 28.8px;
           overflow: hidden;
         }
 
         .waveform-bars {
           display: flex;
-          padding: 7.2px 10.8px;
-          justify-content: center;
           align-items: center;
           gap: 5.4px;
-          flex: 1;
-          height: 28.8px;
+          height: 100%;
         }
 
         .bar {
           width: 1.8px;
           min-width: 1.8px;
-          border-radius: 2px;
+          border-radius: 1px;
           background: white;
           flex-shrink: 0;
         }
@@ -129,6 +130,8 @@ const PreviewClipstream: React.FC = () => {
           display: flex;
           justify-content: center;
           align-items: center;
+          width: 39px;
+          height: 23px;
           color: white;
         }
 
