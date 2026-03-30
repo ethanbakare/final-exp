@@ -1,6 +1,9 @@
 import React from 'react';
+import dynamic from 'next/dynamic';
 import styles from '../styles/new-home.module.css';
 import DemoCard from './DemoCard';
+
+const PreviewOllama = dynamic(() => import('./previews/PreviewOllama'), { ssr: false });
 
 const CarouselDemos: React.FC = () => {
   return (
@@ -28,7 +31,7 @@ const CarouselDemos: React.FC = () => {
           labelPosition="bottom-center"
           className="card card-ollama"
         >
-          <div className="placeholder placeholder-dark" />
+          <PreviewOllama />
         </DemoCard>
 
         {/* card-3: Trace AI — col 4, row 1-2 (tall), label top-left */}

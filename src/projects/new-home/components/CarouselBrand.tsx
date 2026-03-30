@@ -3,12 +3,12 @@ import styles from '../styles/new-home.module.css';
 import DemoCard from './DemoCard';
 
 const brandCards = [
-  { label: 'Eldugo - Branding' },
-  { label: 'Logofolio' },
-  { label: 'ActiveLedger - Branding' },
-  { label: 'Magma - Pitch Deck' },
-  { label: 'ACT - Pitch Deck' },
-  { label: 'Made for Humans - Illustration' },
+  { label: 'Eldugo - Branding', image: '/images/new-home/brand/eldugo.webp' },
+  { label: 'Logofolio', image: '/images/new-home/brand/logofolio.webp' },
+  { label: 'ActiveLedger - Branding', image: '/images/new-home/brand/activeledger.webp' },
+  { label: 'Magma - Pitch Deck', image: '/images/new-home/brand/magma.webp' },
+  { label: 'ACT - Pitch Deck', image: '/images/new-home/brand/act.webp' },
+  { label: 'Made for Humans - Illustration', image: '/images/new-home/brand/made-for-humans.webp' },
 ];
 
 const CarouselBrand: React.FC = () => {
@@ -29,7 +29,12 @@ const CarouselBrand: React.FC = () => {
             labelBg="rgba(34, 34, 34, 0.70)"
             className="card"
           >
-            <div className="placeholder" />
+            <img
+              src={card.image}
+              alt={card.label}
+              className="card-image"
+              draggable={false}
+            />
           </DemoCard>
         ))}
       </div>
@@ -75,10 +80,12 @@ const CarouselBrand: React.FC = () => {
           justify-content: center;
         }
 
-        .placeholder {
+        .container :global(.card-image) {
+          position: absolute;
+          inset: 0;
           width: 100%;
           height: 100%;
-          background: var(--card-inner-bg);
+          object-fit: cover;
         }
 
         /* Rearrange to 2 columns, keep card size */
