@@ -56,9 +56,15 @@ const CarouselDemos: React.FC = () => {
           labelBg="rgba(113, 113, 113, 0.50)"
           labelTextColor="rgba(255, 255, 255, 0.80)"
           labelPosition="bottom-center"
+          innerBg="#F7F6F4"
           className="card card-voice"
         >
-          <div className="placeholder placeholder-light" />
+          <img
+            src="/images/new-home/voice-ui-blob.webp"
+            alt="Voice UI blob visualization"
+            className="voice-blob"
+            draggable={false}
+          />
         </DemoCard>
 
         {/* card-5: Clipstream — col 2-3, row 2 (wide), label bottom-center */}
@@ -149,6 +155,14 @@ const CarouselDemos: React.FC = () => {
 
         .placeholder-light {
           background: #F7F6F4;
+        }
+
+        .container :global(.voice-blob) {
+          width: 65%;
+          height: auto;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
         }
 
         /* Tablet: rearrange to 2 columns when 4-col no longer fits */
