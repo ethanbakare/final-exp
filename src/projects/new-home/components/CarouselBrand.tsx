@@ -69,14 +69,10 @@ const CarouselBrand: React.FC = () => {
 
         .container {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(3, 381px);
           grid-template-rows: repeat(2, 298px);
           gap: 15px;
-          width: 100%;
-        }
-
-        .container :global(.card) {
-          width: 100%;
+          justify-content: center;
         }
 
         .placeholder {
@@ -85,16 +81,18 @@ const CarouselBrand: React.FC = () => {
           background: var(--card-inner-bg);
         }
 
-        @media (max-width: 1024px) {
+        /* Rearrange to 2 columns, keep card size */
+        @media (max-width: 1200px) {
           .container {
-            grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: auto;
+            grid-template-columns: repeat(2, 381px);
           }
         }
 
-        @media (max-width: 600px) {
+        /* Single column, full width, keep aspect ratio */
+        @media (max-width: 800px) {
           .container {
             grid-template-columns: 1fr;
+            grid-template-rows: auto;
           }
 
           .container :global(.card) {
