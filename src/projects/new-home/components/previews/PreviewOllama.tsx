@@ -32,15 +32,17 @@ const PreviewOllama: React.FC = () => {
 
   return (
     <div className="preview-ollama">
-      {EXPRESSIONS.map((expr) => (
-        <img
-          key={expr}
-          src={`/images/ollama/${expr}.png`}
-          alt={`Ollama ${expr}`}
-          className={`ollama-img ${expr === activeExpression ? 'active' : ''}`}
-          draggable={false}
-        />
-      ))}
+      <div className="character-box">
+        {EXPRESSIONS.map((expr) => (
+          <img
+            key={expr}
+            src={`/images/ollama/${expr}.png`}
+            alt={`Ollama ${expr}`}
+            className={`ollama-img ${expr === activeExpression ? 'active' : ''}`}
+            draggable={false}
+          />
+        ))}
+      </div>
 
       <style jsx>{`
         .preview-ollama {
@@ -52,14 +54,26 @@ const PreviewOllama: React.FC = () => {
           background: #1A1A19;
         }
 
+        .character-box {
+          position: relative;
+          width: 160px;
+          height: 180px;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+        }
+
         .ollama-img {
           position: absolute;
-          width: 60%;
+          width: 100%;
           height: auto;
+          max-height: 100%;
           object-fit: contain;
+          object-position: bottom;
           opacity: 0;
           transition: opacity 0.6s ease;
           pointer-events: none;
+          user-select: none;
         }
 
         .ollama-img.active {
