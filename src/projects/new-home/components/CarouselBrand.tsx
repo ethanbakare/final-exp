@@ -85,6 +85,7 @@ const CarouselBrand: React.FC = () => {
         @media (max-width: 1200px) {
           .container {
             grid-template-columns: repeat(2, 381px);
+            grid-template-rows: repeat(3, 298px);
           }
         }
 
