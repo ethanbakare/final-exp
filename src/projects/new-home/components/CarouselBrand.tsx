@@ -8,7 +8,7 @@ const brandCards = [
   { label: 'ActiveLedger - Branding', image: '/images/new-home/brand/activeledger.webp', href: '/portfolio2025/activeledger' },
   { label: 'Magma - Pitch Deck', image: '/images/new-home/brand/magma.webp', href: '/portfolio2025/magmadeck' },
   { label: 'ACT - Pitch Deck', image: '/images/new-home/brand/act.webp', href: '/portfolio2025/actdeck' },
-  { label: 'Made for Humans - Illustration', image: '/images/new-home/brand/made-for-humans.webp', href: 'https://madeforhumans.ai' },
+  { label: 'Made for Humans - Illustration', image: '/images/new-home/brand/made-for-humans.webp', href: '/madeforhumans' },
 ];
 
 const CarouselBrand: React.FC = () => {

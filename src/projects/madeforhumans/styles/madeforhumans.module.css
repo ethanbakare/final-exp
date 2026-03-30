@@ -1,0 +1,98 @@
+/* ============================================
+   MADE FOR HUMANS — CSS Module
+   Light background style matching madeforhumans.ai
+   ============================================ */
+
+.container {
+  --mfh-bg: #F5F5F3;
+  --mfh-text: #333333;
+  --mfh-text-light: #888888;
+  --mfh-border: #E8E8E6;
+}
+
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--mfh-bg);
+  padding: 80px 20px 120px;
+  box-sizing: border-box;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 80px;
+  max-width: 900px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.title {
+  font-family: 'Inter', sans-serif;
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--mfh-text);
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--mfh-text-light);
+  margin: 0;
+}
+
+.illustrationSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.illustrationTitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--mfh-text);
+  text-align: center;
+  margin: 0;
+}
+
+.illustrationImage {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  display: block;
+}
+
+@media (max-width: 600px) {
+  .pageContainer {
+    padding: 60px 16px 80px;
+  }
+
+  .content {
+    gap: 60px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .illustrationTitle {
+    font-size: 16px;
+  }
+}
