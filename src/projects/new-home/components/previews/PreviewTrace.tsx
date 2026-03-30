@@ -5,7 +5,7 @@ import {
   DayBlock,
   FinanceBox,
 } from '@/projects/trace/components/ui/tracefinance';
-import { TRNavbar } from '@/projects/trace/components/ui/tracenavbar';
+import { TRNavbarV2 } from '@/projects/trace/components/ui/tracenavbar-v2';
 
 const DUMMY_DAYS = [
   {
@@ -43,7 +43,7 @@ const PreviewTrace: React.FC = () => {
       <div className={`trace-frame ${traceStyles.container}`}>
         <MasterBlockHolder total="14.99" />
         <FinanceBox days={DUMMY_DAYS} />
-        <TRNavbar state="idle" />
+        <TRNavbarV2 state="idle" />
       </div>
 
       <style jsx>{`
