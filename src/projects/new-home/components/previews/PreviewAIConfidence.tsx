@@ -50,11 +50,14 @@ const PreviewAIConfidence: React.FC = () => {
 
         .bg-image {
           position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
+          right: -27px;
+          top: -25px;
+          width: 588px;
+          height: 345px;
+          transform: rotate(-90deg);
+          transform-origin: center center;
           object-fit: cover;
+          border-radius: 11px;
           pointer-events: none;
         }
 
