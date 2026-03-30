@@ -97,11 +97,10 @@ const CarouselDemos: React.FC = () => {
 
         .container {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(4, 1fr);
           grid-template-rows: 321px 321px;
           gap: 10px;
-          width: 100%;
-          max-width: 1160px;
+          width: 1160px;
         }
 
         .container :global(.card-ai-confidence) {
@@ -142,47 +141,46 @@ const CarouselDemos: React.FC = () => {
           background: #F7F6F4;
         }
 
-        /* Tablet: rearrange to 2 columns */
-        @media (max-width: 1024px) {
+        /* Tablet: rearrange to 2 columns when 4-col no longer fits */
+        @media (max-width: 1200px) {
           .container {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-template-rows: auto;
+            width: 574px;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: 321px 321px 321px 321px;
           }
 
           .container :global(.card-ai-confidence) {
             grid-column: 1 / span 2;
-            grid-row: auto;
+            grid-row: 1;
           }
 
           .container :global(.card-ollama) {
             grid-column: 1;
-            grid-row: auto;
+            grid-row: 2;
           }
 
           .container :global(.card-trace) {
             grid-column: 2;
-            grid-row: auto;
+            grid-row: 2 / span 2;
           }
 
           .container :global(.card-voice) {
             grid-column: 1;
-            grid-row: auto;
+            grid-row: 3;
           }
 
           .container :global(.card-clipstream) {
-            grid-column: 2;
-            grid-row: auto;
-          }
-
-          .container :global(.card) {
-            min-height: 280px;
+            grid-column: 1 / span 2;
+            grid-row: 4;
           }
         }
 
-        /* Mobile: single column */
-        @media (max-width: 600px) {
+        /* Mobile: single column, full width */
+        @media (max-width: 620px) {
           .container {
+            width: 100%;
             grid-template-columns: 1fr;
+            grid-template-rows: auto;
           }
 
           .container :global(.card-ai-confidence),
@@ -193,6 +191,12 @@ const CarouselDemos: React.FC = () => {
             grid-column: 1;
             grid-row: auto;
           }
+
+          .container :global(.card-ai-confidence) { min-height: 300px; }
+          .container :global(.card-ollama) { min-height: 300px; }
+          .container :global(.card-trace) { min-height: 500px; }
+          .container :global(.card-voice) { min-height: 300px; }
+          .container :global(.card-clipstream) { min-height: 300px; }
         }
       `}</style>
     </section>
