@@ -1,44 +1,52 @@
 import React from 'react';
+import clipStyles from '@/projects/clipperstream/styles/clipper.module.css';
+import { CloseButton } from '@/projects/clipperstream/components/ui/clipbuttons';
+
+// Static waveform bar heights matching Figma pattern
+// Ghost bars (inactive, low opacity) followed by active bars (brighter, varied heights)
+const BARS: Array<{ h: number; active: boolean }> = [
+  // Ghost bars (inactive region)
+  ...Array(18).fill(null).map(() => ({ h: 0.5, active: false })),
+  // Active bars (recording region with varied heights)
+  { h: 0.5, active: true }, { h: 0.5, active: true }, { h: 0.5, active: true },
+  { h: 0.7, active: true }, { h: 0.7, active: true }, { h: 0.7, active: true },
+  { h: 1.0, active: true }, { h: 1.0, active: true }, { h: 0.7, active: true },
+  { h: 1.0, active: true }, { h: 0.5, active: true }, { h: 0.75, active: true },
+  { h: 0.75, active: true }, { h: 0.75, active: true }, { h: 1.0, active: true },
+  { h: 1.0, active: true }, { h: 0.5, active: true }, { h: 0.75, active: true },
+  { h: 1.0, active: true }, { h: 1.0, active: true }, { h: 0.5, active: true },
+  { h: 0.75, active: true }, { h: 0.75, active: true },
+];
 
 const PreviewClipstream: React.FC = () => {
-  // Static waveform bar heights matching the Figma pattern
-  // First ~18 bars are short (ghost/inactive), then bars get taller in the middle, then taper off
-  const bars = [
-    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-    0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-    0.5, 0.5, 0.5, 0.7, 0.7, 0.7, 1.0, 1.0, 0.7,
-    1.0, 0.5, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 0.5,
-    0.7, 1.0, 1.0, 0.5, 0.7,
-  ];
-
   return (
     <div className="preview-clipstream">
-      <div className="recording-card">
+      <div className={`recording-card ${clipStyles.container}`}>
         <div className="record-bar">
-          {/* Close button */}
-          <div className="btn-close">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M9 3L3 9M3 3L9 9" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
+          {/* Close button — from Clipstream */}
+          <CloseButton />
 
-          {/* Waveform */}
-          <div className="waveform">
-            {bars.map((h, i) => (
-              <div
-                key={i}
-                className="bar"
-                style={{
-                  height: `${h * 14}px`,
-                  opacity: i < 18 ? 0.15 : 0.35,
-                }}
-              />
-            ))}
+          {/* Waveform container */}
+          <div className="waveform-container">
+            <div className="waveform-bars">
+              {BARS.map((bar, i) => (
+                <div
+                  key={i}
+                  className="bar"
+                  style={{
+                    height: `${bar.h * 14.4}px`,
+                    opacity: bar.active ? 0.3 : 0.1,
+                  }}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Timer + Stop */}
-          <div className="timer-stop">
-            <span className="timer">0:26</span>
+          <div className="timer-stop-group">
+            <div className="timer">
+              <span className={clipStyles.JetBrainsMonoMedium16}>0:26</span>
+            </div>
             <div className="btn-stop">
               <div className="stop-dot" />
             </div>
@@ -63,9 +71,11 @@ const PreviewClipstream: React.FC = () => {
           flex-direction: column;
           justify-content: flex-end;
           align-items: center;
+          gap: 24px;
           border-radius: 28px;
           background: #2C2929;
           box-sizing: border-box;
+          pointer-events: none;
         }
 
         .record-bar {
@@ -79,24 +89,25 @@ const PreviewClipstream: React.FC = () => {
           box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
         }
 
-        .btn-close {
-          width: 34px;
-          height: 34px;
+        .waveform-container {
           display: flex;
+          padding: 0 10.8px;
           justify-content: center;
           align-items: center;
-          border-radius: 50%;
-          flex-shrink: 0;
+          gap: 7.2px;
+          flex: 1;
+          border-radius: 7.2px;
+          overflow: hidden;
         }
 
-        .waveform {
+        .waveform-bars {
           display: flex;
+          padding: 7.2px 10.8px;
+          justify-content: center;
           align-items: center;
-          gap: 3.6px;
+          gap: 5.4px;
           flex: 1;
-          padding: 0 8px;
-          height: 28px;
-          overflow: hidden;
+          height: 28.8px;
         }
 
         .bar {
@@ -107,7 +118,7 @@ const PreviewClipstream: React.FC = () => {
           flex-shrink: 0;
         }
 
-        .timer-stop {
+        .timer-stop-group {
           display: flex;
           align-items: center;
           gap: 9px;
@@ -115,11 +126,10 @@ const PreviewClipstream: React.FC = () => {
         }
 
         .timer {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 16px;
-          font-weight: 500;
+          display: flex;
+          justify-content: center;
+          align-items: center;
           color: white;
-          line-height: 143.75%;
         }
 
         .btn-stop {
@@ -128,14 +138,14 @@ const PreviewClipstream: React.FC = () => {
           display: flex;
           justify-content: center;
           align-items: center;
-          border-radius: 50%;
+          border-radius: 21.474px;
           background: white;
           flex-shrink: 0;
         }
 
         .stop-dot {
-          width: 9px;
-          height: 9px;
+          width: 8.947px;
+          height: 8.947px;
           border-radius: 50%;
           background: #EF4444;
         }
