@@ -3,12 +3,12 @@ import styles from '../styles/new-home.module.css';
 import DemoCard from './DemoCard';
 
 const brandCards = [
-  { label: 'Eldugo - Branding', image: '/images/new-home/brand/eldugo.webp' },
-  { label: 'Logofolio', image: '/images/new-home/brand/logofolio.webp' },
-  { label: 'ActiveLedger - Branding', image: '/images/new-home/brand/activeledger.webp' },
-  { label: 'Magma - Pitch Deck', image: '/images/new-home/brand/magma.webp' },
-  { label: 'ACT - Pitch Deck', image: '/images/new-home/brand/act.webp' },
-  { label: 'Made for Humans - Illustration', image: '/images/new-home/brand/made-for-humans.webp' },
+  { label: 'Eldugo - Branding', image: '/images/new-home/brand/eldugo.webp', href: '/portfolio2025/eldugo' },
+  { label: 'Logofolio', image: '/images/new-home/brand/logofolio.webp', href: '/portfolio2025/logo' },
+  { label: 'ActiveLedger - Branding', image: '/images/new-home/brand/activeledger.webp', href: '/portfolio2025/activeledger' },
+  { label: 'Magma - Pitch Deck', image: '/images/new-home/brand/magma.webp', href: '/portfolio2025/magmadeck' },
+  { label: 'ACT - Pitch Deck', image: '/images/new-home/brand/act.webp', href: '/portfolio2025/actdeck' },
+  { label: 'Made for Humans - Illustration', image: '/images/new-home/brand/made-for-humans.webp', href: 'https://madeforhumans.ai' },
 ];
 
 const CarouselBrand: React.FC = () => {
@@ -26,6 +26,7 @@ const CarouselBrand: React.FC = () => {
           <DemoCard
             key={i}
             label={card.label}
+            href={card.href}
             labelBg="rgba(34, 34, 34, 0.70)"
             className="card"
           >

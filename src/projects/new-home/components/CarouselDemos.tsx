@@ -30,6 +30,7 @@ const CarouselDemos: React.FC = () => {
         {/* card-1: Ollama — col 3, row 1, label bottom-center */}
         <DemoCard
           label="Ollama"
+          href="/ollama"
           labelBg="rgba(255, 255, 255, 0.30)"
           labelPosition="bottom-center"
           className="card card-ollama"

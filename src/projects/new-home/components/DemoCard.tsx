@@ -111,8 +111,14 @@ const DemoCard: React.FC<DemoCardProps> = ({
   );
 
   if (href) {
+    const isExternal = href.startsWith('http');
     return (
-      <a href={href} className={className} style={{ textDecoration: 'none', display: 'flex' }}>
+      <a
+        href={href}
+        className={className}
+        style={{ textDecoration: 'none', display: 'flex' }}
+        {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      >
         {cardContent}
       </a>
     );
