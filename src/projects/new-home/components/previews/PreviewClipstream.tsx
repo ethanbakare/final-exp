@@ -29,20 +29,28 @@ const PreviewClipstream: React.FC = () => {
           {/* Close button — from Clipstream */}
           <CloseButton />
 
-          {/* Waveform container — matches Figma WaveClipper */}
+          {/* Waveform container — SVG strokes matching Figma vectors */}
           <div className="waveform-container">
-            <div className="waveform-bars">
-              {BARS.map((bar, i) => (
-                <div
-                  key={i}
-                  className="bar"
-                  style={{
-                    height: `${bar.h}px`,
-                    opacity: bar.active ? 0.3 : 0.1,
-                  }}
-                />
-              ))}
-            </div>
+            <svg className="waveform-svg" viewBox={`0 0 ${BARS.length * 7.2} 28.8`} preserveAspectRatio="xMidYMid meet">
+              {BARS.map((bar, i) => {
+                const x = i * 7.2 + 0.9;
+                const cy = 14.4;
+                const halfH = bar.h / 2;
+                return (
+                  <line
+                    key={i}
+                    x1={x}
+                    y1={cy - halfH}
+                    x2={x}
+                    y2={cy + halfH}
+                    stroke="white"
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    opacity={bar.active ? 0.3 : 0.1}
+                  />
+                );
+              })}
+            </svg>
           </div>
 
           {/* Timer + Stop button */}
@@ -104,19 +112,9 @@ const PreviewClipstream: React.FC = () => {
           overflow: hidden;
         }
 
-        .waveform-bars {
-          display: flex;
-          align-items: center;
-          gap: 5.4px;
+        .waveform-container :global(.waveform-svg) {
+          width: 100%;
           height: 100%;
-        }
-
-        .bar {
-          width: 1.8px;
-          min-width: 1.8px;
-          border-radius: 1px;
-          background: white;
-          flex-shrink: 0;
         }
 
         .timer-stop-group {
