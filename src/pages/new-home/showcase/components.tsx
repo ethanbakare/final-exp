@@ -327,13 +327,13 @@ export default function NewHomeComponents() {
         }
 
         .type-family-name {
-          font-family: 'Inter', sans-serif;
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.4);
-          margin-bottom: 24px;
+          font-family: 'JetBrains Mono', 'Inter', monospace;
+          font-size: 10px;
+          font-weight: 400;
+          letter-spacing: 0.04em;
+          color: rgba(255, 255, 255, 0.2);
+          margin-bottom: 16px;
+          padding-left: 2px;
         }
 
         .type-specimen {
