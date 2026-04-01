@@ -196,8 +196,10 @@ export default function NewHomeComponents() {
               {COLOURS.map((c) => (
                 <div key={c.name} className="colour-row">
                   <div className="colour-circle" style={{ background: c.hex, border: c.light ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)' }} />
-                  <span className="colour-hex">{c.hex}</span>
-                  <span className="colour-name">{c.name}</span>
+                  <div className="colour-text">
+                    <span className="colour-hex">{c.hex}</span>
+                    <span className="colour-name">{c.name}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -289,7 +291,7 @@ export default function NewHomeComponents() {
         .colour-row {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
         }
 
         .colour-circle {
@@ -299,17 +301,22 @@ export default function NewHomeComponents() {
           flex-shrink: 0;
         }
 
+        .colour-text {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+        }
+
         .colour-hex {
           font-family: 'JetBrains Mono', 'Inter', monospace;
           font-size: 13px;
           font-weight: 500;
           color: rgba(255, 255, 255, 0.6);
-          min-width: 70px;
         }
 
         .colour-name {
           font-family: 'Inter', sans-serif;
-          font-size: 12px;
+          font-size: 11px;
           color: rgba(255, 255, 255, 0.25);
         }
 
