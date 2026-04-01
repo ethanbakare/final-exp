@@ -108,16 +108,27 @@ function GridBox({ children, label, width, height }: {
 function SectionTitle({ children }: { children: string }) {
   return (
     <h2 className="section-title">
+      <span className="section-accent" />
       {children}
       <style jsx>{`
         .section-title {
+          display: flex;
+          align-items: center;
+          gap: 12px;
           font-family: 'Inter', sans-serif;
           font-size: 13px;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-          color: rgba(255, 255, 255, 0.3);
-          margin: 0 0 24px;
+          color: rgba(255, 255, 255, 0.45);
+          margin: 0 0 28px;
+        }
+        .section-accent {
+          width: 3px;
+          height: 16px;
+          background: var(--accent-orange);
+          border-radius: 2px;
+          flex-shrink: 0;
         }
       `}</style>
     </h2>
@@ -156,7 +167,8 @@ export default function NewHomeComponents() {
 
           {/* ======== CAROUSEL CARD SIZES ======== */}
           <div className="section">
-            <SectionTitle>Carousel Card Sizes — AI Demos</SectionTitle>
+            <SectionTitle>Carousel Card Sizes</SectionTitle>
+            <div className="subsection-label">AI Demos</div>
             <div className="seamless-grid">
               <GridBox label="standard — 282 × 321" width={282} height={321}>
                 <DemoCard label="Standard" labelBg="rgba(34,34,34,0.70)" className="fill">
@@ -176,10 +188,7 @@ export default function NewHomeComponents() {
                 </DemoCard>
               </GridBox>
             </div>
-          </div>
-
-          <div className="section">
-            <SectionTitle>Carousel Card Sizes — Brand Work</SectionTitle>
+            <div className="subsection-label" style={{ marginTop: 32 }}>Brand Work</div>
             <div className="seamless-grid">
               <GridBox label="brand card — 381 × 298" width={381} height={298}>
                 <DemoCard label="Brand Card" labelBg="rgba(34,34,34,0.70)" className="fill">
@@ -285,7 +294,24 @@ export default function NewHomeComponents() {
         }
 
         .section {
-          margin-bottom: 56px;
+          margin-bottom: 0;
+          padding: 48px 0;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .section:first-child {
+          border-top: none;
+          padding-top: 0;
+        }
+
+        .subsection-label {
+          font-family: 'Inter', sans-serif;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.35);
+          margin-bottom: 16px;
         }
 
         /* Seamless grid — Trace pattern */
@@ -314,8 +340,7 @@ export default function NewHomeComponents() {
         }
 
         .type-family-group {
-          padding: 32px 0;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          padding: 24px 0;
         }
 
         .type-family-group:first-child {
@@ -323,17 +348,17 @@ export default function NewHomeComponents() {
         }
 
         .type-family-group:last-child {
-          border-bottom: none;
+          padding-bottom: 0;
         }
 
         .type-family-name {
-          font-family: 'JetBrains Mono', 'Inter', monospace;
-          font-size: 10px;
-          font-weight: 400;
-          letter-spacing: 0.04em;
-          color: rgba(255, 255, 255, 0.2);
-          margin-bottom: 16px;
-          padding-left: 2px;
+          font-family: 'Inter', sans-serif;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.35);
+          margin-bottom: 20px;
         }
 
         .type-specimen {
