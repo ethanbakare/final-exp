@@ -74,7 +74,7 @@ export default async function handler(
     // Read audio file
     const filePath = typedAudioFile.filepath || (typedAudioFile as any).path;
     const audioBuffer = fs.readFileSync(filePath);
-    const mimeType = typedAudioFile.mimetype || typedAudioFile.type || 'audio/webm';
+    const mimeType = typedAudioFile.mimetype || (typedAudioFile as any).type || 'audio/webm';
 
     console.log(`Transcribing audio: ${audioBuffer.length} bytes, ${mimeType}`);
 

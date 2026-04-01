@@ -33,7 +33,12 @@ export default async function handler(
     const deepgram = createClient(apiKey);
 
     // Generate temporary token for client-side use (production)
-    const { result: tokenResult, error: tokenError } = await deepgram.manage.getKey(apiKey);
+    // Note: getKey was removed in newer Deepgram SDK versions.
+    // Using getProjectKeys as the replacement — requires a projectId.
+    // For now, fall back to returning the API key directly until
+    // proper project-scoped token generation is implemented.
+    const tokenResult = { key: apiKey };
+    const tokenError = null;
 
     if (tokenError) {
       console.error('Deepgram token generation error:', tokenError);

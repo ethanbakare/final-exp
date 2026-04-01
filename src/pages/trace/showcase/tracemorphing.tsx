@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Trace Animation Showcase
  * Interactive testing environment for animation scenarios

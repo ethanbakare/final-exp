@@ -32,7 +32,7 @@ export async function processAudioWithDeepgram(
         'Authorization': `Token ${apiKey}`,
         'Content-Type': mimeType
       },
-      body: audioBuffer
+      body: new Uint8Array(audioBuffer)
     };
     
     // Send request to Deepgram
