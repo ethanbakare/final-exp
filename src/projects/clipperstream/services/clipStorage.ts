@@ -2,6 +2,8 @@
 // Centralized clip CRUD operations with sessionStorage persistence
 // Includes incognito mode fallback (memory-only storage)
 
+import { ClipStatus } from '../store/clipStore';
+
 /* ============================================
    INTERFACES
    ============================================ */
@@ -10,7 +12,7 @@ export interface Clip {
   id: string;
   title: string;
   date: string; // Format: "Dec 10, 2024" (US style)
-  status: 'pending' | 'transcribing' | 'failed' | null;
+  status: ClipStatus;
   content?: string; // DEPRECATED - keep for backward compatibility
   rawText?: string; // NEW: Combined raw transcriptions
   formattedText?: string; // NEW: Combined formatted text
@@ -19,6 +21,7 @@ export interface Clip {
   transcriptionError?: string; // NEW: Error message for failed transcriptions
   duration?: string; // NEW: Recording duration in format "0:26", "1:43", etc.
   pendingClipTitle?: string; // NEW: "Clip 001" etc - set once when becomes pending
+  parentId?: string; // PHASE 2.3.1: Links child clips to parent recording
   createdAt: number; // timestamp for sorting
 }
 
@@ -271,8 +274,15 @@ export function getNextClipNumber(clips: Clip[]): string {
    ============================================ */
 
 export function getNextRecordingNumber(clips: Clip[]): string {
-  // Extract all numeric recording titles
-  const recordingNumbers = clips
+  // PHASE 2.3.2 FIX: Only count PARENT recordings (exclude children)
+  // Children have status='pending-child' or parentId !== undefined
+  const parentRecordings = clips.filter(c =>
+    c.status !== 'pending-child' &&  // Exclude children
+    !c.parentId                      // Exclude anything with a parent
+  );
+
+  // Extract all numeric recording titles from parents only
+  const recordingNumbers = parentRecordings
     .map(c => {
       const match = c.title.match(/^Recording (\d+)$/);
       return match ? parseInt(match[1], 10) : 0;

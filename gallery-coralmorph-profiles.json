@@ -1,0 +1,21 @@
+[
+  {
+    "id": "g-677efe83-c9c5-4f14-9a4f-5437b401f096",
+    "name": "Bramble",
+    "settings": {
+      "scale": 0.5,
+      "thinRadius": 0.15,
+      "thickRadius": 0.25,
+      "thickenSpeed": 0.5,
+      "torusRadius": 0.255,
+      "waveIntensity": 0.28,
+      "breathAmp": 0.045,
+      "idleAmp": 0.02,
+      "color1": "#ebfff0",
+      "color2": "#bbffcd",
+      "color3": "#c4ffbf",
+      "bgColor": "#eef6ee"
+    },
+    "lastModified": 1770345905075
+  }
+]

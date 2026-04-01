@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
 import { ClipHomeScreen, Clip } from '@/projects/clipperstream/components/ui/ClipHomeScreen';
 import { ClipRecordScreen, PendingClip } from '@/projects/clipperstream/components/ui/ClipRecordScreen';

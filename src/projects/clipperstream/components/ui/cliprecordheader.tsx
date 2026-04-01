@@ -68,7 +68,8 @@ export const ClipRecordHeader: React.FC<ClipRecordHeaderProps> = ({
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [onNetworkChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount - event listeners handle all updates
 
   return (
     <>

@@ -1,0 +1,291 @@
+/* Voice Interface Styles - Following AI Confidence Tracker Pattern */
+
+/* ============================================
+   FONT FACE DECLARATIONS
+   ============================================ */
+
+/* Open Runde - Regular (400) */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Regular.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Open Runde - Medium (500) */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Medium.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Open Runde - Semibold (600) */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Semibold.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Semibold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Open Runde - Bold (700) */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Bold.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================
+   TYPOGRAPHY UTILITY CLASSES
+   ============================================ */
+
+/* Inter Regular */
+.InterRegular13 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular12 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular16 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular18 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular20 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+/* Inter Medium */
+.InterMedium16 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 143.75%;
+}
+
+.InterMedium18 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterMedium20 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterMedium32 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+/* Open Runde Typography Classes */
+.OpenRundeRegular20 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeRegular18 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeRegular16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeRegular14 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeRegular12 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium20 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium18 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium14 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium12 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeSemiBold16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeSemiBold14 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeBold20 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeBold18 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeBold16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+/* ============================================
+   COMPONENT STYLES
+   ============================================ */
+
+/* Styles will be added as components are built */
+
+/* ============================================
+   COLOR VARIABLES
+   ============================================ */
+
+/* Color Variables Container */
+.container {
+  /* Voice Interface Color Palette */
+
+  /* Base Colors - Full Opacity */
+  --VoiceDarkGrey: #262424;
+  --VoiceWhite: #FFFFFF;
+  --VoiceRed: #EF4444;
+  --VoiceLightGrey: #F4F4F4;
+
+  /* Dark Grey Variations */
+  --VoiceDarkGrey_95: rgba(38, 36, 36, 0.95);
+  --VoiceDarkGrey_90: rgba(38, 36, 36, 0.9);
+  --VoiceDarkGrey_80: rgba(38, 36, 36, 0.8);
+  --VoiceDarkGrey_30: rgba(38, 36, 36, 0.3);
+  --VoiceDarkGrey_20: rgba(38, 36, 36, 0.2);
+  --VoiceDarkGrey_15: rgba(38, 36, 36, 0.15);
+  --VoiceDarkGrey_10: rgba(38, 36, 36, 0.1);
+  --VoiceDarkGrey_5: rgba(38, 36, 36, 0.05);
+
+  /* Text Grey for Grid Labels */
+  --VoiceTextGrey_50: rgba(94, 94, 94, 0.5);
+
+  /* TextBox Background Colors (from A03_IMPLEMENTATION_NOTES.md) */
+  --VoiceBoxBg: #F7F6F4;
+  --VoiceBoxOutline: #F2F2F2;
+  --VoiceBoxShadow: rgba(0, 0, 0, 0.06);
+}

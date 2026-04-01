@@ -1,0 +1,184 @@
+/* ============================================
+   NEW HOME PAGE — CSS Module
+   Colors, typography, and shared styles
+   from Figma "2025" file
+   ============================================ */
+
+/* ----------------------------------------
+   FONT FACES — Open Runde (local files)
+   ---------------------------------------- */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Regular.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Medium.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Semibold.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Semibold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Bold.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+/* ----------------------------------------
+   COLOR VARIABLES
+   ---------------------------------------- */
+.pageContainer {
+  /* Page background */
+  --page-bg-start: #0A0A09;
+  --page-bg-end: #0F0F0E;
+
+  /* Card colors */
+  --card-bg: #201F1D;
+  --card-border: #2E2C29;
+  --card-inner-bg: #33312E;
+  --card-inner-border: #403D3A;
+
+  /* White opacities */
+  --white-90: rgba(255, 255, 255, 0.90);
+  --white-80: rgba(255, 255, 255, 0.80);
+  --white-70: rgba(255, 255, 255, 0.70);
+  --white-60: rgba(255, 255, 255, 0.60);
+  --white-40: rgba(255, 255, 255, 0.40);
+  --white-30: rgba(255, 255, 255, 0.30);
+  --white-25: rgba(255, 255, 255, 0.25);
+  --white-20: rgba(255, 255, 255, 0.20);
+  --white-12: rgba(255, 255, 255, 0.12);
+  --white-06: rgba(255, 255, 255, 0.06);
+  --white-03: rgba(255, 255, 255, 0.03);
+
+  /* Accent */
+  --accent-orange: #FB7232;
+
+  /* Label backgrounds */
+  --label-bg-dark: rgba(34, 34, 34, 0.70);
+  --label-bg-light: rgba(255, 255, 255, 0.30);
+  --label-bg-grey: rgba(113, 113, 113, 0.50);
+
+  /* Preview card backgrounds */
+  --preview-ollama-bg: #1A1A19;
+  --preview-trace-bg: #965935;
+  --preview-voice-bg: #F7F6F4;
+  --preview-clipstream-bg: #F0EBEB;
+  --preview-clipstream-dots: rgba(0, 0, 0, 0.08);
+
+  /* Confidence highlights */
+  --confidence-low: #EF4444;
+  --confidence-medium: #F59E0B;
+  --confidence-low-bg: #FEE2E2;
+}
+
+
+/* ----------------------------------------
+   PAGE LAYOUT
+   ---------------------------------------- */
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--page-bg-start) 0%, var(--page-bg-end) 100%);
+}
+
+
+/* ----------------------------------------
+   CARD SHADOW (shared)
+   ---------------------------------------- */
+.cardShadow {
+  box-shadow:
+    0 7.256px 14.513px 1px var(--white-03) inset,
+    0 0.5px 0.5px 1px var(--white-06) inset,
+    0 0.25px 0.25px 1px var(--white-12) inset,
+    0 14.211px 20.281px -5.477px rgba(0, 0, 0, 0.25);
+}
+
+
+/* ----------------------------------------
+   TYPOGRAPHY — Frank Ruhl Libre
+   ---------------------------------------- */
+.FrankRuhlLibre30 {
+  font-family: var(--font-frank-ruhl-libre), 'Frank Ruhl Libre', serif;
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 93.75%;
+  letter-spacing: -0.6px;
+}
+
+
+/* ----------------------------------------
+   TYPOGRAPHY — Inter
+   ---------------------------------------- */
+.InterMedium16Spaced {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: 1.92px;
+  text-transform: uppercase;
+}
+
+.InterRegular16 {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -0.16px;
+}
+
+.InterRegular14 {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -0.14px;
+}
+
+
+/* ----------------------------------------
+   TYPOGRAPHY — Open Runde
+   ---------------------------------------- */
+.OpenRundeMedium14 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: 0.42px;
+  text-transform: uppercase;
+}
+
+
+/* ----------------------------------------
+   TYPOGRAPHY — Hedvig Letters Sans
+   ---------------------------------------- */
+.HedvigLettersSans16 {
+  font-family: var(--font-hedvig), 'Hedvig Letters Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -0.16px;
+}

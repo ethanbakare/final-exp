@@ -2,6 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import formidable, { Fields, Files } from 'formidable';
 import fs from 'fs';
 import { transcribeAudio } from '../../../projects/clipperstream/api/deepgramProvider';
+// TEMPORARY: For VPN testing
+import { transcribeWithWhisper } from '../../../projects/clipperstream/api/whisperProvider';
 
 // Clipperstream Transcription API Route
 // Handles audio file uploads and transcription using Deepgram Nova 3
@@ -68,18 +70,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Check for Deepgram API key
-    const apiKey = process.env.DEEPGRAM_API_KEY;
-    if (!apiKey || apiKey === 'your_api_key_here') {
+    // TEMPORARY: Check for provider parameter (for VPN testing)
+    const { files, fields } = await parseForm(req);
+    
+    // Handle provider parameter (formidable returns arrays for fields)
+    const providerField = fields.provider;
+    const provider = Array.isArray(providerField) 
+      ? providerField[0] 
+      : (providerField || 'deepgram');
+    
+    console.log('Transcription request', { provider, providerField });
+    
+    // Check for API keys
+    const deepgramKey = process.env.DEEPGRAM_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    
+    if (!deepgramKey || deepgramKey === 'your_api_key_here') {
       console.error('Missing or invalid Deepgram API key');
       return res.status(500).json({ 
         error: 'Configuration error',
-        details: 'Deepgram API key is not properly configured. Please add a valid API key to your .env.local file.'
+        details: 'Deepgram API key is not properly configured.'
       });
     }
 
     // Parse the incoming form data
-    const { files } = await parseForm(req);
     
     console.log('Files received:', Object.keys(files));
     
@@ -134,14 +148,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
     
+    // ========================================
+    // DIAGNOSTIC LOGGING: Verify WebM format
+    // ========================================
+    const isValidWebM = audioData.length >= 4 &&
+                       audioData[0] === 0x1A &&
+                       audioData[1] === 0x45 &&
+                       audioData[2] === 0xDF &&
+                       audioData[3] === 0xA3;
+
+    const hexDump = audioData.slice(0, 64)
+      .toString('hex')
+      .match(/.{1,2}/g)
+      ?.join(' ') || '';
+
+    console.log('=== 🔬 SERVER AUDIO VERIFICATION ===');
+    console.log('File path:', filePath);
+    console.log('Size:', audioData.length, 'bytes');
+    console.log('MIME type:', mimeType);
+    console.log('Is valid WebM:', isValidWebM ? '✅ YES' : '❌ NO');
+    console.log('First 64 bytes (hex):', hexDump);
+    console.log('Expected WebM header: 1a 45 df a3');
+    console.log('====================================');
+
+    if (!isValidWebM) {
+      console.error('❌ INVALID WEBM FILE - rejecting before sending to Deepgram');
+      console.error('First 4 bytes:', hexDump.split(' ').slice(0, 4).join(' '));
+      console.error('Expected:      1a 45 df a3');
+      fs.unlinkSync(filePath);
+      return res.status(400).json({
+        error: 'Invalid audio format',
+        details: 'File does not contain valid WebM data. Audio may be corrupted.',
+        hexDump: hexDump.substring(0, 50) + '...'
+      });
+    }
+    // ========================================
+    
     console.log(`Processing audio file: ${filePath}, size: ${audioData.length} bytes, type: ${mimeType}`);
 
-    // Transcribe with Deepgram
-    const result = await transcribeAudio(
-      audioData,
-      mimeType,
-      apiKey
-    );
+    // TEMPORARY: Route to correct provider based on parameter
+    let result;
+    
+    if (provider === 'whisper') {
+      console.log('[API] Using Whisper provider (VPN test)');
+      if (!openaiKey || openaiKey === 'your_api_key_here') {
+        throw new Error('OpenAI API key is not configured');
+      }
+      result = await transcribeWithWhisper(audioData, mimeType, openaiKey);
+    } else {
+      console.log('[API] Using Deepgram provider');
+      result = await transcribeAudio(audioData, mimeType, deepgramKey);
+    }
 
     // Clean up temporary file
     try {
@@ -159,6 +216,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '';
+
+    // ✅ NEW: Detect DNS errors on server (VPN blocking)
+    if (
+      errorMessage.includes('ENOTFOUND') ||
+      errorMessage.includes('ECONNREFUSED') ||
+      errorMessage.includes('getaddrinfo') ||
+      errorMessage.includes('DNS')
+    ) {
+      console.error('[API] DNS error - VPN or network blocking Deepgram:', errorMessage);
+
+      // Return 503 with specific error type
+      return res.status(503).json({
+        error: 'dns-block',
+        message: 'Cannot reach transcription API. Check VPN or network settings.'
+      });
+    }
+
+    // API key issues (from Deepgram)
+    if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
+      return res.status(401).json({
+        error: 'api-key-issue',
+        message: 'Invalid API key'
+      });
+    }
+
     console.error('Error processing audio:', error);
     
     // Provide more specific error messages based on the error type

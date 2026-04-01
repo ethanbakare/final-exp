@@ -1,0 +1,41 @@
+[
+  {
+    "id": "g-a9a19c2e-a236-4195-a5b7-57aed82884e9",
+    "name": "Dusk",
+    "settings": {
+      "scale": 0.35,
+      "thinRadius": 0.15,
+      "thickRadius": 0.25,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.13,
+      "breathAmp": 0.015,
+      "idleAmp": 0.02,
+      "color1": "#5cbbff",
+      "color2": "#2ca4ff",
+      "color3": "#30eeff",
+      "bgColor": "#FFFFFF"
+    },
+    "lastModified": 1769959462854,
+    "bookmarked": true
+  },
+  {
+    "id": "g-8550a8b6-fb4c-47bc-91bb-79655db72e6a",
+    "name": "Winter",
+    "settings": {
+      "scale": 0.6,
+      "thinRadius": 0.15,
+      "thickRadius": 0.25,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.15,
+      "breathAmp": 0.015,
+      "idleAmp": 0.02,
+      "color1": "#8f7000",
+      "color2": "#5f4c00",
+      "color3": "#632c00",
+      "bgColor": "#f7f6f4"
+    },
+    "lastModified": 1769965247745
+  }
+]

@@ -8,7 +8,12 @@ import { NoClipsFrameIcon, EmptyClipFrameIcon } from './midClipButtons';
 import { ClipModalOverlay } from './ClipModalOverlay';
 import { ClipDeleteModalFull, ClipRenameModalFull } from './clipModal';
 import { ToastNotification } from './ClipToast';
-import { deleteClip as deleteClipFromStorage, updateClip } from '../../services/clipStorage';
+import { Clip, useClipStore } from '../../store/clipStore';
+
+// Display-specific clip type with derived properties
+type DisplayClip = Clip & {
+  isActiveRequest: boolean;
+};
 
 // ClipHomeScreen Component
 // Home screen with iOS-style collapsing search header on scroll
@@ -21,28 +26,17 @@ import { deleteClip as deleteClipFromStorage, updateClip } from '../../services/
    INTERFACES
    ============================================ */
 
-export interface Clip {
-  id: string;
-  title: string;
-  date: string;
-  status: 'pending' | 'transcribing' | 'failed' | null;  // null = completed (no status shown)
-  isActiveRequest?: boolean; // NEW: Controls icon spinning when status='transcribing' (default: false)
-  content?: string;  // Transcribed text (null if pending) - DEPRECATED, kept for backward compatibility
-  rawText?: string; // Combined raw transcriptions
-  formattedText?: string; // Combined formatted text
-  currentView?: 'formatted' | 'raw'; // User's current view preference
-  audioId?: string; // Reference to IndexedDB audio blob
-  transcriptionError?: string; // Error message for failed transcriptions
-  createdAt?: number; // timestamp for sorting
-}
-
 interface ClipHomeScreenProps {
   clips: Clip[];
   onClipClick?: (id: string) => void;          // Navigate to clip's record screen
   onRecordClick?: () => void;                   // Start new recording
   onSearchActiveChange?: (isActive: boolean) => void;  // Notify parent of search state (for RecordBar)
-  onClipsChange?: () => void;                   // Called after delete/rename to refresh clips
   className?: string;
+  
+  // v2.5.3 FIX: For status derivation (parent-based tracking)
+  activeTranscriptionParentId?: string | null;  // Which parent should show spinner
+  activeHttpClipId?: string | null;  // v2.5.4 CRITICAL FIX: Which specific clip is doing HTTP RIGHT NOW
+  isActiveRequest?: boolean;                     // From useClipRecording (GLOBAL flag, DO NOT USE for derivation)
 }
 
 /* ============================================
@@ -54,9 +48,15 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   onClipClick,
   // onRecordClick, // Reserved for future direct record button
   onSearchActiveChange: externalSearchActiveChange,
-  onClipsChange,
-  className = ''
+  className = '',
+  activeTranscriptionParentId = null,  // v2.5.3 FIX (renamed)
+  activeHttpClipId = null,  // v2.5.4 FIX: Add default value
+  isActiveRequest = false
 }) => {
+  // Zustand actions for delete and rename
+  const updateClip = useClipStore((state) => state.updateClip);
+  const deleteClip = useClipStore((state) => state.deleteClip);
+  
   // No local clips state - use props.clips directly (managed by parent)
 
   // Search query for filtering clips
@@ -133,10 +133,76 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   // Header height constant for collapse calculation
   const SEARCH_HEIGHT = 38;  // Search bar height - collapse happens over this distance
 
-  // Filter clips based on search query
-  const filteredClips = clips.filter(clip =>
-    clip.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // v2.5.3 FIX: Derive both status AND isActiveRequest from children
+  // Uses parent-based tracking for simpler, more robust spinner logic
+  const getDisplayClip = useCallback((
+    clip: Clip,
+    allClips: Clip[],
+    activeTranscriptionParentId: string | null,  // ✅ FIX: parent ID instead of child ID
+    activeHttpClipId: string | null  // v2.5.4 FIX: Use this instead of global isActiveRequest
+  ): DisplayClip => {
+    // Find children for this parent
+    const children = allClips.filter(c => c.parentId === clip.id);
+
+    if (children.length === 0) {
+      // No children - show clip as-is, with isActiveRequest false
+      return {
+        ...clip,
+        isActiveRequest: false
+      };
+    }
+
+    // ✅ ENHANCED: Check all child statuses
+    const hasTranscribingChildren = children.some(c => c.status === 'transcribing');
+    const hasPendingChildren = children.some(c => c.status === 'pending-child');
+    const hasRetryPendingChildren = children.some(c => c.status === 'pending-retry');
+    const hasAudioCorruptedChildren = children.some(c => c.status === 'audio-corrupted');
+    const hasVpnBlockedChildren = children.some(c =>
+      c.status === 'pending-retry' && c.lastError === 'dns-block'
+    );
+    const hasNoAudioDetectedChildren = children.some(c => c.status === 'no-audio-detected');
+
+    let derivedStatus: Clip['status'] = clip.status;
+    let derivedLastError: Clip['lastError'] = clip.lastError;
+
+    // ✅ PRIORITY ORDER (highest to lowest)
+    if (hasTranscribingChildren) {
+      derivedStatus = 'transcribing';
+    } else if (hasVpnBlockedChildren) {
+      derivedStatus = 'pending-retry';
+      derivedLastError = 'dns-block';  // Propagate VPN error to parent
+    } else if (hasRetryPendingChildren) {
+      derivedStatus = 'pending-retry';
+    } else if (hasAudioCorruptedChildren) {
+      derivedStatus = 'audio-corrupted';
+    } else if (hasPendingChildren) {
+      derivedStatus = 'pending-child';
+    } else if (hasNoAudioDetectedChildren) {
+      // No other active/pending children - show as completed
+      derivedStatus = null;
+    }
+
+    // ✅ KEEP EXISTING: Derive spinner state from HTTP activity
+    const derivedIsActiveRequest =
+      activeTranscriptionParentId !== null &&
+      clip.id === activeTranscriptionParentId &&
+      children.some(c => c.id === activeHttpClipId);
+
+    return {
+      ...clip,
+      status: derivedStatus,
+      lastError: derivedLastError,  // ✅ NEW: Include derived lastError
+      isActiveRequest: derivedIsActiveRequest
+    };
+  }, []);
+
+  // Filter clips based on search query, then sort newest first
+  const filteredClips = clips
+    .filter(clip => !clip.parentId)  // Only show parent clips (clip files), not pending children
+    .filter(clip =>
+      clip.title.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => b.createdAt - a.createdAt);  // Newest clips first
 
   // Determine which state we're in
   const hasClips = clips.length > 0;
@@ -196,15 +262,14 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
     // Start fade-out animation
     setDeletingClipId(selectedClip.id);
 
-    // After animation completes (200ms), remove from storage
+    // After animation completes (200ms), remove from Zustand
     setTimeout(() => {
-      deleteClipFromStorage(selectedClip.id);
-      // Notify parent to refresh clips from storage
-      onClipsChange?.();
+      deleteClip(selectedClip.id);
+      // Zustand will automatically update all subscribers
       setDeletingClipId(null);
       setSelectedClip(null);
     }, 1000);  // Slightly longer than CSS animation (200ms) for smooth transition
-  }, [selectedClip, onClipsChange]);
+  }, [selectedClip, deleteClip]);
 
   // Open rename modal with current title pre-filled
   const handleRenameClick = useCallback((clipId: string, currentTitle: string) => {
@@ -217,18 +282,15 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   const handleConfirmRename = useCallback(() => {
     if (!selectedClip || !renameValue.trim()) return;
 
-    // Update clip title in storage
-    const updated = updateClip(selectedClip.id, { title: renameValue.trim() });
-    if (updated) {
-      // Notify parent to refresh clips from storage
-      onClipsChange?.();
-    }
+    // Update clip title in Zustand
+    updateClip(selectedClip.id, { title: renameValue.trim() });
+    // Zustand will automatically update all subscribers
 
     // Close modal and reset
     setActiveModal(null);
     setSelectedClip(null);
     setRenameValue('');
-  }, [selectedClip, renameValue, onClipsChange]);
+  }, [selectedClip, renameValue, updateClip]);
 
   // Handle copy - copies transcribed text and shows toast
   const handleCopyClick = useCallback((clipId: string) => {
@@ -312,14 +374,39 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
               )}
 
               {/* Default/B1: Clip list items */}
-              {showClipList && filteredClips.map((clip) => (
+              {showClipList && filteredClips.map((clip) => {
+                // v2.5.3 FIX: Derive complete status using parent-based tracking
+                // v2.6.0 ZUSTAND: Use clips prop instead of calling getClips()
+                const displayClip = getDisplayClip(
+                  clip,
+                  clips,  // Use clips from props (already fresh from Zustand)
+                  activeTranscriptionParentId,
+                  activeHttpClipId  // v2.5.4 FIX: Use per-clip HTTP tracking instead of global flag
+                );
+
+                // ✅ Map Zustand status to ClipListItem status
+                const listItemStatus: 'pending' | 'transcribing' | 'retry-pending' | 'vpn-blocked' | 'audio-corrupted' | null =
+                  displayClip.status === 'transcribing'
+                    ? 'transcribing'
+                  : displayClip.status === 'pending-retry' && displayClip.lastError === 'dns-block'
+                    ? 'vpn-blocked'  // VPN blocking (orange)
+                  : displayClip.status === 'pending-retry'
+                    ? 'retry-pending'  // Normal retry (white, "Retrying soon...")
+                  : displayClip.status === 'audio-corrupted'
+                    ? 'audio-corrupted'  // Permanent error (red)
+                  : displayClip.status === 'pending-child'
+                    ? 'pending'  // Waiting to transcribe
+                  : null;
+
+
+                return (
                 <ClipListItem
                   key={clip.id}
                   id={clip.id}
-                  title={clip.title}
-                  date={clip.date}
-                  status={clip.status}
-                  isActiveRequest={clip.isActiveRequest}  /* Controls icon spinning when status='transcribing' */
+                    title={displayClip.title}
+                    date={displayClip.date}
+                    status={listItemStatus}
+                    isActiveRequest={displayClip.isActiveRequest}
                   fullWidth={true}  /* Responsive: fills VN_List container */
                   onClick={onClipClick}
                   onRename={handleRenameClick}
@@ -327,7 +414,8 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
                   onDelete={handleDeleteClick}
                   isDeleting={deletingClipId === clip.id}
                 />
-              ))}
+                );
+              })}
             </div>
           </div>
 

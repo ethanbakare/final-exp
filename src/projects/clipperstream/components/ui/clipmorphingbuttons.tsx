@@ -771,7 +771,8 @@ export const MorphingOnlineOfflineStatus: React.FC<MorphingOnlineOfflineStatusPr
     if (onChange) {
       onChange(state);
     }
-  }, [state, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]); // Only re-run when state changes, not when callback changes
 
   return (
     <>

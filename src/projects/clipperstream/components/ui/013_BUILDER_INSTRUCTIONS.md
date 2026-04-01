@@ -1,10 +1,13 @@
 # Builder Instructions: ClipMasterScreen Refactor
 
+**FOR AI BUILDER: You are an AI assistant helping with this refactor. When testing is required, ASK THE USER to test and report results.**
+
 **READ THIS ENTIRE DOCUMENT BEFORE STARTING**
 
 **Estimated Time:** 8-12 hours over 4 phases
 **Difficulty:** Medium (requires careful attention to detail)
 **Risk Level:** Medium (phased approach with testing minimizes risk)
+**Current Branch:** refactor/clip-master-phases (all commits go here)
 
 ---
 
@@ -54,25 +57,24 @@ Open and skim these files to understand what you're working with:
    - This hook is already extracted - you won't touch it
    - Just know it exists
 
-### Step 2: Set Up Your Environment
+### Step 2: Verify Environment (Git Already Done)
+
+**Note:** Git setup is already complete. You should be on `refactor/clip-master-phases` branch.
 
 ```bash
-# 1. Make sure you're on the correct branch
-git status
+# 1. Verify you're on the correct branch
+git branch
+# Should show: * refactor/clip-master-phases
 
-# 2. Create a new branch for this work
-git checkout -b refactor/clip-master-screen-phases
-
-# 3. Run the app to see current state
-npm run dev
-
-# 4. Test that online recording works
-# (Instructions in "How to Test" section below)
-
-# 5. Create a backup commit before starting
-git add .
-git commit -m "Backup before ClipMasterScreen refactor"
+# 2. Verify you have the files
+ls src/projects/clipperstream/components/ui/013_*.md
+# Should show: 013_BUILDER_INSTRUCTIONS.md, 013_v2_COMPREHENSIVE_REFACTOR_BLUEPRINT.md, etc.
 ```
+
+**Before starting Phase 1, ask user to:**
+- Test that online recording currently works
+- Report if there are any errors
+- Confirm they're ready to proceed
 
 ### Step 3: Open These Files in Your Editor
 
@@ -103,16 +105,16 @@ You MUST do phases in order:
 
 ### Rule 2: **ONLINE RECORDING IS THE CANARY**
 
-After **EVERY phase**, you MUST test online recording:
+After **EVERY phase**, ASK THE USER to test online recording:
 
-**Test Steps:**
+**Ask user to perform these test steps:**
 1. Open the app (http://localhost:3000/clipperstream or wherever it runs)
 2. Click "Record" button
 3. Allow microphone access
 4. Speak for 5-10 seconds: "Testing testing one two three"
 5. Click "Done"
 6. **Expected:** Text appears with fade-in animation, title changes from "Recording 01" to AI-generated title
-7. **If this fails:** STOP, rollback the phase, investigate
+7. **If user reports this fails:** STOP, rollback the phase, investigate
 
 **This is your canary in the coal mine.** If online recording breaks, offline won't work either.
 
@@ -155,20 +157,20 @@ Don't try to "fix forward" - rollback, understand the issue, then try again.
 
 ---
 
-### Rule 5: **Test After EVERY Phase, Not Just at the End**
+### Rule 5: **Ask User to Test After EVERY Phase, Not Just at the End**
 
 Each phase has a "Testing Criteria" section with specific tests.
 
 **Do this after each phase:**
-1. Run ALL tests for that phase
-2. Check off each item in the checklist
-3. If ANY test fails → Rollback
-4. Only proceed to next phase if ALL tests pass
+1. Ask user to run ALL tests for that phase
+2. Wait for user to report results
+3. If user reports ANY test fails → Rollback
+4. Only proceed to next phase if user confirms ALL tests pass
 
 **Don't do this:**
-- ❌ Complete all 4 phases, then test at the end
-- ❌ Skip tests because "it looks fine"
-- ❌ Move on with failing tests
+- ❌ Complete all 4 phases, then ask for testing at the end
+- ❌ Skip tests because "the code looks fine"
+- ❌ Move on without user confirmation
 
 ---
 
@@ -203,18 +205,19 @@ Each phase has:
    - Add what it says to add
 
 4. **Check for TypeScript errors**
-   - Your editor should show red squiggles if something's wrong
+   - Check if TypeScript shows any errors
    - Fix imports if needed
 
-5. **Test according to Testing Criteria**
-   - Do EVERY test in the checklist
-   - Check off each one
+5. **Ask user to test according to Testing Criteria**
+   - Ask user to perform EVERY test in the checklist
+   - Wait for user to report results
+   - Only proceed if user confirms all tests pass
 
 6. **Commit with the provided message**
    - Copy the commit message from the blueprint
    - Add any notes about issues you encountered
 
-7. **Take a break** (5-10 minutes between phases)
+7. **Take a break** (inform user to take 5-10 minutes between phases)
 
 ---
 
@@ -222,7 +225,7 @@ Each phase has:
 
 ### Test 1: Online Recording (Most Important)
 
-**Do this after EVERY phase:**
+**ASK THE USER to do this after EVERY phase:**
 
 1. Start the dev server: `npm run dev`
 2. Navigate to the ClipperStream page
@@ -236,13 +239,13 @@ Each phase has:
    - ✅ "Copied to clipboard" toast appears
    - ✅ No errors in console
 
-**If ANY of the above fail:** STOP and rollback.
+**If user reports ANY of the above fail:** STOP and rollback.
 
 ---
 
 ### Test 2: Offline Recording (Phase 2+)
 
-**Do this after Phase 2 and Phase 3:**
+**ASK THE USER to do this after Phase 2 and Phase 3:**
 
 1. Open Chrome DevTools (F12)
 2. Go to "Network" tab
@@ -272,7 +275,7 @@ Each phase has:
 
 ### Test 3: Navigation and CRUD
 
-**Do this after each phase:**
+**ASK THE USER to do this after each phase:**
 
 1. **Home screen:**
    - ✅ Clips appear in list
@@ -309,37 +312,37 @@ Each phase has:
 
 ---
 
-## 🛑 When to STOP and Ask for Help
+## 🛑 When to STOP and Ask User for Help
 
-**Stop and reach out if:**
+**Stop and ask user if:**
 
-1. **Online recording breaks after a phase**
+1. **User reports online recording breaks after a phase**
    - This is the most critical test
-   - Don't proceed if this fails
+   - Don't proceed if user reports this fails
 
 2. **TypeScript errors you can't resolve**
    - Missing imports
    - Type mismatches
    - "Cannot find name" errors
 
-3. **Phase 3 testing fails**
+3. **User reports Phase 3 testing fails**
    - Background transcription not showing
    - Wrong clip getting transcription
    - This is the most complex phase
 
 4. **You're confused about the instructions**
-   - Better to ask than guess wrong
+   - Better to ask user for clarification than guess wrong
 
-5. **Tests pass but something feels wrong**
+5. **User reports tests pass but something feels wrong**
    - Console warnings
    - Strange behavior
    - Performance issues
 
-**How to ask for help:**
-1. Note which phase you're on
+**When asking user for help, provide:**
+1. Which phase you're on
 2. What test failed (exact test from checklist)
-3. Console errors (screenshot)
-4. What you've tried
+3. Request user to share console errors
+4. What you've tried so far
 
 ---
 
@@ -406,11 +409,11 @@ If you're confused about expected behavior, look at `ClipOfflineScreen.tsx` - it
 - [ ] I've read this entire document
 - [ ] I've skimmed all 4 phases in the blueprint
 - [ ] I have the files open in my editor
-- [ ] I've created a backup commit
-- [ ] I've tested that online recording currently works
-- [ ] I understand I must test after EVERY phase
+- [ ] I understand I'm on the refactor/clip-master-phases branch
+- [ ] I've asked user to verify that online recording currently works
+- [ ] I understand I must ask user to test after EVERY phase
 - [ ] I know when to stop and ask for help
-- [ ] I have 2-3 hours for Phase 1 (don't start if you have < 2 hours)
+- [ ] User is ready to commit 2-3 hours for Phase 1 (don't start if less time)
 
 **If all checked, proceed to Phase 1 in the blueprint!**
 
@@ -423,12 +426,12 @@ If you're confused about expected behavior, look at `ClipOfflineScreen.tsx` - it
 | Question | Answer |
 |----------|--------|
 | Can I skip Phase 2? | ❌ No - must do all phases in order |
-| What if online recording breaks? | 🛑 Stop immediately, rollback, investigate |
+| What if user reports online recording breaks? | 🛑 Stop immediately, rollback, investigate |
 | Can I modify ClipOfflineScreen.tsx? | ❌ No - it's reference only |
 | How long should each phase take? | Phase 1-2: 2-3 hrs, Phase 3: 3-4 hrs, Phase 4: 1-2 hrs |
-| What if I'm stuck? | Ask for help (see "When to STOP and Ask for Help") |
-| Can I do all phases in one sitting? | Not recommended - take breaks between phases |
-| What's the most important test? | Online recording - test after EVERY phase |
+| What if I'm stuck? | Ask user for help (see "When to STOP and Ask for Help") |
+| Can user do all phases in one sitting? | Not recommended - suggest breaks between phases |
+| What's the most important test? | Online recording - ask user to test after EVERY phase |
 
 ---
 

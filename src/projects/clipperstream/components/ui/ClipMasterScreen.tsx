@@ -5,9 +5,17 @@ import { ClipRecordScreen, PendingClip } from './ClipRecordScreen';
 import { RecordNavBarVarMorphing, RecordNavState } from './mainvarmorph';
 import { ToastNotification } from './ClipToast';
 import { useClipRecording } from '../../hooks/useClipRecording';
-import { Clip, getClips, createClip, updateClip, initializeClips, getNextClipNumber, getNextRecordingNumber } from '../../services/clipStorage';
+// PHASE 4 (v2.6.0): Replace useClipState with Zustand
+import { useClipStore, Clip, ClipStatus } from '../../store/clipStore';
+import { useOfflineRecording } from '../../hooks/useOfflineRecording';
+// PHASE 6 (v2.6.0): Auto-generate parent titles
+import { useParentTitleGenerator } from '../../hooks/useParentTitleGenerator';
 import { deleteAudio, clearAllAudio, getAudio } from '../../services/audioStorage';
+import { generateClipId } from '../../utils/id';
+import { today } from '../../utils/date';
 import { logger } from '../../utils/logger';
+// ✅ NEW IMPORTS for 043_v3
+import { attemptTranscription, TranscriptionResult } from '../../utils/transcriptionRetry';
 
 const log = logger.scope('ClipMasterScreen');
 
@@ -18,10 +26,10 @@ const log = logger.scope('ClipMasterScreen');
 // ARCHITECTURE:
 // ┌─────────────────────────────────────┐
 // │ Screen Container (slide animation)  │
-// │  ┌─────────────┐  ┌─────────────┐  │
-// │  │ClipHome     │↔ │ClipRecord   │  │
-// │  │Screen       │  │Screen       │  │
-// │  └─────────────┘  └─────────────┘  │
+// │  ┌─────────────┐  ┌─────────────┐   │
+// │  │ClipHome     │↔ │ClipRecord   │   │
+// │  │Screen       │  │Screen       │   │
+// │  └─────────────┘  └─────────────┘   │
 // ├─────────────────────────────────────┤
 // │ RecordBar (RecordNavBarMorphing)    │  ← FIXED, never moves
 // └─────────────────────────────────────┘
@@ -54,8 +62,94 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // STATE
   // ============================================
 
-  // Clips management (loaded from storage)
-  const [clips, setClips] = useState<Clip[]>([]);
+  // Recording mode tracking - MUST be declared before Zustand selector that uses it
+  const [currentClipId, setCurrentClipId] = useState<string | null>(null);
+  const [isAppendMode, setIsAppendMode] = useState(false);
+  const [appendBaseContent, setAppendBaseContent] = useState<string>('');
+
+  // PHASE 4 (v2.6.0): Zustand store replaces useClipState hook
+  const clips = useClipStore((state) => state.clips);
+  // Industry standard: Derive selectedClip from currentClipId + clips array
+  const selectedClip = useClipStore(state =>
+    currentClipId ? state.clips.find(c => c.id === currentClipId) : null
+  );
+  // REMOVED: setSelectedClip (no longer needed - selector handles updates)
+  const addClip = useClipStore((state) => state.addClip);
+  const updateClip = useClipStore((state) => state.updateClip);
+  const deleteClip = useClipStore((state) => state.deleteClip);
+  const getClipById = useClipStore((state) => state.getClipById);
+  
+  // Module-level state migration - now in Zustand
+  const isProcessingPending = useClipStore((state) => state.isProcessingPending);
+  const setIsProcessingPending = useClipStore((state) => state.setIsProcessingPending);
+  const audioRetrievalAttempts = useClipStore((state) => state.audioRetrievalAttempts);
+  const setAudioRetrievalAttempt = useClipStore((state) => state.setAudioRetrievalAttempt);
+  const deleteAudioRetrievalAttempt = useClipStore((state) => state.deleteAudioRetrievalAttempt);
+  
+  // Wrapper functions to match old API (backwards compat)
+  const createNewClip = useCallback((content: string, title: string, formattedText: string) => {
+    const newClip: Clip = {
+      id: `clip-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      title,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      status: null,
+      content,
+      rawText: content,
+      formattedText,
+      currentView: 'formatted',
+      createdAt: Date.now()
+    };
+    addClip(newClip);
+    return newClip;
+  }, [addClip]);
+  
+  const updateClipById = useCallback((clipId: string, updates: Partial<Clip>) => {
+    updateClip(clipId, updates);
+    return getClipById(clipId) || null;  // v2.6.0: Return null instead of undefined for type compatibility
+  }, [updateClip, getClipById]);
+  
+  const deleteClipById = useCallback((clipId: string) => {
+    // ✅ NEW: Clean up audioRetrievalAttempts tracking before deletion
+    deleteAudioRetrievalAttempt(clipId);
+    deleteClip(clipId);
+  }, [deleteClip, deleteAudioRetrievalAttempt]);
+
+  // PHASE 5 (v2.6.0): Move global flags to Zustand store
+  // v2.7.0: activeHttpClipId moved to line 154 (used in useMemo for selectedPendingClips)
+  const setActiveHttpClipId = useClipStore((state) => state.setActiveHttpClipId);
+  const activeTranscriptionParentId = useClipStore((state) => state.activeTranscriptionParentId);
+  const setActiveTranscriptionParentId = useClipStore((state) => state.setActiveTranscriptionParentId);
+  const activeFormattingClipId = useClipStore((state) => state.activeFormattingClipId);
+  const setActiveFormattingClipId = useClipStore((state) => state.setActiveFormattingClipId);
+  
+  // Derived: isFormatting (for backwards compat with existing code)
+  const isFormatting = activeFormattingClipId !== null;
+  const setIsFormatting = useCallback((value: boolean) => {
+    // When setting true, we don't know which clip, so just use a placeholder
+    // When setting false, clear it
+    setActiveFormattingClipId(value ? 'formatting' : null);
+  }, [setActiveFormattingClipId]);
+
+  // PHASE 2: Smart counter - reads from storage (survives page refresh)
+  const getNextPendingClipNumber = useCallback(() => {
+    // v2.6.0: Use Zustand getState() for fresh data without re-creating callback
+    const allClips = useClipStore.getState().clips;
+
+    // Extract existing pending clip numbers
+    const existingNumbers = allClips
+      .filter(c => c.pendingClipTitle)
+      .map(c => {
+        const match = c.pendingClipTitle?.match(/Clip (\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter(n => n > 0);
+
+    // Find highest number, increment (wraps at 100)
+    const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0;
+    const nextNumber = (maxNumber % 100) + 1;
+
+    return `Clip ${String(nextNumber).padStart(3, '0')}`;
+  }, []);
 
   // Current active screen
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(initialScreen);
@@ -63,11 +157,55 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // RecordBar state (managed here since it persists across screens)
   const [recordNavState, setRecordNavState] = useState<RecordNavState>('record');
 
-  // Selected clip (when viewing a transcribed clip)
-  const [selectedClip, setSelectedClip] = useState<SelectedClip | null>(null);
+  // DELETED - now returned from useClipState hook
 
-  // Selected pending clip (when viewing a clip waiting to be transcribed)
-  const [selectedPendingClip, setSelectedPendingClip] = useState<PendingClip | null>(null);
+  // v2.7.0: Zustand selector for selectedPendingClips (replaces useState)
+  // Subscribe to activeHttpClipId from Zustand (clips already declared at line 69)
+  const activeHttpClipId = useClipStore((state) => state.activeHttpClipId);
+
+  // Derive selectedPendingClips using useMemo (prevents infinite loop)
+  // Only recomputes when currentClipId, clips, or activeHttpClipId change
+  const selectedPendingClips = useMemo(() => {
+    // If no parent selected, return empty array
+    if (!currentClipId) return [];
+
+    // Find all children of current parent
+    const children = clips
+      .filter(c => c.parentId === currentClipId)
+      .sort((a, b) => {
+        // Sort by creation time (oldest first = recording order)
+        const timestampA = parseInt(a.id.split('-')[1], 10) || 0;
+        const timestampB = parseInt(b.id.split('-')[1], 10) || 0;
+        return timestampA - timestampB;
+      });
+
+    // Convert Clip → PendingClip format (matches PendingClip interface)
+    return children.map(child => {
+      // Map ClipStatus to ClipOfflineStatus
+      let mappedStatus: 'waiting' | 'retry-pending' | 'transcribing' | 'vpn-blocked' | 'audio-corrupted' | 'no-audio-detected' = 'waiting';
+
+      if (child.status === 'transcribing') {
+        mappedStatus = 'transcribing';
+      } else if (child.status === 'pending-retry') {
+        // Check if it's VPN blocked
+        mappedStatus = child.lastError === 'dns-block' ? 'vpn-blocked' : 'retry-pending';
+      } else if (child.status === 'audio-corrupted') {
+        mappedStatus = 'audio-corrupted';
+      } else if (child.status === 'no-audio-detected') {
+        mappedStatus = 'no-audio-detected';
+      } else if (child.status === 'pending-child') {
+        mappedStatus = 'waiting';
+      }
+
+      return {
+        id: child.id,
+        title: child.pendingClipTitle || 'Pending',
+        time: child.duration || '0:00',
+        status: mappedStatus,
+        isActiveRequest: activeHttpClipId === child.id
+      };
+    });
+  }, [currentClipId, clips, activeHttpClipId]);
 
   // Track if search is active (to hide RecordBar)
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -84,33 +222,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   const [showCopyToast, setShowCopyToast] = useState(false);
   const [copyToastText, setCopyToastText] = useState<string | undefined>(undefined);
   const [showErrorToast, setShowErrorToast] = useState(false);
+  const [errorToastMessage, setErrorToastMessage] = useState('No audio detected');
   const [showAudioToast, setShowAudioToast] = useState(false);
   const hasShownTranscriptionToast = useRef(false);
-
-  // Recording mode tracking
-  const [currentClipId, setCurrentClipId] = useState<string | null>(null);
-  const [isAppendMode, setIsAppendMode] = useState(false);
-  const [appendBaseContent, setAppendBaseContent] = useState<string>('');
-
-  // Content blocks for rendering (industry standard list pattern)
-  const [contentBlocks, setContentBlocks] = useState<Array<{
-    id: string;
-    text: string;
-    animate: boolean;
-  }>>([]);
-
-  // Track if this is the first transcription in the clip (for animation control)
-  // First transcription gets fade-in animation, subsequent transcriptions appear instantly
-  const [isFirstTranscription, setIsFirstTranscription] = useState(true);
-
-  // Track if formatting is in progress (keeps processing state visible)
-  const [isFormatting, setIsFormatting] = useState(false);
-
-  // Batch state for remaining pending clips (Option D)
-  const [pendingBatch, setPendingBatch] = useState<{
-    clipId: string;
-    transcriptions: Array<{ text: string; audioId: string }>;
-  }>({ clipId: '', transcriptions: [] });
 
   // Recording hook - handles audio recording and transcription
   const {
@@ -120,7 +234,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     duration,
     audioAnalyser,
     isTranscribing,
-    transcription,
     transcriptionError,
     isActiveRequest,  // Controls icon spinning
     startRecording: startRecordingHook,
@@ -139,25 +252,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     transcribeRef.current = transcribeRecording;
   }, [transcribeRecording]);
 
-  // ============================================
-  // HELPER FUNCTIONS - Option D Batching
-  // ============================================
-
-  // Helper: Determine if this is the first pending transcription for a clip
-  const isFirstPendingForClip = useCallback((clipId: string): boolean => {
-    const allForClip = clips.filter(c => c.id === clipId);
-    const hasContent = allForClip.some(c => c.content);
-    return !hasContent;  // First if no content exists yet
-  }, [clips]);
-
-  // Helper: Count remaining transcribing clips for a given clip ID
-  const countRemainingPending = useCallback((clipId: string): number => {
-    return clips.filter(c =>
-      c.id === clipId &&
-      c.status === 'transcribing' &&
-      c.audioId
-    ).length;
-  }, [clips]);
+  // Abort controller for cancelling HTTP requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // ============================================
   // DERIVED STATE - Content for clipboard
@@ -168,16 +264,11 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
    * When viewing an existing clip, copies what the user is looking at
    */
   const copyableContent = useMemo(() => {
-    // If viewing an existing clip, respect the raw/formatted toggle
-    if (selectedClip) {
-      if (selectedClip.currentView === 'raw') {
-        return selectedClip.rawText || selectedClip.content || '';
-      }
-      return selectedClip.formattedText || selectedClip.content || '';
-    }
-    // During recording/processing, use contentBlocks (formatted text after completion)
-    return contentBlocks.map(block => block.text).join('\n\n');
-  }, [contentBlocks, selectedClip]);
+    if (!selectedClip) return '';
+    return selectedClip.currentView === 'raw'
+      ? selectedClip.rawText
+      : selectedClip.formattedText;
+  }, [selectedClip]);
 
   // ============================================
   // NAVIGATION HANDLERS
@@ -185,81 +276,77 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // Navigate from home to record screen (when clicking a clip)
   const handleClipClick = useCallback((clipId: string) => {
+    // v2.6.0: Use clips from Zustand (already subscribed)
     const clip = clips.find(c => c.id === clipId);
-    if (clip) {
+    if (!clip) return;
+
+    // v2.4: ALWAYS set currentClipId so subsequent recordings append correctly
+    setCurrentClipId(clipId);
+
+    // v2.4: ALWAYS check for children (fixes Bug #3 - pending clips disappear)
+    const children = clips.filter(c => c.parentId === clipId);
+
+    if (children.length > 0) {
+      // v2.7.0: selectedPendingClips now uses Zustand selector, no manual set needed
+      log.info('Loaded parent with children', {
+        parentId: clipId,
+        childCount: children.length
+      });
+    }
+
       if (clip.content) {
         // Transcribed clip - show in complete state
-        setSelectedClip(clip); // Pass full clip object
-        setSelectedPendingClip(null);
-        // Reset append mode flags - viewing existing clip shows full combined text
+      // ✅ REMOVED: setSelectedClip(clip) - selector auto-fetches via currentClipId
         setIsAppendMode(false);
-        setCurrentClipId(null);
         setAppendBaseContent('');
-        resetRecording(); // Clear any lingering transcription from hook
-        // Set content blocks - single block, no animation
-        setContentBlocks([{
-          id: clip.id,
-          text: clip.content,
-          animate: false
-        }]);
-        setAnimationVariant('fade');  // Use fade for direct to complete
-        setRecordNavState('complete');  // Show Copy + Record + Structure
+      resetRecording();
+      setAnimationVariant('fade');
+      setRecordNavState('complete');
         setActiveScreen('record');
       } else {
-        // Pending clip (no content yet) - show in waiting/transcribing state
-        setSelectedClip(null);
-
-        // FIX 002: Set currentClipId so subsequent recordings append to this clip
-        setCurrentClipId(clip.id);
-
-        // Determine status based on clip.status
-        const pendingStatus = clip.status === 'transcribing' ? 'transcribing' : 'waiting';
-
-        // Use stored pendingClipTitle (set when clip became pending)
-        setSelectedPendingClip({
-          id: clip.id,
-          title: clip.pendingClipTitle || 'Clip 001',  // Use stored name
-          time: clip.duration || '0:00',
-          status: pendingStatus,
-          isActiveRequest: isActiveRequest  // Controls spinning icon
-        });
+      // Pending clip - show in waiting state
+      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
         setAnimationVariant('fade');
-        setRecordNavState('record');  // Show record button (not complete)
+      setRecordNavState('record');
         setActiveScreen('record');
-      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clips]); // Only run when clips change (intentionally omit resetRecording)
+  }, [clips, isActiveRequest, currentClipId, resetRecording]); // Only run when clips change
 
   // Navigate back from record to home screen (via "Clips" button only)
   const handleBackClick = useCallback(() => {
     // Navigate back from record to home screen (via "Clips" button only)
     // Reset all recording state and return to home
     setIsAppendMode(false);
-    setCurrentClipId(null);
+    setCurrentClipId(null);  // v2.3.1: Clear parent-child context (selector auto-clears)
     setAppendBaseContent('');
-    setSelectedClip(null);
-    setSelectedPendingClip(null);
-    setContentBlocks([]); // Clear content blocks
-    setIsFirstTranscription(true); // Reset animation flag for next recording
+    // v2.7.0: selectedPendingClips cleared automatically when currentClipId = null
+    // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
     resetRecording(); // This clears transcription from the hook
+    setAnimationVariant('fade');  // Use fade for smooth transition to home
     setRecordNavState('record'); // Reset to default record state for next time
     setActiveScreen('home');
+    
+    log.info('Navigated to home screen (cleared pending context)', {
+      clearedContext: true
+    });
   }, [resetRecording]);
 
   // Start fresh recording (via pencil/NewClip button in ClipRecordHeader)
   // Stays on ClipRecordScreen, just resets to record state
   const handleNewClipClick = useCallback(() => {
     setIsAppendMode(false);
-    setCurrentClipId(null);
+    setCurrentClipId(null);  // v2.3.1: Clear context (selector auto-clears)
     setAppendBaseContent('');
-    setSelectedClip(null);
-    setSelectedPendingClip(null);
-    setContentBlocks([]); // Clear content blocks for new recording
-    setIsFirstTranscription(true); // Reset animation flag for next recording
+    // v2.7.0: selectedPendingClips cleared automatically when currentClipId = null
+    // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
     resetRecording();
     setAnimationVariant('fade');  // Use fade for direct transition back to record
     setRecordNavState('record');
+    
+    log.info('Starting new recording (cleared pending context)', {
+      clearedContext: true
+    });
     // Already on record screen, just reset state
   }, [resetRecording]);
 
@@ -276,7 +363,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       setIsAppendMode(false);
       setCurrentClipId(null);
       setAppendBaseContent('');
-      setContentBlocks([]); // Clear blocks for new recording
       setActiveScreen('record');
       setAnimationVariant('morph');
 
@@ -292,83 +378,615 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       setIsAppendMode(true);
       setCurrentClipId(selectedClip.id);
       setAppendBaseContent(selectedClip.content); // This is the NEW base for next append
-      // ✓ DON'T collapse contentBlocks - keep existing block structure
-      // This prevents visual shift when clicking Record again
-      // New block will be added when transcription arrives
       setAnimationVariant('morph'); // CRITICAL: Reset to morph for recording animation
 
       // If currently viewing raw text, switch back to formatted view
       // Recording always produces formatted output, so switch view to match
       if (selectedClip.currentView === 'raw') {
-        const updatedClip = updateClip(selectedClip.id, { currentView: 'formatted' });
-        if (updatedClip) {
-          setSelectedClip(updatedClip);
-          refreshClips();
-          // Update contentBlocks to show formatted text immediately
-          setContentBlocks([{
-            id: 'formatted-view',
-            text: updatedClip.formattedText || updatedClip.content || '',
-            animate: false
-          }]);
-        }
+        updateClipById(selectedClip.id, { currentView: 'formatted' });
+        // ✅ REMOVED: setSelectedClip(updatedClip) - selector will pick up the change automatically
       }
 
       setTimeout(() => startRecordingHook(), 200);
     }
 
-    // Case 2.5: Recording from pending clip (no content yet, only pending recordings)
-    else if (activeScreen === 'record' && selectedPendingClip) {
-      // Keep currentClipId - we're adding to existing clip file
+    // ✅ NEW Case 2.5: Recording from pending clip (no content yet, but has audioId)
+    else if (activeScreen === 'record' && selectedPendingClips.length > 0) {
+      // Keep currentClipId - we're adding to the SAME clip file
+      // This allows multiple pending recordings in one file
       setIsAppendMode(true);
-      setCurrentClipId(selectedPendingClip.id);
-      log.debug('Recording from pending clip - keeping clip context', {
-        clipId: selectedPendingClip.id
+      // ✅ FIXED (Bug #1): Don't set currentClipId to child ID
+      // currentClipId must remain the PARENT ID for selectedPendingClips selector to work
+      // Line removed: setCurrentClipId(selectedPendingClips[0].id);
+      setAppendBaseContent('');
+      log.debug('Recording from pending clip (adding successive recording)', {
+        clipId: selectedPendingClips[0].id,
+        pendingTitle: selectedPendingClips[0].title
       });
       setTimeout(() => startRecordingHook(), 200);
     }
 
     // Case 3: Recording from record screen (no existing content AND no pending clip) → NEW clip
-    else {
+    else if (selectedPendingClips.length === 0) {  // ← ADDED CONDITION: only create new if no pending clip
       setIsAppendMode(false);
       setCurrentClipId(null);
       setAppendBaseContent('');
-      setContentBlocks([]); // Clear blocks for new recording
       setAnimationVariant('morph'); // CRITICAL: Ensure morph variant for recording
 
       setTimeout(() => startRecordingHook(), 200);
     }
   };
 
-  const handleCloseClick = () => {
-    // Close just cancels recording - does NOT navigate back
-    // Only way back to home is via "Clips" button in ClipRecordHeader
-    stopRecordingHook();
+  // ✅ NEW: Format transcription using API route (client-safe)
+  const formatChildTranscription = useCallback(async (
+    clipId: string,
+    rawText: string,
+    existingContext?: string
+  ): Promise<string> => {
+    try {
+      const response = await fetch('/api/clipperstream/format-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rawText,
+          existingFormattedContext: existingContext
+        })
+      });
 
-    // DECISION: Where should we return?
-    // If we have existing content (viewing a transcribed clip) → return to 'complete' state
-    // If no content (fresh recording cancelled) → return to 'record' state
+      if (!response.ok) {
+        console.error('Formatting API failed', { status: response.status });
+        return rawText;  // Fallback to raw
+      }
 
-    if (selectedClip?.content || transcription) {
-      // Return to complete state with existing buttons visible
-      // [Copy] [Record] [Structure] - allows user to access existing content
-      setRecordNavState('complete');
-      setAnimationVariant('morph'); // Animate the transition (X→Copy, Done→Structure)
-    } else {
-      // Return to empty record state
-      // [Record] only - no content to display
-      setRecordNavState('record');
+      const data = await response.json();
+      return data.formattedText || rawText;
+    } catch (error) {
+      console.error('Formatting failed', error);
+      return rawText;  // Fallback to raw
     }
-  };
+  }, []);
 
-  const handleDoneClick = () => {
-    // Stop recording (hook handles cleanup)
-    stopRecordingHook();
+  // ✅ NEW: Helper - Get first pending clip in parent
+  function getFirstPendingClipInParent(parent: Clip): Clip | null {
+    const { clips: allClips } = useClipStore.getState();
+    const children = allClips.filter(c =>
+      c.parentId === parent.id && c.status === 'pending-child'
+    );
 
-    // Show processing state immediately
+    children.sort((a, b) => a.createdAt - b.createdAt);
+    return children[0] || null;
+  }
+
+  // ✅ NEW: Process all pending clips with parent rotation
+  const processAllPendingClips = useCallback(async () => {
+    // ✅ FIXED: Race condition guard
+    if (isProcessingPending) {
+      console.log('[ProcessPending] Already processing, skipping duplicate call');
+      return;
+    }
+
+    setIsProcessingPending(true);
+
+    try {
+      console.log('[ProcessPending] Starting');
+
+      // ✅ Access store methods directly from state (avoids stale closures)
+      const { clips: allClips, updateClip, deleteClip, getClipById } = useClipStore.getState();
+
+      // Find all pending children
+      const pendingChildren = allClips.filter(c =>
+        c.audioId && c.status === 'pending-child' && c.parentId
+      );
+
+      if (pendingChildren.length === 0) {
+        console.log('[ProcessPending] No pending clips');
+        return;
+      }
+
+      // Group by parent
+      const parentIds = [...new Set(pendingChildren.map(c => c.parentId!))];
+      const parentQueue = parentIds.map(id => allClips.find(c => c.id === id)).filter(Boolean);
+
+      console.log('[ProcessPending] Found', parentQueue.length, 'parents');
+
+      // Process each parent
+      // NOTE: No max attempts - keeps retrying like Dropbox/Google sync
+      // Loop continues until all clips transcribe successfully or app closes
+      while (parentQueue.length > 0) {
+        const currentParent = parentQueue[0];
+        
+        // ✅ FIX: Null check for currentParent
+        if (!currentParent) {
+          console.error('[ProcessPending] Parent queue corrupted - no parent at index 0');
+          break;
+        }
+        
+        const firstClip = getFirstPendingClipInParent(currentParent);
+
+        if (!firstClip) {
+          // Parent has no more pending clips
+          parentQueue.shift();
+          continue;
+        }
+
+        console.log('[ProcessPending] Processing', currentParent.title, '|', firstClip.pendingClipTitle);
+
+        // ✅ FIXED: Retry audio retrieval before deleting (with exception handling)
+        let audioBlob: Blob | null = null;
+        try {
+          audioBlob = await getAudio(firstClip.audioId!);
+        } catch (err) {
+          console.error('[ProcessPending] IndexedDB error retrieving audio', err);
+          // Treat as corrupted audio
+          updateClip(firstClip.id, {
+            status: 'audio-corrupted',  // ✅ FIXED: Dedicated status (prevents retry loop)
+            transcriptionError: 'Failed to access audio storage'
+          });
+          deleteAudioRetrievalAttempt(firstClip.id);
+          // ✅ CORRECTED: Stay on same parent, process next pending clip
+          // getFirstPendingClipInParent() will automatically skip this clip (no longer 'pending-child')
+          continue;
+        }
+
+        if (!audioBlob) {
+          const retrievalAttempts = audioRetrievalAttempts.get(firstClip.id) || 0;
+
+          if (retrievalAttempts < 3) {
+            console.warn(`[ProcessPending] Audio not found (attempt ${retrievalAttempts + 1}/3), will retry later`);
+            setAudioRetrievalAttempt(firstClip.id, retrievalAttempts + 1);
+
+            // Skip this clip for now, try next parent
+            parentQueue.push(parentQueue.shift()!);
+            continue;
+          }
+
+          // After 3 attempts, mark as corrupted (DON'T delete)
+          console.error('[ProcessPending] Audio retrieval failed after 3 attempts, marking as corrupted');
+          updateClip(firstClip.id, {
+            status: 'audio-corrupted',  // ✅ FIXED: Dedicated status (prevents infinite loop)
+            transcriptionError: 'Audio file could not be retrieved from storage'
+          });
+
+          // ✅ CORRECTED: Stay on same parent, process next pending clip
+          // getFirstPendingClipInParent() will skip this clip and return next 'pending-child'
+          // Only rotates to next parent when ALL clips are done/corrupted/no-audio-detected
+          deleteAudioRetrievalAttempt(firstClip.id);
+          continue;
+        }
+
+        // ✅ Clear retrieval attempts on success
+        deleteAudioRetrievalAttempt(firstClip.id);
+
+        // Set status to 'transcribing'
+        // NOTE: Status stays 'transcribing' throughout all 3 rapid attempts
+        // Don't switch between attempts (would be jarring for UI)
+        // Only switches to 'pending-retry' after all rapid attempts fail
+        updateClip(firstClip.id, { status: 'transcribing' });
+
+        // ONE LOOP: Use shared retry logic
+        // - Attempts 1-3: Rapid (immediate) - status stays 'transcribing'
+        // - Attempts 4-6: Intervals (30s, 1min, 2min) - handled by interval logic in attemptTranscription
+        const result = await attemptTranscription(audioBlob, {
+          maxRapidAttempts: 3,
+          useIntervals: true,  // Use full retry (intervals enabled)
+          onProgress: (attempt, total) => {
+            console.log(`[ProcessPending] Attempt ${attempt}/${total}`);
+          }
+        });
+
+        // SUCCESS
+        if (result.text && result.text.length > 0) {
+          console.log('[ProcessPending] Success!');
+
+          // ✅ FIXED: Check if parent still exists before updating
+          const parentStillExists = getClipById(currentParent.id);
+          if (!parentStillExists) {
+            console.warn('[ProcessPending] Parent was deleted during transcription, deleting orphaned child');
+            deleteClip(firstClip.id);
+            if (firstClip.audioId) {
+              await deleteAudio(firstClip.audioId);
+            }
+            deleteAudioRetrievalAttempt(firstClip.id);
+            continue;
+          }
+
+          // ✅ FIXED (Bug #2): Fetch FRESH parent state before appending
+          // Prevents stale closure - each clip appends to the LATEST accumulated text
+          const freshParent = getClipById(currentParent.id);
+          if (!freshParent) {
+            console.warn('[ProcessPending] Parent was deleted during formatting, deleting orphaned child');
+            deleteClip(firstClip.id);
+            if (firstClip.audioId) {
+              await deleteAudio(firstClip.audioId);
+            }
+            deleteAudioRetrievalAttempt(firstClip.id);
+            continue;
+          }
+
+          // Format transcription
+          const formattedText = await formatChildTranscription(
+            firstClip.id,
+            result.text,
+            freshParent.formattedText
+          );
+
+          // ✅ ANIMATION FIX: Check if user is actively viewing this parent's record screen
+          const userIsViewing = currentClipId === currentParent.id && activeScreen === 'record';
+
+          // Update parent with FRESH data (safe - verified parent exists)
+          const updatedContent = {
+            rawText: freshParent.rawText
+              ? freshParent.rawText + '\n\n' + result.text
+              : result.text,
+            formattedText: freshParent.formattedText
+              ? freshParent.formattedText + ' ' + formattedText
+              : formattedText,
+            content: freshParent.formattedText
+              ? freshParent.formattedText + ' ' + formattedText
+              : formattedText,
+            // ✅ ANIMATION FIX: Set hasAnimated based on user presence
+            // - If viewing → undefined (ClipRecordScreen will animate, then set to true)
+            // - If away → true (skip animation - "just a file with text")
+            hasAnimated: userIsViewing ? undefined : true
+          } as Partial<Clip>;
+
+          updateClip(currentParent.id, updatedContent);
+
+          // ✅ FIX: Update nav bar if viewing this parent clip
+          // Uses FADE animation (like navigating to existing clip from home)
+          // Only update if not already in complete state (prevents flickering on subsequent clips)
+          if (currentClipId === currentParent.id && recordNavState !== 'complete') {
+            console.log('[ProcessPending] Current clip finished transcribing, updating nav bar');
+            setAnimationVariant('fade');  // ✅ Buttons fade in from their places (not morph)
+            setRecordNavState('complete');
+          }
+
+          // Delete child and audio
+          deleteClip(firstClip.id);
+          if (firstClip.audioId) {
+            await deleteAudio(firstClip.audioId);
+          }
+          // ✅ FIXED: Clean up retry tracking to prevent memory leak
+          deleteAudioRetrievalAttempt(firstClip.id);
+
+          // Continue with same parent (next clip)
+          continue;
+        }
+
+        // NO AUDIO DETECTED - Stay on same parent, skip to next clip
+        // Check for SPECIFIC validation error (not all validation errors!)
+        if (!result.text || result.text.length === 0) {
+          // Must check if this is specifically "no speech detected" error
+          // Other validation errors should rotate to next parent for retry
+          const isNoAudioError = result.error === 'validation';
+
+          if (isNoAudioError) {
+            console.warn('[ProcessPending] No audio detected, marking as no-audio-detected');
+            updateClip(firstClip.id, {
+              status: 'no-audio-detected',  // ✅ Permanent error (no retry)
+              transcriptionError: `No audio detected in ${firstClip.pendingClipTitle}`
+            });
+            deleteAudioRetrievalAttempt(firstClip.id);
+
+            // ✅ CRITICAL: Stay on same parent, process next pending clip
+            // getFirstPendingClipInParent() will skip this clip and return next 'pending-child'
+            // Only rotates when ALL clips are done/corrupted/no-audio-detected
+            continue;
+          }
+        }
+
+        // VPN ERROR - Don't rotate, wait for VPN to be disabled
+        // All 3 rapid attempts failed due to VPN → switch to 'pending-retry'
+        // UI will show "Blocked by VPN" (orange) based on lastError='dns-block'
+        if (result.error === 'dns-block') {
+          console.warn('[ProcessPending] VPN detected, waiting 30s');
+          updateClip(firstClip.id, {
+            status: 'pending-retry',  // Switch from 'transcribing' to 'pending-retry'
+            lastError: 'dns-block'    // UI maps this to 'vpn-blocked' display
+          });
+          await new Promise(resolve => setTimeout(resolve, 30000));
+          continue; // Don't rotate parent (VPN blocks all parents)
+        }
+
+        // LOOP FAILED - Rotate to next parent
+        // All 3 rapid attempts + interval attempts failed → switch to 'pending-retry'
+        // UI will show "Retrying soon..." based on status='pending-retry'
+        console.log('[ProcessPending] Loop failed, rotating parent');
+        updateClip(firstClip.id, {
+          status: 'pending-retry',  // Switch from 'transcribing' to 'pending-retry'
+          lastError: result.error
+        });
+
+        // Rotate to next parent (infinite retry until success)
+        parentQueue.push(parentQueue.shift()!);
+      }
+
+      console.log('[ProcessPending] All pending clips processed');
+
+    } catch (error) {
+      console.error('[ProcessPending] Error during processing', error);
+
+    } finally {
+      // ✅ FIXED: Always release lock
+      setIsProcessingPending(false);
+    }
+  }, [
+    formatChildTranscription,
+    setIsProcessingPending,
+    setAudioRetrievalAttempt,
+    deleteAudioRetrievalAttempt,
+    currentClipId,        // ✅ ADD: React state - MUST include for fresh value
+    activeScreen,         // ✅ ANIMATION FIX: React state - needed for user presence check
+    recordNavState,       // ✅ ADD: React state - needed to check current state
+    setRecordNavState,    // ✅ ADD: React setState - include for exhaustive-deps lint rule
+    setAnimationVariant,  // ✅ ADD: React setState - needed for fade animation
+  ]);  // ✅ FIXED: Include all dependencies
+
+  // ✅ NEW: Register processAllPendingClips with Zustand store (MUST be after function definition)
+  useEffect(() => {
+    useClipStore.setState({ processAllPendingClips });
+
+    return () => {
+      // Clean up on unmount
+      useClipStore.setState({
+        processAllPendingClips: async () => {
+          console.warn('processAllPendingClips called after ClipMasterScreen unmounted');
+        }
+      });
+    };
+  }, [processAllPendingClips]);
+
+  const handleCloseClick = useCallback(() => {
+    // Context 1: User is actively recording
+    if (recordNavState === 'recording') {
+      stopRecordingHook();  // Stop recording immediately
+      resetRecording();     // Discard audio blob
+      
+      // If appending to existing clip, stay on record screen viewing that clip
+      if (isAppendMode && currentClipId) {
+        setRecordNavState('record');
+        // Keep currentClipId - user stays viewing the clip they were appending to
+        // Result: Recording canceled, stays on record screen
+      } else {
+        // New recording - go back to home screen
+        setActiveScreen('home');
+        setRecordNavState('record');
+        setCurrentClipId(null);
+        // Result: Recording canceled, nothing saved, return to home
+      }
+      return;
+    }
+
+    // Context 2: Clip is processing (transcribing or formatting)
+    if (recordNavState === 'processing') {
+      // Cancel the processing (if AbortController exists)
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();  // Cancel HTTP requests
+      }
+
+      // If clip was created (has ID), mark as failed
+      if (currentClipId) {
+        const clip = getClipById(currentClipId);
+        if (clip && (clip.status === 'transcribing' || clip.status === 'formatting')) {
+          updateClip(currentClipId, { status: 'pending-retry', lastError: 'network' });  // ✅ FIX: User canceled
+        }
+      }
+
+      // If appending to existing clip, stay on record screen viewing that clip
+      if (isAppendMode && currentClipId) {
+        setRecordNavState('record');
+        resetRecording();
+        // Keep currentClipId - user stays viewing the clip they were appending to
+        // Result: Processing canceled, stays on record screen
+    } else {
+        // New recording - go back to home screen
+        setActiveScreen('home');
+      setRecordNavState('record');
+        setCurrentClipId(null);
+        resetRecording();
+        // Result: Processing canceled, clip saved as failed, return to home
+      }
+      return;
+    }
+
+    // Context 3: Viewing completed clip (has text)
+    if (recordNavState === 'complete' && selectedClip) {
+      setActiveScreen('home');
+      setRecordNavState('record');
+      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
+      setCurrentClipId(null);
+      // Result: Just closes, clip state preserved in Zustand
+      return;
+    }
+
+    // Context 4: Empty record screen (no clip selected, not recording)
+    if (recordNavState === 'record' && !selectedClip) {
+      setActiveScreen('home');
+      // Result: Just closes, nothing to save
+      return;
+    }
+
+    // Context 5: Viewing pending clip (no text yet)
+    if (recordNavState === 'record' && selectedClip &&
+        (selectedClip.status === 'pending-child' || selectedClip.status === 'pending-retry')) {
+      setActiveScreen('home');
+      setRecordNavState('record');
+      // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
+      // Result: Just closes, pending clip preserved in Zustand
+      return;
+    }
+
+    // Default: Just close
+    setActiveScreen('home');
+    setRecordNavState('record');
+    // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
+    setCurrentClipId(null);
+  }, [recordNavState, currentClipId, selectedClip, isAppendMode, stopRecordingHook, resetRecording, getClipById, updateClip]);
+
+  const handleDoneClick = async () => {
     setRecordNavState('processing');
 
-    // Note: Transcription will be triggered by useEffect when audioBlob is ready
-    // The processing→complete transition will happen after transcription completes
+    // 1. Stop recording and wait for result
+    const { audioBlob: recordedBlob, audioId: recordedAudioId, duration: recordedDuration } = await stopRecordingHook();
+
+    // 2. Validate audio (Bug 3 fix: added duration check)
+    if (!recordedBlob || recordedBlob.size < 100 || recordedDuration < 1) {
+      setShowErrorToast(true);
+      setRecordNavState('record');
+      return;
+    }
+
+    // 3. Check network status
+    const isOnline = navigator.onLine;
+
+    if (!isOnline) {
+      handleOfflineRecording({
+        audioId: recordedAudioId!,
+        duration: recordedDuration,
+        currentClipId
+      });
+
+      // Show audio saved toast
+      setShowAudioToast(true);
+
+      // Check if viewing clip with content
+      const currentClip = currentClipId ? getClipById(currentClipId) : null;
+      const hasContent = currentClip && currentClip.content && currentClip.content.length > 0;
+      setRecordNavState(hasContent ? 'complete' : 'record');
+      return;
+    }
+
+    // 4. ✅ CHECK: Does parent have pending clips? (Preserve sequential order)
+    // If recording in existing file with pending clips, queue instead of transcribing
+    if (isAppendMode && currentClipId) {
+      const clips = useClipStore.getState().clips;
+      const pendingClipsInParent = clips.filter(c => 
+        c.parentId === currentClipId && c.status === 'pending-child'
+      );
+      
+      if (pendingClipsInParent.length > 0) {
+        // ⛔ Parent has pending clips - preserve sequential order
+        console.log('[HandleDone] Parent has pending clips, creating as pending to maintain order', {
+          parentId: currentClipId,
+          pendingCount: pendingClipsInParent.length
+        });
+        
+        handleOfflineRecording({
+          audioId: recordedAudioId!,
+          duration: recordedDuration,
+          currentClipId
+        });
+        
+        // Show audio saved toast
+        setShowAudioToast(true);
+        
+        // Check if viewing clip with content
+        const currentClip = getClipById(currentClipId);
+        const hasContent = currentClip && currentClip.content && currentClip.content.length > 0;
+        setRecordNavState(hasContent ? 'complete' : 'record');
+        
+        return;  // ← Exit early, don't transcribe
+      }
+    }
+
+    // 5. ✅ UPDATED: Use shared retry logic (Bug 4 fix: use TranscriptionResult)
+    const result = await attemptTranscription(recordedBlob, {
+      maxRapidAttempts: 3,
+      useIntervals: false,  // Live recording: 3 attempts only, no intervals
+    });
+
+    const { text: rawText, error: transcriptionError } = result;
+
+    // 6. ✅ UPDATED: Handle new return type - Route based on error type
+    if (!rawText || rawText.length === 0) {
+      // DNS/VPN ERROR - Create pending clip
+      if (transcriptionError === 'dns-block') {
+        console.log('[HandleDone] VPN blocking transcription, saving as pending');
+        handleOfflineRecording({
+          audioId: recordedAudioId!,
+          duration: recordedDuration,
+          currentClipId
+        });
+
+        // Show audio saved toast
+        setShowAudioToast(true);
+
+        // Check if viewing clip with content
+        const currentClip = currentClipId ? getClipById(currentClipId) : null;
+        const hasContent = currentClip && currentClip.content && currentClip.content.length > 0;
+        setRecordNavState(hasContent ? 'complete' : 'record');
+        return;
+      }
+
+      // Network errors → Create pending clip
+      if (transcriptionError === 'network') {
+        console.log('[HandleDone] Transcription failed, saving as pending');
+        handleOfflineRecording({
+          audioId: recordedAudioId!,
+          duration: recordedDuration,
+          currentClipId
+        });
+
+        // Show audio saved toast
+        setShowAudioToast(true);
+
+        // Check if viewing clip with content
+        const currentClip = currentClipId ? getClipById(currentClipId) : null;
+        const hasContent = currentClip && currentClip.content && currentClip.content.length > 0;
+        setRecordNavState(hasContent ? 'complete' : 'record');
+        return;
+      }
+
+      // Validation errors → Show error toast, stay in record state
+      if (transcriptionError === 'validation') {
+        setShowErrorToast(true);
+        setRecordNavState('record');
+        return;
+      }
+
+      // Fallback: treat as validation error
+      setShowErrorToast(true);
+      setRecordNavState('record');
+      return;
+    }
+
+    // 6. Create clip or append (rawText is now guaranteed non-empty)
+    if (isAppendMode && currentClipId) {
+      const existingClip = getClipById(currentClipId);
+      if (existingClip) {
+        // Update Zustand - only update rawText, content updated when formatting completes
+        updateClip(currentClipId, {
+          rawText: existingClip.rawText + ' ' + rawText,
+          status: 'formatting',
+          createdAt: Date.now()  // Update timestamp so clip moves to top on home screen
+        });
+
+        formatTranscriptionInBackground(currentClipId, rawText, true);
+      }
+    } else {
+      const newClip: Clip = {
+        id: generateClipId(),
+        createdAt: Date.now(),
+        title: useClipStore.getState().nextRecordingTitle(),
+        date: today(),
+        rawText: rawText,
+        formattedText: '',
+        content: '',  // Empty until formatting completes
+        status: 'formatting',
+        currentView: 'formatted'
+      };
+
+      addClip(newClip);
+      // ✅ REMOVED: setSelectedClip(newClip) - selector will auto-find via currentClipId
+      setCurrentClipId(newClip.id);
+
+    // Background jobs
+    formatTranscriptionInBackground(newClip.id, rawText, false);
+    generateTitleInBackground(newClip.id, rawText);
+  }
+
+  // ✅ REMOVED: setRecordNavState('complete') - moved to formatTranscriptionInBackground
+  resetRecording();
   };
 
   const handleCopyClick = () => {
@@ -390,30 +1008,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // STORAGE & CALLBACKS
   // ============================================
 
-  // Load clips from storage on mount
-  // Clear orphaned audio from IndexedDB if sessionStorage is empty
-  useEffect(() => {
-    const storedClips = getClips();
-    if (storedClips.length === 0) {
-      // First visit / sessionStorage cleared - clear orphaned audio from IndexedDB
-      clearAllAudio().then(() => {
-        log.info('Cleared orphaned audio from IndexedDB');
-      }).catch((error) => {
-        log.error('Failed to clear orphaned audio', error);
-      });
+  // DELETED - now handled inside useClipState hook
 
-      // Initialize with demo clips
-      const demoClips = initializeClips();
-      setClips(demoClips);
-    } else {
-      setClips(storedClips);
-    }
-  }, []);
-
-  // Refresh clips from storage
-  const refreshClips = useCallback(() => {
-    setClips(getClips());
-  }, []);
+  // DELETED - now returned from useClipState hook
 
   // Helper: Format duration in seconds to "M:SS" format
   const formatDuration = useCallback((seconds: number): string => {
@@ -436,113 +1033,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     };
   }, [isActiveRequest]);
 
-  // Auto-retry pending clips when network comes online
-  const handleOnline = useCallback(async () => {
-    // DEBUG: Visible console log to verify event fires
-    console.log('🟢 handleOnline FIRED - network is back online');
-
-    // CRITICAL: Don't interfere with active recording session
-    if (isRecording) {
-      log.info('Network online but recording active - skipping auto-retry');
-      console.log('🟡 handleOnline - skipped (recording active)');
-      return;
-    }
-
-    log.info('Network online - attempting auto-retry of pending clips');
-
-    const allClips = getClips();
-    const pendingClips = allClips.filter(c =>
-      c.audioId && (c.status === 'pending' || c.status === 'failed')
-    );
-
-    // DEBUG: Log what clips were found
-    console.log('🟢 handleOnline - clips found:', {
-      total: allClips.length,
-      pendingCount: pendingClips.length,
-      pendingClips: pendingClips.map(c => ({ id: c.id, status: c.status, audioId: c.audioId }))
-    });
-
-    if (pendingClips.length === 0) {
-      log.debug('No pending clips to retry');
-      return;
-    }
-
-    log.info('Found pending clips for auto-retry', { count: pendingClips.length });
-
-    for (const clip of pendingClips) {
-      try {
-        // Update CLIP status only, not nav state
-        log.info('Status transition', {
-          clipId: clip.id,
-          from: clip.status,
-          to: 'transcribing',
-          trigger: 'auto-retry-online'
-        });
-
-        updateClip(clip.id, {
-          status: 'transcribing',
-          transcriptionError: undefined
-        });
-        refreshClips();
-
-        // DON'T set currentClipId, isAppendMode, or recordNavState
-        // These belong to the current user session, not background retries
-
-        // Fetch audio from IndexedDB
-        const audioBlob = await getAudio(clip.audioId!);
-        if (!audioBlob) {
-          throw new Error('Audio not found in IndexedDB');
-        }
-
-        log.debug('Auto-retrying transcription', {
-          clipId: clip.id,
-          audioId: clip.audioId,
-          size: audioBlob.size
-        });
-
-        // Transcribe using retrieved blob
-        await transcribeRecording(audioBlob);
-
-        // If successful, transcription will be handled by existing useEffect
-
-      } catch (error) {
-        log.error('Auto-retry failed for clip', {
-          clipId: clip.id,
-          error
-        });
-
-        // Mark as failed
-        log.info('Status transition', {
-          clipId: clip.id,
-          from: 'transcribing',
-          to: 'failed',
-          trigger: 'auto-retry-error'
-        });
-
-        updateClip(clip.id, {
-          status: 'failed',
-          transcriptionError: error instanceof Error ? error.message : 'Auto-retry failed'
-        });
-        refreshClips();
-      }
-    }
-  }, [isRecording, refreshClips, transcribeRecording]);
-
-  // Listen for online/offline events
-  useEffect(() => {
-    const handleOffline = () => {
-      log.info('Network offline');
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [handleOnline]);
-
   // Toggle between formatted and raw text view
   const handleStructureClick = useCallback(() => {
     if (!selectedClip) {
@@ -558,22 +1048,18 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // Toggle between formatted ↔ raw
     const newView = selectedClip.currentView === 'formatted' ? 'raw' : 'formatted';
 
-    const updatedClip = updateClip(selectedClip.id, {
+    updateClipById(selectedClip.id, {
       currentView: newView
     });
 
-    if (updatedClip) {
-      setSelectedClip(updatedClip);
-      refreshClips();
-
+    // ✅ REMOVED: setSelectedClip(updatedClip) - selector will pick up the change
       log.info('View toggled', {
         clipId: selectedClip.id,
         newView
       });
-    }
 
     // NO auto-copy on toggle (per requirements)
-  }, [selectedClip, refreshClips]);
+  }, [selectedClip]);
 
   // Manual retry transcription for failed clips
   const handleRetryTranscription = useCallback(async (clipId: string) => {
@@ -594,13 +1080,12 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
       from: clip.status,
       to: 'transcribing',
       trigger: 'manual-retry'
-    });
+    }        );
 
-    updateClip(clipId, {
+        updateClipById(clipId, {
       status: 'transcribing',
       transcriptionError: undefined
     });
-    refreshClips();
 
     // Set context for transcription completion
     setCurrentClipId(clip.id);
@@ -609,6 +1094,10 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
     // Get audio from IndexedDB and retry transcription
     try {
+      // v2.5.3 FIX: Track which parent should show spinner
+      const parentId = clip.parentId || clipId;
+      setActiveTranscriptionParentId(parentId);
+
       const audioBlob = await getAudio(clip.audioId);
       if (!audioBlob) {
         throw new Error('Audio not found in IndexedDB');
@@ -619,7 +1108,15 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         size: audioBlob.size
       });
 
-      // Transcribe using retrieved blob
+      // v2.5.4 CRITICAL FIX: Track THIS clip doing HTTP
+      log.debug('Setting activeHttpClipId for manual retry', {
+        clipId,
+        parentId
+      });
+      setActiveHttpClipId(clipId);
+
+      try {
+        // Transcribe using retrieved blob (HTTP happens here)
       await transcribeRecording(audioBlob);
 
       // Success - transcription will be handled by existing useEffect
@@ -628,24 +1125,36 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         audioId: clip.audioId
       });
 
+      } finally {
+        // v2.5.4 CRITICAL FIX: Clear HTTP tracking immediately after HTTP completes
+        log.debug('Clearing activeHttpClipId', {
+          clipId,
+          reason: 'HTTP complete'
+        });
+        setActiveHttpClipId(null);
+      }
+
     } catch (error) {
       log.error('Retry failed', { clipId, error });
 
       log.info('Status transition', {
         clipId,
         from: 'transcribing',
-        to: 'failed',
+        to: 'pending-retry',
         trigger: 'manual-retry-error'
       });
 
-      updateClip(clipId, {
-        status: 'failed',
+      updateClipById(clipId, {
+        status: 'pending-retry',  // ✅ FIX: Retryable error
+        lastError: 'network',
         transcriptionError: error instanceof Error ? error.message : 'Retry failed'
       });
-      refreshClips();
       setRecordNavState('record');
+    } finally {
+      // v2.5.3 FIX: Clear parent tracking
+      setActiveTranscriptionParentId(null);
     }
-  }, [clips, refreshClips]);
+  }, [clips]);
 
   // Smart retry handler - routes to forceRetry or handleRetryTranscription
   const handleSmartRetry = useCallback((clipId: string) => {
@@ -659,8 +1168,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     if (clip.status === 'transcribing' && !isActiveRequest && currentClipId === clipId) {
       log.info('Tap-to-skip wait period', { clipId });
       forceRetry();
-    } else if (clip.status === 'failed' || clip.status === 'pending') {
-      // Failed or pending clip - retry from IndexedDB
+    } else if (clip.status === 'pending-retry') {  // ✅ FIX: Removed 'failed' (no longer exists)
+      // pending-retry clip - retry from IndexedDB
       log.info('Manual retry from IndexedDB', { clipId, status: clip.status });
       handleRetryTranscription(clipId);
     } else {
@@ -686,13 +1195,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // Auto-trigger transcription when audioBlob is ready
   // GUARD: Don't re-trigger after definitive failure (transcriptionError set)
-  // Uses stable ref to avoid function recreation triggering re-runs
-  useEffect(() => {
-    if (audioBlob && !isTranscribing && !transcription && !transcriptionError && recordNavState === 'processing') {
-      transcribeRef.current();
-    }
-  }, [audioBlob, isTranscribing, transcription, transcriptionError, recordNavState]);
-
   // Background title generation with opacity fade
   const generateTitleInBackground = useCallback(async (clipId: string, transcriptionText: string) => {
     const startTime = performance.now();
@@ -722,490 +1224,342 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
       // Update clip with AI-generated title
       // ClipListItem's opacity transition handles the fade automatically
-      const updatedClip = updateClip(clipId, { title });
-      if (updatedClip) {
-        refreshClips();
-        // If still viewing this clip, update selectedClip
-        if (currentClipId === clipId) {
-          setSelectedClip(updatedClip);
-        }
-      }
+      updateClipById(clipId, { title });
+      // ✅ REMOVED: Manual sync - if viewing this clip, selector will auto-update
     } catch (error) {
       // console.timeEnd('⏱️ TITLE GENERATION');
       log.warn('Title generation failed', error);
       // Keep the "Clip 001" fallback title - app continues working
     }
-  }, [currentClipId, refreshClips]);
+  }, [currentClipId]);
 
   // Background text formatting with AI
   // NOW: This function also updates contentBlocks and transitions to complete state
   const formatTranscriptionInBackground = useCallback(async (
+    clipId: string,
     rawText: string,
-    clipIdToUpdate: string,
-    isAppending: boolean,
-    shouldAnimate: boolean
+    isAppending: boolean
   ) => {
-    const startTime = performance.now();
-    log.debug('Starting background formatting', { rawLength: rawText.length });
-    // console.time('⏱️ TEXT FORMATTING');
-    setIsFormatting(true);
+    const clip = getClipById(clipId);
+    if (!clip) {
+      console.warn('[Formatting] Clip not found:', clipId);
+      return;
+    }
+
+    console.info('[Formatting] Starting formatting for clip:', clipId, '| isAppending:', isAppending);
 
     try {
-      // Determine if we need context (appending to existing formatted text)
-      const existingContext = isAppending && selectedClip?.formattedText
-        ? selectedClip.formattedText
-        : undefined;
+      // Get context if appending
+      const context = isAppending ? clip.formattedText : undefined;
 
+      // Call API
       const response = await fetch('/api/clipperstream/format-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rawText,
-          existingFormattedContext: existingContext
+          existingFormattedContext: context 
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        log.warn('Formatting failed, falling back to raw text', errorData);
-        // Fallback: show raw text instead (use full combined raw text)
-        const clip = getClips().find(c => c.id === clipIdToUpdate);
-        const fullRawText = clip?.rawText || rawText;
-        setContentBlocks([{
-          id: `fallback-${Date.now()}`,
-          text: fullRawText,
-          animate: false
-        }]);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        // Auto-copy raw text (fallback - formatting failed but transcription succeeded)
-        navigator.clipboard.writeText(fullRawText).catch(() => { });
+      const data = await response.json();
+      const formattedText = data.formattedText || data.formatted || rawText;
 
-        // Show toast once per session with custom message indicating formatting failed
-        if (!hasShownTranscriptionToast.current) {
-          setCopyToastText('Copied without formatting');
-          setShowCopyToast(true);
-          hasShownTranscriptionToast.current = true;
-        }
+      console.info('[Formatting] Received formatted text for clip:', clipId);
 
-        // Transcription succeeded even though formatting failed - clean up audio and status
-        if (clip?.audioId) {
-          try {
-            await deleteAudio(clip.audioId);
-            log.info('Audio deleted after formatting fallback', { audioId: clip.audioId, clipId: clipIdToUpdate });
+      // Update Zustand
+      updateClip(clipId, {
+        formattedText: isAppending
+          ? clip.formattedText + ' ' + formattedText
+          : formattedText,
+        content: isAppending
+          ? clip.content + ' ' + formattedText
+          : formattedText,
+        status: null  // Done!
+      });
 
-            log.info('Status transition', {
-              clipId: clipIdToUpdate,
-              from: 'transcribing',
-              to: null,
-              trigger: 'transcription-complete-formatting-failed'
-            });
+      console.info('[Formatting] Updated clip content in Zustand for clip:', clipId);
 
-            updateClip(clipIdToUpdate, {
-              audioId: undefined,
-              status: null
-            });
-            refreshClips();
-          } catch (error) {
-            log.error('Failed to delete audio after formatting fallback', { error });
-            // Still clear status even if audio deletion fails
-            updateClip(clipIdToUpdate, {
-              audioId: undefined,
-              status: null
-            });
-            refreshClips();
-          }
-        }
-
-        setRecordNavState('complete');
-        setIsFormatting(false);
-        return;
-      }
-
-      const { formattedText } = await response.json();
-      log.info('Text formatted successfully');
-
-
-      // Update clip with formatted text
-      const clip = getClips().find(c => c.id === clipIdToUpdate);
-      if (clip) {
-        let updatedFormattedText: string;
-
-        if (isAppending && clip.formattedText) {
-          // Append formatted new text to existing formatted text
-          updatedFormattedText = clip.formattedText + formattedText;
-        } else {
-          // First transcription
-          updatedFormattedText = formattedText;
-        }
-
-        const updatedClip = updateClip(clipIdToUpdate, {
-          formattedText: updatedFormattedText
-        });
-        refreshClips();
-
-        // Update selectedClip if still viewing
-        if (updatedClip) {
-          setSelectedClip(updatedClip);
-        }
-
-        // NOW update contentBlocks with FORMATTED text and show to user
-        // CRITICAL: Always use the FULL combined text to preserve AI's paragraph decisions
-        // If we used separate blocks, <div> wrappers would force line breaks
-        setContentBlocks([{
-          id: `formatted-full-${Date.now()}`,
-          text: updatedFormattedText, // Full combined text - AI's formatting preserved
-          animate: false // No animation for formatting updates (happens after transcription)
-        }]);
-
-        // Auto-copy FORMATTED text to clipboard (moved here from transcription useEffect)
-        // This ensures user gets formatted text in clipboard that matches what's on screen
-        navigator.clipboard.writeText(updatedFormattedText).catch(() => { });
-
-        // Show toast once per session (after formatted text is ready)
-        if (!hasShownTranscriptionToast.current) {
-          setCopyToastText(undefined); // Use default "Copied to clipboard" message
-          setShowCopyToast(true);
-          hasShownTranscriptionToast.current = true;
-        }
-
-        // Transcription succeeded - clean up audio and status immediately
-        // NOTE: Previously used 10-second delay, but that caused status to remain stuck at 'transcribing'
-        // when user navigated away before timeout completed. Once transcription succeeds, we have the
-        // text (rawText + formattedText), so audio blob is no longer needed.
-        if (clip.audioId) {
-          try {
-            await deleteAudio(clip.audioId);
-            log.info('Audio deleted from IndexedDB after successful transcription', {
-              audioId: clip.audioId,
-              clipId: clipIdToUpdate
-            });
-
-            log.info('Status transition', {
-              clipId: clipIdToUpdate,
-              from: 'transcribing',
-              to: null,
-              trigger: 'transcription-complete'
-            });
-
-            // Clear audioId and status from clip
-            updateClip(clipIdToUpdate, {
-              audioId: undefined,
-              status: null
-            });
-            refreshClips();
-          } catch (error) {
-            log.error('Failed to delete audio after transcription', {
-              audioId: clip.audioId,
-              clipId: clipIdToUpdate,
-              error
-            });
-            // Still clear status even if audio deletion fails
-            updateClip(clipIdToUpdate, {
-              audioId: undefined,
-              status: null
-            });
-            refreshClips();
-          }
-        }
-      }
-
-      // Transition to complete state - NOW formatted text is ready
-      // console.timeEnd('⏱️ TEXT FORMATTING');
+      // Switch nav bar to complete state now that formatted text is ready
+      console.info('[Formatting] Calling setRecordNavState(complete) for clip:', clipId);
       setRecordNavState('complete');
+
+      // Delete audio from IndexedDB
+      if (clip.audioId) {
+            await deleteAudio(clip.audioId);
+        updateClip(clipId, { audioId: undefined });
+      }
+
+      // Auto-copy formatted text to clipboard
+      const updatedClip = getClipById(clipId);
+      if (updatedClip) {
+        const textToCopy = updatedClip.currentView === 'raw'
+          ? updatedClip.rawText
+          : updatedClip.formattedText;
+        navigator.clipboard.writeText(textToCopy);
+        setShowCopyToast(true);
+      }
+
+          } catch (error) {
+      console.error('[Formatting] Error formatting clip:', clipId, '| Error:', error);
+      // Fallback: use raw text as formatted
+      updateClip(clipId, {
+        formattedText: clip.rawText,
+        content: clip.rawText,
+              status: null
+            });
+
+      console.info('[Formatting] Using fallback (raw text) for clip:', clipId);
+
+      // Switch nav bar to complete state (fallback text is displayed)
+      console.info('[Formatting] Calling setRecordNavState(complete) after fallback for clip:', clipId);
+        setRecordNavState('complete');
+    }
+  }, [getClipById, updateClip, selectedClip, setShowCopyToast, setRecordNavState, deleteAudio]);
+
+  // ✅ REMOVED: Old formatChildTranscription - replaced by new implementation in 043_v3
+
+  /**
+   * Process single child clip (transcribe + format)
+   * Returns formatted text for accumulation
+   */
+  const processChild = useCallback(async (
+    child: Clip,
+    context?: string  // ← Accumulated formatted text for AI context
+  ): Promise<{
+    success: boolean;
+    rawText: string;
+    formattedText: string;
+  }> => {
+    console.log('[ProcessChild] Starting:', child.pendingClipTitle);
+
+    try {
+      // Step 1: Get audio from IndexedDB
+      const audioBlob = await getAudio(child.audioId!);
+      if (!audioBlob) {
+        console.warn('[ProcessChild] Audio not found for:', child.id);
+        updateClip(child.id, {
+          status: 'audio-corrupted',  // ✅ FIX: Permanent audio error
+          transcriptionError: 'Audio not found in storage'
+        });
+        return { success: false, rawText: '', formattedText: '' };
+      }
+
+      // Step 2: Update status to transcribing
+      updateClip(child.id, { status: 'transcribing' });
+
+      // Step 3: Transcribe (uses existing retry mechanism)
+      // Retry implementation in useClipRecording.ts lines 410-444:
+      //   - Attempts 1-3: Rapid fire (no waits between attempts)
+      //   - Attempts 4+: Interval waits (1min, 2min, 4min, 5min cycle repeats)
+      // TODO Phase 4: Extract retry logic to shared function for auto-retry
+      //   - Track clip.retryCount and clip.nextRetryTime for UI
+      //   - Coordinate spinner state (stops during interval waits)
+      const transcriptionResult = await transcribeRecording(audioBlob);
+      const { text: rawText, error: transcriptionError } = transcriptionResult;
+
+      if (!rawText || rawText.length === 0) {
+        console.warn('[ProcessChild] Transcription failed:', child.pendingClipTitle);
+        updateClip(child.id, {
+          status: transcriptionError === 'validation' ? 'no-audio-detected' : 'pending-retry',  // ✅ FIX: Validation errors are permanent
+          lastError: transcriptionError === 'validation' ? 'validation' : 'network',
+          transcriptionError: transcriptionError === 'validation'
+            ? `No audio detected in ${child.pendingClipTitle}`
+            : 'Transcription failed'
+        });
+        return { success: false, rawText: '', formattedText: '' };
+      }
+
+      // Step 4: Store raw text
+      updateClip(child.id, {
+        rawText: rawText,
+        content: rawText,  // Temporary (will be replaced with formatted)
+        status: 'formatting'
+      });
+
+      // Step 5: Format with context (returns formatted text)
+      const formattedText = await formatChildTranscription(child.id, rawText, context);
+
+      // Step 6: Delete audio from IndexedDB
+      if (child.audioId) {
+        await deleteAudio(child.audioId);
+        updateClip(child.id, { audioId: undefined });
+      }
+
+      console.log('[ProcessChild] Success:', child.pendingClipTitle);
+
+      return {
+        success: true,
+        rawText: rawText,
+        formattedText: formattedText
+      };
 
     } catch (error) {
-      log.error('Background formatting failed', error);
-      // Fallback: show raw text (use full combined raw text)
-      const clip = getClips().find(c => c.id === clipIdToUpdate);
-      const fullRawText = clip?.rawText || rawText;
-      setContentBlocks([{
-        id: `error-${Date.now()}`,
-        text: fullRawText,
-        animate: false
-      }]);
-
-      // Auto-copy raw text (fallback - formatting threw error but transcription succeeded)
-      navigator.clipboard.writeText(fullRawText).catch(() => { });
-
-      // Show toast once per session with custom message indicating formatting failed
-      if (!hasShownTranscriptionToast.current) {
-        setCopyToastText('Copied without formatting');
-        setShowCopyToast(true);
-        hasShownTranscriptionToast.current = true;
-      }
-
-      // Transcription succeeded even though formatting failed - clean up audio and status
-      if (clip?.audioId) {
-        try {
-          await deleteAudio(clip.audioId);
-          log.info('Audio deleted after formatting error', { audioId: clip.audioId, clipId: clipIdToUpdate });
-
-          log.info('Status transition', {
-            clipId: clipIdToUpdate,
-            from: 'transcribing',
-            to: null,
-            trigger: 'transcription-complete-formatting-error'
-          });
-
-          updateClip(clipIdToUpdate, {
-            audioId: undefined,
-            status: null
-          });
-          refreshClips();
-        } catch (deleteError) {
-          log.error('Failed to delete audio after formatting error', { error: deleteError });
-          // Still clear status even if audio deletion fails
-          updateClip(clipIdToUpdate, {
-            audioId: undefined,
-            status: null
-          });
-          refreshClips();
-        }
-      }
-
-      setRecordNavState('complete');
-    } finally {
-      setIsFormatting(false);
+      console.error('[ProcessChild] Error:', child.pendingClipTitle, error);
+      updateClip(child.id, {
+        status: 'pending-retry',  // ✅ FIX: Retryable error
+        lastError: 'network',
+        transcriptionError: error instanceof Error ? error.message : 'Unknown error'
+      });
+      return { success: false, rawText: '', formattedText: '' };
     }
-  }, [selectedClip, refreshClips]);
+  }, [getAudio, updateClip, transcribeRecording, deleteAudio, formatChildTranscription]);
 
-  // ============================================
-  // UNIFIED TRANSCRIPTION HANDLER (Option D)
-  // ============================================
-  // Handles BOTH active recordings AND background retries in ONE place
-  // Decouples transcription logic from UI state (recordNavState is only read as context)
-  useEffect(() => {
-    if (transcription && !isTranscribing && !isFormatting) {
+  /**
+   * Process all children for a parent (implements user's batch strategy)
+   * Strategy:
+   *   - 1 child: Show immediately
+   *   - 2 children: Show first, show second
+   *   - 3+ children: Show first, accumulate rest, show batch
+   */
+  const processParentChildren = useCallback(async (
+    parentId: string,
+    children: Clip[]
+  ) => {
+    // Check if parent exists (orphaned children cleanup)
+    const parent = getClipById(parentId);
+    if (!parent) {
+      console.warn('[ProcessChildren] Parent deleted during processing, cleaning up orphaned children');
 
-      // Context: Active recording or background retry?
-      const isActiveRecording = recordNavState === 'processing';
+      // Clean up orphaned children (parent was deleted while they were pending)
+      for (const child of children) {
+        console.log('[ProcessChildren] Deleting orphaned child:', child.id);
+        // ✅ NEW: Clean up audioRetrievalAttempts tracking before deletion
+        deleteAudioRetrievalAttempt(child.id);
+        deleteClip(child.id);
 
-      // Find target clip
-      let targetClip: Clip | undefined;
-      let clipIdForFormatting: string;
-
-      if (isActiveRecording) {
-        // ========================================
-        // ACTIVE RECORDING PATH
-        // ========================================
-        log.debug('Active recording completed', { clipId: currentClipId });
-
-        // COMBINE LOGIC HERE (ClipMasterScreen owns this business logic)
-        if (isAppendMode && appendBaseContent && currentClipId) {
-          // Append new text to existing with paragraph break
-          const finalRawText = appendBaseContent + '\n\n' + transcription;
-          log.debug('Appending to existing clip', {
-            existingLength: appendBaseContent.length,
-            newLength: transcription.length
-          });
-
-          // Build updated raw text (simple concatenation - no formatting)
-          const existingRawText = selectedClip?.rawText || appendBaseContent;
-          const updatedRawText = existingRawText + ' ' + transcription;
-
-          const updatedClip = updateClip(currentClipId, {
-            content: finalRawText, // For backward compatibility
-            rawText: updatedRawText,
-            audioId: audioId || undefined, // Save audioId for potential retry
-            status: 'transcribing', // Will be cleared after audio deletion
-            date: new Date().toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
-            })
-          });
-
-          if (updatedClip) {
-            refreshClips();
-          }
-
-          clipIdForFormatting = currentClipId;
-          targetClip = updatedClip || undefined;
-        } else {
-          // New clip - use transcription as-is
-          const finalRawText = transcription;
-          log.debug('Creating new clip with transcription');
-
-          const nextNumber = getNextRecordingNumber(getClips());
-          log.info('Creating new clip', { title: nextNumber });
-          const newClip = createClip(finalRawText, nextNumber, finalRawText);
-
-          // Save audioId with clip for potential retry
-          if (audioId) {
-            updateClip(newClip.id, {
-              audioId: audioId,
-              status: 'transcribing' // Will be cleared after audio deletion
-            });
-          }
-
-          refreshClips();
-          setCurrentClipId(newClip.id);
-
-          // Generate AI title in background immediately (like old version)
-          generateTitleInBackground(newClip.id, finalRawText);
-
-          clipIdForFormatting = newClip.id;
-          targetClip = getClips().find(c => c.id === newClip.id);
-
-          // Mark that first transcription has been shown (for animation)
-          setIsFirstTranscription(false);
+        // Delete associated audio blob
+        if (child.audioId) {
+          await deleteAudio(child.audioId);
         }
-      } else {
-        // ========================================
-        // BACKGROUND RETRY PATH
-        // ========================================
-        targetClip = clips.find(c =>
-          c.status === 'transcribing' &&
-          c.audioId &&
-          !c.content
-        );
-
-        if (!targetClip) {
-          log.warn('No pending clip found for background transcription');
-          return;
-        }
-
-        log.debug('Background transcription completed', { clipId: targetClip.id });
-        clipIdForFormatting = targetClip.id;
       }
 
-      if (!targetClip) {
-        log.warn('No target clip found for transcription');
-        return;
-      }
+      return;
+    }
 
-      const isAppending = !!targetClip.content;
-      const isFirstPending = !isActiveRecording && isFirstPendingForClip(targetClip.id);
+    console.log('[ProcessChildren] Starting for parent:', parentId, '| Children:', children.length);
 
-      // ========================================
-      // BATCHING: Hold remaining clips until all complete
-      // ========================================
-      if (!isActiveRecording && !isFirstPending) {
-        const remaining = countRemainingPending(targetClip.id);
+    // Base content (in case parent already has content from previous sessions)
+    let accumulatedRawText = parent.rawText || '';
+    let accumulatedFormattedText = parent.formattedText || '';
+    let accumulatedContent = parent.content || '';
 
-        log.info('Batching remaining clip', {
-          clipId: targetClip.id,
-          remaining,
-          batchSize: pendingBatch.transcriptions.length + 1
+    // Separate first child from rest
+    const [firstChild, ...restChildren] = children;
+
+    // STEP 1: Process first child (show immediately)
+    if (firstChild) {
+      console.log('[ProcessChildren] Processing FIRST child:', firstChild.pendingClipTitle);
+
+      // No context for first child (it's the beginning)
+      const result = await processChild(firstChild, undefined);
+
+      if (result.success) {
+        // Merge first child into parent
+        accumulatedRawText += (accumulatedRawText ? ' ' : '') + result.rawText;
+        accumulatedFormattedText += (accumulatedFormattedText ? ' ' : '') + result.formattedText;
+        accumulatedContent += (accumulatedContent ? ' ' : '') + result.formattedText;
+
+        // Update parent with first child content (shows immediately)
+        updateClip(parentId, {
+          rawText: accumulatedRawText,
+          formattedText: accumulatedFormattedText,
+          content: accumulatedContent,
+          createdAt: Date.now()  // Move to top
         });
 
-        // Add to batch
-        const updatedBatch = {
-          clipId: targetClip.id,
-          transcriptions: [
-            ...pendingBatch.transcriptions,
-            { text: transcription, audioId: targetClip.audioId! }
-          ]
-        };
-        setPendingBatch(updatedBatch);
+        console.log('[ProcessChildren] First child merged into parent:', firstChild.pendingClipTitle);
 
-        // If last one, display all batched
-        if (remaining === 1) {  // This is the last one
-          log.info('All remaining complete - displaying batch', {
-            totalBatched: updatedBatch.transcriptions.length
+        // Delete first child
+        // ✅ NEW: Clean up audioRetrievalAttempts tracking before deletion
+        deleteAudioRetrievalAttempt(firstChild.id);
+        deleteClip(firstChild.id);
+
+        // Generate title after first clip (fire-and-forget, appears in background)
+        // This matches online behavior: title from first clip's content
+        // Robust for edge case: user goes offline after first clip completes
+        const currentParent = getClipById(parentId);  // Refetch to avoid stale data
+        if (currentParent && currentParent.title.startsWith('Recording ')) {
+          console.log('[ProcessChildren] Generating title from first clip (background)');
+          generateTitleInBackground(parentId, result.formattedText).catch(err => {
+            console.error('[ProcessChildren] Title generation failed:', err);
           });
-
-          (async () => {
-            // Format all batched transcriptions (instant, no animation)
-            for (const batch of updatedBatch.transcriptions) {
-              await formatTranscriptionInBackground(
-                batch.text,
-                targetClip!.id,
-                false,
-                false  // No animation
-              );
-            }
-
-            // Clear batch
-            setPendingBatch({ clipId: '', transcriptions: [] });
-
-            // Update UI if viewing
-            if (selectedPendingClip?.id === targetClip!.id) {
-              setSelectedPendingClip(null);
-              const updated = getClips().find(c => c.id === targetClip!.id);
-              if (updated) setSelectedClip(updated);
-            }
-
-            // Generate title (use combined content)
-            const clip = getClips().find(c => c.id === targetClip!.id);
-            if (clip?.rawText) {
-              generateTitleInBackground(clip.id, clip.rawText);
-            }
-
-            resetRecording();
-          })();
-        } else {
-          // Not last - just clear hook for next
-          resetRecording();
+          // Don't await - title appears separately while rest of clips process
+          // User sees: Title + Clip 001 text (remaining clips append later)
         }
+      }
+    }
 
-        return;
+    // STEP 2: Process remaining children (accumulate in memory, show batch)
+    if (restChildren.length > 0) {
+      console.log('[ProcessChildren] Processing BATCH of', restChildren.length, 'children');
+
+      // Accumulate batch in memory (user's strategy)
+      let batchRawText = '';
+      let batchFormattedText = '';
+
+      for (const child of restChildren) {
+        console.log('[ProcessChildren] Processing batch child:', child.pendingClipTitle);
+
+        // Pass accumulated formatted text as context (API slices last 500 chars)
+        // Context = first child + previously processed batch children
+        const contextForThisChild = accumulatedFormattedText + (batchFormattedText ? ' ' + batchFormattedText : '');
+        const result = await processChild(child, contextForThisChild);
+
+        if (result.success) {
+          // Accumulate in memory (don't update parent yet)
+          batchRawText += (batchRawText ? ' ' : '') + result.rawText;
+          batchFormattedText += (batchFormattedText ? ' ' : '') + result.formattedText;
+
+          console.log('[ProcessChildren] Accumulated:', child.pendingClipTitle);
+
+          // Delete child after processing
+          // ✅ NEW: Clean up audioRetrievalAttempts tracking before deletion
+          deleteAudioRetrievalAttempt(child.id);
+          deleteClip(child.id);
+        }
       }
 
-      // ========================================
-      // IMMEDIATE DISPLAY: Active or first pending
-      // ========================================
-      const shouldAnimate = isActiveRecording || isFirstPending;
+      // Merge entire accumulated batch to parent at once
+      accumulatedRawText += (accumulatedRawText ? ' ' : '') + batchRawText;
+      accumulatedFormattedText += (accumulatedFormattedText ? ' ' : '') + batchFormattedText;
+      accumulatedContent += (accumulatedContent ? ' ' : '') + batchFormattedText;
 
-      (async () => {
-        try {
-          await formatTranscriptionInBackground(
-            transcription,
-            clipIdForFormatting,
-            isAppending,
-            shouldAnimate
-          );
+      updateClip(parentId, {
+        rawText: accumulatedRawText,
+        formattedText: accumulatedFormattedText,
+        content: accumulatedContent,
+        status: null,  // Complete
+        createdAt: Date.now()
+      });
 
-          if (isActiveRecording) {
-            setRecordNavState('complete');
-          } else {
-            // First pending completed
-            if (selectedPendingClip?.id === targetClip.id) {
-              setSelectedPendingClip(null);
-              const updated = getClips().find(c => c.id === targetClip.id);
-              if (updated) setSelectedClip(updated);
-            }
-
-            // Generate title
-            const clip = getClips().find(c => c.id === targetClip.id);
-            if (clip?.rawText) {
-              generateTitleInBackground(clip.id, clip.rawText);
-            }
-          }
-
-          resetRecording();
-        } catch (error) {
-          log.error('Transcription handling failed', error);
-        }
-      })();
+      console.log('[ProcessChildren] Batch merged into parent');
     }
-  }, [
-    transcription,
-    isTranscribing,
-    isFormatting,
-    recordNavState,
-    clips,
-    currentClipId,
-    isAppendMode,
-    appendBaseContent,
-    selectedClip,
-    audioId,
-    isFirstTranscription,
-    pendingBatch,
-    selectedPendingClip,
-    isFirstPendingForClip,
-    countRemainingPending,
-    formatTranscriptionInBackground,
-    generateTitleInBackground,
-    resetRecording,
-    refreshClips,
-    createClip,
-    updateClip,
-    getNextRecordingNumber,
-    setIsFirstTranscription,
-    setCurrentClipId
-  ]);
-  // NOTE: recordNavState NOT in dependencies - only read as context
+
+    console.log('[ProcessChildren] Completed parent:', parentId);
+  }, [getClipById, updateClip, deleteClip, deleteAudio, generateTitleInBackground, processChild]);
+
+  // v2.7.0: Auto-retry pending clips when network comes online
+  // ✅ REMOVED: Old handleOnline useEffect - Now replaced by auto-retry service at app root
+
+  // ============================================================================
+  // TRANSCRIPTION & OFFLINE HANDLERS
+  // ============================================================================
+
+  // PHASE 2.5: Offline recording handler (extracted)
+  const { handleOfflineRecording } = useOfflineRecording({
+    setCurrentClipId,
+    // v2.7.0: setSelectedPendingClips removed (Zustand selector handles it)
+    addClip,
+    getClips: () => useClipStore.getState().clips
+  });
+
+  // PHASE 6 (v2.6.0): Auto-generate parent titles when all children complete
+  useParentTitleGenerator({
+    generateTitleInBackground
+  });
 
   // Handle transcription errors and save audioId for retry
   useEffect(() => {
@@ -1218,18 +1572,18 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         log.info('Status transition', {
           clipId: currentClipId,
           from: 'transcribing',
-          to: 'failed',
+          to: 'pending-retry',
           trigger: 'transcription-error',
           error: transcriptionError
         });
 
-        updateClip(currentClipId, {
+        updateClipById(currentClipId, {
           audioId: audioId,
           duration: formatDuration(duration),
-          status: 'failed',
+          status: 'pending-retry',  // ✅ FIX: Retryable error
+          lastError: 'network',
           transcriptionError: transcriptionError
         });
-        refreshClips();
       }
 
       setShowErrorToast(true);
@@ -1243,74 +1597,23 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         setRecordNavState('record');
       }
     } else if (transcriptionError === 'offline' || transcriptionError === 'network-retry') {
-      // Offline OR entering interval retry mode - save as pending
+      // PHASE 2.5: Offline/network-retry handler (extracted to useOfflineRecording hook)
       log.info(transcriptionError === 'offline'
         ? 'Offline - clip saved as pending'
         : 'Network retry - clip saved as pending');
 
       if (audioId) {
-        let clipIdToUpdate = currentClipId;
-
-        // For NEW recordings, we need to CREATE a clip first
-        // (Normally clip creation happens in success path, but offline = no success path yet)
-        if (!currentClipId && !isAppendMode) {
-          const nextNumber = getNextRecordingNumber(getClips());
-          // Create a minimal placeholder clip - content will be added after transcription succeeds
-          const newClip = createClip('', nextNumber, '');
-          clipIdToUpdate = newClip.id;
-          setCurrentClipId(newClip.id);
-          log.info('Created new clip for offline recording', {
-            clipId: newClip.id,
-            title: nextNumber
-          });
-        }
-
-        if (clipIdToUpdate) {
-          log.info('Status transition', {
-            clipId: clipIdToUpdate,
-            from: null,
-            to: 'pending',
-            trigger: 'offline-save'
-          });
-
-          // Count existing pending clips to determine new clip number
-          const allClipsForDebug = getClips();
-          console.log('🔍 DEBUG: All clips when counting:', allClipsForDebug.map(c => ({
-            id: c.id.slice(-8),
-            status: c.status,
-            title: c.title,
-            pendingClipTitle: c.pendingClipTitle
-          })));
-          const existingPendingCount = allClipsForDebug.filter(c =>
-            c.status === 'pending' || c.status === 'transcribing'
-          ).length;
-          console.log('🔍 DEBUG: existingPendingCount =', existingPendingCount, '→ new clip will be', existingPendingCount + 1);
-          const newClipName = `Clip ${String(existingPendingCount + 1).padStart(3, '0')}`;
-
-          updateClip(clipIdToUpdate, {
-            audioId: audioId,
-            duration: formatDuration(duration),
-            status: 'pending',
-            pendingClipTitle: newClipName  // Store name immediately
-          });
-          refreshClips();
-
-          // Create and set PendingClip to display ClipOffline immediately
-          // Use getClips() directly to avoid triggering effect re-runs
-          const updatedClip = getClips().find(c => c.id === clipIdToUpdate);
-          if (updatedClip) {
-            const pendingClip = clipToPendingClip(updatedClip);
-            setSelectedPendingClip(pendingClip);
-            log.debug('Set selectedPendingClip for offline display', { pendingClip });
-          }
-        }
+        handleOfflineRecording({
+          audioId,
+          duration,
+          currentClipId
+        });
       }
 
       // Show "Audio saved for later" toast (only for offline, not network-retry)
       if (transcriptionError === 'offline') {
         setShowAudioToast(true);
       }
-      // For network-retry, user already saw error toast, don't duplicate
 
       // Same logic for offline: preserve existing content access if appending
       if (isAppendMode && appendBaseContent) {
@@ -1326,7 +1629,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // NOTE: 'currentClipId' is also excluded - the effect calls setCurrentClipId() inside,
     // which would cause the effect to re-run and overwrite the pending clip name.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transcriptionError, audioId, duration, isAppendMode, appendBaseContent, refreshClips, formatDuration, clipToPendingClip]);
+  }, [transcriptionError, audioId, duration, isAppendMode, appendBaseContent, formatDuration, clipToPendingClip]);
 
   // NOTE: Audio deletion and status cleanup now happens immediately in formatTranscriptionInBackground
   // Previously used a 10-second delay here, but that caused status to remain stuck at 'transcribing'
@@ -1351,9 +1654,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   // Determine ClipRecordScreen state
   const getRecordScreenState = (): 'recording' | 'transcribed' | 'offline' => {
     // Viewing a specific pending clip (waiting/transcribing)
-    if (selectedPendingClip) return 'offline';
-    // Viewing a transcribed clip (from selected clip or new transcription)
-    if (transcription || selectedClip?.content) return 'transcribed';
+    if (selectedPendingClips.length > 0) return 'offline';
+    // Viewing a transcribed clip (from selected clip)
+    if (selectedClip?.content) return 'transcribed';
     // Default: recording state (empty screen, ready to record)
     return 'recording';
   };
@@ -1365,9 +1668,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
 
   // Get pending clips to display (either selected one or all pending)
   const getDisplayPendingClips = (): PendingClip[] => {
-    if (selectedPendingClip) {
-      // Viewing a single pending clip
-      return [selectedPendingClip];
+    if (selectedPendingClips.length > 0) {
+      // Viewing selected pending clips
+      return selectedPendingClips;
     }
     // Show all pending clips
     return pendingClips;
@@ -1391,7 +1694,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           isVisible={showErrorToast}
           onDismiss={() => setShowErrorToast(false)}
           type="error"
-          text={transcriptionError || 'No audio recorded'}
+          text={errorToastMessage}
         />
 
         <ToastNotification
@@ -1409,7 +1712,9 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
               onClipClick={handleClipClick}
               onRecordClick={handleRecordClick}
               onSearchActiveChange={setIsSearchActive}
-              onClipsChange={refreshClips}
+              activeTranscriptionParentId={activeTranscriptionParentId}  // ✅ v2.5.3 FIX (renamed)
+              activeHttpClipId={activeHttpClipId}  // ✅ v2.5.4 CRITICAL FIX
+              isActiveRequest={isActiveRequest}
             />
           </div>
 
@@ -1417,7 +1722,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           <div className={`screen-slide record-screen ${activeScreen === 'record' ? 'active' : ''}`}>
             <ClipRecordScreen
               state={getRecordScreenState()}
-              contentBlocks={contentBlocks}
               selectedClip={selectedClip || undefined}
               pendingClips={getDisplayPendingClips()}
               onBackClick={handleBackClick}

@@ -8,7 +8,7 @@ const log = logger.scope('AudioStorage');
 
 const DB_NAME = 'clipstream_audio';
 const STORE_NAME = 'audio_blobs';
-const DB_VERSION = 1;
+const DB_VERSION = 2;  // v2: ArrayBuffer storage format
 
 let dbInstance: IDBDatabase | null = null;
 
@@ -39,9 +39,27 @@ async function initDB(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
+      const oldVersion = event.oldVersion;
+      const newVersion = event.newVersion || DB_VERSION;
+
+      log.info('IndexedDB upgrade triggered', {
+        oldVersion,
+        newVersion,
+        storeName: STORE_NAME
+      });
+
+      // v0 → v1 or v2: Create object store
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         log.info('Created IndexedDB object store', { storeName: STORE_NAME });
+      }
+
+      // v1 → v2: Data is ALREADY in v2 format (ArrayBuffer)
+      // Just need to update code to read it correctly
+      if (oldVersion === 1 && newVersion === 2) {
+        log.info('Upgrading DB version from v1 to v2');
+        log.info('Data is already in v2 format (ArrayBuffer) - no migration needed');
+        // DO NOT CLEAR - existing data is already correct!
       }
     };
   });
@@ -60,20 +78,29 @@ export async function storeAudio(blob: Blob): Promise<string> {
   const db = await initDB();
   const audioId = `audio-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+  // Convert Blob to ArrayBuffer for reliable storage
+  const arrayBuffer = await blob.arrayBuffer();
+  const mimeType = blob.type || 'audio/webm;codecs=opus';
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
+
+    // Store as ArrayBuffer with separate MIME type (v2 format)
     const request = store.add({
       id: audioId,
-      blob,
+      data: arrayBuffer,           // ← ArrayBuffer, not Blob
+      mimeType: mimeType,           // ← Full MIME type with codec
+      size: arrayBuffer.byteLength, // ← Store size for verification
       timestamp: Date.now()
     });
 
     request.onsuccess = () => {
       log.info('Audio stored in IndexedDB', {
         audioId,
-        size: blob.size,
-        type: blob.type
+        size: arrayBuffer.byteLength,
+        mimeType,
+        format: 'v2-ArrayBuffer'
       });
       resolve(audioId);
     };
@@ -100,16 +127,98 @@ export async function getAudio(audioId: string): Promise<Blob | null> {
 
     request.onsuccess = () => {
       const result = request.result;
-      if (result) {
-        log.debug('Audio retrieved from IndexedDB', {
-          audioId,
-          size: result.blob.size
-        });
-        resolve(result.blob);
-      } else {
+
+      if (!result) {
         log.warn('Audio not found in IndexedDB', { audioId });
         resolve(null);
+        return;
       }
+
+      // Validate we have the required data
+      if (!result.data || !(result.data instanceof ArrayBuffer)) {
+        log.error('Invalid storage format - missing or invalid ArrayBuffer', {
+          audioId,
+          hasData: !!result.data,
+          dataType: result.data?.constructor?.name || 'undefined'
+        });
+        resolve(null);
+        return;
+      }
+
+      // ========================================
+      // DIAGNOSTIC LOGGING: Verify WebM content
+      // Verify BEFORE converting to blob (more efficient)
+      // ========================================
+      const verifyBytes = new Uint8Array(result.data);
+      const isValidWebM = verifyBytes.length >= 4 &&
+                         verifyBytes[0] === 0x1A &&
+                         verifyBytes[1] === 0x45 &&
+                         verifyBytes[2] === 0xDF &&
+                         verifyBytes[3] === 0xA3;
+
+      const first16Bytes = verifyBytes.length >= 16
+        ? Array.from(verifyBytes.slice(0, 16))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join(' ')
+        : 'insufficient data';
+
+      log.debug('🔬 ARRAYBUFFER CONTENT VERIFICATION', {
+        audioId,
+        isValidWebM,
+        first16Bytes,
+        expectedHeader: '1a 45 df a3 ...',
+        totalBytes: verifyBytes.length,
+        storedSize: result.size
+      });
+
+      if (!isValidWebM) {
+        log.error('❌ INVALID WEBM DATA - ArrayBuffer does not contain valid WebM audio', {
+          audioId,
+          first16Bytes,
+          expectedBytes: '1a 45 df a3',
+          actualBytes: verifyBytes.length >= 4
+            ? Array.from(verifyBytes.slice(0, 4))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join(' ')
+            : 'insufficient data'
+        });
+      } else {
+        log.info('✅ VALID WEBM DATA - ArrayBuffer contains valid WebM magic bytes', {
+          audioId,
+          first4Bytes: first16Bytes.split(' ').slice(0, 4).join(' ')
+        });
+      }
+      // ========================================
+
+      // Get MIME type (with fallback to codec-included default)
+      const mimeType = result.mimeType || 'audio/webm;codecs=opus';
+
+      // Convert ArrayBuffer back to Blob
+      const blob = new Blob([result.data], { type: mimeType });
+
+      // Verify blob was created successfully
+      if (blob.size === 0 || blob.size !== result.data.byteLength) {
+        log.error('Blob conversion failed', {
+          audioId,
+          arrayBufferSize: result.data.byteLength,
+          blobSize: blob.size,
+          mismatch: blob.size !== result.data.byteLength
+        });
+        resolve(null);
+        return;
+      }
+
+      log.debug('Audio retrieved from IndexedDB', {
+        audioId,
+        size: blob.size,
+        mimeType: blob.type,
+        format: 'v2-ArrayBuffer',
+        storedSize: result.size,
+        sizeMatch: blob.size === result.size,
+        arrayBufferSize: result.data.byteLength
+      });
+
+      resolve(blob);
     };
 
     request.onerror = () => {

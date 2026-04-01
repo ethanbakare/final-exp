@@ -1,0 +1,437 @@
+/* Trace Styles - Following Voice Interface Pattern */
+
+/* ============================================
+   FONT FACE DECLARATIONS
+   ============================================ */
+
+/* Open Runde - Regular (400) */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Regular.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Open Runde - Medium (500) */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Medium.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Open Runde - Semibold (600) */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Semibold.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Semibold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Open Runde - Bold (700) */
+@font-face {
+  font-family: 'Open Runde';
+  src: url('/fonts/OpenRunde/OpenRunde-Bold.woff2') format('woff2'),
+       url('/fonts/OpenRunde/OpenRunde-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================
+   TYPOGRAPHY UTILITY CLASSES
+   ============================================ */
+
+/* Inter Regular */
+.InterRegular13 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular12 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular16 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular18 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterRegular20 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+/* Inter Medium */
+.InterMedium16 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 143.75%;
+}
+
+.InterMedium18 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterMedium20 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+.InterMedium32 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: normal;
+}
+
+/* Open Runde Typography Classes */
+.OpenRundeRegular20 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeRegular18 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeRegular16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeRegular14 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeRegular12 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium20 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium18 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium14 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeMedium12 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeSemiBold16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeSemiBold14 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeBold20 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeBold18 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+.OpenRundeBold16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 143.75%;
+}
+
+/* ============================================
+   COMPONENT STYLES
+   ============================================ */
+
+/* Styles will be added as components are built */
+
+/* ============================================
+   COLOR VARIABLES
+   ============================================ */
+
+/* CSS Module Variables - ALL trace variables go here */
+.container {
+  /* ==================== LEGACY COLORS (backwards compatibility) ==================== */
+  --TraceDarkGrey: #262424;
+  --TraceWhite: #FFFFFF;
+  --TraceBlue: #3B82F6;
+  --TraceLightGrey: #F4F4F4;
+  --TraceDarkGrey_95: rgba(38, 36, 36, 0.95);
+  --TraceDarkGrey_90: rgba(38, 36, 36, 0.9);
+  --TraceDarkGrey_80: rgba(38, 36, 36, 0.8);
+  --TraceDarkGrey_30: rgba(38, 36, 36, 0.3);
+  --TraceDarkGrey_20: rgba(38, 36, 36, 0.2);
+  --TraceDarkGrey_15: rgba(38, 36, 36, 0.15);
+  --TraceDarkGrey_10: rgba(38, 36, 36, 0.1);
+  --TraceDarkGrey_5: rgba(38, 36, 36, 0.05);
+  --TraceTextGrey_50: rgba(94, 94, 94, 0.5);
+  --TraceBoxBg: #F7F6F4;
+  --TraceBoxOutline: #F2F2F2;
+  --TraceBoxShadow: rgba(0, 0, 0, 0.06);
+
+  /* ==================== TRACE UI DESIGN TOKENS (Jan 2026) ==================== */
+  /* ==================== COLORS ==================== */
+
+  /* Primary Backgrounds */
+  --trace-bg-dark: #1c1917;          /* stone-950 - TextBox background, app bg */
+  --trace-bg-merchant: #29252480;    /* stone-900 @ 50% - MerchantBlock */
+  --trace-bg-showcase: #0a0a0a;      /* Super dark - Showcase page background */
+  --trace-bg-demo: #18181b;          /* zinc-950 - Demo card backgrounds */
+
+  /* Button Colors */
+  --trace-btn-light: #f5f5f4;        /* stone-50 - Upload/Speak/Close buttons */
+  --trace-btn-light-80: rgba(245, 245, 244, 0.8); /* 80% opacity variant for inside-card buttons */
+  --trace-btn-orange: #f97316;       /* orange-500 - SendAudio button (CTA) */
+  --trace-btn-processing: #a8a29e;   /* stone-400 - Processing state buttons */
+
+  /* Text Colors */
+  --trace-text-primary: #ffffff;     /* White - Primary text (dates, totals, buttons) */
+  --trace-text-secondary: #e7e5e4;
+  --trace-text-second: #f5f5f4; /* stone-100 @ 30% - Item names, prices */
+  --trace-text-tertiary: #78716c;    /* stone-500 - Merchant names, labels */
+  --trace-text-muted: #a8a29e;       /* stone-400 - Master total label */
+  --trace-text-qty: #ffffff4d;       /* White @ 30% - Quantity badges (2x, 1x) */
+
+  /* Border Colors */
+  --trace-border-primary: #44403c;   /* stone-700 - TextBox border, button text on light */
+  --trace-border-light: #27272a;     /* zinc-800 - Showcase card borders */
+
+  /* Accent Colors */
+  --trace-accent-red: #ef4444;       /* red-500 - Error states, unused date bar */
+  --trace-discount-orange: #fb923c80; /* orange-400 @ 50% - Discount text (-£3.99) */
+
+  /* Shadow */
+  --trace-shadow-textbox: 0px 4px 10.5px rgba(0, 0, 0, 0.06);
+
+  /* Showcase UI Elements (for demo/showcase pages) */
+  --trace-showcase-border: rgba(255, 255, 255, 0.1);     /* Light borders on dark background */
+  --trace-showcase-toggle-bg: rgba(255, 255, 255, 0.2);   /* Toggle switch background */
+  --trace-showcase-toggle-active: rgba(255, 255, 255, 0.4); /* Active toggle state */
+  --trace-showcase-button-bg: rgba(255, 255, 255, 0.05);  /* Button background */
+  --trace-showcase-button-border: rgba(255, 255, 255, 0.3); /* Button border */
+  --trace-showcase-button-active: rgba(255, 255, 255, 0.2); /* Active button state */
+  --trace-showcase-shadow: rgba(0, 0, 0, 0.2);           /* Box shadow for toggle elements */
+
+
+  /* ==================== TYPOGRAPHY ==================== */
+
+  /* Font Family */
+  --trace-font-family: 'Open Runde', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Font Sizes (with corresponding line heights) */
+  --trace-fs-discount-currency: 8px;   /* Line height: 3.0 (24px) */
+  --trace-fs-currency: 9px;            /* Line height: 2.67 (24px) */
+  --trace-fs-small: 10px;              /* Line height: 2.4 (24px) */
+  --trace-fs-body: 12px;               /* Line height: 2.0 (24px) */
+  --trace-fs-medium: 14px;             /* Line height: 1.71 (24px) */
+  --trace-fs-itemname: 14px;           /* Line height: 1.71 (24px) */
+  --trace-fs-button: 16px;             /* Line height: 1.44 (23px) */
+  --trace-fs-processing: 16px;         /* Line height: 1.44 (23px) */
+  --trace-fs-master-currency: 18px;    /* Master total currency symbol (rounded from 17.89) */
+  --trace-fs-master-amount: 28px;      /* Master total amount value (rounded from 27.82) */
+  --trace-fs-title: 24px;              /* Showcase section titles */
+  --trace-fs-heading: 32px;            /* App header */
+
+  /* Font Weights */
+  --trace-fw-normal: 400;
+  --trace-fw-medium: 500;
+  --trace-fw-semibold: 600;
+  --trace-fw-bold: 700;
+
+  /* Line Heights (unitless multipliers) */
+  --trace-lh-discount-currency: 3.0;
+  --trace-lh-currency: 2.67;
+  --trace-lh-small: 2.4;
+  --trace-lh-body: 2.0;
+  --trace-lh-medium: 1.71;
+  --trace-lh-itemname: 1.71;
+  --trace-lh-button: 1.44;
+  --trace-lh-processing: 1.44;
+
+
+  /* ==================== DIMENSIONS ==================== */
+
+  /* TRNavbar */
+  --trace-navbar-width: 247px;        /* Upload(117) + gap(12) + Speak(118) = 247px */
+  --trace-button-height: 44px;
+  --trace-button-radius: 23px;        /* ~23.16px rounded */
+  --trace-button-stroke: 2px;         /* ~2.32px rounded */
+  --trace-button-gap: 12px;           /* Gap between buttons in navbar */
+
+  /* Individual Button Widths (measured from rendered buttons with proper padding) */
+  --trace-btn-upload-width: 117px;     /* Upload: icon(20) + gap(6) + text(~59) + padding(32) */
+  --trace-btn-speak-width: 118px;      /* Speak: icon(20) + gap(6) + text(~60) + padding(32) */
+  --trace-btn-close-width: 56px;
+  --trace-btn-sendaudio-width: 150px;
+  --trace-btn-processing-width: 247px; /* Full navbar width */
+
+  /* TextBox / FinanceBox */
+  --trace-textbox-width: 360px;       /* Widened for MasterBlockHolder */
+  --trace-textbox-height: 500px;      /* Increased for MasterBlockHolder */
+  --trace-textbox-radius: 16px;
+  --trace-textbox-border: 1px;
+
+  /* FinanceBox Inner Padding */
+  --trace-financebox-padding-top: 0px;       /* Top padding */
+  --trace-financebox-padding-bottom: 12px;   /* Bottom padding */
+  --trace-financebox-padding-horizontal: 12px; /* Left and right padding */
+  --trace-financebox-radius: 6px;
+
+  /* MerchantBlock */
+  --trace-merchantblock-radius: 8px;
+  --trace-merchantblock-padding: 0 12px 8px 12px;  /* top right bottom left */
+
+  /* ContentRow Padding Variations */
+  --trace-contentrow-padding-first: 4px 0 6px 0;  /* First item */
+  --trace-contentrow-padding-subsequent: 3px 0 6px 0; /* Subsequent items */
+  --trace-contentrow-padding-first-with-discount: 3px 0 15px 0;  /* First item with discount */
+  --trace-contentrow-padding-subsequent-with-discount: 3px 0 15px 0; /* Subsequent items with discount */
+
+  /* ContentRow Border (divider between items) */
+  --trace-contentrow-border-width: 0.5px;
+  --trace-contentrow-border-color: rgba(255, 255, 255, 0.0); /* White @ 10% - OPTIONAL: comment out border in tracefinance.tsx to disable */
+
+  /* PriceFrame */
+  --trace-priceframe-width: 85px;  /* Fixed width for consistent vertical alignment (handles £999,999.99) */
+  --trace-priceframe-discount-offset: -4px;  /* Negative margin to pull discount closer to net price */
+
+  /* ContentRow Layout */
+  --trace-contentrow-gap: 16px;  /* Minimum spacing between QuantityItemName and PriceFrame */
+
+  /* RowIdentifier */
+  --trace-rowidentifier-padding: 6px 10px;
+  --trace-rowidentifier-radius-top: 8px;
+
+  /* DayTotal */
+  --trace-daytotal-padding: 24px 12px 4px 12px; /* Top: 24px (from FinanceBox gap), Right: 12px, Bottom: 4px (from DayBlock gap), Left: 12px */
+  --trace-daytotal-border-top: 0.5px;
+
+
+  /* ==================== SPACING ==================== */
+
+  --trace-spacing-xs: 4px;
+  --trace-spacing-sm: 6px;
+  --trace-spacing-md: 10px;
+  --trace-spacing-lg: 12px;
+  --trace-spacing-xl: 16px;
+  --trace-spacing-2xl: 32px;
+
+
+  /* ==================== Z-INDEX LAYERS ==================== */
+
+  --trace-z-base: 0;
+  --trace-z-navbar: 100;
+  --trace-z-modal: 200;
+  --trace-z-toast: 300;
+
+
+  /* ==================== TRANSITIONS ==================== */
+
+  --trace-transition-fast: 0.15s ease;
+  --trace-transition-normal: 0.2s ease;
+  --trace-transition-slow: 0.3s ease;
+}

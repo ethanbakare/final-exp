@@ -1,0 +1,2428 @@
+/* ============================================
+   PORTFOLIO 2025 - Logo Project Styles
+   ============================================ */
+
+/* PAGE WRAPPER */
+.page-wrapper {
+  min-height: 100vh;
+  background: #12121D;
+  padding: 48px 0;
+  margin: 0;
+}
+
+.container {
+  max-width: 2000px;
+  margin: 0 auto;
+}
+
+/* LOGO - Offset Grid (2 columns, right column pushed down) */
+.logo-offset-grid {
+  display: flex;
+  gap: 16px;
+  max-width: 924px;
+  /* (450 * 2) + 24px gap */
+  margin: 0 auto;
+  justify-content: center;
+}
+
+/* Left Column - starts from top */
+.logo-column-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+/* Right Column - offset/pushed down */
+.logo-column-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 120px;
+  /* Offset to create staggered effect */
+  align-items: center;
+}
+
+/* Logo Item - Container size (aspect ratio 956:806 = ~1.19:1) */
+.logo-item {
+  background: #FFFFFF;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 450px;
+  height: 380px;
+  overflow: hidden;
+}
+
+.logo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: scale(1.01);
+  display: block;
+}
+
+/* RESPONSIVE - Mobile: Single column, no offset */
+@media (max-width: 768px) {
+  .logo-offset-grid {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logo-column-right {
+    margin-top: 0;
+    /* Remove offset on mobile */
+  }
+
+  .page-wrapper {
+    padding: 24px 16px;
+  }
+
+  .logo-item {
+    width: 100%;
+    max-width: 450px;
+    height: auto;
+    aspect-ratio: 956 / 806;
+  }
+}
+
+/* ============================================
+   ACT DECK - Portfolio Project Styles
+   ============================================ */
+
+/* Page wrapper for ActDeck - white background */
+.actdeck-page-wrapper {
+  min-height: 100vh;
+  background: #f0f0f1;
+  padding: 0;
+  margin: 0;
+}
+
+/* Container for all sections - 940px max-width */
+.actdeck-container {
+  max-width: 940px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* V1 - First image (no padding, no background) */
+.actdeck-section-v1 {
+  width: 100%;
+}
+
+.actdeck-section-v1 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Text Section (After V1) */
+.actdeck-text-section {
+  padding: 85px 47px 71px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  background: #FAFAF8;
+}
+
+.actdeck-text-intro {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  color: #737685;
+  line-height: 1.1;
+  text-align: left;
+}
+
+.actdeck-text-intro strong {
+  font-weight: 700;
+}
+
+.actdeck-text-task-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.actdeck-text-task-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #737685;
+  margin: 0;
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+.actdeck-text-task-description {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  color: #737685;
+  line-height: 1.1;
+  margin: 10px 0 25px;
+  text-align: left;
+}
+
+/* V2 - Second image (background #EDEDED, padding top) */
+.actdeck-section-v2 {
+  background: #EDEDED;
+  padding: 90px 48px 0;
+}
+
+.actdeck-section-v2 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V3 - Third image (padding top) */
+.actdeck-section-v3 {
+  padding: 58px 48px 0;
+}
+
+.actdeck-section-v3 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V4 - Fourth image (no padding) */
+.actdeck-section-v4 {
+  width: 100%;
+  padding: 0 48px;
+}
+
+.actdeck-section-v4 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V5 - Two-column layout (typography + image) */
+.actdeck-section-v5 {
+  background: linear-gradient(to bottom, #F4F4F5, #F7F7F7);
+  padding: 90px 48px 62px;
+  display: flex;
+  gap: 0;
+}
+
+.actdeck-v5-typography {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.actdeck-v5-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 1.7rem;
+  color: #808194;
+  margin: 0;
+  padding-bottom: 15px;
+}
+
+.actdeck-v5-description {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  color: #808194;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.actdeck-v5-image-wrapper {
+  background: rgba(234, 232, 244, 0.22);
+  padding: 37px 72px;
+  flex: 1;
+}
+
+.actdeck-v5-image-wrapper img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V6 - Sixth image (gradient background, padding top/bottom) */
+.actdeck-section-v6 {
+  background: linear-gradient(to bottom, #F7F7F7, #FFFFFF);
+  padding: 44px 48px 14px;
+}
+
+.actdeck-section-v6 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V7 - Seventh image (white background, padding top/bottom) */
+.actdeck-section-v7 {
+  background: #FFFFFF;
+  padding: 23px 48px 78px;
+}
+
+.actdeck-section-v7 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V8 & V9 - Container holds both images */
+.actdeck-section-v8-v9 {
+  background: linear-gradient(to bottom, #EEEEF5, #FAFAFA);
+  padding: 91px 48px 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 120px;
+}
+
+.actdeck-section-v8-v9 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V10 - Tenth image (white background, padding top/bottom) */
+.actdeck-section-v10 {
+  background: #FFFFFF;
+  padding: 48px 48px 62px;
+}
+
+.actdeck-section-v10 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* V11 - Eleventh image (no padding) */
+.actdeck-section-v11 {
+  width: 100%;
+}
+
+.actdeck-section-v11 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* RESPONSIVE - ActDeck Mobile & Tablet */
+@media (max-width: 768px) {
+
+  /* Text section mobile adjustments */
+  .actdeck-text-section {
+    padding: 51px 6px 19px;
+    gap: 28px;
+  }
+
+  .actdeck-text-intro {
+    font-size: 0.8rem;
+  }
+
+  .actdeck-text-task-title {
+    font-size: 0.8rem;
+  }
+
+  .actdeck-text-task-description {
+    font-size: 0.8rem;
+    margin: 5px 0 25px;
+  }
+
+  /* V2 mobile padding */
+  .actdeck-section-v2 {
+    padding: 34px 12px 0;
+  }
+
+  /* V3 mobile padding */
+  .actdeck-section-v3 {
+    padding: 23px 12px 0;
+  }
+
+  /* V4 mobile padding */
+  .actdeck-section-v4 {
+    padding: 0 12px;
+  }
+
+  /* V5 mobile - stack vertically with gap */
+  .actdeck-section-v5 {
+    flex-direction: column;
+    gap: 19px;
+    padding: 90px 12px 62px;
+  }
+
+  .actdeck-v5-image-wrapper {
+    padding: 37px 28px;
+  }
+
+  /* V6 mobile padding */
+  .actdeck-section-v6 {
+    padding: 44px 12px 14px;
+  }
+
+  /* V7 mobile padding */
+  .actdeck-section-v7 {
+    padding: 23px 12px 78px;
+  }
+
+  /* V8 & V9 mobile gap */
+  .actdeck-section-v8-v9 {
+    padding: 28px 12px 37px;
+    gap: 46px;
+  }
+
+  /* V10 mobile padding */
+  .actdeck-section-v10 {
+    padding: 12px 12px 27px;
+  }
+}
+
+/* Tablet-specific (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  /* V2 tablet padding */
+  .actdeck-section-v2 {
+    padding: 78px 48px 0;
+  }
+}
+
+/* ============================================
+   MAGMA DECK - Portfolio Project Styles
+   ============================================ */
+
+/* Page wrapper for MagmaDeck */
+.magmadeck-page-wrapper {
+  min-height: 100vh;
+  background: #f2efec;
+  padding: 0;
+  margin: 0;
+}
+
+/* Container for all sections - 940px max-width */
+.magmadeck-container {
+  max-width: 940px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Section 01 - First image (edge-to-edge) */
+.magmadeck-section-01 {
+  width: 100%;
+  background: #f7f3eb;
+  padding-top: 4rem;
+}
+
+.magmadeck-section-01 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 02 - Four images (02v1 to 02v4) */
+.magmadeck-section-02 {
+  background: linear-gradient(to bottom, #EDE9E1, #F7F3EB);
+  padding: 4rem 48px 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.125rem;
+}
+
+.magmadeck-section-02 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 03 - Four images (03v1 to 03v4) */
+.magmadeck-section-03 {
+  background: linear-gradient(to bottom, #EDE9E1, #F7F3EB);
+  padding: 4.6rem 48px 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.125rem;
+}
+
+.magmadeck-section-03 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 04 - Two images (04v1 to 04v2) */
+.magmadeck-section-04 {
+  background: linear-gradient(to bottom, #EDE9E1, #F7F3EB);
+  padding: 4rem 48px 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.magmadeck-section-04 img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* RESPONSIVE - MagmaDeck Mobile */
+@media (max-width: 768px) {
+
+  /* Section 01 mobile */
+  .magmadeck-section-01 {
+    padding-top: 2.5rem;
+  }
+
+  /* Section 02 mobile */
+  .magmadeck-section-02 {
+    padding: 4rem 12px 1rem;
+    gap: 1.225rem;
+  }
+
+  /* Section 03 mobile */
+  .magmadeck-section-03 {
+    padding: 2.7rem 12px 1rem;
+    gap: 1.225rem;
+  }
+
+  /* Section 04 mobile */
+  .magmadeck-section-04 {
+    padding: 3.4rem 12px 2.3rem;
+    gap: 2.6rem;
+  }
+}
+
+/* ============================================
+   ELDUGO - Portfolio Project Styles
+   ============================================ */
+
+/* Page Wrapper with Color Variables */
+.eldugo-page-wrapper {
+  --el-orange: #da9002;
+  --el-black: #262626;
+  --el-grey: #888786;
+  --el-muted-999: #999999;
+  --el-mobile-header: #aba9aa;
+  --el-biz: #e6e6e6;
+  --el-bg-page: #F8F7F4;
+  --el-bg-1: #f6f5f5;
+  --el-bg-2: #f6f4f5;
+  --el-bg-3: #f6f6f6;
+  --el-dark: #1e1d1d;
+
+  min-height: 100vh;
+  background: var(--el-bg-page);
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-montserrat), sans-serif;
+}
+
+/* Container */
+.eldugo-container {
+  width: 100%;
+}
+
+.eldugo-section-content {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Typography Styles */
+.el-header-main {
+  font-family: var(--font-playfair-display), serif;
+  color: var(--el-grey);
+  font-size: 3rem;
+  font-weight: 400;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.header-el-caps {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: #c5c3c4;
+  letter-spacing: 0.05em;
+  display: inline-block;
+  padding: 20px 0 0 0;
+  margin: 0;
+}
+
+.header-el-caps::after {
+  content: '';
+  display: block;
+  height: 2px;
+  background-color: #c5c3c4;
+  width: 100%;
+  margin-left: 20px;
+}
+
+.header-el-sp {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 19px;
+  font-weight: 300;
+  color: #c5c3c4;
+  padding: 17px 0 0 7px;
+  margin: 0;
+  max-width: 400px;
+}
+
+/* Color utility classes */
+.eldugo-color-muted-999 {
+  color: var(--el-muted-999);
+}
+
+.eldugo-divider-muted-999 {
+  background-color: var(--el-muted-999);
+}
+
+/* Header utility classes */
+.eldugo-header-caps-muted-999::after {
+  background-color: var(--el-muted-999);
+}
+
+.eldugo-bg-f6f4f5 {
+  background: var(--el-bg-2);
+}
+
+.text-block-3 {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 21.5px;
+  font-weight: 400;
+  line-height: 30px;
+  color: #54534e;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.text-block-4 {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--el-dark);
+  line-height: 1.6;
+}
+
+.eldugo-note-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.app-text {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: #aba9aa;
+  line-height: 1.2;
+  margin-top: 16px;
+}
+
+/* Section 01 - Hero (DESKTOP ONLY, hidden on mobile) */
+.eldugo-section-hero-desktop {
+  width: 100%;
+}
+
+.eldugo-hero-bg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 01 - Hero (MOBILE ONLY, hidden on desktop) */
+.eldugo-section-hero-mobile {
+  display: none;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 213px 20px 186px;
+  position: relative;
+  overflow: hidden;
+}
+
+.eldugo-hero-mobile-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.eldugo-hero-logo {
+  width: 100%;
+  max-width: 450px;
+  height: auto;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Section 02 - Approach (3-column grid) */
+.eldugo-section-approach {
+  background: var(--el-bg-3);
+  padding: 88px 0 270px;
+}
+
+.eldugo-approach-header {
+  text-align: left;
+  margin-bottom: 48px;
+}
+
+.eldugo-approach-main-img {
+  width: 1000px;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 151px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.eldugo-approach-grid {
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  margin-top: 48px;
+  padding-top: 150px;
+}
+
+.eldugo-approach-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.eldugo-approach-card img {
+  width: 80%;
+  height: auto;
+  display: block;
+  max-width: 280px;
+}
+
+/* Individual approach card overrides — adjust per-card image positioning */
+.eldugo-approach-card-cul img {
+  padding: 0;
+}
+
+.eldugo-approach-card-col img {
+  margin-right: 20px;
+}
+
+.eldugo-approach-card-sty img {
+  margin-right: 45px;
+}
+
+/* Full-width Image Sections (shared by Sections 03, 07, 10, 13, 14, 15, 17) */
+.eldugo-section-full-img {
+  width: 100%;
+}
+
+.eldugo-section-full-img img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 06 - Logo Anim */
+.eldugo-section-logo-anim {
+  width: 100%;
+}
+
+.eldugo-logo-anim-wrapper {
+  padding: 60px;
+}
+
+.eldugo-logo-anim-wrapper img {
+  width: 80%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Section 04 - Idea (logo concept) */
+.eldugo-section-idea {
+  background: var(--el-bg-1);
+  padding: 85px 0 0 0;
+}
+
+.eldugo-idea-header {
+  text-align: left;
+  max-width: 940px;
+  margin: 0 auto 0px;
+  padding: 0 24px;
+}
+
+.eldugo-section-idea .eldugo-section-content {
+  padding-top: 170px;
+  padding-bottom: 26px;
+}
+
+.eldugo-idea-content {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 64px;
+  position: relative;
+}
+
+.eldugo-note-circle {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.eldugo-idea-text {
+  flex: 1;
+}
+
+.eldugo-idea-text p {
+  margin-bottom: 20px;
+}
+
+.eldugo-idea-main-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  padding-top: 44px;
+}
+
+/* Section 05 - Wordmark (logo skeleton) */
+.eldugo-wordmark-header {
+  text-align: left;
+  max-width: 940px;
+  margin: 0 auto 32px;
+  padding: 0 24px;
+}
+
+.eldugo-section-wordmark {
+  background: var(--el-bg-1);
+  padding: 135px 0 250px;
+  margin-top: 3px;
+}
+
+.eldugo-section-wordmark .eldugo-section-content {
+  padding-top: 130px;
+}
+
+.eldugo-section-wordmark img {
+  width: 70%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Section 08 - Logo Variation */
+.eldugo-section-logo-variation {
+  background: var(--el-bg-1);
+  padding: 133px 0 183px;
+}
+
+.eldugo-section-logo-variation .el-header-main {
+  margin-bottom: 24px;
+}
+
+.eldugo-logo-variation-concept {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  display: block;
+  margin-top: 107px;
+}
+
+.eldugo-logo-variation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.eldugo-logo-variation-text {
+  padding-right: 24px;
+}
+
+.eldugo-logo-variation-text h1 {
+  margin-bottom: 24px;
+}
+
+.eldugo-logo-variation-img img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 09 - Logo Variation Details */
+.eldugo-logo-details-header {
+  text-align: left;
+  max-width: 940px;
+  margin: 0 auto 0;
+  padding: 0 24px;
+}
+
+.eldugo-section-logo-details {
+  background: var(--el-bg-2);
+  padding: 110px 0 34px;
+  margin-top: 3px;
+}
+
+.eldugo-logo-details-img-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 191px 0 213px;
+}
+
+.eldugo-logo-details-main-img {
+  width: 100%;
+  max-width: 1050px;
+  height: auto;
+  display: block;
+}
+
+/* Section 11 - Variations Gallery (header + 2x2 grid) */
+.eldugo-section-variations {
+  background: #f6f6f6;
+  padding: 101px 0 230px;
+}
+
+.eldugo-variations-header {
+  text-align: left;
+  max-width: 940px;
+  margin: 0 auto 64px;
+  padding: 0 24px;
+}
+
+.eldugo-divider-orange {
+  display: none;
+}
+
+.eldugo-variations-container {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.eldugo-variations-container-first {
+  margin-top: 146px;
+  margin-bottom: 200px;
+}
+
+.eldugo-variations-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 117px;
+  margin-bottom: 0;
+}
+
+.eldugo-variations-row img {
+  max-width: 200px;
+  height: auto;
+  display: block;
+}
+
+/* Section 11 - Legacy grid for backwards compatibility */
+.eldugo-variations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.eldugo-variations-grid img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Section 12 - Visual Identity */
+.eldugo-section-visual-identity {
+  padding: 153px 0 155px;
+  margin-top: 3px;
+  overflow: hidden;
+}
+
+/* Section 13 - Banner 2 (margin-top gap after Visual Identity) */
+.eldugo-section-visual-identity+.eldugo-section-full-img {
+  margin-top: 3px;
+}
+
+/* Sections 14, 15 - Consecutive full-width image sections gap */
+.eldugo-section-full-img+.eldugo-section-full-img {
+  margin-top: 3px;
+}
+
+.eldugo-visual-identity-content {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 24px 142px;
+}
+
+.eldugo-visual-identity-text {
+  text-align: left;
+}
+
+.eldugo-visual-identity-text h1 {
+  margin-bottom: 24px;
+}
+
+.text-block-5 {
+  font-family: var(--font-montserrat);
+  font-size: 21.5px;
+  font-weight: 400;
+  line-height: 30px;
+  color: #888786;
+}
+
+.text-block-5-mobile {
+  display: none;
+}
+
+.eldugo-visual-identity-img {
+  width: 100%;
+  min-width: 1440px;
+  max-width: none;
+  height: auto;
+  display: block;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Section 16 - Price Tags (2-column layout) */
+.eldugo-price-tags-header {
+  text-align: left;
+  max-width: 940px;
+  margin: 0 auto 0;
+  padding: 0 24px;
+}
+
+.eldugo-section-price-tags {
+  background-color: #fff;
+  background-image: url("/images/portfolio2025/eldugo/0-eldugo-main-tag.webp");
+  background-position: 50% 100%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  padding: 119px 0 150px;
+  margin-top: 3px;
+}
+
+/* Section 17 - Shirt (margin-top gap after Price Tags) */
+.eldugo-section-price-tags+.eldugo-section-full-img {
+  margin-top: 3px;
+}
+
+.eldugo-price-tags-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.eldugo-price-tags-grid img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Sections 18, 19, 20 - Centered Section (Bag, Business Card, Card Variations) */
+.eldugo-centered-header {
+  text-align: left;
+  max-width: 940px;
+  margin: 0 auto 0;
+  padding: 0 24px;
+}
+
+/* Section 19 - Business Card image padding */
+.eldugo-section-19 .eldugo-section-content {
+  padding-top: 182px;
+}
+
+/* Section 20 - Card Variations image padding */
+.eldugo-section-20 .eldugo-section-content {
+  padding-top: 76px;
+}
+
+.eldugo-section-centered {
+  background: #fff;
+  padding: 64px 0;
+}
+
+/* Section 18 - Bag */
+.eldugo-section-18 {
+  background: #F5F5F7;
+}
+
+/* Sections 19, 20 - Business Card backgrounds */
+.eldugo-section-19,
+.eldugo-section-20 {
+  background: #E6E6E6;
+}
+
+/* Section 19 - Business Card section spacing */
+.eldugo-section-19 {
+  padding: 98px 0 304px;
+}
+
+.eldugo-section-centered img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Sections 19, 20 - Consecutive centered sections gap */
+.eldugo-section-centered+.eldugo-section-centered {
+  margin-top: 3px;
+}
+
+/* Section 21 - Other Projects (3-column grid) */
+.eldugo-section-other-projects {
+  background: #fff;
+  padding: 88px 0 120px;
+}
+
+.eldugo-section-other-projects .header-el-caps {
+  text-align: left;
+  margin-bottom: 64px;
+}
+
+.eldugo-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+.eldugo-project-card {
+  text-decoration: none;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.eldugo-project-card:hover {
+  transform: translateY(-4px);
+}
+
+.eldugo-project-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.eldugo-project-title {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--el-black);
+  text-align: center;
+}
+
+/* Section 22 - Navigation / Footer */
+.eldugo-footer {
+  background: #000;
+  color: #fff;
+  padding: 64px 0;
+}
+
+.eldugo-footer-content {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eldugo-footer-logo img {
+  height: 40px;
+  width: auto;
+}
+
+.eldugo-footer-cta p {
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 18px;
+  font-weight: 300;
+  margin: 0 0 16px 0;
+  color: #fff;
+}
+
+.eldugo-footer-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: transparent;
+  border: 2px solid var(--el-orange);
+  color: var(--el-orange);
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.eldugo-footer-button:hover {
+  background: var(--el-orange);
+  color: #fff;
+}
+
+.eldugo-arrow-icon {
+  width: 16px;
+  height: auto;
+}
+
+/* RESPONSIVE - Mobile Small (479px and below) */
+@media (max-width: 479px) {
+  .header-el-caps {
+    font-size: 15px;
+    padding-top: 20px;
+  }
+
+  .header-el-caps::after {
+    margin-left: 13px;
+  }
+
+  .header-el-sp {
+    font-size: 15px;
+    padding: 8px 0 0 7px;
+    max-width: 225px;
+  }
+
+  .header-el-caps:not(.eldugo-color-muted-999) {
+    color: var(--el-mobile-header);
+  }
+
+  .header-el-caps:not(.eldugo-header-caps-muted-999)::after {
+    background-color: var(--el-mobile-header);
+  }
+
+  .header-el-sp:not(.eldugo-color-muted-999) {
+    color: var(--el-mobile-header);
+  }
+
+  .eldugo-divider-orange:not(.eldugo-divider-muted-999) {
+    background-color: var(--el-mobile-header);
+  }
+
+  .text-block-3 {
+    font-size: 16px;
+    line-height: 24px;
+    padding: 0 4px;
+  }
+
+  .eldugo-hero-logo {
+    padding: 0 40px;
+  }
+
+  .app-text {
+    font-size: 16px;
+    padding-top: 15px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .el-header-main {
+    font-size: 2rem;
+  }
+
+  .eldugo-section-content {
+    padding: 0 20px;
+  }
+
+  .eldugo-idea-header,
+  .eldugo-wordmark-header,
+  .eldugo-logo-details-header,
+  .eldugo-variations-header,
+  .eldugo-variations-container,
+  .eldugo-price-tags-header,
+  .eldugo-centered-header {
+    padding: 0 20px;
+  }
+
+  /* Section 01 Mobile: Hide desktop hero, show mobile hero */
+  .eldugo-section-hero-desktop {
+    display: none;
+  }
+
+  .eldugo-section-hero-mobile {
+    display: flex;
+  }
+
+  .eldugo-section-approach {
+    padding: 33px 0 120px;
+  }
+
+  .eldugo-approach-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 72px;
+    padding-top: 0;
+  }
+
+  .eldugo-approach-main-img {
+    display: none;
+  }
+
+  .eldugo-section-idea .eldugo-section-content {
+    padding-top: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .eldugo-idea-main-img {
+    padding-bottom: 50px;
+  }
+
+  .text-block-4 {
+    font-size: 8px;
+  }
+
+  .eldugo-note-circle {
+    width: 8px;
+    height: 8px;
+  }
+
+  .eldugo-note-row {
+    gap: 6px;
+  }
+
+  .eldugo-section-visual-identity {
+    padding: 54px 0 70px;
+  }
+
+  .eldugo-section-price-tags {
+    padding: 15px 0 28px;
+  }
+
+  .eldugo-section-price-tags .eldugo-section-content {
+    padding-top: 30px;
+  }
+
+  .eldugo-visual-identity-img {
+    min-width: 1224px;
+  }
+
+  .eldugo-variations-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .eldugo-section-variations {
+    padding: 30px 0 120px;
+  }
+
+  .eldugo-variations-container {
+    padding: 0 20px;
+  }
+
+  .eldugo-variations-container-first {
+    margin-top: 75px;
+    margin-bottom: 60px;
+  }
+
+  .eldugo-variations-row {
+    flex-direction: row;
+    padding: 0 33px;
+    gap: 0;
+  }
+
+  .eldugo-variations-row img {
+    max-width: 100px;
+  }
+
+  .text-block-5 {
+    font-size: 16px;
+    line-height: 24px;
+    display: none;
+  }
+
+  .text-block-5-mobile {
+    display: block;
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .eldugo-visual-identity-content {
+    padding: 0 20px 49px;
+  }
+
+  .eldugo-section-logo-details {
+    padding: 30px 0 14px;
+  }
+
+  .eldugo-logo-details-img-wrap {
+    padding: 68px 10px 85px;
+  }
+
+  .eldugo-section-wordmark {
+    padding: 20px 0 145px;
+  }
+
+  .eldugo-section-wordmark .eldugo-section-content {
+    padding-top: 86px;
+  }
+
+  .eldugo-logo-anim-wrapper {
+    padding: 0;
+  }
+
+  .eldugo-logo-anim-wrapper img {
+    width: 100%;
+  }
+
+  .eldugo-price-tags-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .eldugo-projects-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .eldugo-footer-content {
+    flex-direction: column;
+    gap: 32px;
+    text-align: center;
+  }
+
+  .eldugo-logo-variation-concept {
+    margin-top: 50px;
+  }
+
+  .eldugo-section-logo-variation {
+    padding: 56px 0 81px;
+  }
+
+  .eldugo-section-19 .eldugo-section-content {
+    padding-top: 45px;
+    padding-bottom: 55px;
+  }
+
+  .eldugo-section-19 {
+    padding: 36px 0 64px;
+  }
+
+  .eldugo-section-20 .eldugo-section-content {
+    padding-top: 62px;
+  }
+
+}
+
+/* RESPONSIVE - Tablet Small (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .header-el-caps {
+    font-size: 15px;
+    padding-top: 20px;
+  }
+
+  .header-el-caps::after {
+    margin-left: 13px;
+  }
+
+  .header-el-sp {
+    font-size: 16px;
+    padding: 8px 0 0 7px;
+    max-width: 340px;
+  }
+
+  .header-el-caps:not(.eldugo-color-muted-999) {
+    color: var(--el-mobile-header);
+  }
+
+  .header-el-caps:not(.eldugo-header-caps-muted-999)::after {
+    background-color: var(--el-mobile-header);
+  }
+
+  .header-el-sp:not(.eldugo-color-muted-999) {
+    color: var(--el-mobile-header);
+  }
+
+  .eldugo-divider-orange:not(.eldugo-divider-muted-999) {
+    background-color: var(--el-mobile-header);
+  }
+
+  .text-block-3 {
+    font-size: 18px;
+    line-height: 26px;
+  }
+
+  .el-header-main {
+    font-size: 2.5rem;
+  }
+
+  .eldugo-section-approach {
+    padding: 40px 0 120px;
+  }
+
+  .eldugo-approach-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 72px;
+    padding-top: 0;
+  }
+
+  .eldugo-approach-main-img {
+    display: none;
+  }
+
+  .text-block-5 {
+    display: none;
+  }
+
+  .text-block-5-mobile {
+    display: block;
+    font-size: 18px;
+    line-height: 26px;
+  }
+
+  .eldugo-section-visual-identity {
+    padding: 54px 0 70px;
+  }
+
+  .eldugo-section-price-tags {
+    padding: 15px 0 28px;
+  }
+
+  .eldugo-section-price-tags .eldugo-section-content {
+    padding-top: 30px;
+  }
+
+  .eldugo-section-19 {
+    padding: 36px 0 64px;
+  }
+
+  .eldugo-visual-identity-img {
+    min-width: 1224px;
+  }
+
+  .eldugo-visual-identity-content {
+    padding: 0 20px 49px;
+  }
+
+  .eldugo-section-wordmark {
+    padding: 20px 0 145px;
+  }
+
+  .eldugo-section-wordmark .eldugo-section-content {
+    padding-top: 86px;
+  }
+
+  .eldugo-logo-anim-wrapper {
+    padding: 0;
+  }
+
+  .eldugo-logo-anim-wrapper img {
+    width: 100%;
+  }
+
+  .eldugo-price-tags-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .eldugo-projects-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .eldugo-logo-variation-concept {
+    margin-top: 50px;
+  }
+
+  .eldugo-section-logo-variation {
+    padding: 56px 0 81px;
+  }
+}
+
+/* RESPONSIVE - Tablet Large (768px - 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .eldugo-section-approach {
+    padding: 40px 0 160px;
+  }
+
+  .eldugo-approach-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 56px;
+    padding-top: 0;
+  }
+
+  .eldugo-approach-main-img {
+    display: none;
+  }
+
+  .eldugo-logo-variation-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .eldugo-projects-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* RESPONSIVE - Desktop Small (992px - 1439px) */
+@media (min-width: 992px) and (max-width: 1439px) {
+  .eldugo-section-content {
+    padding: 0 32px;
+  }
+}
+
+/* RESPONSIVE - Desktop Large (1440px+) */
+@media (min-width: 1440px) {
+  .eldugo-section-content {
+    padding: 0 48px;
+  }
+
+  .eldugo-section-approach {
+    padding: 120px 0 320px;
+  }
+
+  .eldugo-section-idea {
+    padding: 120px 0 0 0;
+  }
+
+  .eldugo-section-logo-variation {
+    padding: 160px 0 220px;
+  }
+}
+
+/* ============================================
+   ACTIVELEDGER - Portfolio Project Styles
+   ============================================ */
+
+/* @font-face declarations for Soleil */
+@font-face {
+  font-family: 'Soleil';
+  src: url('/fonts/Soleil/Soleil-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Soleil';
+  src: url('/fonts/Soleil/Soleil SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Soleil';
+  src: url('/fonts/Soleil/Soleil-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* @font-face declarations for Effra */
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra /Effra Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra /Effra Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra /Effra Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Effra';
+  src: url('/fonts/Effra /Effra Heavy.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* @font-face declarations for Open Sans */
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/fonts/OpenSans/OpenSans-Light-webfont.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/fonts/OpenSans/OpenSans-Semibold-webfont.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/fonts/OpenSans/OpenSans-Bold-webfont.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Page wrapper for ActiveLedger - white background */
+.activeledger-page-wrapper {
+  min-height: 100vh;
+  background: #ffffff;
+  padding: 0;
+  margin: 0;
+
+  /* ActiveLedger Color Variables */
+  --al-white: #ffffff;
+  --al-light-grey: #E2E2E2;
+  --al-soleil-blue: #0e1523;
+  --al-soleil-grey: #333333;
+  --al-act-grey: #4d4d4d;
+  --al-button-grey: #C7C7C7;
+  --al-soleil-beige: #B8B8B8;
+  --al-soleil-slate: #8d939c;
+  --al-pale-blue: #E3E5F0;
+}
+
+/* Container for all sections - full width, sections go edge-to-edge */
+.activeledger-container {
+  width: 100%;
+}
+
+/* Inner content wrapper - caps content at 940px */
+.al-section-content {
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+/* --- Section 1 Typography --- */
+
+/* Section 1 Header - Inter SemiBold 600, 30px */
+.al-section1-head {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 30px;
+  color: var(--al-white);
+  margin: 0;
+}
+
+/* Section 1 Subheader - Inter SemiBold 600, 20px */
+.al-section1-subheader {
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--al-white);
+  margin: 0;
+}
+
+/* Section 1 Paragraph - Open Sans Light 300, 16px */
+.al-section1-paragraph {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--al-light-grey);
+  margin: 0;
+}
+
+/* --- General Typography (multi-section) --- */
+
+/* Soleil Header - Bold 700, 43px, center-aligned */
+.al-soleil-head {
+  font-family: 'Soleil', sans-serif;
+  font-weight: 700;
+  font-size: 43px;
+  line-height: 1.2;
+  text-align: center;
+  padding-bottom: 47px;
+  margin: 0;
+}
+
+/* Soleil Header color variants */
+.al-soleil-head-blue {
+  color: var(--al-soleil-blue);
+}
+
+.al-soleil-head-grey {
+  color: var(--al-soleil-grey);
+}
+
+.al-soleil-head-beige {
+  color: var(--al-soleil-beige);
+}
+
+.al-soleil-head-slate {
+  color: var(--al-soleil-slate);
+}
+
+/* Soleil Subheader - SemiBold 600, 30px */
+.al-soleil-subhead {
+  font-family: 'Soleil', sans-serif;
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 1.2;
+  text-align: center;
+  padding-bottom: 15px;
+  margin: 0;
+  color: var(--al-soleil-blue);
+}
+
+/* Act Paragraph - Effra Normal 400, 23px */
+.al-act-paragraph {
+  font-family: 'Effra', sans-serif;
+  font-weight: 400;
+  font-size: 23px;
+  line-height: 26px;
+  margin: 0;
+}
+
+.al-act-paragraph strong {
+  font-weight: 700;
+}
+
+/* Act Paragraph color variant */
+.al-act-paragraph-grey {
+  color: var(--al-act-grey);
+}
+
+/* Act Small - reduced size variant of act-paragraph */
+.al-act-small {
+  font-size: 16px;
+  line-height: 20px;
+}
+
+/* Section 3 padding */
+.sec3 {
+  padding-bottom: 300px;
+}
+
+/* Section 10 text padding */
+.sec10 {
+  padding: 0 40px 85px;
+}
+
+/* --- Non-clickable Button --- */
+
+/* Button div - Open Sans Bold 700, 14px */
+.al-button {
+  display: inline-block;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--al-button-grey);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  padding: 8px 12px;
+  border: 1.8px solid var(--al-button-grey);
+  border-radius: 8px;
+  background: transparent;
+}
+
+/* --- ActiveLedger Sections --- */
+
+.activeledger-section {
+  width: 100%;
+}
+
+.activeledger-section img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* --- Section 01 - Background image with overlay content --- */
+
+.al-section-01 {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background image - fills width on desktop, doesn't shrink on mobile (crops sides) */
+.al-section-01-bg {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* Outer container - padding around the content area */
+.al-section-01-outer {
+  position: relative;
+  z-index: 1;
+  padding: 102px 0 166px;
+}
+
+/* Master div - holds two columns side-by-side */
+.al-section-01-master {
+  display: flex;
+  gap: 90px;
+}
+
+/* Container 1 (left column) - header + paragraph */
+.al-section-01-col1 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Container 2 (right column) - pushed down 40px, two sub-divs */
+.al-section-01-col2 {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-top: 40px;
+}
+
+/* Sub-divs inside Container 2 - 3px gap between subheader and text */
+.al-section-01-col2-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* --- Section 02 --- */
+
+.al-section-02 {
+  padding: 40px 0 140px;
+}
+
+/* --- Section 04 --- */
+
+.al-section-04 {
+  padding: 40px 0 145px;
+}
+
+/* --- Section 05 --- */
+
+.al-section-05 {
+  padding-bottom: 103px;
+  text-align: center;
+}
+
+.al-section-05-text {
+  padding: 65px 0 94px;
+}
+
+.al-section-05-images img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.al-section-05-images .al-section-05-desktop {
+  display: block;
+  width: 80%;
+  margin: 0 auto;
+}
+
+.al-section-05-images .al-section-05-mobile {
+  display: none;
+}
+
+.al-section-05-images .al-section-05-mobile-quote {
+  display: none;
+  width: 80%;
+  margin: 0 auto;
+}
+
+/* --- Section 06 - Background image with text + image overlay --- */
+
+.al-section-06 {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.al-section-06-bg {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  z-index: 0;
+}
+
+.al-section-06-button-wrap {
+  position: relative;
+  z-index: 1;
+  padding: 90px 40px 0 0;
+  text-align: right;
+}
+
+.al-section-06-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding-top: 72px;
+}
+
+.al-section-06-content .al-section-06-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  padding-bottom: 140px;
+}
+
+/* Section 6 text padding */
+.sec6 {
+  padding: 0 54px 94px;
+}
+
+/* --- Section 07 --- */
+
+.al-section-07-content {
+  text-align: center;
+  padding-top: 62px;
+}
+
+.al-section-07-content .al-section-07-img {
+  width: 63%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  padding-bottom: 162px;
+}
+
+/* Section 7 text padding */
+.sec7 {
+  padding: 10px 84px 118px;
+}
+
+/* --- Section 10 --- */
+
+.al-section-10 {
+  text-align: center;
+}
+
+.al-section-10 .al-section-content {
+  padding-top: 72px;
+}
+
+.al-section-10 .al-soleil-subhead {
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+.al-section-10 .al-section-10-head {
+  padding-bottom: 40px;
+}
+
+.al-section-10 .al-section-10-icon {
+  max-width: 207px;
+  padding-bottom: 15px;
+  margin: 0 auto;
+}
+
+.al-section-10 .al-section-10-breakdown {
+  width: 76%;
+  padding-bottom: 100px;
+  margin: 0 auto;
+}
+
+.al-section-10-small-wrap {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 220px;
+}
+
+.al-section-10-pattern-wrap {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 48px 0 96px;
+}
+
+.al-section-10 .al-section-10-pattern {
+  width: 62%;
+  padding-left: 11px;
+  margin: 0 auto;
+}
+
+/* --- Section 08 --- */
+
+.al-section-08-top {
+  display: flex;
+  flex-direction: column;
+  padding-top: 62px;
+}
+
+.al-section-08-top .al-section-08-head {
+  text-align: left;
+  padding-left: 10%;
+}
+
+.al-section-08-top .al-section-08-img {
+  width: 80%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+
+.al-section-08-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 70px;
+}
+
+.al-section-08-bottom .al-section-08-breakdown {
+  width: 90%;
+  margin: 0 auto;
+}
+
+/* Section 8 text padding */
+.sec8 {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding: 0 48px 140px;
+  text-align: left;
+}
+
+/* --- Section 11 --- */
+
+.al-section-11 {
+  width: 100%;
+  background-color: var(--al-pale-blue);
+}
+
+.al-section-11-inner .al-section-11-img {
+  width: 73%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  padding: 135px 0 100px;
+}
+
+/* --- Section 13 --- */
+
+.al-section-13 {
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 150px 0 220px;
+}
+
+/* --- Section 14 --- */
+
+.al-section-14 .al-section-14-img {
+  width: 80%;
+  margin: 0 auto;
+  padding-bottom: 220px;
+}
+
+.al-section-14 .al-soleil-subhead {
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+.al-section-14-text-wrap {
+  max-width: 940px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.al-section-14 .al-section-14-data {
+  max-width: 750px;
+  margin: 0 auto;
+  padding-top: 78px;
+  padding-bottom: 220px;
+}
+
+/* --- Section 17 --- */
+
+.al-section-17 {
+  padding: 90px;
+}
+
+/* --- Section 03 - Background image with gradient transition + text --- */
+
+.al-section-03 {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.al-section-03-bg {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.al-section-03-gradient {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 150px;
+  background: linear-gradient(to bottom, #FFFFFF, #F9F9F9);
+}
+
+.al-section-03-content {
+  position: relative;
+  z-index: 1;
+  padding: 74px 0 100px;
+  text-align: center;
+}
+
+/* --- RESPONSIVE - ActiveLedger Content Cap (max-width: 945px) --- */
+@media (max-width: 945px) {
+  .al-section-content {
+    max-width: 95%;
+  }
+}
+
+/* --- RESPONSIVE - ActiveLedger Tablet (max-width: 991px) --- */
+@media (max-width: 991px) {
+
+  /* Section 01 tablet - stack columns vertically */
+  .al-section-01-outer {
+    padding: 102px 40px 88px;
+  }
+
+  .al-section-01-master {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .al-section-01-col2 {
+    gap: 12px;
+  }
+
+  .al-section-13 {
+    padding: 32px 20px 100px;
+  }
+
+  .sec10 {
+    padding: 0 40px 65px;
+  }
+
+  .al-section-17 {
+    padding: 20px;
+  }
+}
+
+/* --- RESPONSIVE - ActiveLedger Mobile (max-width: 550px) --- */
+@media (max-width: 550px) {
+  .al-section-01-outer {
+    padding: 102px 20px 88px;
+  }
+
+  .al-section1-head {
+    font-size: 21.5px;
+  }
+
+  .al-section1-subheader {
+    font-size: 16px;
+  }
+
+  .al-section1-paragraph {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .al-section-02 {
+    padding: 15px 0 45px;
+  }
+
+  .al-section-04 {
+    padding: 15px 0 50px;
+  }
+
+  .al-section-05 {
+    padding: 0 20px 50px;
+  }
+
+  .al-section-05-text {
+    padding: 0;
+  }
+
+  .al-section-05-images .al-section-05-desktop {
+    display: none;
+  }
+
+  .al-section-05-images .al-section-05-mobile {
+    display: block;
+    padding-top: 30px;
+  }
+
+  .al-section-05-images .al-section-05-mobile-quote {
+    display: block;
+    padding-top: 35px;
+  }
+
+  .al-section-03-gradient {
+    height: 35px;
+  }
+
+  .al-section-03-content {
+    padding: 0 20px 100px;
+  }
+
+  .sec3 {
+    padding-bottom: 54px;
+  }
+
+  .al-soleil-head {
+    font-size: 21px;
+    padding-bottom: 15px;
+  }
+
+  .al-act-paragraph {
+    font-size: 11px;
+    line-height: 14px;
+  }
+
+  .al-button {
+    font-size: 6px;
+    letter-spacing: 1.2px;
+    padding: 4px;
+    border-width: 1.2px;
+    border-radius: 4px;
+  }
+
+  .al-soleil-subhead {
+    font-size: 14px;
+    padding-bottom: 8px;
+  }
+
+  .al-act-small {
+    font-size: 8px;
+    line-height: 12px;
+  }
+
+  .al-section-10 .al-section-content {
+    padding-top: 0;
+  }
+
+  .al-section-10 .al-section-10-head {
+    padding-bottom: 15px;
+  }
+
+  .al-section-10 .al-section-10-icon {
+    width: 30%;
+    padding-bottom: 0;
+  }
+
+  .al-section-10 .al-section-10-breakdown {
+    width: 90%;
+    padding-bottom: 90px;
+  }
+
+  .al-section-10-small-wrap {
+    padding: 0 30px;
+  }
+
+  .al-section-10-pattern-wrap {
+    padding: 18px 0 50px;
+  }
+
+  .al-section-10 .al-section-10-pattern {
+    width: 90%;
+  }
+
+  .sec10 {
+    padding: 0 20px 35px;
+  }
+
+  .al-section-07-content {
+    padding-top: 0;
+  }
+
+  .al-section-08-top {
+    padding-top: 0;
+  }
+
+  .al-section-08-top .al-section-08-head {
+    text-align: center;
+    padding-left: 0;
+  }
+
+  .al-section-08-top .al-section-08-img {
+    width: 90%;
+    padding-bottom: 28px;
+  }
+
+  .al-section-08-bottom {
+    gap: 30px;
+  }
+
+  .sec8 {
+    padding: 0 20px 65px;
+  }
+
+  .al-section-11-inner .al-section-11-img {
+    width: 90%;
+    padding: 60px 0 30px;
+  }
+
+  .al-section-13 {
+    padding: 30px 10px 52px;
+  }
+
+  .al-section-14 .al-section-14-img {
+    padding-bottom: 60px;
+  }
+
+  .al-section-14-text-wrap {
+    padding: 0 15px;
+  }
+
+  .al-section-14 .al-section-14-data {
+    padding-top: 26px;
+    padding-bottom: 60px;
+  }
+
+  .al-section-17 {
+    padding: 10px;
+  }
+
+  .al-section-06-content {
+    padding-top: 0;
+  }
+
+  .al-section-06-button-wrap {
+    padding: 50px 10px 20px 0;
+  }
+
+  .al-section-06-content .al-section-06-img {
+    width: 90%;
+    padding: 0 10px 84px;
+  }
+
+  .sec6 {
+    padding: 0 20px 42px;
+  }
+
+  .al-section-07-content .al-section-07-img {
+    padding-bottom: 40px;
+  }
+
+  .sec7 {
+    padding: 10px 10px 35px;
+  }
+}

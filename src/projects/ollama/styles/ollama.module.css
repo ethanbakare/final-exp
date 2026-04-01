@@ -1,0 +1,1381 @@
+/* ==============================================
+   Ollama Case Study — Module CSS
+   ============================================== */
+
+/* --- Color Variables (shared across container and components page) --- */
+.ollama-container,
+.ollama-components-page {
+  /* Backgrounds */
+  --ollama-bg-white: #FFFFFF;
+  --ollama-bg-dark: #201F1E;
+  --ollama-bg-terminal: #282625;
+  --ollama-bg-page: rgba(255, 255, 255, 0.30);
+  --ollama-bg-warm-light: #FBFAF9;
+  --ollama-bg-warm: #F7F6F5;
+
+  /* Text — dark on light */
+  --ollama-text-heading: rgba(32, 31, 30, 0.30);
+  --ollama-text-body: rgba(32, 31, 30, 0.40);
+  --ollama-text-body-strong: rgba(32, 31, 30, 0.60);
+
+  /* Text — light on dark */
+  --ollama-text-muted: rgba(253, 253, 253, 0.60);
+
+  /* Terminal controls */
+  --ollama-dot-close: #F15959;
+  --ollama-dot-minimize: #F1C659;
+  --ollama-dot-maximize: #76F38A;
+
+  /* Borders */
+  --ollama-terminal-border: #6A6767;
+
+  /* Text — components page */
+  --ollama-text-light: #FDFDFD;
+
+  /* Interactive states */
+  --ollama-bg-active: rgba(32, 31, 30, 0.06);
+  --ollama-bg-expr-block: #E5E2DF;
+
+  /* Shared radius */
+  --ollama-radius-card: 12px;
+
+  /* Expression selector */
+  --expr-padding: 8px;
+  --expr-frame-radius: 6px;
+
+  width: 100%;
+}
+
+.ollama-container {
+  background: var(--ollama-bg-white);
+}
+
+/* ==============================================
+   Section 01 — Hero / Intro
+   ============================================== */
+
+.ollama-hero-banner {
+  display: flex;
+  padding: 20px;
+  flex-direction: column;
+  align-items: center;
+  gap: 51px;
+  align-self: stretch;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.00) 15.98%, var(--ollama-bg-white) 103.53%), var(--ollama-bg-page);
+  backdrop-filter: blur(45px);
+}
+
+.ollama-hero-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 25px;
+  flex: 1 0 auto;
+  align-self: stretch;
+  padding-bottom: 240px;
+  border-radius: var(--ollama-radius-card);
+  background: var(--ollama-bg-dark);
+  overflow: hidden;
+}
+
+.ollama-hero-component {
+  display: flex;
+  max-width: 1160px;
+  width: 100%;
+  padding: 163px 116px 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ollama-terminal-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 476px;
+  max-width: 100%;
+}
+
+/* --- OllamaMascot --- */
+
+.ollama-mascot {
+  width: 71px;
+  height: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* --- Terminal --- */
+
+.terminal {
+  position: relative;
+  width: 476px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.terminal-window {
+  width: 100%;
+  height: 109px;
+  border-radius: 10.6px 10.6px 0 0;
+  border-top: 2.35px solid var(--ollama-terminal-border);
+  border-right: 2.35px solid var(--ollama-terminal-border);
+  border-left: 2.35px solid var(--ollama-terminal-border);
+  background: var(--ollama-bg-terminal);
+  position: relative;
+}
+
+.terminal-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: absolute;
+  left: 17px;
+  top: 15.7px;
+}
+
+.terminal-dot {
+  width: 8.24px;
+  height: 8.24px;
+  border-radius: 50%;
+  display: block;
+}
+
+.terminal-dot-close {
+  background: var(--ollama-dot-close);
+}
+
+.terminal-dot-minimize {
+  background: var(--ollama-dot-minimize);
+}
+
+.terminal-dot-maximize {
+  background: var(--ollama-dot-maximize);
+}
+
+.terminal-shadow {
+  position: absolute;
+  bottom: 0;
+  right: -0.82px;
+  width: calc(100% + 0.82px);
+  height: 74.36px;
+  background: linear-gradient(0deg, var(--ollama-bg-dark) 12.02%, var(--ollama-bg-dark) 33.17%, rgba(32, 31, 30, 0.00) 100%);
+  pointer-events: none;
+}
+
+/* --- Hero Body / Description --- */
+
+.ollama-hero-body {
+  display: flex;
+  padding: 0 24px;
+  justify-content: center;
+  align-items: center;
+}
+
+.ollama-description-wrapper {
+  display: flex;
+  padding-bottom: 29px;
+  flex-direction: column;
+  align-items: center;
+  gap: 167px;
+  max-width: 700px;
+}
+
+.ollama-hero-description {
+  color: var(--ollama-text-muted);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -1px;
+}
+
+/* Stats Row */
+.ollama-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 90px;
+}
+
+.ollama-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.ollama-stat-value {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(253, 253, 253, 0.35);
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -1.2px;
+}
+
+.ollama-stat-value svg {
+  flex-shrink: 0;
+}
+
+.ollama-stat-label {
+  color: rgba(253, 253, 253, 0.20);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 10.892px;
+  font-weight: 500;
+  letter-spacing: 0.545px;
+}
+
+/* ==============================================
+   Approach Section (before Visual Audit)
+   ============================================== */
+
+.ollama-approach-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-approach-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 432px;
+  background: var(--ollama-bg-white);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-approach-text {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 857px;
+  padding: 10px;
+}
+
+.ollama-approach-title {
+  color: var(--ollama-text-body-strong);
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -0.2px;
+}
+
+.ollama-approach-body {
+  color: var(--ollama-text-body-strong);
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -0.2px;
+}
+
+.ollama-approach-list {
+  color: var(--ollama-text-body-strong);
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -0.2px;
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ollama-approach-list li {
+  position: relative;
+  padding-left: 24px;
+}
+
+.ollama-approach-list li::before {
+  content: attr(data-num) ".";
+  position: absolute;
+  left: 0;
+}
+
+/* ==============================================
+   Section 02 — Visual Audit
+   ============================================== */
+
+.ollama-section-image {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-audit-container {
+  width: 100%;
+  background: var(--ollama-bg-warm);
+  border-radius: var(--ollama-radius-card);
+  overflow: hidden;
+}
+
+.ollama-audit-container img {
+  width: 80vw;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* ==============================================
+   Section 03 — Mood Board
+   ============================================== */
+
+.ollama-moodboard-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-moodboard-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: var(--ollama-bg-warm-light);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-moodboard-title {
+  color: var(--ollama-text-heading);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+}
+
+.ollama-moodboard-collage {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  aspect-ratio: 760 / 467;
+}
+
+/* Dashed placeholder — always visible behind images */
+.ollama-moodboard-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 47.4%;
+  height: 46.5%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+  border: 5px solid rgba(32, 31, 30, 0.07);
+}
+
+.ollama-moodboard-collage img {
+  position: absolute;
+  opacity: 0;
+  will-change: opacity;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* Image 1: duolingo */
+.ollama-moodboard-img-1 {
+  width: 71.8%;
+  left: 14.1%;
+  top: 12%;
+  animation: moodboard-stack-1 12s infinite linear;
+}
+
+/* Image 2: noritake */
+.ollama-moodboard-img-2 {
+  width: 41%;
+  left: 23.1%;
+  bottom: 7.8%;
+  animation: moodboard-stack-2 12s infinite linear;
+}
+
+/* Image 3: notionstack */
+.ollama-moodboard-img-3 {
+  width: 66.4%;
+  left: 6.1%;
+  bottom: 2%;
+  animation: moodboard-stack-3 12s infinite linear;
+}
+
+/* Image 4: laptopwindow */
+.ollama-moodboard-img-4 {
+  width: 44%;
+  left: 25.4%;
+  bottom: 8.9%;
+  animation: moodboard-stack-4 12s infinite linear;
+}
+
+/* Image 5: toast notion */
+.ollama-moodboard-img-5 {
+  width: 76.2%;
+  right: 11%;
+  top: 26.5%;
+  animation: moodboard-stack-5 12s infinite linear;
+}
+
+/* Image 6: notiontools */
+.ollama-moodboard-img-6 {
+  width: 54.8%;
+  right: 12%;
+  bottom: 11.2%;
+  animation: moodboard-stack-6 12s infinite linear;
+}
+
+/* Image 7: noritakestare */
+.ollama-moodboard-img-7 {
+  width: 29.2%;
+  left: 25.4%;
+  bottom: 8.9%;
+  animation: moodboard-stack-7 12s infinite linear;
+}
+
+/* Stacking keyframes — 7 images, 12s cycle
+   Stack-up accelerates:   gaps 5%, 4.5%, 4%, 3.5%, 3%, 2.5% (0.6s → 0.3s)
+   Hold:                   22.5–54.5% all visible (~3.8s)
+   Unstack decelerates:    gaps 2.5%, 3%, 3.5%, 4%, 4.5%, 5% (0.3s → 0.6s)
+   Empty:                  77–100% placeholder visible (~2.8s) */
+@keyframes moodboard-stack-1 {
+  0% { opacity: 0; }
+  0.1% { opacity: 1; }
+  76.9% { opacity: 1; }
+  77% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-2 {
+  0%, 5% { opacity: 0; }
+  5.1% { opacity: 1; }
+  71.9% { opacity: 1; }
+  72% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-3 {
+  0%, 9.5% { opacity: 0; }
+  9.6% { opacity: 1; }
+  67.4% { opacity: 1; }
+  67.5% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-4 {
+  0%, 13.5% { opacity: 0; }
+  13.6% { opacity: 1; }
+  63.4% { opacity: 1; }
+  63.5% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-5 {
+  0%, 17% { opacity: 0; }
+  17.1% { opacity: 1; }
+  59.9% { opacity: 1; }
+  60% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-6 {
+  0%, 20% { opacity: 0; }
+  20.1% { opacity: 1; }
+  56.9% { opacity: 1; }
+  57% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes moodboard-stack-7 {
+  0%, 22.5% { opacity: 0; }
+  22.6% { opacity: 1; }
+  54.4% { opacity: 1; }
+  54.5% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.ollama-moodboard-description {
+  max-width: 700px;
+  color: var(--ollama-text-body);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: -0.8px;
+}
+
+/* ==============================================
+   Expression Showcase
+   ============================================== */
+
+.ollama-showcase-section {
+  width: 100%;
+  padding: 0 20px 40px;
+}
+
+/* ==============================================
+   Section 04 — Character Bible
+   ============================================== */
+
+.ollama-charbible-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-charbible-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: var(--ollama-bg-warm-light);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-charbible-title {
+  color: var(--ollama-text-heading);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+}
+
+.ollama-charbible-description {
+  max-width: 700px;
+  color: var(--ollama-text-body);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: -0.8px;
+}
+
+/* ==============================================
+   Section 05 — Product Posters
+   ============================================== */
+
+.ollama-posters-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-posters-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: var(--ollama-bg-warm-light);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-posters-title {
+  color: var(--ollama-text-heading);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+}
+
+.ollama-posters-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 90px;
+}
+
+.ollama-poster-img {
+  width: 550px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.ollama-poster-img-light {
+  box-shadow:
+    0 2px 6px 2px rgba(0, 0, 0, 0.08),
+    0 1px 2px 0 rgba(0, 0, 0, 0.12);
+}
+
+.ollama-posters-description {
+  max-width: 700px;
+  color: var(--ollama-text-body);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: -0.8px;
+}
+
+/* ==============================================
+   Section 06 — Model Announcements
+   ============================================== */
+
+.ollama-announcements-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-announcements-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: var(--ollama-bg-dark);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-announcements-title {
+  color: rgba(253, 253, 253, 0.60);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+  opacity: 0.9;
+}
+
+.ollama-announcements-grid {
+  display: flex;
+  align-items: flex-start;
+  gap: 45px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ollama-announcement-img {
+  width: 550px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.ollama-announcements-description {
+  max-width: 700px;
+  color: rgba(253, 253, 253, 0.40);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: -0.8px;
+}
+
+/* ==============================================
+   Section 07 — Community & Values
+   ============================================== */
+
+.ollama-community-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-community-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: var(--ollama-bg-warm-light);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-community-title {
+  color: var(--ollama-text-heading);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+  opacity: 0.9;
+}
+
+.ollama-community-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 64px;
+}
+
+.ollama-community-stack-img {
+  width: 650px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* Community Values — Dark Grid Section */
+
+.ollama-community-dark-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-community-dark {
+  display: flex;
+  padding: 150px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: var(--ollama-bg-dark);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-community-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 48px;
+}
+
+.ollama-community-grid-img {
+  width: 450px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.ollama-community-description {
+  max-width: 700px;
+  color: rgba(253, 253, 253, 0.40);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 143.75%;
+  letter-spacing: -0.8px;
+}
+
+/* ==============================================
+   Components Showcase Page
+   ============================================== */
+
+.ollama-components-page {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--ollama-bg-dark);
+  color-scheme: dark;
+}
+
+.ollama-components-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 24px;
+}
+
+.ollama-components-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 48px;
+  color: var(--ollama-text-light);
+}
+
+.ollama-components-section {
+  margin-bottom: 64px;
+}
+
+.ollama-components-heading {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--ollama-text-light);
+}
+
+.ollama-components-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--ollama-text-muted);
+  margin-bottom: 24px;
+  max-width: 600px;
+}
+
+.ollama-components-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 40px;
+  border-radius: var(--ollama-radius-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* --- Toggle Switch --- */
+
+.ollama-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ollama-toggle-row .ollama-components-heading {
+  margin-bottom: 0;
+}
+
+.ollama-toggle-container {
+  cursor: pointer;
+  padding: 4px;
+}
+
+.ollama-toggle-container:hover {
+  opacity: 0.6;
+}
+
+.ollama-toggle-switch {
+  width: 28px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.ollama-toggle-switch.active {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.ollama-toggle-slider {
+  width: 12px;
+  height: 12px;
+  background: var(--ollama-bg-white);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: left 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.ollama-toggle-switch.active .ollama-toggle-slider {
+  left: 14px;
+}
+
+/* --- Expression Grid --- */
+
+.ollama-expression-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 75%;
+  margin: 0 auto;
+}
+
+.ollama-expression-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.2s ease;
+}
+
+.ollama-expression-img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  margin: 24px 0;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+.ollama-expression-label {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(253, 253, 253, 0.15);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* --- Expression Selector --- */
+
+.expr-selector {
+  display: inline-flex;
+  flex-wrap: wrap;
+  padding: var(--expr-padding);
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  border-radius: calc(var(--expr-frame-radius) + var(--expr-padding));
+  background: var(--ollama-bg-warm);
+}
+
+.expr-selector-frame {
+  display: flex;
+  width: 48px;
+  height: 48px;
+  padding: 4px;
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--expr-frame-radius);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.expr-selector-frame:hover {
+  opacity: 0.8;
+}
+
+.expr-selector-frame-active {
+  opacity: 1;
+  background: var(--ollama-bg-expr-block);
+}
+
+.expr-selector-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+.expr-selector-img-scaled {
+  transform: scale(1.2);
+}
+
+/* --- Expression Selector — Dark Mode --- */
+
+.expr-selector-dark {
+  background: rgba(247, 246, 245, 0.05);
+}
+
+.expr-selector-dark .expr-selector-frame-active {
+  background: rgba(255, 255, 255, 0.20);
+}
+
+.expr-selector-frame-desaturated {
+  filter: saturate(0.18);
+  transition: filter 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.expr-selector-frame-desaturated:hover {
+  filter: saturate(0.4);
+}
+
+/* ==============================================
+   Expression Showcase — Stage + Selector
+   ============================================== */
+
+.showcase-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  height: calc(100vh - 40px);
+}
+
+/* Clip container — crops stage edges on mobile, keeps border-radius.
+   position: relative so the cycle timer can anchor to its visible edges. */
+.showcase-stage-clip {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--ollama-radius-card);
+  overflow: hidden;
+}
+
+/* Stage — fills the clip container on desktop via height: 100%.
+   On narrow viewports, min-height prevents it from getting too short
+   while min-width + centering lets the sides crop. */
+.showcase-stage {
+  position: relative;
+  width: 100%;
+  min-width: 800px;
+  height: 100%;
+  min-height: 487px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ollama-bg-dark);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Soft ambient light — large radial glow, centred above the stage.
+   Figma: 2589×1421 ellipse in 2216×1254 stage = 116.8% × 113.3%.
+   Positioned at (-186.72, -746.67) → centred horizontally, top ≈ -59.5%. */
+.showcase-soft-light {
+  position: absolute;
+  width: 116.8%;
+  height: 113.3%;
+  left: 50%;
+  top: -59.5%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  opacity: 0.04;
+  background: radial-gradient(50% 50% at 50% 50%, #FFF 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
+/* Spotlight — Figma SVG with inner shadow filter */
+.showcase-spotlight {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 29.4%;
+  max-width: 300px;
+  height: 69.3%;
+  pointer-events: none;
+}
+
+.showcase-spotlight-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Character area — centres the character box + floor shadow */
+.showcase-character-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 250px;
+  height: 230px;
+  z-index: 1;
+}
+
+/* Floor shadow — static, never changes size or position */
+.showcase-floor-shadow {
+  position: absolute;
+  bottom: 0;
+  width: 250px;
+  height: 28px;
+  border-radius: 50%;
+  opacity: 0.3;
+  background: rgba(255, 255, 255, 0.20);
+}
+
+/* Character box — fixed size, image bottom-aligned */
+.showcase-character-box {
+  position: absolute;
+  bottom: 14px;
+  width: 190px;
+  height: 220px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* Stage character image */
+.showcase-character {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: bottom;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+/* Cycle timer — anchored to the clip container's visible edges,
+   so it never gets cropped when the stage overflows on mobile. */
+.showcase-cycle-timer {
+  position: absolute;
+  right: 15px;
+  bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* ==============================================
+   Responsive — Mobile
+   ============================================== */
+
+@media (max-width: 768px) {
+  .ollama-hero-banner {
+    padding: 0;
+    gap: 0;
+  }
+
+  .ollama-hero-card {
+    border-radius: 0;
+    padding-bottom: 180px;
+  }
+
+  .ollama-hero-component {
+    padding: 100px 24px 0;
+  }
+
+  .ollama-mascot {
+    width: 71px;
+    height: auto;
+  }
+
+  .ollama-hero-description {
+    font-size: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .ollama-description-wrapper {
+    gap: 80px;
+  }
+
+  .ollama-stats-row {
+    gap: 40px;
+    align-items: flex-start;
+  }
+
+  .ollama-stat-value {
+    font-size: 20px;
+  }
+
+  .ollama-approach-section {
+    padding: 0 10px 10px;
+  }
+
+  .ollama-approach-content {
+    min-height: 320px;
+    padding: 40px 0;
+  }
+
+  .ollama-approach-title,
+  .ollama-approach-body,
+  .ollama-approach-list {
+    font-size: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .ollama-section-image {
+    padding: 0 10px 10px;
+  }
+
+  .ollama-audit-container img {
+    width: 100%;
+  }
+
+  .ollama-moodboard-section {
+    padding: 0 10px 10px;
+  }
+
+  .ollama-moodboard-content {
+    padding: 60px 24px;
+    gap: 50px;
+  }
+
+  .ollama-moodboard-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-moodboard-placeholder {
+    border-width: 3px;
+  }
+
+  .ollama-moodboard-placeholder svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ollama-moodboard-description {
+    font-size: 14px;
+  }
+
+  .ollama-charbible-section {
+    padding: 0 10px 10px;
+  }
+
+  .ollama-showcase-section {
+    padding: 0 10px 30px;
+  }
+
+  .ollama-charbible-content {
+    padding: 60px 24px;
+    gap: 50px;
+  }
+
+  .ollama-charbible-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-charbible-description {
+    font-size: 14px;
+  }
+
+  .ollama-expression-img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+  }
+
+  .ollama-expression-grid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 100%;
+  }
+
+  .ollama-posters-section {
+    padding: 0;
+  }
+
+  .ollama-posters-content {
+    padding: 60px 24px;
+    gap: 50px;
+    border-radius: 0;
+  }
+
+  .ollama-posters-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-posters-grid {
+    gap: 50px;
+  }
+
+  .ollama-poster-img {
+    width: 100%;
+  }
+
+  .ollama-posters-description {
+    font-size: 14px;
+  }
+
+  .ollama-announcements-section {
+    padding: 0;
+  }
+
+  .ollama-announcements-content {
+    padding: 60px 24px;
+    gap: 50px;
+    border-radius: 0;
+  }
+
+  .ollama-announcements-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-announcements-grid {
+    gap: 50px;
+  }
+
+  .ollama-announcement-img {
+    width: 100%;
+  }
+
+  .ollama-announcements-description {
+    font-size: 14px;
+  }
+
+  .ollama-community-section {
+    padding: 0;
+  }
+
+  .ollama-community-content {
+    padding: 60px 24px;
+    gap: 50px;
+    border-radius: 0;
+  }
+
+  .ollama-community-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-community-stack {
+    gap: 20px;
+  }
+
+  .ollama-community-stack-img {
+    width: 100%;
+  }
+
+  .ollama-community-dark-section {
+    padding: 0;
+  }
+
+  .ollama-community-dark {
+    padding: 60px 24px;
+    gap: 50px;
+    border-radius: 0;
+  }
+
+  .ollama-community-grid {
+    grid-template-columns: 1fr;
+    gap: 50px;
+  }
+
+  .ollama-community-grid-img {
+    width: 100%;
+  }
+
+  .ollama-community-description {
+    font-size: 14px;
+  }
+
+  .ollama-components-preview {
+    padding: 40px 20px;
+  }
+
+  .expr-selector {
+    --expr-padding: 6px;
+    --expr-frame-radius: 8px;
+    gap: 6px;
+    max-width: 276px;
+  }
+
+  .showcase-wrapper {
+    height: auto;
+    gap: 16px;
+  }
+
+  .showcase-stage-clip {
+    flex: initial;
+    border-radius: 8px;
+  }
+
+  .showcase-stage {
+    height: auto;
+    aspect-ratio: 2216 / 1254;
+  }
+}

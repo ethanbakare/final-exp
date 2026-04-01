@@ -132,6 +132,8 @@
     /* Base Colors */
 
     --RecRed: #EF4444;
+    --RecRed_60: rgba(239, 68, 68, 0.6);
+    --RecRed_15: rgba(239, 68, 68, 0.15);
     --RecTrayBg: #262424;
     --RecWhite: #FFFFFF;
     --RecWhite_90: rgba(255, 255, 255, 0.9);
@@ -153,6 +155,8 @@
     --ClipWhite: #FFFFFF;
     --ClipPendYellow: #FFCA09;
     --ClipOfflineOrange: #FB7232;
+    --ClipOfflineOrange_60: rgba(251, 114, 50, 0.6);
+    --ClipFlamingoRed: #F58080;
     --ClipCursorColor: #3B82F6;
     --ClipScrollBg: #242424;
 

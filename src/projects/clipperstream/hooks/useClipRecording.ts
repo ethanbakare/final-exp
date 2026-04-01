@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { storeAudio } from '../services/audioStorage';
 import { logger } from '../utils/logger';
+// ✅ CRITICAL: Import from transcriptionRetry to share type definition
+import { TranscriptionResult } from '../utils/transcriptionRetry';
 
 const log = logger.scope('useClipRecording');
 
@@ -11,6 +13,15 @@ const log = logger.scope('useClipRecording');
 /* ============================================
    INTERFACES
    ============================================ */
+
+// Transcription result with error classification
+// ✅ NOW IMPORTED from transcriptionRetry.ts instead of defined here
+
+export interface StopRecordingResult {
+  audioBlob: Blob | null;
+  audioId: string | null;
+  duration: number;
+}
 
 export interface UseClipRecordingReturn {
   // Recording state
@@ -29,8 +40,8 @@ export interface UseClipRecordingReturn {
 
   // Actions
   startRecording: () => Promise<void>;
-  stopRecording: () => void;
-  transcribeRecording: (blobOverride?: Blob) => Promise<void>;
+  stopRecording: () => Promise<StopRecordingResult>;
+  transcribeRecording: (blobOverride?: Blob) => Promise<TranscriptionResult>;
   forceRetry: () => void;  // Allows tap-to-skip wait periods
   reset: () => void;
 }
@@ -76,6 +87,7 @@ export function useClipRecording(): UseClipRecordingReturn {
   const startTimeRef = useRef<number>(0);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const retryTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const stopRecordingResolverRef = useRef<((result: StopRecordingResult) => void) | null>(null);
 
   // ============================================
   // START RECORDING
@@ -156,11 +168,13 @@ export function useClipRecording(): UseClipRecordingReturn {
       mediaRecorder.onstop = async () => {
         // Create blob from chunks
         const blob = new Blob(chunksRef.current, { type: mimeType });
+
+        let savedAudioId: string | null = null;
         
         // CRITICAL: Save audio to IndexedDB BEFORE any network call
         // This ensures audio is never lost, even if transcription fails
         try {
-          const savedAudioId = await storeAudio(blob);
+          savedAudioId = await storeAudio(blob);
           setAudioId(savedAudioId);
           log.info('Audio saved to IndexedDB', {
             audioId: savedAudioId,
@@ -178,6 +192,17 @@ export function useClipRecording(): UseClipRecordingReturn {
         if (durationTimerRef.current) {
           clearInterval(durationTimerRef.current);
           durationTimerRef.current = null;
+        }
+
+        // CRITICAL: Resolve stopRecording Promise with result
+        if (stopRecordingResolverRef.current) {
+          const finalDuration = Math.floor((Date.now() - startTimeRef.current) / 1000);
+          stopRecordingResolverRef.current({
+            audioBlob: blob,
+            audioId: savedAudioId,
+            duration: finalDuration
+          });
+          stopRecordingResolverRef.current = null;
         }
       };
 
@@ -220,12 +245,24 @@ export function useClipRecording(): UseClipRecordingReturn {
   // STOP RECORDING
   // ============================================
 
-  const stopRecording = useCallback(() => {
-    // Stop MediaRecorder
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+  const stopRecording = useCallback((): Promise<StopRecordingResult> => {
+    return new Promise((resolve) => {
+      // If not recording, resolve immediately with current state
+      if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+        resolve({
+          audioBlob: audioBlob,
+          audioId: audioId,
+          duration: duration
+        });
+        return;
+      }
+
+      // Store resolver for onstop handler to call
+      stopRecordingResolverRef.current = resolve;
+
+      // Stop MediaRecorder (triggers async onstop event)
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current = null;
-    }
 
     // Stop microphone stream
     if (mediaStreamRef.current) {
@@ -249,13 +286,16 @@ export function useClipRecording(): UseClipRecordingReturn {
     }
 
     setIsRecording(false);
-  }, []);
+
+      // NOTE: Promise will resolve when onstop handler calls stopRecordingResolverRef.current()
+    });
+  }, [audioBlob, audioId, duration]);
 
   // ============================================
   // TRANSCRIBE RECORDING
   // ============================================
 
-  const transcribeRecording = useCallback(async (blobOverride?: Blob) => {
+  const transcribeRecording = useCallback(async (blobOverride?: Blob): Promise<TranscriptionResult> => {
     // Cancel any pending retry timer (prevents clash with external calls)
     if (retryTimerRef.current) {
       clearTimeout(retryTimerRef.current);
@@ -268,22 +308,22 @@ export function useClipRecording(): UseClipRecordingReturn {
     if (!blobToUse) {
       log.warn('No audio blob to transcribe');
       setTranscriptionError('No audio to transcribe');
-      return;
+      return { text: '', error: 'validation' };
     }
 
     // Validate audio blob size
     if (blobToUse.size < 100) {
       log.warn('Audio blob too small', { size: blobToUse.size });
       setTranscriptionError('Recording is too short. Please record at least 1 second of audio.');
-      return;
+      return { text: '', error: 'validation' };
     }
 
     // Check if online before attempting
     if (!navigator.onLine) {
       log.info('Offline - transcription will retry when online');
-      setTranscriptionError('offline');
+      setTranscriptionError('network');
       setIsTranscribing(false);
-      return;
+      return { text: '', error: 'network' };
     }
 
     setIsTranscribing(true);
@@ -337,6 +377,9 @@ export function useClipRecording(): UseClipRecordingReturn {
         textLength: data.transcript.length,
         preview: data.transcript.substring(0, 50) + '...'
       });
+      
+      // Return success with transcription text
+      return { text: data.transcript, error: null };
 
     } catch (error) {
       // console.timeEnd('⏱️ TRANSCRIPTION (Deepgram)');
@@ -345,32 +388,45 @@ export function useClipRecording(): UseClipRecordingReturn {
         attempt: retryCount + 1
       });
 
-      // Determine if we should retry
+      // Classify error type
       const isTimeout = error instanceof Error && error.name === 'AbortError';
       const isNetworkError = error instanceof TypeError;
+      const isServerError = error instanceof Error && error.message.includes('Server error');
+
+      // Server errors (4xx/5xx) are DEFINITIVE failures - don't retry
+      if (isServerError) {
+        setTranscriptionError('Server rejected audio');
+        setRetryCount(0);
+        setIsActiveRequest(false);
+        log.error('Server rejection (definitive failure)', {
+          errorMessage: error instanceof Error ? error.message : 'Unknown',
+          retriesAttempted: retryCount + 1
+        });
+        return { text: '', error: 'api-down' };
+      }
+
+      // Network errors (timeout, connection failed) should retry
       const shouldRetry = isTimeout || isNetworkError;
 
       if (shouldRetry) {
-        const nextRetryCount = retryCount + 1;  // Calculate next value first
-        setRetryCount(nextRetryCount);          // Update state
+        const nextRetryCount = retryCount + 1;
+        setRetryCount(nextRetryCount);
 
-        if (nextRetryCount < MAX_RAPID_ATTEMPTS) {  // Attempts 1-3: rapid phase
+        if (nextRetryCount < MAX_RAPID_ATTEMPTS) {
           // Rapid phase: immediate retry
           log.info('Rapid retry (immediate)', {
             attempt: nextRetryCount + 1,
             reason: isTimeout ? 'timeout' : 'network error'
           });
           retryTimerRef.current = setTimeout(() => transcribeRecording(), 0);
-          return; // Don't set isTranscribing to false yet
+          return { text: '', error: 'network' };
         } else {
-          // Interval phase: wait before retry (attempts 4+)
-          // Formula: nextRetryCount=3 schedules attempt 4 with index 0 (1min)
+          // Interval phase: wait before retry
           const intervalIndex = (nextRetryCount - MAX_RAPID_ATTEMPTS) % RETRY_INTERVALS.length;
           const waitTime = RETRY_INTERVALS[intervalIndex];
           
-          // Signal interval retry mode (creates pending clip like offline does)
           setTranscriptionError('network-retry');
-          setIsActiveRequest(false);  // Stop spinning during wait
+          setIsActiveRequest(false);
           
           log.info('Interval retry (scheduled)', {
             attempt: nextRetryCount + 1,
@@ -380,18 +436,19 @@ export function useClipRecording(): UseClipRecordingReturn {
           
           retryTimerRef.current = setTimeout(() => {
             setIsActiveRequest(true);
-            setTranscriptionError(null);  // Clear error before retry
+            setTranscriptionError(null);
             transcribeRecording();
           }, waitTime);
-          return; // Don't set isTranscribing to false yet
+          return { text: '', error: 'network' };
         }
       } else {
-        // Definitive failure - non-retryable error
+        // Unknown error - treat as definitive failure
         const errorMessage = error instanceof Error ? error.message : 'Transcription failed';
         setTranscriptionError(errorMessage);
         setRetryCount(0);
         setIsActiveRequest(false);
-        log.error('Definitive transcription failure', { errorMessage, retriesAttempted: retryCount + 1 });
+        log.error('Unknown transcription failure', { errorMessage, retriesAttempted: retryCount + 1 });
+        return { text: '', error: 'api-down' };
       }
     } finally {
       // Only set to false if we're not retrying

@@ -6,8 +6,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["voice", "transcription", "pwa", "offline"],
+  "keywords": [
+    "voice",
+    "transcription",
+    "pwa",
+    "offline"
+  ],
   "author": "",
   "license": "ISC",
-  "dependencies": {}
+  "dependencies": {
+    "zustand": "^5.0.9"
+  }
 }

@@ -11,7 +11,11 @@ import {
   CheckTickButton,
   TranscribeBig,
   RetryButton,
-  ScrollButton
+  VpnIssueButton,
+  DeleteIcon,
+  ScrollButton,
+  WarningIcon
+  
 } from '@/projects/clipperstream/components/ui/clipbuttons';
 import {
   NoClipsFrameIcon,
@@ -34,7 +38,7 @@ import { ClipListItem } from '@/projects/clipperstream/components/ui/cliplist';
 import { ClipOffline } from '@/projects/clipperstream/components/ui/ClipOffline';
 import { ClipHomeHeader } from '@/projects/clipperstream/components/ui/cliphomeheader';
 import { ClipRecordHeader } from '@/projects/clipperstream/components/ui/cliprecordheader';
-import { CopyToast, AudioToast, ErrorToast } from '@/projects/clipperstream/components/ui/ClipToast';
+import { CopyToast, AudioToast, ErrorToast, VpnToast, UnformattedCopyToast } from '@/projects/clipperstream/components/ui/ClipToast';
 import { ClipModalOverlay } from '@/projects/clipperstream/components/ui/ClipModalOverlay';
 import { ClipVarListDemo } from '@/projects/clipperstream/components/ui/ClipVarList';
 import { BlockAnimationTest } from '@/projects/clipperstream/components/ui/BlockAnimationTest';
@@ -83,11 +87,11 @@ const ClipComponents: React.FC = () => {
     setNetworkStatus(prev => prev === 'online' ? 'offline' : 'online');
   };
 
-  // State for ClipOffline demo (transcribing ↔ failed toggle)
-  const [clipOfflineStatus, setClipOfflineStatus] = useState<'waiting' | 'transcribing' | 'failed'>('transcribing');
+  // State for ClipOffline demo (transcribing ↔ no-audio-detected toggle)
+  const [clipOfflineStatus, setClipOfflineStatus] = useState<'waiting' | 'transcribing' | 'no-audio-detected'>('transcribing');
 
   const handleClipOfflineToggle = () => {
-    setClipOfflineStatus(prev => prev === 'transcribing' ? 'failed' : 'transcribing');
+    setClipOfflineStatus(prev => prev === 'transcribing' ? 'no-audio-detected' : 'transcribing');
   };
 
   return (
@@ -156,6 +160,9 @@ const ClipComponents: React.FC = () => {
             <CheckTickButton />
             <TranscribeBig />
             <RetryButton />
+            <VpnIssueButton />
+            <WarningIcon />
+            <DeleteIcon />
             <ScrollButton />
             <ButtonOutline />
             <ButtonFull />
@@ -471,17 +478,23 @@ const ClipComponents: React.FC = () => {
           <div className="file-label">📁 cliplist.tsx</div>
 
           <div className="section">
-            <h2 className="section-title">Clip List Item - Three Status Variations</h2>
+            <h2 className="section-title">Clip List Item - Six Status Variations</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-              List item component for displaying clips with title, date, and status. Features responsive hover states and three status variations following <strong>DRY principle</strong> (Don&apos;t Repeat Yourself).
+              List item component for displaying clips with title, date, and status. Features responsive hover states and six status variations following <strong>DRY principle</strong> (Don&apos;t Repeat Yourself).
               <br /><br />
               <strong>Status Variations:</strong>
               <br />
               • <strong>Completed (null):</strong> No status shown - transcription done
               <br />
-              • <strong>Pending:</strong> Shows &quot;Waiting to transcribe&quot; with pending icon
+              • <strong>Pending:</strong> Shows &quot;Waiting to transcribe&quot; with static pending icon (40% opacity) - initial state before first attempt
               <br />
-              • <strong>Transcribing:</strong> Shows &quot;Transcribing...&quot; with rotating transcribe icon + animated ellipsis
+              • <strong>Retry-Pending:</strong> Shows &quot;Retrying soon...&quot; with static icon (40% opacity) - dormant state waiting for automatic retry attempt
+              <br />
+              • <strong>Transcribing (active):</strong> Shows &quot;Transcribing...&quot; with <strong>spinning</strong> icon - HTTP request actively in progress
+              <br />
+              • <strong>VPN Blocked:</strong> Shows &quot;Blocked by VPN&quot; with static orange icon (60% opacity) - DNS/network blocked by VPN
+              <br /><br />
+              <strong>Note:</strong> The legacy &quot;failed&quot; state (in ClipOffline.tsx) with caution icon + manual retry button is distinct from retry-pending and represents permanent failure requiring user intervention.
               <br /><br />
               <strong>Desktop:</strong> Hover over the list item to see background color change to #252525 and three-dot menu fade in. Click dots to open options menu.
               <br />
@@ -494,14 +507,30 @@ const ClipComponents: React.FC = () => {
                 status={null}
               />
               <ClipListItem
-                title="Teach me to love myself today"
+                title="Recording 04"
                 date="May 13, 2025"
                 status="pending"
               />
               <ClipListItem
-                title="Ideas for the new project launch"
+                title="Recording 03"
                 date="May 14, 2025"
+                status="retry-pending"
+              />
+              <ClipListItem
+                title="Recording 02"
+                date="May 16, 2025"
                 status="transcribing"
+                isActiveRequest={true}
+              />
+              <ClipListItem
+                title="Recording 01"
+                date="May 17, 2025"
+                status="vpn-blocked"
+              />
+              <ClipListItem
+                title="Recording 00"
+                date="May 18, 2025"
+                status="audio-corrupted"
               />
             </div>
           </div>
@@ -531,17 +560,19 @@ const ClipComponents: React.FC = () => {
           <div className="file-label">📁 ClipOffline.tsx</div>
 
           <div className="section">
-            <h2 className="section-title">Clip Offline (Pending Clip) - 3 States</h2>
+            <h2 className="section-title">Clip Offline (Pending Clip) - Multiple States</h2>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-              Offline/pending clip component with persistent background (#252525). Has three states:
+              Offline/pending clip component with persistent background (#252525). Has multiple states with automatic title appending for permanent failures:
               <br /><br />
               <strong>Waiting State (default):</strong> Shows static TranscribeBig icon at 40% opacity. Indicates clip is queued and waiting for network to transcribe automatically.
               <br /><br />
               <strong>Transcribing State:</strong> Shows spinning TranscribeBig icon at 100% opacity. Indicates active transcription in progress.
               <br /><br />
-              <strong>Failed State:</strong> PendingClip shrinks, RetryButton slides in from right (Search.tsx pattern). Timer fades out, TranscribeBig crossfades to Caution icon.
+              <strong>VPN-Blocked State:</strong> Shows static WarningIcon (triangle). Timer fades out, indicates VPN is blocking transcription.
               <br /><br />
-              <strong>Animation:</strong> RetryButton uses translateX slide-in (like Cancel in Search). Timer + TranscribeBig fade out while CautionIcon fades in (opacity crossfade like MorphingCloseToCopyButton).
+              <strong>Audio Corrupted &amp; No Audio Detected:</strong> Permanent failure states with DeleteIcon. <strong>Auto-appends error description to title</strong> (e.g., &quot;Clip 001&quot; → &quot;Clip 001 - Audio corrupted&quot;). Timer fades out, no retry button.
+              <br /><br />
+              <strong>Animation:</strong> RetryButton uses translateX slide-in (like Cancel in Search). Timer + TranscribeBig fade out while icons crossfade (opacity crossfade like MorphingCloseToCopyButton).
             </p>
             <div className="component-grid">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
@@ -550,44 +581,71 @@ const ClipComponents: React.FC = () => {
                   <ClipOffline title="Clip 001" time="0:26" />
                 </div>
                 <div>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>Transcribing (spinning icon at 100%)</span>
-                  <ClipOffline title="Clip 002" status="transcribing" time="0:42" />
+                  <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>Retry-Pending (static icon at 40% - visually identical to Waiting)</span>
+                  <ClipOffline title="Clip 002" status="retry-pending" time="0:33" />
                 </div>
                 <div>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>Failed (RetryButton slides in)</span>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>Transcribing (spinning icon at 100%)</span>
+                  <ClipOffline title="Clip 003" status="transcribing" time="0:42" />
+                </div>
+                <div>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>VPN-Blocked (WarningIcon, no time text)</span>
                   <ClipOffline
-                    title="Clip 003"
+                    title="Clip 004"
                     time="1:15"
-                    status="failed"
-                    onRetryClick={() => console.log('Retry clicked')}
+                    status="vpn-blocked"
+                  />
+                </div>
+                <div>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>Audio Corrupted (Auto-appends " - Audio corrupted" to title, DeleteIcon, no time text, no retry button)</span>
+                  <ClipOffline
+                    title="Clip 005"
+                    time="0:58"
+                    status="audio-corrupted"
+                  />
+                </div>
+                <div>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>No Audio Detected (Auto-appends " - No audio detected" to title, DeleteIcon, no time text, no retry button)</span>
+                  <ClipOffline
+                    title="Clip 006"
+                    time="1:12"
+                    status="no-audio-detected"
+                  />
+                </div>
+                <div>
+                  <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.75rem', marginBottom: '0.5rem', display: 'block' }}>⚠️ DANGER - Extra Component (LEGACY DEMO ONLY - DO NOT USE IN PRODUCTION) ⚠️</span>
+                  <ClipOffline
+                    title="Clip 007"
+                    time="1:23"
+                    status="extra-component"
+                    onRetryClick={() => console.log('Retry clicked for extra-component')}
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Interactive Demo: Transcribing ↔ Failed Toggle */}
+          {/* Interactive Demo: Transcribing ↔ No Audio Detected Toggle */}
           <div className="section" style={{ marginTop: '2rem' }}>
-            <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Interactive Demo: Transcribing ↔ Failed</h3>
+            <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Interactive Demo: Transcribing ↔ No Audio Detected</h3>
             <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
-              Click the toggle button to watch the animation between <strong>transcribing</strong> and <strong>failed</strong> states.
+              Click the toggle button to watch the animation between <strong>transcribing</strong> and <strong>no-audio-detected</strong> states.
               <br /><br />
               <strong>What to watch:</strong>
               <br />
               • Timer fades out (opacity 1 → 0)
               <br />
-              • TranscribeBig crossfades to CautionIcon (opacity swap)
+              • TranscribeBig crossfades to DeleteIcon (opacity swap)
               <br />
-              • RetryButton slides in from right (translateX)
+              • No retry button (permanent failure - nothing to retry)
               <br />
-              • PendingClip shrinks to make room
+              • Delete icon indicates user should remove clip
             </p>
             <div className="component-grid" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
               <ClipOffline
                 title="Clip 004"
                 status={clipOfflineStatus}
                 time="0:42"
-                onRetryClick={() => console.log('Retry clicked - would restart transcription')}
               />
               <button
                 onClick={handleClipOfflineToggle}
@@ -769,6 +827,17 @@ const ClipComponents: React.FC = () => {
             </div>
 
             <div className="section" style={{ marginTop: '2rem' }}>
+              <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Unformatted Copy Toast</h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                Shows copy confirmation for unformatted text with SubCopyIcon (same as CopyToast). Used when formatting fails but clipboard copy succeeds. Click the X to dismiss.
+              </p>
+              <div className="component-grid" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+                <UnformattedCopyToast onClose={() => console.log('Unformatted copy toast closed')} />
+                <UnformattedCopyToast text="Copied raw text" onClose={() => console.log('Unformatted copy toast closed')} />
+              </div>
+            </div>
+
+            <div className="section" style={{ marginTop: '2rem' }}>
               <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Audio Toast</h3>
               <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                 Shows audio saved confirmation with SubCheckmarkIcon. Click the X to dismiss.
@@ -788,6 +857,17 @@ const ClipComponents: React.FC = () => {
                 <ErrorToast onClose={() => console.log('Error toast closed')} />
                 <ErrorToast text="No speech detected" onClose={() => console.log('Error toast closed')} />
                 <ErrorToast text="Transcription failed" onClose={() => console.log('Error toast closed')} />
+              </div>
+            </div>
+
+            <div className="section" style={{ marginTop: '2rem' }}>
+              <h3 style={{ color: '#FFFFFF', fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>VPN Toast</h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.6)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                Shows VPN warning message with CautionIcon (warning triangle). Used to alert users when VPN is blocking transcription. Click the X to dismiss.
+              </p>
+              <div className="component-grid" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+                <VpnToast onClose={() => console.log('VPN toast closed')} />
+                <VpnToast text="Turn off VPN to continue" onClose={() => console.log('VPN toast closed')} />
               </div>
             </div>
           </div>

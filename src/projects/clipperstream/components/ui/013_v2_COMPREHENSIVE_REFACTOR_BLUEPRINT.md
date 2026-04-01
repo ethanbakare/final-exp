@@ -1,7 +1,10 @@
 # 013_v2: ClipMasterScreen Comprehensive Refactor Blueprint
 
+**FOR AI BUILDER:** You are following this blueprint to refactor ClipMasterScreen.tsx. After each phase, ASK THE USER to test and report results before proceeding.
+
 **Date:** December 27, 2025
 **Version:** 2.0 (Revised with complete implementation details)
+**Current Branch:** refactor/clip-master-phases (all commits go here)
 **Current State:** 1589 lines, 24+ states, spaghetti architecture
 **Target State:** <300 lines coordinator + 4 specialized hooks
 **Estimated Time:** 8-12 hours over 4 phases
@@ -390,6 +393,8 @@ const newClip = createNewClip('', nextNumber, '');
 
 ### Testing Criteria for Phase 1
 
+**ASK USER to verify these tests:**
+
 | Test | Expected Behavior | Pass/Fail |
 |------|------------------|-----------|
 | **Home screen displays clips** | Shows all clips from storage | [ ] |
@@ -400,7 +405,7 @@ const newClip = createNewClip('', nextNumber, '');
 | **Delete clip** | Removes from list, refreshes | [ ] |
 | **Search clips** | Filtering still works | [ ] |
 
-**CRITICAL:** If "Online recording" test fails, STOP and rollback before proceeding.
+**CRITICAL:** If user reports "Online recording" test fails, STOP and rollback before proceeding.
 
 ---
 
@@ -1022,6 +1027,8 @@ function extractRecordingNumber(title: string): number {
 
 ### Testing Criteria for Phase 2
 
+**ASK USER to verify these tests:**
+
 | Test | Expected Behavior | Pass/Fail |
 |------|------------------|-----------|
 | **Record offline (first clip)** | Shows "Clip 001" | [ ] |
@@ -1031,7 +1038,7 @@ function extractRecordingNumber(title: string): number {
 | **Online recording still works** | ⚠️ CRITICAL | [ ] |
 | **Phase 1 tests still pass** | No regressions | [ ] |
 
-**CRITICAL:** If second pending clip doesn't show (still replaces first), check:
+**CRITICAL:** If user reports second pending clip doesn't show (still replaces first), check:
 1. Is `selectedPendingClips` an array?
 2. Is `getPendingClipsForRecording()` returning multiple items?
 3. Are both clips in the `clips` state array?
@@ -1678,6 +1685,8 @@ const handleOnline = useCallback(async () => {
 
 ### Testing Criteria for Phase 3
 
+**ASK USER to verify these tests:**
+
 | Test | Expected Behavior | Pass/Fail |
 |------|------------------|-----------|
 | **⚠️ CRITICAL: Online recording still works** | Record → Done → Text appears with animation → Title changes | [ ] |
@@ -1687,7 +1696,7 @@ const handleOnline = useCallback(async () => {
 | **Can navigate during background retry** | No UI freeze or weird behavior | [ ] |
 | **Phases 1-2 tests still pass** | No regressions | [ ] |
 
-**CRITICAL BLOCKER:** If online recording breaks, STOP IMMEDIATELY and rollback.
+**CRITICAL BLOCKER:** If user reports online recording breaks, STOP IMMEDIATELY and rollback.
 
 ---
 
@@ -2058,6 +2067,8 @@ export const ClipMasterScreen: React.FC = () => {
 ---
 
 ### Testing Criteria for Phase 4
+
+**ASK USER to verify these tests:**
 
 | Test | Expected Behavior | Pass/Fail |
 |------|------------------|-----------|

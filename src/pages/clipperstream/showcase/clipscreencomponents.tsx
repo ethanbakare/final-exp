@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ClipHomeScreen, Clip } from '@/projects/clipperstream/components/ui/ClipHomeScreen';
+import { ClipHomeScreen } from '@/projects/clipperstream/components/ui/ClipHomeScreen';
 import { ClipRecordScreen, PendingClip } from '@/projects/clipperstream/components/ui/ClipRecordScreen';
+import { Clip } from '@/projects/clipperstream/store/clipStore';
 import { ClipMasterScreen } from '@/projects/clipperstream/components/ui/ClipMasterScreen';
 import { ClipOfflineScreen } from './ClipOfflineScreen';
 
@@ -12,27 +13,41 @@ import { ClipOfflineScreen } from './ClipOfflineScreen';
    SAMPLE DATA
    ============================================ */
 
+// Helper function to create showcase clips with required fields
+const createShowcaseClip = (id: string, title: string, date: string, content: string, status: Clip['status'] = null): Clip => ({
+  id,
+  title,
+  date,
+  createdAt: Date.now() - parseInt(id) * 86400000, // Stagger dates
+  rawText: content,
+  formattedText: content,
+  content,
+  status,
+  currentView: 'formatted' as const,
+  hasAnimated: true, // Showcase - already animated
+});
+
 const sampleClips: Clip[] = [
-  { id: '1', title: 'Morning thoughts on productivity', date: 'May 29, 2025', status: null, content: 'Today I want to focus on deep work. The key is to eliminate distractions and create blocks of uninterrupted time. I\'ve been reading about the Pomodoro technique and think it could help me stay focused. Maybe I should try 25-minute work sessions with 5-minute breaks.' },
-  { id: '2', title: 'Ideas for the new project launch', date: 'May 28, 2025', status: null, content: 'Key features we need to build: user authentication, dashboard, real-time notifications, and data export. We should prioritize the MVP features first and iterate based on user feedback.' },
-  { id: '3', title: 'Meeting notes with the design team', date: 'May 27, 2025', status: 'pending' },
-  { id: '4', title: 'Quick reminder about groceries', date: 'May 26, 2025', status: null, content: 'Milk, eggs, bread, cheese, vegetables, and fruit. Also need to pick up some cleaning supplies.' },
-  { id: '5', title: 'Podcast episode summary - AI trends', date: 'May 25, 2025', status: 'transcribing' },
-  { id: '6', title: 'Birthday gift ideas for Sarah', date: 'May 24, 2025', status: null, content: 'Maybe a nice book or some art supplies. She mentioned wanting to try watercolor painting.' },
-  { id: '7', title: 'Book recommendations from John', date: 'May 23, 2025', status: null, content: 'Atomic Habits by James Clear, Deep Work by Cal Newport, and The Psychology of Money.' },
-  { id: '8', title: 'Workout routine adjustments', date: 'May 22, 2025', status: null, content: 'Add more cardio on Mondays and Wednesdays. Focus on core strength on Fridays.' },
-  { id: '9', title: 'Travel plans for summer vacation', date: 'May 21, 2025', status: null, content: 'Looking at Portugal or Greece. Need to book flights by end of month for better prices.' },
-  { id: '10', title: 'Recipe notes - pasta carbonara', date: 'May 20, 2025', status: null, content: 'The secret is using guanciale instead of bacon, and mixing the eggs off the heat to avoid scrambling.' },
-  { id: '11', title: 'Client call recap - Project Alpha', date: 'May 19, 2025', status: null, content: 'They want to launch by Q3. Main concerns are timeline and budget.' },
-  { id: '12', title: 'Ideas for the team offsite', date: 'May 18, 2025', status: null, content: 'Maybe a cooking class or escape room activity. Team building is important.' },
-  { id: '13', title: 'Feedback from user testing session', date: 'May 17, 2025', status: 'pending' },
-  { id: '14', title: 'Budget planning for next quarter', date: 'May 16, 2025', status: null, content: 'We need to allocate more to marketing and R&D.' },
-  { id: '15', title: 'Notes from the conference keynote', date: 'May 15, 2025', status: null, content: 'The future of AI is about collaboration, not replacement.' },
-  { id: '16', title: 'Brainstorm session - new features', date: 'May 14, 2025', status: null, content: 'Dark mode, offline support, collaborative editing.' },
-  { id: '17', title: 'Weekly review and planning', date: 'May 13, 2025', status: null, content: 'Completed 8 tasks, 3 pending. Focus on high-priority items next week.' },
-  { id: '18', title: 'Quick voice memo about the bug fix', date: 'May 12, 2025', status: 'transcribing' },
-  { id: '19', title: 'Dinner reservation confirmation', date: 'May 11, 2025', status: null, content: 'Table for 4 at 7pm at the Italian place downtown.' },
-  { id: '20', title: 'Thoughts on the new design system', date: 'May 10, 2025', status: null, content: 'The spacing feels off in the mobile views. Need to review with the team.' },
+  createShowcaseClip('1', 'Morning thoughts on productivity', 'May 29, 2025', 'Today I want to focus on deep work. The key is to eliminate distractions and create blocks of uninterrupted time. I\'ve been reading about the Pomodoro technique and think it could help me stay focused. Maybe I should try 25-minute work sessions with 5-minute breaks.'),
+  createShowcaseClip('2', 'Ideas for the new project launch', 'May 28, 2025', 'Key features we need to build: user authentication, dashboard, real-time notifications, and data export. We should prioritize the MVP features first and iterate based on user feedback.'),
+  createShowcaseClip('3', 'Meeting notes with the design team', 'May 27, 2025', '', 'pending-child'),
+  createShowcaseClip('4', 'Quick reminder about groceries', 'May 26, 2025', 'Milk, eggs, bread, cheese, vegetables, and fruit. Also need to pick up some cleaning supplies.'),
+  createShowcaseClip('5', 'Podcast episode summary - AI trends', 'May 25, 2025', '', 'transcribing'),
+  createShowcaseClip('6', 'Birthday gift ideas for Sarah', 'May 24, 2025', 'Maybe a nice book or some art supplies. She mentioned wanting to try watercolor painting.'),
+  createShowcaseClip('7', 'Book recommendations from John', 'May 23, 2025', 'Atomic Habits by James Clear, Deep Work by Cal Newport, and The Psychology of Money.'),
+  createShowcaseClip('8', 'Workout routine adjustments', 'May 22, 2025', 'Add more cardio on Mondays and Wednesdays. Focus on core strength on Fridays.'),
+  createShowcaseClip('9', 'Travel plans for summer vacation', 'May 21, 2025', 'Looking at Portugal or Greece. Need to book flights by end of month for better prices.'),
+  createShowcaseClip('10', 'Recipe notes - pasta carbonara', 'May 20, 2025', 'The secret is using guanciale instead of bacon, and mixing the eggs off the heat to avoid scrambling.'),
+  createShowcaseClip('11', 'Client call recap - Project Alpha', 'May 19, 2025', 'They want to launch by Q3. Main concerns are timeline and budget.'),
+  createShowcaseClip('12', 'Ideas for the team offsite', 'May 18, 2025', 'Maybe a cooking class or escape room activity. Team building is important.'),
+  createShowcaseClip('13', 'Feedback from user testing session', 'May 17, 2025', '', 'pending-child'),
+  createShowcaseClip('14', 'Budget planning for next quarter', 'May 16, 2025', 'We need to allocate more to marketing and R&D.'),
+  createShowcaseClip('15', 'Notes from the conference keynote', 'May 15, 2025', 'The future of AI is about collaboration, not replacement.'),
+  createShowcaseClip('16', 'Brainstorm session - new features', 'May 14, 2025', 'Dark mode, offline support, collaborative editing.'),
+  createShowcaseClip('17', 'Weekly review and planning', 'May 13, 2025', 'Completed 8 tasks, 3 pending. Focus on high-priority items next week.'),
+  createShowcaseClip('18', 'Quick voice memo about the bug fix', 'May 12, 2025', '', 'transcribing'),
+  createShowcaseClip('19', 'Dinner reservation confirmation', 'May 11, 2025', 'Table for 4 at 7pm at the Italian place downtown.'),
+  createShowcaseClip('20', 'Thoughts on the new design system', 'May 10, 2025', 'The spacing feels off in the mobile views. Need to review with the team.'),
 ];
 
 const samplePendingClips: PendingClip[] = [
@@ -114,6 +129,7 @@ const ClipScreenComponents: React.FC = () => {
           gap: 2rem;
           margin-bottom: 1.5rem;
           align-items: flex-start;
+          justify-content: center;
           padding: 0 2rem;
         }
         
@@ -316,11 +332,18 @@ const ClipScreenComponents: React.FC = () => {
           <div className="screen-wrapper">
             <ClipRecordScreen
               state={recordScreenState}
-              contentBlocks={recordScreenState === 'transcribed' ? [{
-                id: 'demo-transcription',
-                text: sampleTranscription,
-                animate: false
-              }] : []}
+              selectedClip={recordScreenState === 'transcribed' ? {
+                id: 'demo-clip',
+                title: 'Demo Recording',
+                date: 'May 29, 2025',
+                createdAt: Date.now(),
+                rawText: sampleTranscription,
+                formattedText: sampleTranscription,
+                content: sampleTranscription,
+                status: null,
+                currentView: 'formatted',
+                hasAnimated: true  // Showcase - don't animate
+              } as Clip : undefined}
               pendingClips={recordScreenState === 'offline' ? samplePendingClips : []}
               onBackClick={() => console.log('Back clicked')}
               onNewClipClick={() => console.log('New clip clicked')}

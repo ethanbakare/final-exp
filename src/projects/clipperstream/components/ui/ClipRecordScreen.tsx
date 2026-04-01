@@ -5,7 +5,7 @@ import { ClipOffline } from './ClipOffline';
 import { PortalContainerProvider } from './PortalContainerContext';
 import { useScrollToBottom } from '../../hooks/useScrollToBottom';
 import { ScrollButton } from './clipbuttons';
-import { Clip } from './ClipHomeScreen';
+import { Clip, useClipStore } from '../../store/clipStore';
 
 // ClipRecordScreen Component
 // Screen for recording and viewing transcriptions
@@ -25,7 +25,7 @@ export interface PendingClip {
   id: string;
   title: string;  // Default format: "Clip 001", "Clip 002", etc.
   time: string;
-  status?: 'waiting' | 'transcribing' | 'failed';
+  status?: 'waiting' | 'retry-pending' | 'transcribing' | 'vpn-blocked' | 'audio-corrupted' | 'no-audio-detected';
   isActiveRequest?: boolean;  // Controls icon spinning during retry attempts
 }
 
@@ -39,7 +39,7 @@ export interface ContentBlock {
 
 interface ClipRecordScreenProps {
   state?: RecordScreenState;              // Current screen state
-  contentBlocks?: ContentBlock[];          // Content blocks to render (industry standard list pattern)
+  // ✅ REMOVED: contentBlocks - Never passed, was zombie prop from old architecture
   selectedClip?: Clip;                    // Full clip for formatted/raw view toggle
   pendingClips?: PendingClip[];           // Offline clips (D4 state)
   onBackClick?: () => void;               // Navigate back to home
@@ -56,7 +56,7 @@ interface ClipRecordScreenProps {
 
 export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   state = 'recording',
-  contentBlocks = [],
+  // ✅ REMOVED: contentBlocks (zombie prop)
   selectedClip,
   pendingClips = [],
   onBackClick,
@@ -90,35 +90,57 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   // Determine which text to display based on clip's currentView preference
   const displayText = useMemo(() => {
     if (!selectedClip) {
-      // No clip selected, show contentBlocks (raw transcription during recording)
-      return contentBlocks;
+      return [];
     }
 
-    // Clip selected - check currentView preference
-    if (selectedClip.currentView === 'raw') {
-      // Show raw text
-      return [{
-        id: 'raw-view',
-        text: selectedClip.rawText || selectedClip.content || '',
-        animate: false
-      }];
-    } else {
-      // Show formatted text (default)
-      return [{
-        id: 'formatted-view',
-        text: selectedClip.formattedText || selectedClip.content || '',
-        animate: false
-      }];
+    const clipId = selectedClip.id;
+
+    // Determine which text to show based on currentView toggle
+    const currentText = selectedClip.currentView === 'raw'
+      ? (selectedClip.rawText || selectedClip.content || '')
+      : (selectedClip.formattedText || selectedClip.content || '');
+
+    // ✅ ANIMATION FIX: Use Zustand state instead of component ref (persists across unmounts)
+    const currentLength = currentText.length;
+    const hasAlreadyAnimated = selectedClip.hasAnimated || false;
+
+    // Animation triggers ONLY if:
+    // 1. Text exists (currentLength > 0)
+    // 2. Haven't animated before (!hasAlreadyAnimated)
+    const shouldAnimate = currentLength > 0 && !hasAlreadyAnimated;
+
+    return [{
+      id: selectedClip.currentView === 'raw' ? 'raw-view' : 'formatted-view',
+      text: currentText,
+      animate: shouldAnimate
+    }];
+  }, [selectedClip]);
+
+  // ✅ ANIMATION FIX: Mark animation as played after it triggers
+  const updateClip = useClipStore((state) => state.updateClip);
+  
+  useEffect(() => {
+    if (!selectedClip) return;
+    
+    const shouldAnimate = displayText.length > 0 && displayText[0]?.animate;
+    
+    if (shouldAnimate && !selectedClip.hasAnimated) {
+      // Wait for animation to start, then mark as complete
+      const timer = setTimeout(() => {
+        updateClip(selectedClip.id, { hasAnimated: true });
+      }, 100);  // Small delay to ensure animation starts
+      
+      return () => clearTimeout(timer);
     }
-  }, [selectedClip, contentBlocks]);
+  }, [displayText, selectedClip, updateClip]);
 
   // Track previous text length to detect when NEW content is added
   // We now use a single block with full combined text, so track text length instead of block count
   const prevTextLengthRef = React.useRef(0);
 
-  // Auto-scroll logic based on contentBlocks changes
+  // Auto-scroll logic based on displayText changes
   useEffect(() => {
-    if (contentBlocks.length === 0) {
+    if (displayText.length === 0) {
       prevTextLengthRef.current = 0;
       return;
     }
@@ -142,7 +164,7 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
     setTimeout(() => {
       scrollToBottom();
     }, 100);
-  }, [contentBlocks, displayText, scrollToPosition, scrollToBottom]);
+  }, [displayText, scrollToPosition, scrollToBottom]);  // ✅ Only displayText dependency
 
   // Re-check scroll button visibility when content or state changes
   // This ensures button state is correct when navigating between clips
@@ -153,13 +175,13 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [contentBlocks, pendingClips, state, checkIfAtBottom]);
+  }, [displayText, pendingClips, state, checkIfAtBottom]);  // ✅ displayText dependency
 
   // Reset scroll tracking when switching clips
   // This hides the scroll button initially when opening a new clip
   useEffect(() => {
     resetScrollTracking();
-  }, [contentBlocks, resetScrollTracking]);
+  }, [displayText, resetScrollTracking]);  // ✅ displayText dependency
 
   return (
     <>

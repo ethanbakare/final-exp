@@ -1,7 +1,7 @@
 // src/projects/dictate/tsconfig.json
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2015",
     "lib": [
       "dom",
       "dom.iterable",
@@ -35,6 +35,12 @@
       ],
       "@tictactoe/*": [
         "./src/projects/tictactoe/*"
+      ],
+      "@blob-orb/*": [
+        "./src/projects/blob-orb/*"
+      ],
+      "@radial-waveform/*": [
+        "./src/projects/radial-waveform/*"
       ]
     },
     "plugins": [
