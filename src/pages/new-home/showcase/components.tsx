@@ -21,13 +21,43 @@ const COLOURS = [
   { name: 'preview-clipstream-bg', hex: '#F0EBEB', light: true },
 ];
 
-const FONTS = [
-  { name: 'FrankRuhlLibre30', className: styles.FrankRuhlLibre30, color: 'var(--white-90)' },
-  { name: 'InterMedium16Spaced', className: styles.InterMedium16Spaced, color: 'var(--white-25)' },
-  { name: 'InterRegular16', className: styles.InterRegular16, color: 'var(--white-60)' },
-  { name: 'InterRegular14', className: styles.InterRegular14, color: 'var(--white-20)' },
-  { name: 'OpenRundeMedium14', className: styles.OpenRundeMedium14, color: 'var(--white-70)' },
-  { name: 'HedvigLettersSans16', className: styles.HedvigLettersSans16, color: 'var(--white-70)' },
+interface TypeSpec {
+  className: string;
+  family: string;
+  size: string;
+  weight: string;
+  tracking: string;
+  lineHeight: string;
+  usage: string;
+}
+
+const TYPE_GROUPS: Array<{ family: string; specimens: TypeSpec[] }> = [
+  {
+    family: 'Frank Ruhl Libre',
+    specimens: [
+      { className: styles.FrankRuhlLibre30, family: 'Frank Ruhl Libre', size: '30px', weight: '400 Regular', tracking: '-0.6px', lineHeight: '93.75%', usage: 'Hero headline' },
+    ],
+  },
+  {
+    family: 'Inter',
+    specimens: [
+      { className: styles.InterMedium16Spaced, family: 'Inter', size: '16px', weight: '500 Medium', tracking: '1.92px', lineHeight: '143.75%', usage: 'Section headers' },
+      { className: styles.InterRegular16, family: 'Inter', size: '16px', weight: '400 Regular', tracking: '-0.16px', lineHeight: '143.75%', usage: 'Body text, subtitles' },
+      { className: styles.InterRegular14, family: 'Inter', size: '14px', weight: '400 Regular', tracking: '-0.14px', lineHeight: '143.75%', usage: 'Credential line, small text' },
+    ],
+  },
+  {
+    family: 'Open Runde',
+    specimens: [
+      { className: styles.OpenRundeMedium14, family: 'Open Runde', size: '14px', weight: '500 Medium', tracking: '0.42px', lineHeight: '143.75%', usage: 'Card labels' },
+    ],
+  },
+  {
+    family: 'Hedvig Letters Sans',
+    specimens: [
+      { className: styles.HedvigLettersSans16, family: 'Hedvig Letters Sans', size: '16px', weight: '400 Regular', tracking: '-0.16px', lineHeight: '143.75%', usage: 'CTA buttons' },
+    ],
+  },
 ];
 
 /* Grid box — mirrors Trace's ButtonGrid pattern */
@@ -179,11 +209,29 @@ export default function NewHomeComponents() {
           {/* ======== TYPOGRAPHY ======== */}
           <div className="section">
             <SectionTitle>Typography</SectionTitle>
-            <div className="type-list">
-              {FONTS.map((font) => (
-                <div key={font.name} className="type-row">
-                  <span className="type-name">{font.name}</span>
-                  <span className={font.className} style={{ color: font.color }}>{SAMPLE_TEXT}</span>
+            <div className="type-groups">
+              {TYPE_GROUPS.map((group) => (
+                <div key={group.family} className="type-family-group">
+                  <div className="type-family-name">{group.family}</div>
+                  {group.specimens.map((spec, i) => (
+                    <div key={i} className="type-specimen">
+                      <div className="type-specimen-sample">
+                        <span className={spec.className} style={{ color: 'rgba(255,255,255,0.9)' }}>{SAMPLE_TEXT}</span>
+                      </div>
+                      <div className="type-specimen-meta">
+                        <div className="type-meta-specs">
+                          <span className="type-meta-value">{spec.size}</span>
+                          <span className="type-meta-sep">/</span>
+                          <span className="type-meta-value">{spec.weight}</span>
+                          <span className="type-meta-sep">/</span>
+                          <span className="type-meta-value">{spec.tracking} tracking</span>
+                          <span className="type-meta-sep">/</span>
+                          <span className="type-meta-value">{spec.lineHeight} line-height</span>
+                        </div>
+                        <span className="type-meta-usage">{spec.usage}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
@@ -259,25 +307,79 @@ export default function NewHomeComponents() {
         }
 
         /* Typography */
-        .type-list {
+        .type-groups {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 0;
         }
 
-        .type-row {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
+        .type-family-group {
+          padding: 32px 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        .type-name {
-          font-family: 'Inter', monospace;
-          font-size: 10px;
-          font-weight: 500;
-          letter-spacing: 0.05em;
-          color: rgba(255, 255, 255, 0.25);
+        .type-family-group:first-child {
+          padding-top: 0;
+        }
+
+        .type-family-group:last-child {
+          border-bottom: none;
+        }
+
+        .type-family-name {
+          font-family: 'Inter', sans-serif;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.4);
+          margin-bottom: 24px;
+        }
+
+        .type-specimen {
+          margin-bottom: 28px;
+        }
+
+        .type-specimen:last-child {
+          margin-bottom: 0;
+        }
+
+        .type-specimen-sample {
+          margin-bottom: 8px;
+        }
+
+        .type-specimen-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .type-meta-specs {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .type-meta-value {
+          font-family: 'JetBrains Mono', 'Inter', monospace;
+          font-size: 11px;
+          font-weight: 400;
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .type-meta-sep {
+          font-family: 'Inter', sans-serif;
+          font-size: 10px;
+          color: rgba(255, 255, 255, 0.12);
+        }
+
+        .type-meta-usage {
+          font-family: 'Inter', sans-serif;
+          font-size: 11px;
+          font-weight: 400;
+          color: rgba(255, 255, 255, 0.18);
+          font-style: italic;
         }
 
         /* Colours */
