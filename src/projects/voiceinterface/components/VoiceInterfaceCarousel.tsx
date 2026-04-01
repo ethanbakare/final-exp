@@ -25,21 +25,21 @@ const slides: Slide[] = [
     title: 'Variant 1',
     subtitle: 'Standard Mode',
     component: VoiceTextBoxStandard,
-    gradient: 'url(/images/voice-interface/wt1.jpg)',
+    gradient: 'url(/images/voice-interface/wt1.webp)',
   },
   {
     id: 2,
     title: 'Variant 2',
     subtitle: 'Check & Close Mode',
     component: VoiceTextBoxCheckClose,
-    gradient: 'url(/images/voice-interface/wt6.png)',
+    gradient: 'url(/images/voice-interface/wt6.webp)',
   },
   {
     id: 3,
     title: 'Variant 3',
     subtitle: 'Live Streaming',
     component: VoiceTextWrapperLive,
-    gradient: 'url(/images/voice-interface/wt7.jpeg)',
+    gradient: 'url(/images/voice-interface/wt7.webp)',
   },
 ];
 

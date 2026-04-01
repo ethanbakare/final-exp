@@ -5,7 +5,7 @@ const PreviewAIConfidence: React.FC = () => {
     <div className="preview-ai-confidence">
       {/* Background watercolor image */}
       <img
-        src="/images/voice-interface/wt1.jpg"
+        src="/images/voice-interface/wt1.webp"
         alt=""
         className="bg-image"
         draggable={false}
