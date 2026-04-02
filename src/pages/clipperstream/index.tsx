@@ -18,7 +18,11 @@ You can't delete from inside a clip — just from the list.`,
 To delete it: go back to the home screen, hover over this clip on desktop to see the menu, or tap and hold on mobile. Delete lives in there.
 
 You can't delete from inside a clip — just from the list.`,
-    content: '',
+    content: `This clip was placed here by the developer so the app didn't look abandoned on first launch.
+
+To delete it: go back to the home screen, hover over this clip on desktop to see the menu, or tap and hold on mobile. Delete lives in there.
+
+You can't delete from inside a clip — just from the list.`,
     status: null as null,
     currentView: 'formatted' as const,
     hasAnimated: true,
@@ -38,7 +42,11 @@ What you said will always be transcribed. It cannot fail.`,
 That doesn't happen here. Every recording is saved to your device the moment you stop. If transcription fails, it retries. If you go offline, it queues and picks back up the moment you're online again.
 
 What you said will always be transcribed. It cannot fail.`,
-    content: '',
+    content: `You know that feeling — you've been talking for 3 minutes, you stop, and it just didn't catch it. Gone.
+
+That doesn't happen here. Every recording is saved to your device the moment you stop. If transcription fails, it retries. If you go offline, it queues and picks back up the moment you're online again.
+
+What you said will always be transcribed. It cannot fail.`,
     status: null as null,
     currentView: 'formatted' as const,
     hasAnimated: true,
@@ -58,7 +66,11 @@ That's literally it. That's the whole thing.`,
 Your words come back as clean, formatted text — automatically copied to clipboard.
 
 That's literally it. That's the whole thing.`,
-    content: '',
+    content: `Tap RECORD. Speak. Tap DONE.
+
+Your words come back as clean, formatted text — automatically copied to clipboard.
+
+That's literally it. That's the whole thing.`,
     status: null as null,
     currentView: 'formatted' as const,
     hasAnimated: true,
