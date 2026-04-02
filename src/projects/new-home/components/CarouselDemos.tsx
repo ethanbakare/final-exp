@@ -227,21 +227,24 @@ const CarouselDemos: React.FC = () => {
             grid-row: auto;
           }
 
-          /* Wide cards: 575 x 321 → ~1.79:1 */
+          /* Wide cards on mobile should widen without deriving extra height from width */
           .container :global(.card-ai-confidence),
           .container :global(.card-clipstream) {
-            aspect-ratio: 575 / 321;
+            aspect-ratio: auto;
+            height: 321px;
           }
 
-          /* Standard cards: 282.5 x 321 → ~0.88:1 */
+          /* Standard cards on mobile should widen without deriving extra height from width */
           .container :global(.card-ollama),
           .container :global(.card-voice) {
-            aspect-ratio: 282.5 / 321;
+            aspect-ratio: auto;
+            height: 321px;
           }
 
-          /* Tall card: 282.5 x 652 → ~0.43:1 */
+          /* Trace on mobile should widen without inheriting the desktop two-row height ratio */
           .container :global(.card-trace) {
-            aspect-ratio: 282.5 / 652;
+            aspect-ratio: auto;
+            height: 652px;
           }
         }
       `}</style>

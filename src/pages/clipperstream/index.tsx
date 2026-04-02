@@ -1,77 +1,122 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { ClipMasterScreen } from '@/projects/clipperstream/components/ui/ClipMasterScreen';
+import { useClipStore } from '@/projects/clipperstream/store/clipStore';
+
+const SAMPLE_CLIPS = [
+  {
+    id: 'sample-1',
+    title: 'Delete Me (I\'m a Sample)',
+    date: 'Apr 2, 2026',
+    createdAt: Date.now() - 1000 * 60,
+    rawText: `This clip was placed here by the developer so the app didn't look abandoned on first launch.
+
+To delete it: go back to the home screen, hover over this clip on desktop to see the menu, or tap and hold on mobile. Delete lives in there.
+
+You can't delete from inside a clip — just from the list.`,
+    formattedText: `This clip was placed here by the developer so the app didn't look abandoned on first launch.
+
+To delete it: go back to the home screen, hover over this clip on desktop to see the menu, or tap and hold on mobile. Delete lives in there.
+
+You can't delete from inside a clip — just from the list.`,
+    content: `This clip was placed here by the developer so the app didn't look abandoned on first launch.
+
+To delete it: go back to the home screen, hover over this clip on desktop to see the menu, or tap and hold on mobile. Delete lives in there.
+
+You can't delete from inside a clip — just from the list.`,
+    status: null as null,
+    currentView: 'formatted' as const,
+    hasAnimated: true,
+  },
+  {
+    id: 'sample-2',
+    title: 'Your Recordings Never Get Lost',
+    date: 'Apr 2, 2026',
+    createdAt: Date.now() - 1000 * 60 * 2,
+    rawText: `You know that feeling — you've been talking for 3 minutes, you stop, and it just didn't catch it. Gone.
+
+That doesn't happen here. Every recording is saved to your device the moment you stop. If transcription fails, it retries. If you go offline, it queues and picks back up the moment you're online again.
+
+What you said will always be transcribed. It cannot fail.`,
+    formattedText: `You know that feeling — you've been talking for 3 minutes, you stop, and it just didn't catch it. Gone.
+
+That doesn't happen here. Every recording is saved to your device the moment you stop. If transcription fails, it retries. If you go offline, it queues and picks back up the moment you're online again.
+
+What you said will always be transcribed. It cannot fail.`,
+    content: `You know that feeling — you've been talking for 3 minutes, you stop, and it just didn't catch it. Gone.
+
+That doesn't happen here. Every recording is saved to your device the moment you stop. If transcription fails, it retries. If you go offline, it queues and picks back up the moment you're online again.
+
+What you said will always be transcribed. It cannot fail.`,
+    status: null as null,
+    currentView: 'formatted' as const,
+    hasAnimated: true,
+  },
+  {
+    id: 'sample-3',
+    title: 'Welcome to Clipstream',
+    date: 'Apr 2, 2026',
+    createdAt: Date.now() - 1000 * 60 * 3,
+    rawText: `Tap RECORD. Speak. Tap DONE.
+
+Your words come back as clean, formatted text — automatically copied to clipboard.
+
+That's literally it. That's the whole thing.`,
+    formattedText: `Tap RECORD. Speak. Tap DONE.
+
+Your words come back as clean, formatted text — automatically copied to clipboard.
+
+That's literally it. That's the whole thing.`,
+    content: `Tap RECORD. Speak. Tap DONE.
+
+Your words come back as clean, formatted text — automatically copied to clipboard.
+
+That's literally it. That's the whole thing.`,
+    status: null as null,
+    currentView: 'formatted' as const,
+    hasAnimated: true,
+  },
+];
+
+const SEED_KEY = 'clipstream-samples-seeded';
 
 const ClipperStream: React.FC = () => {
+  const [mounted, setMounted] = React.useState(false);
+
+  useEffect(() => {
+    if (!sessionStorage.getItem(SEED_KEY)) {
+      sessionStorage.setItem(SEED_KEY, 'true');
+      SAMPLE_CLIPS.forEach(clip => useClipStore.getState().addClip(clip));
+    }
+    setMounted(true);
+  }, []);
+
   return (
     <>
+      <style jsx global>{`
+        body {
+          margin: 0;
+          padding: 0;
+          background-color: #ffffff;
+        }
+      `}</style>
       <style jsx>{`
-        .clipper-container {
+        .page {
           min-height: 100vh;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          background-color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          padding: 2rem;
-        }
-        
-        .clipper-content {
-          background: white;
-          border-radius: 20px;
-          padding: 3rem;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-          text-align: center;
-          max-width: 600px;
-        }
-        
-        .clipper-title {
-          font-size: 2.5rem;
-          font-weight: 800;
-          color: #1e293b;
-          margin-bottom: 1rem;
-        }
-        
-        .clipper-subtitle {
-          font-size: 1.125rem;
-          color: #64748b;
-          margin-bottom: 2rem;
-          line-height: 1.6;
-        }
-        
-        .status-badge {
-          display: inline-block;
-          background: #fcd34d;
-          color: #78350f;
-          padding: 0.5rem 1rem;
-          border-radius: 20px;
-          font-size: 0.875rem;
-          font-weight: 600;
-          margin-top: 1rem;
-        }
-        
-        @media (max-width: 768px) {
-          .clipper-content {
-            padding: 2rem 1.5rem;
-          }
-          
-          .clipper-title {
-            font-size: 2rem;
-          }
         }
       `}</style>
-      
-      <div className="clipper-container">
-        <div className="clipper-content">
-          <h1 className="clipper-title">🎙️ ClipperStream</h1>
-          <p className="clipper-subtitle">
-            Offline-first voice transcription PWA. Record voice snippets and 
-            auto-transcribe when online. Like taking a screenshot, but for your voice.
-          </p>
-          <span className="status-badge">🚧 Under Construction</span>
-        </div>
+      <div className="page">
+        {mounted ? (
+          <ClipMasterScreen />
+        ) : (
+          <div style={{ width: 393, height: 852, background: '#1C1C1C', borderRadius: 8 }} />
+        )}
       </div>
     </>
   );
 };
 
 export default ClipperStream;
-

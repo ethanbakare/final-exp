@@ -70,3 +70,39 @@
 - `root_cause`: Partial-side override left inherited desktop bottom value (`167px`) on mobile.
 - `rule`: When a section has desktop shorthand padding, mobile override must explicitly set full shorthand if different bottom/side behavior is required.
 - `prevention_check`: Inspect computed top and bottom values after every breakpoint override.
+
+### 13) When the user narrows scope to one layer, do not modify adjacent layers
+- `mistake`: Changed the AI Confidence background treatment while the user was only asking to adjust the white transcript card geometry.
+- `root_cause`: Treated Figma as a literal multi-layer implementation spec instead of isolating the failing layer.
+- `rule`: If the user points to one visual problem layer, keep all other working layers unchanged unless they explicitly ask to touch them.
+- `prevention_check`: Before patching, name the exact layer(s) allowed to change and reject any edits outside that set.
+
+### 14) Do not compensate for layout problems by changing typography unless asked
+- `mistake`: Reduced text and control sizing while trying to fix AI Confidence mobile composition.
+- `root_cause`: Used typography as a secondary escape hatch instead of fixing the actual container geometry.
+- `rule`: When the complaint is about crop, size, or alignment, adjust geometry first; do not change font sizes, line heights, or control sizes unless the user asks.
+- `prevention_check`: If the bug report mentions position/scale/crop, diff only layout properties before considering typography changes.
+
+### 15) Re-check the actual reference node before using Figma as a layout target
+- `mistake`: Continued making AI Confidence layout changes while the current Figma selection was a different frame.
+- `root_cause`: Assumed the referenced design was still selected instead of validating the live selection immediately before patching.
+- `rule`: For Figma-driven adjustments, confirm the exact selected node right before implementation and stop if the selection is not the intended reference.
+- `prevention_check`: Read the current Figma selection and state the node id/name before making any design-matching change.
+
+### 16) After repeated failed tuning passes, stop and reset to a simpler implementation rule
+- `mistake`: Layered scaling, overflow, and percentage overrides onto AI Confidence instead of resetting to a clearer mobile-specific composition.
+- `root_cause`: Iterated on a compromised approach after it had already shown signs of drifting away from the user’s intent.
+- `rule`: After two failed visual passes on the same component, stop stacking patches and replace the approach with one simple rule tied directly to the stated intent.
+- `prevention_check`: If the user has corrected the same component twice, summarize the new single rule before the next code change.
+
+### 17) When a preview should match a real product component, inspect and reuse the source component logic first
+- `mistake`: Kept hand-building AI Confidence preview text, underlines, and badge behavior instead of reading the actual tracker components that already define them.
+- `root_cause`: Tried to approximate the visual outcome from memory/reference instead of grounding the preview in the product’s real implementation.
+- `rule`: If the user asks to match an existing product component, inspect the real component and reuse its behavior/styling path before creating a custom preview approximation.
+- `prevention_check`: Before patching, identify the source component file that already implements the behavior and verify whether the preview can wrap or reuse it directly.
+
+### 18) When the user asks for diagnosis first, do not implement before answering the diagnostic question
+- `mistake`: Moved the AI Confidence preview text down before first answering whether the original tracker actually clips the top of the confidence pill.
+- `root_cause`: Switched from analysis mode to fix mode before resolving the user’s requested verification step.
+- `rule`: If the user explicitly asks to check the original behavior first, answer that question from the source before making any new change.
+- `prevention_check`: Before patching, restate the verification question and confirm it has been answered with source evidence.
