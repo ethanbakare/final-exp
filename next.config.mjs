@@ -3,6 +3,7 @@ import path from 'path';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   reactStrictMode: true,
   pageExtensions: ['tsx', 'ts'],
   eslint: {
