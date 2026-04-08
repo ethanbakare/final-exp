@@ -5,6 +5,7 @@
 
 import React from 'react';
 import styles from '@/projects/trace/styles/trace.module.css';
+import { EmptyTraceIcon, EmptyTraceText, EmptyFinanceState } from './traceIcons';
 
 /* ==================== TYPE DEFINITIONS ==================== */
 
@@ -1024,100 +1025,9 @@ export const DayBlock = React.forwardRef<HTMLDivElement, DayBlockProps>(
 DayBlock.displayName = 'DayBlock';
 
 /* ==================== EMPTY STATE COMPONENTS ==================== */
+// Moved to ./traceIcons.tsx — re-exported for backward compatibility
 
-// EmptyTraceIcon - Receipt icon for empty state
-export const EmptyTraceIcon: React.FC<{ className?: string }> = ({
-  className = '',
-}) => {
-  return (
-    <div className={`empty-icon ${className} ${styles.container}`}>
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="48" height="48" rx="8" fill="#292524"/>
-        <path d="M31.1328 21.8846L31.1315 16.8992C31.1312 15.7948 30.2358 14.8997 29.1315 14.8997L19.1333 14.8997C18.0286 14.8997 17.1331 15.7954 17.1333 16.9002L17.1347 21.8846" stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M17.1328 29.5859L17.1346 32.7569C17.1347 32.9102 17.3001 33.0064 17.4334 32.9307L20.5509 31.1598C20.6123 31.125 20.6876 31.1251 20.7489 31.1601L24.0473 33.0436C24.1089 33.0788 24.1844 33.0787 24.2459 33.0435L27.532 31.1604C27.5935 31.1252 27.669 31.1251 27.7305 31.1602L30.8334 32.9297C30.9668 33.0057 31.1326 32.9094 31.1325 32.7558L31.1307 29.5859" stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M14.8242 25.8804L33.1768 25.8804" stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round"/>
-      </svg>
-
-      <style jsx>{`
-        .empty-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 48px;
-          height: 48px;
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// EmptyTraceText - Text content for empty state
-export const EmptyTraceText: React.FC<{ className?: string }> = ({
-  className = '',
-}) => {
-  return (
-    <div className={`empty-text ${className} ${styles.container}`}>
-      <p className="empty-heading">No expenses logged yet</p>
-      <p className="empty-subtext">Use the buttons below to get started</p>
-
-      <style jsx>{`
-        .empty-text {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 8px 10px;
-          gap: 4px;
-          max-width: 100%; /* Responsive to container */
-          border-radius: 8px;
-        }
-
-        .empty-heading {
-          font-family: var(--trace-font-family);
-          font-size: var(--trace-fs-button); /* 16px */
-          font-weight: var(--trace-fw-medium); /* 500 */
-          line-height: 24px;
-          color: var(--trace-text-secondary); /* #E7E5E4 */
-          margin: 0;
-          text-align: center;
-        }
-
-        .empty-subtext {
-          font-family: var(--trace-font-family);
-          font-size: 13px; /* Custom size between body and medium */
-          font-weight: var(--trace-fw-normal); /* 400 */
-          line-height: 16px;
-          color: rgba(255, 255, 255, 0.4); /* Faded white for empty state */
-          margin: 0;
-          text-align: center;
-        }
-      `}</style>
-    </div>
-  );
-};
-
-// EmptyFinanceState - Combined empty state (icon + text)
-export const EmptyFinanceState: React.FC<{ className?: string }> = ({
-  className = '',
-}) => {
-  return (
-    <div className={`empty-state ${className} ${styles.container}`}>
-      <EmptyTraceIcon />
-      <EmptyTraceText />
-
-      <style jsx>{`
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          gap: 10px;
-          width: 100%;
-          height: 100%;
-        }
-      `}</style>
-    </div>
-  );
-};
+export { EmptyTraceIcon, EmptyTraceText, EmptyFinanceState };
 
 /* ==================== FINANCE BOX ==================== */
 

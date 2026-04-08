@@ -4,7 +4,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { parseReceiptImage } from '@/projects/trace/services/geminiService';
+import { parseReceiptImage, NotAReceiptError } from '@/projects/trace/services/geminiService';
 import type { ExpenseEntry } from '@/projects/trace/types/trace.types';
 
 interface RequestBody {
@@ -57,8 +57,13 @@ export default async function handler(
     return res.status(200).json(entry);
 
   } catch (error) {
+    // Not a receipt — return 422 with specific error type
+    if (error instanceof NotAReceiptError) {
+      console.log('[TRACE API] parse-receipt: Not a receipt');
+      return res.status(422).json({ error: 'not_a_receipt' });
+    }
+
     console.error('[TRACE API] parse-receipt: ERROR:', error);
-    console.error('[TRACE API] parse-receipt: Error stack:', error instanceof Error ? error.stack : 'No stack');
     return res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to parse receipt'
     });

@@ -33,6 +33,8 @@ import {
   FinanceBox,
   TextBox
 } from '@/projects/trace/components/ui/tracefinance';
+import { EmptyTraceIcon, EmptyTraceIconAnimated } from '@/projects/trace/components/ui/traceIcons';
+import { TraceToast } from '@/projects/trace/components/ui/TraceToast';
 
 // Trace UI Component Showcase
 // Displays individual UI components in isolation
@@ -268,6 +270,29 @@ const TraceComponent: React.FC = () => {
           }
         }
 
+        .section-source {
+          font-family: var(--trace-font-family);
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.3);
+          margin: 0 0 24px;
+        }
+
+        .toast-showcase {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .toast-showcase-item {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .toast-fill-demo {
+          width: 300px;
+        }
+
         .seamless-grid {
           display: inline-flex;
           flex-wrap: wrap;
@@ -471,6 +496,14 @@ const TraceComponent: React.FC = () => {
               <ClearButton onClick={() => console.log('Clear clicked')} />
             </ButtonGrid>
 
+            <ButtonGrid label="EMPTY TRACE ICON - 48×48PX">
+              <EmptyTraceIcon />
+            </ButtonGrid>
+
+            <ButtonGrid label="EMPTY TRACE ICON ANIMATED - 48×48PX">
+              <EmptyTraceIconAnimated />
+            </ButtonGrid>
+
             <ButtonGrid
               label="SEND AUDIO BUTTON - 150×44PX (ANIMATED)"
               showToggle={true}
@@ -515,6 +548,32 @@ const TraceComponent: React.FC = () => {
               </div>
               <div className="button-label">CLEAR EXPENSES MODAL - 247×141PX</div>
             </div>
+          </div>
+        </div>
+
+        {/* Trace Toast Section */}
+        <div className="section">
+          <h2 className="section-title">Trace Toasts</h2>
+          <p className="section-source">TraceToast.tsx</p>
+
+          <div className="seamless-grid">
+            <ButtonGrid label="NOT A RECEIPT" isDouble>
+              <TraceToast text="That doesn't look like a receipt" />
+            </ButtonGrid>
+
+            <ButtonGrid label="SILENCE / NO SPEECH" isDouble>
+              <TraceToast text="Didn't hear anything, try again" />
+            </ButtonGrid>
+
+            <ButtonGrid label="TOO SHORT / NO AUDIO" isDouble>
+              <TraceToast text="No audio recorded" />
+            </ButtonGrid>
+
+            <ButtonGrid label="FULL WIDTH (FILLS PARENT)" isDouble>
+              <div style={{ width: '100%' }}>
+                <TraceToast text="That doesn't look like a receipt" fullWidth />
+              </div>
+            </ButtonGrid>
           </div>
         </div>
 
@@ -785,6 +844,7 @@ const TraceComponent: React.FC = () => {
               <div className="button-label">TEXTBOX - EMPTY STATE (301×421px)</div>
             </div>
           </div>
+
         </div>
       </div>
     </>

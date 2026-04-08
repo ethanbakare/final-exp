@@ -14,10 +14,15 @@ import { TRNavbarV2 } from '@/projects/trace/components/ui/tracenavbar-v2';
 import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
 import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
 import { TraceModalOverlay } from '@/projects/trace/components/ui/TraceModalOverlay';
+import { MicPermissionBanner } from '@/projects/new-home/components/MicPermissionBanner';
+import { TraceToastNotification } from '@/projects/trace/components/ui/TraceToast';
 import { groupEntriesByDay } from '@/projects/trace/utils/dataUtils';
 import { blobToBase64, fileToBase64 } from '@/projects/trace/utils/fileUtils';
 import Head from 'next/head';
 import type { ExpenseEntry } from '@/projects/trace/types/trace.types';
+
+// Minimum audio blob size (~1 second of webm audio)
+const MIN_AUDIO_BLOB_SIZE = 1000;
 
 const STORAGE_KEY = 'trace-expense-entries';
 
@@ -26,6 +31,15 @@ export default function TracePage() {
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
   const [entries, setEntries] = useState<ExpenseEntry[]>([]);
   const [showClearModal, setShowClearModal] = useState(false);
+
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showError = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+  };
 
   // MediaRecorder refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -66,9 +80,8 @@ export default function TracePage() {
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
       setNavbarState('recording');
-    } catch (err) {
-      console.error('Error starting recording:', err);
-      alert('Failed to access microphone');
+    } catch {
+      showError('Enable mic access to record');
     }
   };
 
@@ -85,6 +98,14 @@ export default function TracePage() {
     mediaRecorder.stream.getTracks().forEach((track) => track.stop());
 
     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+
+    // Pre-send validation: reject tiny/empty recordings
+    if (audioChunksRef.current.length === 0 || audioBlob.size < MIN_AUDIO_BLOB_SIZE) {
+      showError('No audio recorded');
+      setNavbarState('idle');
+      return;
+    }
+
     setNavbarState('processing_audio');
 
     try {
@@ -95,14 +116,22 @@ export default function TracePage() {
         body: JSON.stringify({ base64Audio, mimeType: 'audio/webm' }),
       });
 
-      if (!response.ok) throw new Error('Failed to process audio');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (data?.error === 'no_expense') {
+          showError("Didn't hear anything, try again");
+        } else {
+          showError("Didn't hear anything, try again");
+        }
+        setNavbarState('idle');
+        return;
+      }
 
       const entry: ExpenseEntry = await response.json();
       setEntries((prev) => [entry, ...prev]);
       setNavbarState('idle');
-    } catch (err) {
-      console.error('Error processing audio:', err);
-      alert('Failed to process audio');
+    } catch {
+      showError("Didn't hear anything, try again");
       setNavbarState('idle');
     }
   };
@@ -135,14 +164,17 @@ export default function TracePage() {
           body: JSON.stringify({ base64Image, mimeType: file.type }),
         });
 
-        if (!response.ok) throw new Error('Failed to process image');
+        if (!response.ok) {
+          showError("That doesn't look like a receipt");
+          setNavbarState('idle');
+          return;
+        }
 
         const entry: ExpenseEntry = await response.json();
         setEntries((prev) => [entry, ...prev]);
         setNavbarState('idle');
-      } catch (err) {
-        console.error('Error processing image:', err);
-        alert('Failed to process image');
+      } catch {
+        showError("That doesn't look like a receipt");
         setNavbarState('idle');
       }
     };
@@ -183,6 +215,9 @@ export default function TracePage() {
       </Head>
 
       <div className="trace-page">
+        {/* Mic Permission Banner — reusable across any audio demo */}
+        <MicPermissionBanner />
+
         {/* Clear All Button - Fixed position top-right */}
         <div className="clear-button-container">
           <ClearButton onClick={handleClearAll} />
@@ -190,9 +225,17 @@ export default function TracePage() {
 
         {/* Wrapper container for TextBox with Navbar inside */}
         <div className="trace-container">
+          {/* Error Toast — floats above TextBox */}
+          <TraceToastNotification
+            isVisible={showToast}
+            onDismiss={() => setShowToast(false)}
+            text={toastMessage}
+          />
+
           <AnimatedTextBox
             days={groupedDays}
             grandTotal={grandTotal}
+            isProcessing={navbarState === 'processing_audio' || navbarState === 'processing_image'}
             navbar={
               <TRNavbarV2
                 state={navbarState}
@@ -237,10 +280,11 @@ export default function TracePage() {
         }
 
         .trace-container {
+          position: relative;
           display: flex;
           flex-direction: column;
-          align-items: center; /* Center-align TextBox and Navbar */
-          gap: 10px; /* 10px gap between TextBox and Navbar */
+          align-items: center;
+          gap: 10px;
         }
       `}</style>
     </>

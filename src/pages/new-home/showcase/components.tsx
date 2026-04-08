@@ -2,6 +2,7 @@ import React from 'react';
 import { Inter, Frank_Ruhl_Libre, Hedvig_Letters_Sans } from 'next/font/google';
 import styles from '@/projects/new-home/styles/new-home.module.css';
 import DemoCard from '@/projects/new-home/components/DemoCard';
+import { EnableModal, EnableMicButton, EnableBlockedToast } from '@/projects/new-home/components/EnableModal';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 const frankRuhlLibre = Frank_Ruhl_Libre({ subsets: ['latin'], weight: ['400'], variable: '--font-frank-ruhl-libre', display: 'swap' });
@@ -195,6 +196,55 @@ export default function NewHomeComponents() {
                   <div className="empty-fill" />
                 </DemoCard>
               </GridBox>
+            </div>
+          </div>
+
+          {/* ======== ENABLE MODAL ======== */}
+          <div className="section">
+            <SectionTitle>Enable Modal</SectionTitle>
+            <div className="subsection-label">Desktop — Horizontal</div>
+            <div style={{ marginBottom: 32 }}>
+              <EnableModal
+                onEnable={() => console.log('Enable clicked')}
+                onDismiss={() => console.log('Not Now clicked')}
+              />
+            </div>
+            <div className="subsection-label">Mobile — Vertical (≤640px)</div>
+            <div>
+              <EnableModal
+                onEnable={() => console.log('Enable clicked')}
+                onDismiss={() => console.log('Not Now clicked')}
+                className="force-mobile"
+              />
+            </div>
+          </div>
+
+          {/* ======== ENABLE MIC BUTTON ======== */}
+          <div className="section">
+            <SectionTitle>Enable Mic Button</SectionTitle>
+            <div className="subsection-label">Persistent fallback — shown after toast dismissal</div>
+            <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+              <EnableMicButton
+                onClick={() => console.log('Enable Mic clicked')}
+              />
+            </div>
+          </div>
+
+          {/* ======== BLOCKED TOAST ======== */}
+          <div className="section">
+            <SectionTitle>Blocked Toast</SectionTitle>
+            <div className="subsection-label">Shown when mic is permanently denied in browser settings</div>
+            <div style={{ marginBottom: 32 }}>
+              <EnableBlockedToast
+                onDismiss={() => console.log('Dismiss clicked')}
+              />
+            </div>
+            <div className="subsection-label">Mobile — Vertical (≤640px)</div>
+            <div>
+              <EnableBlockedToast
+                onDismiss={() => console.log('Dismiss clicked')}
+                className="force-mobile-blocked"
+              />
             </div>
           </div>
 
@@ -468,6 +518,60 @@ export default function NewHomeComponents() {
           border: 2px solid transparent;
           background: var(--accent-orange);
           cursor: pointer;
+        }
+
+        /* Force mobile layout for EnableModal preview */
+        :global(.force-mobile.enable-card) {
+          flex-direction: column !important;
+          padding: 32px 0px 0px !important;
+          width: 346px !important;
+          height: 125px !important;
+          border-radius: 28px !important;
+        }
+
+        :global(.force-mobile .enable-header) {
+          padding: 0px 24px !important;
+          width: 346px !important;
+          height: 22px !important;
+        }
+
+        :global(.force-mobile .enable-buttons) {
+          width: 346px !important;
+          height: 55px !important;
+          align-self: stretch !important;
+          justify-content: center !important;
+          align-items: center !important;
+        }
+
+        :global(.force-mobile .enable-btn-dismiss),
+        :global(.force-mobile .enable-btn-confirm) {
+          width: 160.5px !important;
+          flex-grow: 1 !important;
+        }
+
+        /* Force mobile layout for EnableBlockedToast preview */
+        :global(.force-mobile-blocked.blocked-card) {
+          width: 346px !important;
+          height: auto !important;
+          padding: 20px 24px !important;
+          border-radius: 28px !important;
+          gap: 16px !important;
+          align-items: flex-start !important;
+        }
+
+        :global(.force-mobile-blocked .blocked-btn-close) {
+          height: 22px !important;
+        }
+
+        :global(.force-mobile-blocked .blocked-header) {
+          padding: 0 !important;
+          flex: 1 !important;
+          height: auto !important;
+        }
+
+        :global(.force-mobile-blocked .blocked-title) {
+          white-space: normal !important;
+          text-align: left !important;
         }
 
         @media (max-width: 768px) {

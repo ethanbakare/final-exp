@@ -166,11 +166,13 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
 
 export interface AnimatedFinanceBoxProps extends FinanceBoxProps {
   onScrollToLatest?: () => void; // Callback when new entry should be scrolled to
+  isProcessing?: boolean; // Show animated empty icon during processing
 }
 
 export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
   days,
   onScrollToLatest,
+  isProcessing = false,
   className = '',
 }) => {
   const shouldReduceMotion = useReducedMotion();
@@ -196,7 +198,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
   if (!days || days.length === 0) {
     return (
       <div className={`finance-box finance-box--empty ${className} ${styles.container}`} ref={containerRef}>
-        <EmptyFinanceState />
+        <EmptyFinanceState isProcessing={isProcessing} />
 
         <style jsx>{`
           .finance-box {
@@ -295,6 +297,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 export interface AnimatedTextBoxProps extends TextBoxProps {
   onScrollToLatest?: () => void;
   navbar?: React.ReactNode;
+  isProcessing?: boolean;
 }
 
 export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
@@ -302,12 +305,13 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
   grandTotal = '0.00',
   onScrollToLatest,
   navbar,
+  isProcessing = false,
   className = '',
 }) => {
   return (
     <div className={`text-box ${navbar ? 'text-box--with-navbar' : ''} ${className} ${styles.container}`}>
       <MasterBlockHolder total={grandTotal} fullWidth />
-      <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} />
+      <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} isProcessing={isProcessing} />
       {navbar}
 
       <style jsx>{`

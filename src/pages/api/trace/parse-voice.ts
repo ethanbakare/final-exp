@@ -4,7 +4,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { parseVoiceAudio } from '@/projects/trace/services/geminiService';
+import { parseVoiceAudio, NoExpenseDetectedError } from '@/projects/trace/services/geminiService';
 import type { ExpenseEntry } from '@/projects/trace/types/trace.types';
 
 interface RequestBody {
@@ -57,8 +57,13 @@ export default async function handler(
     return res.status(200).json(entry);
 
   } catch (error) {
+    // No expense detected — return 422 with specific error type
+    if (error instanceof NoExpenseDetectedError) {
+      console.log('[TRACE API] parse-voice: No expense detected');
+      return res.status(422).json({ error: 'no_expense' });
+    }
+
     console.error('[TRACE API] parse-voice: ERROR:', error);
-    console.error('[TRACE API] parse-voice: Error stack:', error instanceof Error ? error.stack : 'No stack');
     return res.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to parse voice'
     });

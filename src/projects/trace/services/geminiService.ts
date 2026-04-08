@@ -1,10 +1,30 @@
 /**
  * Trace Gemini Service
  * AI-powered expense parsing using Google Gemini
+ *
+ * Architecture:
+ * - Single API call per submission (no separate pre-classifier)
+ * - Prompt includes a classification gate: "Is this a receipt/expense?" → if NO, return empty
+ * - Response validated server-side: empty items + zero total = rejection
+ * - Custom error classes allow the API route to return specific error types to the client
  */
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { ExpenseEntry } from '../types/trace.types';
+
+/* ============================================
+   CUSTOM ERRORS — Allow API routes to distinguish
+   between "not a receipt" vs "no expense in audio"
+   vs generic failures
+   ============================================ */
+
+export class NotAReceiptError extends Error {
+  constructor() { super('not_a_receipt'); this.name = 'NotAReceiptError'; }
+}
+
+export class NoExpenseDetectedError extends Error {
+  constructor() { super('no_expense'); this.name = 'NoExpenseDetectedError'; }
+}
 
 /**
  * Get Gemini AI instance with API key validation
@@ -27,10 +47,10 @@ function getGeminiAI(): GoogleGenAI {
 const EXPENSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    date: { type: Type.STRING, description: 'YYYY-MM-DD format' },
+    date: { type: Type.STRING, description: 'YYYY-MM-DD format. Empty string if not a receipt.' },
     merchant: { type: Type.STRING, nullable: true },
-    currency: { type: Type.STRING, description: 'ISO 4217 code (e.g. GBP, USD, EUR)' },
-    total: { type: Type.NUMBER },
+    currency: { type: Type.STRING, description: 'ISO 4217 code (e.g. GBP, USD, EUR). Empty string if not a receipt.' },
+    total: { type: Type.NUMBER, description: '0 if not a receipt or no expense detected.' },
     items: {
       type: Type.ARRAY,
       items: {
@@ -48,6 +68,29 @@ const EXPENSE_SCHEMA = {
   },
   required: ["date", "currency", "total", "items"]
 };
+
+/**
+ * Validate that Gemini's response contains real expense data.
+ * Rejects empty/zero responses that indicate non-receipt images or non-expense audio.
+ */
+function validateExpenseResponse(
+  parsed: Record<string, unknown>,
+  source: 'image' | 'audio'
+): void {
+  const items = parsed.items as Array<unknown> | undefined;
+  const total = parsed.total as number | undefined;
+
+  const hasNoItems = !items || items.length === 0;
+  const hasNoTotal = !total || total === 0;
+
+  if (hasNoItems && hasNoTotal) {
+    if (source === 'image') {
+      throw new NotAReceiptError();
+    } else {
+      throw new NoExpenseDetectedError();
+    }
+  }
+}
 
 /**
  * Parse receipt image using Gemini AI
@@ -70,8 +113,12 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
     contents: {
       parts: [
         {
-          text: `Extract structured data from this receipt.
-          Rules:
+          text: `FIRST: Determine if this image contains a receipt, invoice, bill, or financial document.
+          If it does NOT (e.g. photo of a person, animal, object, screenshot, blank page, or any non-financial document):
+          - Return {"date": "", "merchant": null, "currency": "", "total": 0, "items": []}.
+          - Do NOT attempt to extract expense data from non-receipt images.
+
+          If it IS a receipt/invoice/bill, extract structured data using these rules:
           - FALLBACK DATE: Use today's date: ${today} if not found.
           - MERCHANT: Try to identify the business name accurately.
           - CURRENCY: Detect from symbols (£, $, €, etc). Defaults to GBP.
@@ -97,7 +144,12 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
   console.log('[GEMINI SERVICE] parseReceiptImage: Response received');
   const text = response.text || '{}';
   console.log('[GEMINI SERVICE] parseReceiptImage: Parsing JSON response');
-  const entry = JSON.parse(text) as Omit<ExpenseEntry, 'id' | 'source' | 'createdAt'>;
+  const parsed = JSON.parse(text);
+
+  // Validate: reject non-receipt images
+  validateExpenseResponse(parsed, 'image');
+
+  const entry = parsed as Omit<ExpenseEntry, 'id' | 'source' | 'createdAt'>;
 
   const result = {
     ...entry,
@@ -138,8 +190,12 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
     contents: {
       parts: [
         {
-          text: `Parse this spoken expense log into structured JSON.
-          Rules:
+          text: `FIRST: Determine if this audio contains spoken expense or purchase information.
+          If it does NOT (e.g. silence, music, unrelated conversation, background noise, or speech with no mention of prices/items/spending):
+          - Return {"date": "", "merchant": null, "currency": "", "total": 0, "items": []}.
+          - Do NOT hallucinate or guess expense data from non-expense audio.
+
+          If it DOES contain expense information, parse it into structured JSON using these rules:
           - DATE: Defaults to ${today}.
           - CURRENCY: Defaults to GBP unless specified.
           - ITEMS: Extract specific items and their prices.
@@ -166,7 +222,12 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
   console.log('[GEMINI SERVICE] parseVoiceAudio: Response received');
   const textOutput = response.text || '{}';
   console.log('[GEMINI SERVICE] parseVoiceAudio: Parsing JSON response');
-  const entry = JSON.parse(textOutput) as Omit<ExpenseEntry, 'id' | 'source' | 'createdAt'>;
+  const parsed = JSON.parse(textOutput);
+
+  // Validate: reject non-expense audio
+  validateExpenseResponse(parsed, 'audio');
+
+  const entry = parsed as Omit<ExpenseEntry, 'id' | 'source' | 'createdAt'>;
 
   const result = {
     ...entry,
