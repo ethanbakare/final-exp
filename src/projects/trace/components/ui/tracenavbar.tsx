@@ -561,14 +561,21 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           width: 24px;
           height: 24px;
           animation: spin 1s linear infinite;
+          /* Safari fix: force GPU compositing so the spinner is rasterized once
+             and the rotation runs on the layer — without this, Safari re-snaps
+             sub-pixel path coordinates each frame and the spinner wobbles. */
+          transform-origin: 50% 50%;
+          will-change: transform;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
         }
 
         @keyframes spin {
           from {
-            transform: rotate(0deg);
+            transform: rotate(0deg) translateZ(0);
           }
           to {
-            transform: rotate(360deg);
+            transform: rotate(360deg) translateZ(0);
           }
         }
 

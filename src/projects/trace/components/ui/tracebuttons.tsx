@@ -385,14 +385,19 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
           height: 24px;
           color: var(--trace-text-primary);
           animation: spin 1s linear infinite;
+          /* Safari fix: force GPU compositing to eliminate sub-pixel rotation wobble */
+          transform-origin: 50% 50%;
+          will-change: transform;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
         }
 
         @keyframes spin {
           from {
-            transform: rotate(0deg);
+            transform: rotate(0deg) translateZ(0);
           }
           to {
-            transform: rotate(360deg);
+            transform: rotate(360deg) translateZ(0);
           }
         }
 
@@ -460,14 +465,19 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
           height: 24px;
           color: var(--trace-text-primary);
           animation: spin 1s linear infinite;
+          /* Safari fix: force GPU compositing to eliminate sub-pixel rotation wobble */
+          transform-origin: 50% 50%;
+          will-change: transform;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
         }
 
         @keyframes spin {
           from {
-            transform: rotate(0deg);
+            transform: rotate(0deg) translateZ(0);
           }
           to {
-            transform: rotate(360deg);
+            transform: rotate(360deg) translateZ(0);
           }
         }
 
