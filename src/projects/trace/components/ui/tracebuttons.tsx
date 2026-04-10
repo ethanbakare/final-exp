@@ -384,6 +384,11 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
           width: 24px;
           height: 24px;
           color: var(--trace-text-primary);
+        }
+
+        .spinner-container svg {
+          transform-box: fill-box;
+          transform-origin: 50% 50%;
           animation: spin 1s linear infinite;
         }
 
@@ -459,6 +464,11 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
           width: 24px;
           height: 24px;
           color: var(--trace-text-primary);
+        }
+
+        .spinner-container svg {
+          transform-box: fill-box;
+          transform-origin: 50% 50%;
           animation: spin 1s linear infinite;
         }
 
