@@ -425,57 +425,28 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
 };
 
 
-/* ==================== OLD PROCESSING BUTTON (REFERENCE) ==================== */
+/* ==================== OLD SPINNER REFERENCE ==================== */
 // Preserved snapshot of the pre-fix spinner implementation — rotates an <svg>
 // element directly, which wobbles in Safari due to a WebKit compositor bug.
-// Kept in the showcase for side-by-side comparison with the CSS-spinner fix.
+// Kept in the showcase as a standalone spinner for side-by-side comparison
+// with the CSS-spinner fix. Not a button — just the raw spinner.
 
-export const OldProcessingButton: React.FC<ProcessingButtonProps> = ({
-  text = 'Old Version',
+export const OldSpinnerReference: React.FC<{ className?: string }> = ({
   className = '',
 }) => {
   return (
-    <button
-      className={`processing-button ${className} ${styles.container}`}
-      disabled
-      type="button"
-    >
-      {/* Old rotating-SVG spinner — wobbles in Safari, kept for reference only */}
-      <div className="spinner-container">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
-            transform="translate(2, 2) scale(0.025)"
-            fill="currentColor"
-          />
-        </svg>
-      </div>
-
-      <span className="button-text">{text}</span>
+    <div className={`old-spinner-reference ${className}`} aria-hidden="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
+          transform="translate(2, 2) scale(0.025)"
+          fill="currentColor"
+        />
+      </svg>
 
       <style jsx>{`
-        .processing-button {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: var(--trace-spacing-lg);
-          height: var(--trace-button-height);
-          width: var(--trace-btn-processing-width);
-          padding: 0 26px;
-          background: var(--trace-btn-processing);
-          border: var(--trace-button-stroke) solid transparent;
-          border-radius: var(--trace-button-radius);
-          font-family: var(--trace-font-family);
-          font-size: var(--trace-fs-processing);
-          font-weight: var(--trace-fw-medium);
-          line-height: var(--trace-lh-processing);
-          color: var(--trace-text-primary);
-          user-select: none;
-        }
-
-        .spinner-container {
-          position: relative;
-          display: flex;
+        .old-spinner-reference {
+          display: inline-flex;
           align-items: center;
           justify-content: center;
           width: 24px;
@@ -483,10 +454,7 @@ export const OldProcessingButton: React.FC<ProcessingButtonProps> = ({
           color: var(--trace-text-primary);
         }
 
-        .spinner-container svg {
-          position: absolute;
-          top: 0; left: 0; right: 0; bottom: 0;
-          margin: auto;
+        .old-spinner-reference svg {
           width: 24px;
           height: 24px;
           backface-visibility: hidden;
@@ -497,12 +465,8 @@ export const OldProcessingButton: React.FC<ProcessingButtonProps> = ({
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-
-        .button-text {
-          white-space: nowrap;
-        }
       `}</style>
-    </button>
+    </div>
   );
 };
 

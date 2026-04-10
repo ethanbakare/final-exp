@@ -8,7 +8,7 @@ import {
   SendAudioButton,
   ProcessingAudioButton,
   ProcessingImageButton,
-  OldProcessingButton
+  OldSpinnerReference
 } from '@/projects/trace/components/ui/tracebuttons';
 import { TRNavbar } from '@/projects/trace/components/ui/tracenavbar';
 import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
@@ -538,10 +538,10 @@ const TraceComponent: React.FC = () => {
             </ButtonGrid>
 
             <ButtonGrid
-              label="OLD VERSION - WOBBLES IN SAFARI (REFERENCE)"
+              label="[REFERENCE] WOBBLY SVG SPINNER - PRE-FIX (SAFARI BUG)"
               isDouble={true}
             >
-              <OldProcessingButton text="Old Version" />
+              <OldSpinnerReference />
             </ButtonGrid>
           </div>
 
