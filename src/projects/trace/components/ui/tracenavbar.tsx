@@ -649,17 +649,23 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         }
 
         /* Recording: Close and SendAudio keep their fixed sizes and stick to
-           the left/right edges of the container (not flexed to half-width). */
-        .full-width.state-recording .morphing-group {
-          justify-content: space-between;
-        }
-
+           the left/right edges of the container. We animate the gap (which is
+           already in .morphing-group's transition list) instead of swapping
+           justify-content — justify-content is a discrete property that flips
+           instantly, which made the Close button snap to the middle on cancel
+           and on send-audio. leftWidth + gap + rightWidth stays equal to the
+           container width throughout the transition, so the centered flex
+           content fills the container at every frame. */
         .full-width.state-recording .left-button-tracker {
           width: var(--trace-btn-close-width);
         }
 
         .full-width.state-recording .right-button-tracker {
           width: var(--trace-btn-sendaudio-width);
+        }
+
+        .full-width.state-recording .morphing-group {
+          gap: calc(100% - var(--trace-btn-close-width) - var(--trace-btn-sendaudio-width));
         }
 
         /* Processing states expand to full container width */
