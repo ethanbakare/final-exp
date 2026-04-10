@@ -7,7 +7,8 @@ import {
   ClearButton,
   SendAudioButton,
   ProcessingAudioButton,
-  ProcessingImageButton
+  ProcessingImageButton,
+  AiConfidenceSpinnerTest
 } from '@/projects/trace/components/ui/tracebuttons';
 import { TRNavbar } from '@/projects/trace/components/ui/tracenavbar';
 import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
@@ -534,6 +535,13 @@ const TraceComponent: React.FC = () => {
               isDouble={true}
             >
               <ProcessingImageButton text="Processing Image" />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="AI CONFIDENCE SPINNER TEST - DIAGNOSTIC (SAFARI)"
+              isDouble={true}
+            >
+              <AiConfidenceSpinnerTest />
             </ButtonGrid>
           </div>
 

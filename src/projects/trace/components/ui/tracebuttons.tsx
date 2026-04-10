@@ -418,6 +418,136 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
 };
 
 
+/* ==================== AI CONFIDENCE SPINNER TEST (DIAGNOSTIC) ==================== */
+// Verbatim duplicate of the ai-confidence-tracker MorphingRightButton processing state.
+// Used to diagnose why the Trace spinner wobbles in Safari while this one does not.
+
+export const AiConfidenceSpinnerTest: React.FC<{ className?: string; text?: string }> = ({
+  className = '',
+  text = 'Analysing Audio',
+}) => {
+  return (
+    <>
+      <div className="button-container">
+        <button
+          className={`morphing-right-button state-processing ${className}`}
+          disabled
+          type="button"
+        >
+          <div className="content-container">
+            {/* Processing Spinner - visible in processing state */}
+            <svg
+              className="processing-icon"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 22C10.6333 22 9.34167 21.7375 8.125 21.2125C6.90833 20.6875 5.84583 19.9708 4.9375 19.0625C4.02917 18.1542 3.3125 17.0917 2.7875 15.875C2.2625 14.6583 2 13.3667 2 12C2 10.6167 2.2625 9.32083 2.7875 8.1125C3.3125 6.90417 4.02917 5.84583 4.9375 4.9375C5.84583 4.02917 6.90833 3.3125 8.125 2.7875C9.34167 2.2625 10.6333 2 12 2C12.2833 2 12.5208 2.09583 12.7125 2.2875C12.9042 2.47917 13 2.71667 13 3C13 3.28333 12.9042 3.52083 12.7125 3.7125C12.5208 3.90417 12.2833 4 12 4C9.78333 4 7.89583 4.77917 6.3375 6.3375C4.77917 7.89583 4 9.78333 4 12C4 14.2167 4.77917 16.1042 6.3375 17.6625C7.89583 19.2208 9.78333 20 12 20C14.2167 20 16.1042 19.2208 17.6625 17.6625C19.2208 16.1042 20 14.2167 20 12C20 11.7167 20.0958 11.4792 20.2875 11.2875C20.4792 11.0958 20.7167 11 21 11C21.2833 11 21.5208 11.0958 21.7125 11.2875C21.9042 11.4792 22 11.7167 22 12C22 13.3667 21.7375 14.6583 21.2125 15.875C20.6875 17.0917 19.9708 18.1542 19.0625 19.0625C18.1542 19.9708 17.0958 20.6875 15.8875 21.2125C14.6792 21.7375 13.3833 22 12 22Z" fill="#FCFCFC"/>
+            </svg>
+          </div>
+          <span className="diag-text">{text}</span>
+        </button>
+      </div>
+
+      <style jsx>{`
+        @media (prefers-reduced-motion: reduce) {
+          .morphing-right-button,
+          .morphing-right-button * {
+            transition: none !important;
+            animation: none !important;
+          }
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .button-container {
+          position: relative;
+          width: 301px;
+          height: 44px;
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .morphing-right-button {
+          position: relative;
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          gap: 12px;
+          padding: 0 26px;
+          border: none;
+          cursor: pointer;
+
+          width: 301px;
+          height: 44px;
+          background: #1E293B;
+          border-radius: 22px;
+
+          transform-origin: right center;
+          margin-left: auto;
+
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform, background, width;
+          overflow: hidden;
+        }
+
+        .morphing-right-button.state-processing {
+          width: 301px;
+          background: #1E293B;
+        }
+
+        .morphing-right-button:disabled {
+          opacity: 1;
+          cursor: not-allowed;
+        }
+
+        .content-container {
+          position: relative;
+          width: 27px;
+          height: 27px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          transform: translateZ(0);
+        }
+
+        .processing-icon {
+          position: absolute;
+          width: 24px;
+          height: 24px;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          top: 0; left: 0; right: 0; bottom: 0;
+          margin: auto;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+        }
+
+        .morphing-right-button.state-processing .processing-icon {
+          opacity: 1;
+          animation: spin 1.5s linear infinite;
+        }
+
+        .diag-text {
+          color: #FCFCFC;
+          font-family: var(--trace-font-family, system-ui, sans-serif);
+          font-size: 16px;
+          font-weight: 500;
+          white-space: nowrap;
+          user-select: none;
+        }
+      `}</style>
+    </>
+  );
+};
+
+
 /* ==================== PROCESSING IMAGE BUTTON ==================== */
 // 301×44px, stone-400 background, loader + "Processing Image" text (non-interactive)
 
