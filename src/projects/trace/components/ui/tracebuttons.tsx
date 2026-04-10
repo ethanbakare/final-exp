@@ -517,15 +517,15 @@ export const AiConfidenceSpinnerTest: React.FC<{ className?: string; text?: stri
         .css-spinner {
           position: absolute;
           top: 0; left: 0; right: 0; bottom: 0;
-          width: 20px;
-          height: 20px;
+          width: 22px;
+          height: 22px;
           margin: auto;
           border-radius: 50%;
           /* 270° white arc, transparent remainder — no visible track */
           background: conic-gradient(from 0deg, #FCFCFC 0deg 270deg, transparent 270deg 360deg);
-          /* Carve the filled disc into a 2.5px-thick ring */
-          -webkit-mask: radial-gradient(circle at center, transparent 0 7.5px, #000 7.5px 100%);
-                  mask: radial-gradient(circle at center, transparent 0 7.5px, #000 7.5px 100%);
+          /* Carve the filled disc into a 2px-thick ring: outer radius 11, inner 9 */
+          -webkit-mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
+                  mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
           animation: spin 1s linear infinite;
         }
 
@@ -534,8 +534,8 @@ export const AiConfidenceSpinnerTest: React.FC<{ className?: string; text?: stri
         .css-spinner::after {
           content: '';
           position: absolute;
-          width: 2.5px;
-          height: 2.5px;
+          width: 2px;
+          height: 2px;
           border-radius: 50%;
           background: #FCFCFC;
         }
@@ -543,13 +543,13 @@ export const AiConfidenceSpinnerTest: React.FC<{ className?: string; text?: stri
         .css-spinner::before {
           top: 0;
           left: 50%;
-          margin-left: -1.25px;
+          margin-left: -1px;
         }
         /* End of arc — 9 o'clock (270° clockwise from top) */
         .css-spinner::after {
           top: 50%;
           left: 0;
-          margin-top: -1.25px;
+          margin-top: -1px;
         }
 
         .diag-text {
