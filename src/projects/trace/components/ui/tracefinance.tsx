@@ -887,19 +887,26 @@ export interface MasterBlockHolderProps {
   total: string;
   fullWidth?: boolean;
   className?: string;
+  /**
+   * Optional override for the price element. When omitted, the static
+   * MasterTotalPrice is rendered. AnimatedTextBox passes the animated
+   * count-up variant here so the layout stays owned by this component.
+   */
+  priceSlot?: React.ReactNode;
 }
 
 export const MasterBlockHolder: React.FC<MasterBlockHolderProps> = ({
   total,
   fullWidth = false,
   className = '',
+  priceSlot,
 }) => {
   return (
     <div className={`master-block-holder ${fullWidth ? 'full-width' : ''} ${className} ${styles.container}`}>
       <div className="master-block">
         <div className="master-total-frame">
           <TotalAmtSpent />
-          <MasterTotalPrice total={total} />
+          {priceSlot ?? <MasterTotalPrice total={total} />}
         </div>
       </div>
 

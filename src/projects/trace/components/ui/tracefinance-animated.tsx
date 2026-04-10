@@ -4,14 +4,14 @@
  */
 
 import React, { useRef, useEffect, useState } from 'react';
-import { motion, AnimatePresence, animate, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import NumberFlow from '@number-flow/react';
 import {
   TextBox,
   FinanceBox,
   DayBlock,
   MerchantBlock,
   MasterBlockHolder,
-  MasterTotalPrice,
   EmptyFinanceState,
   type TextBoxProps,
   type FinanceBoxProps,
@@ -34,85 +34,99 @@ const parseTotalString = (s: string): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-/**
- * Format a number back into the display string used by MasterTotalPrice
- * (always 2 decimals, en-GB grouping for thousands).
- */
-const formatTotalNumber = (n: number): string =>
-  n.toLocaleString('en-GB', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
-export interface AnimatedMasterTotalPriceProps extends MasterTotalPriceProps {
-  /** Animation duration in seconds. Defaults to 0.6s. */
-  duration?: number;
-}
+export interface AnimatedMasterTotalPriceProps extends MasterTotalPriceProps {}
 
 /**
- * Counts up (or down) to the new total whenever the `total` prop changes.
+ * Per-digit count-up animation for the master total, powered by NumberFlow.
  *
- * - Right-edge anchored: relies on the existing flex layout in MasterTotalPrice
- *   so digits grow leftward; the £ symbol slides left as the value widens.
- * - Tabular figures: .master-amount uses font-variant-numeric: tabular-nums,
- *   so per-frame digit swaps don't cause horizontal jitter.
- * - Snaps on first render and when reduced-motion is requested.
- * - Mid-animation interrupts resume from the live frame value, not the stale
- *   start, so rapid prop changes don't snap backwards.
+ * Behaviour:
+ * - Each digit slot animates independently (odometer style); only digits that
+ *   actually change move. The decimal point is a static slot — it never shifts.
+ * - The £ symbol is rendered as a separate prefix span at its own font size
+ *   (18px) so it can sit naturally to the left of the animated digits at 28px.
+ * - Right edge stays anchored via the parent layout (MasterBlockHolder's
+ *   .master-total-frame uses justify-content: space-between, so this component
+ *   sits flush against the right edge of the frame).
+ * - NumberFlow respects prefers-reduced-motion by default.
+ * - Tabular figures + per-digit transitions mean digit count changes
+ *   (e.g. 9.99 → 10.00) cleanly slide a new digit in on the left without
+ *   jittering existing digits.
+ *
+ * The component keeps the same prop API as MasterTotalPrice so it can be
+ * dropped in anywhere the static version is used.
  */
 export const AnimatedMasterTotalPrice: React.FC<AnimatedMasterTotalPriceProps> = ({
   total,
-  duration = 0.6,
   className = '',
 }) => {
-  const shouldReduceMotion = useReducedMotion();
-  const [displayValue, setDisplayValue] = useState(total);
-  // Tracks the current live numeric value, updated every animation frame.
-  // Used as the start point for the next animation when total changes again.
-  const currentNumericRef = useRef(parseTotalString(total));
-  const isFirstRenderRef = useRef(true);
+  const numericValue = parseTotalString(total);
 
+  // NumberFlow renders a custom element (<number-flow-react>) which is only
+  // defined client-side. To avoid any SSR/hydration issues with the Pages
+  // Router, defer mounting until after the first client paint and render a
+  // matching static fallback in the meantime so the layout doesn't shift.
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    const targetNumeric = parseTotalString(total);
+    setMounted(true);
+  }, []);
 
-    // Snap on first render — never animate from 0 on initial mount.
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      currentNumericRef.current = targetNumeric;
-      setDisplayValue(formatTotalNumber(targetNumeric));
-      return;
-    }
+  // Pre-format the static fallback to match NumberFlow's output exactly.
+  const staticFormatted = numericValue.toLocaleString('en-GB', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: true,
+  });
 
-    // No-op if the underlying value didn't change.
-    if (currentNumericRef.current === targetNumeric) {
-      return;
-    }
+  return (
+    <div className={`master-total-price-anim ${className}`}>
+      <span className="master-currency-anim">£</span>
+      {mounted ? (
+        <NumberFlow
+          value={numericValue}
+          locales="en-GB"
+          format={{
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+            useGrouping: true,
+          }}
+          className="master-amount-anim"
+        />
+      ) : (
+        <span className="master-amount-anim">{staticFormatted}</span>
+      )}
 
-    // Respect reduced-motion: snap to target.
-    if (shouldReduceMotion) {
-      currentNumericRef.current = targetNumeric;
-      setDisplayValue(formatTotalNumber(targetNumeric));
-      return;
-    }
+      <style jsx>{`
+        .master-total-price-anim {
+          display: flex;
+          flex-direction: row;
+          justify-content: flex-end;
+          align-items: baseline;
+        }
 
-    const startNumeric = currentNumericRef.current;
-    const controls = animate(startNumeric, targetNumeric, {
-      duration,
-      ease: ANIMATION_CONFIG.easing.standard,
-      onUpdate: (latest) => {
-        currentNumericRef.current = latest;
-        setDisplayValue(formatTotalNumber(latest));
-      },
-      onComplete: () => {
-        currentNumericRef.current = targetNumeric;
-        setDisplayValue(formatTotalNumber(targetNumeric));
-      },
-    });
+        .master-currency-anim {
+          font-family: var(--trace-font-family);
+          font-size: var(--trace-fs-master-currency); /* 18px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: 1;
+          color: var(--trace-text-primary); /* #FFFFFF */
+          flex: none;
+        }
 
-    return () => controls.stop();
-  }, [total, duration, shouldReduceMotion]);
-
-  return <MasterTotalPrice total={displayValue} className={className} />;
+        .master-total-price-anim :global(.master-amount-anim) {
+          font-family: var(--trace-font-family);
+          font-size: var(--trace-fs-master-amount); /* 28px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: 1;
+          color: var(--trace-text-primary); /* #FFFFFF */
+          flex: none;
+          /* Tabular figures keep digit slots a uniform width — combined with
+             NumberFlow's per-digit transitions, this guarantees the decimal
+             point never shifts horizontally as digits change. */
+          font-variant-numeric: tabular-nums;
+        }
+      `}</style>
+    </div>
+  );
 };
 
 /* ==================== ANIMATED MERCHANT BLOCK ==================== */
@@ -405,7 +419,11 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
 }) => {
   return (
     <div className={`text-box ${navbar ? 'text-box--with-navbar' : ''} ${className} ${styles.container}`}>
-      <MasterBlockHolder total={grandTotal} fullWidth />
+      <MasterBlockHolder
+        total={grandTotal}
+        fullWidth
+        priceSlot={<AnimatedMasterTotalPrice total={grandTotal} />}
+      />
       <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} processingState={processingState} />
       {navbar}
 
