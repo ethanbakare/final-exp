@@ -109,7 +109,7 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
 
   console.log('[GEMINI SERVICE] parseReceiptImage: Calling Gemini API...');
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3.1-flash-lite-preview',
     contents: {
       parts: [
         {
@@ -186,7 +186,7 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
 
   console.log('[GEMINI SERVICE] parseVoiceAudio: Calling Gemini API...');
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3.1-flash-lite-preview',
     contents: {
       parts: [
         {
