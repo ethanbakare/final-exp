@@ -685,7 +685,18 @@ const TraceComponent: React.FC = () => {
               toggleState={masterTotalToggle}
               onToggle={() => setMasterTotalToggle(!masterTotalToggle)}
             >
-              <AnimatedMasterTotalPrice total={masterTotalToggle ? '120.25' : '0.00'} />
+              {/* Fixed-width right-aligned wrapper pins the right edge so the
+                  count-up only grows leftward, never rightward. The reserved
+                  width gives the £ + digits room to expand into. */}
+              <div
+                style={{
+                  width: '220px',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                }}
+              >
+                <AnimatedMasterTotalPrice total={masterTotalToggle ? '120.25' : '0.00'} />
+              </div>
             </ButtonGrid>
           </div>
 
