@@ -80,13 +80,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
               {/* Processing Image Spinner + Text - visible in processing_image */}
               <div className="processing-image-content">
                 <div className="spinner-container">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
-                      transform="translate(2, 2) scale(0.025)"
-                      fill="currentColor"
-                    />
-                  </svg>
+                  <div className="css-spinner" />
                 </div>
                 <span className="button-text">Processing Image</span>
               </div>
@@ -151,13 +145,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
               {/* AnalysingAudio Spinner + Text - visible in processing_audio */}
               <div className="analysing-audio-content">
                 <div className="spinner-container">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
-                      transform="translate(2, 2) scale(0.025)"
-                      fill="currentColor"
-                    />
-                  </svg>
+                  <div className="css-spinner" />
                 </div>
                 <span className="button-text">Analysing Audio</span>
               </div>
@@ -552,7 +540,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         }
 
         /* ========================================
-           SPINNER (Processing Image)
+           SPINNER (Safari-safe CSS spinner)
            ======================================== */
         .spinner-container {
           position: relative;
@@ -561,19 +549,57 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           justify-content: center;
           width: 24px;
           height: 24px;
+          color: var(--trace-text-primary);
         }
 
-        .spinner-container svg {
+        .spinner-container .css-spinner {
           position: absolute;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
+          width: 22px;
+          height: 22px;
           margin: auto;
-          width: 24px;
-          height: 24px;
-          backface-visibility: hidden;
+          border-radius: 50%;
+          background: conic-gradient(
+            from 0deg,
+            currentColor 0deg 270deg,
+            transparent 270deg 360deg
+          );
+          -webkit-mask: radial-gradient(
+            circle at center,
+            transparent 0 9px,
+            #000 9px 100%
+          );
+          mask: radial-gradient(
+            circle at center,
+            transparent 0 9px,
+            #000 9px 100%
+          );
           animation: spin 1s linear infinite;
+        }
+
+        .spinner-container .css-spinner::before,
+        .spinner-container .css-spinner::after {
+          content: '';
+          position: absolute;
+          width: 2px;
+          height: 2px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+
+        .spinner-container .css-spinner::before {
+          top: 0;
+          left: 50%;
+          margin-left: -1px;
+        }
+
+        .spinner-container .css-spinner::after {
+          top: 50%;
+          left: 0;
+          margin-top: -1px;
         }
 
         @keyframes spin {

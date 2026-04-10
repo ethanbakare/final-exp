@@ -343,15 +343,9 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
       disabled
       type="button"
     >
-      {/* Spinner Icon */}
+      {/* Spinner — pure-CSS C-shape ring (Safari-safe, no rotating SVG) */}
       <div className="spinner-container">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
-            transform="translate(2, 2) scale(0.025)"
-            fill="currentColor"
-          />
-        </svg>
+        <div className="css-spinner" />
       </div>
 
       {/* Text */}
@@ -387,26 +381,39 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
           color: var(--trace-text-primary);
         }
 
-        .spinner-container svg {
+        /*
+         * Pure-CSS spinner — avoids Safari's rotating-SVG wobble bug.
+         * Arc painted via conic-gradient, carved to a ring via radial mask,
+         * and pseudo-element dots provide rounded caps at the arc endpoints.
+         */
+        .css-spinner {
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          top: 0; left: 0; right: 0; bottom: 0;
+          width: 22px;
+          height: 22px;
           margin: auto;
-          width: 24px;
-          height: 24px;
-          backface-visibility: hidden;
+          border-radius: 50%;
+          background: conic-gradient(from 0deg, currentColor 0deg 270deg, transparent 270deg 360deg);
+          -webkit-mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
+                  mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
           animation: spin 1s linear infinite;
         }
 
+        .css-spinner::before,
+        .css-spinner::after {
+          content: '';
+          position: absolute;
+          width: 2px;
+          height: 2px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+        .css-spinner::before { top: 0; left: 50%; margin-left: -1px; }
+        .css-spinner::after { top: 50%; left: 0; margin-top: -1px; }
+
         @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         .button-text {
@@ -418,150 +425,84 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
 };
 
 
-/* ==================== AI CONFIDENCE SPINNER TEST (DIAGNOSTIC) ==================== */
-// Verbatim duplicate of the ai-confidence-tracker MorphingRightButton processing state.
-// Used to diagnose why the Trace spinner wobbles in Safari while this one does not.
+/* ==================== OLD PROCESSING BUTTON (REFERENCE) ==================== */
+// Preserved snapshot of the pre-fix spinner implementation — rotates an <svg>
+// element directly, which wobbles in Safari due to a WebKit compositor bug.
+// Kept in the showcase for side-by-side comparison with the CSS-spinner fix.
 
-export const AiConfidenceSpinnerTest: React.FC<{ className?: string; text?: string }> = ({
+export const OldProcessingButton: React.FC<ProcessingButtonProps> = ({
+  text = 'Old Version',
   className = '',
-  text = 'Analysing Audio',
 }) => {
   return (
-    <>
-      <div className="button-container">
-        <button
-          className={`morphing-right-button state-processing ${className}`}
-          disabled
-          type="button"
-        >
-          <div className="content-container">
-            {/* Pure CSS border spinner — no SVG, no path rasterization */}
-            <div className="css-spinner" />
-          </div>
-          <span className="diag-text">{text}</span>
-        </button>
+    <button
+      className={`processing-button ${className} ${styles.container}`}
+      disabled
+      type="button"
+    >
+      {/* Old rotating-SVG spinner — wobbles in Safari, kept for reference only */}
+      <div className="spinner-container">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
+            transform="translate(2, 2) scale(0.025)"
+            fill="currentColor"
+          />
+        </svg>
       </div>
 
+      <span className="button-text">{text}</span>
+
       <style jsx>{`
-        @media (prefers-reduced-motion: reduce) {
-          .morphing-right-button,
-          .morphing-right-button * {
-            transition: none !important;
-            animation: none !important;
-          }
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        .button-container {
-          position: relative;
-          width: 301px;
-          height: 44px;
+        .processing-button {
           display: flex;
-          justify-content: flex-end;
-        }
-
-        .morphing-right-button {
-          position: relative;
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
           align-items: center;
-          gap: 12px;
+          justify-content: center;
+          gap: var(--trace-spacing-lg);
+          height: var(--trace-button-height);
+          width: var(--trace-btn-processing-width);
           padding: 0 26px;
-          border: none;
-          cursor: pointer;
-
-          width: 301px;
-          height: 44px;
-          background: #1E293B;
-          border-radius: 22px;
-
-          transform-origin: right center;
-          margin-left: auto;
-
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          will-change: transform, background, width;
-          overflow: hidden;
-        }
-
-        .morphing-right-button.state-processing {
-          width: 301px;
-          background: #1E293B;
-        }
-
-        .morphing-right-button:disabled {
-          opacity: 1;
-          cursor: not-allowed;
-        }
-
-        .content-container {
-          position: relative;
-          width: 27px;
-          height: 27px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          transform: translateZ(0);
-        }
-
-        /*
-         * Pure CSS spinner — Safari-safe (no rotating SVG).
-         * Arc is painted with conic-gradient and carved to a ring via mask.
-         * Two pseudo-elements at the arc endpoints give the rounded caps
-         * that a CSS border alone cannot produce.
-         */
-        .css-spinner {
-          position: absolute;
-          top: 0; left: 0; right: 0; bottom: 0;
-          width: 22px;
-          height: 22px;
-          margin: auto;
-          border-radius: 50%;
-          /* 270° white arc, transparent remainder — no visible track */
-          background: conic-gradient(from 0deg, #FCFCFC 0deg 270deg, transparent 270deg 360deg);
-          /* Carve the filled disc into a 2px-thick ring: outer radius 11, inner 9 */
-          -webkit-mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
-                  mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
-          animation: spin 1s linear infinite;
-        }
-
-        /* Rounded caps at the arc endpoints (rotate with the parent) */
-        .css-spinner::before,
-        .css-spinner::after {
-          content: '';
-          position: absolute;
-          width: 2px;
-          height: 2px;
-          border-radius: 50%;
-          background: #FCFCFC;
-        }
-        /* Start of arc — 12 o'clock */
-        .css-spinner::before {
-          top: 0;
-          left: 50%;
-          margin-left: -1px;
-        }
-        /* End of arc — 9 o'clock (270° clockwise from top) */
-        .css-spinner::after {
-          top: 50%;
-          left: 0;
-          margin-top: -1px;
-        }
-
-        .diag-text {
-          color: #FCFCFC;
-          font-family: var(--trace-font-family, system-ui, sans-serif);
-          font-size: 16px;
-          font-weight: 500;
-          white-space: nowrap;
+          background: var(--trace-btn-processing);
+          border: var(--trace-button-stroke) solid transparent;
+          border-radius: var(--trace-button-radius);
+          font-family: var(--trace-font-family);
+          font-size: var(--trace-fs-processing);
+          font-weight: var(--trace-fw-medium);
+          line-height: var(--trace-lh-processing);
+          color: var(--trace-text-primary);
           user-select: none;
         }
+
+        .spinner-container {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          color: var(--trace-text-primary);
+        }
+
+        .spinner-container svg {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          margin: auto;
+          width: 24px;
+          height: 24px;
+          backface-visibility: hidden;
+          animation: spin-old 1s linear infinite;
+        }
+
+        @keyframes spin-old {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .button-text {
+          white-space: nowrap;
+        }
       `}</style>
-    </>
+    </button>
   );
 };
 
@@ -579,15 +520,9 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
       disabled
       type="button"
     >
-      {/* Spinner Icon */}
+      {/* Spinner — pure-CSS C-shape ring (Safari-safe, no rotating SVG) */}
       <div className="spinner-container">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
-            transform="translate(2, 2) scale(0.025)"
-            fill="currentColor"
-          />
-        </svg>
+        <div className="css-spinner" />
       </div>
 
       {/* Text */}
@@ -623,26 +558,39 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
           color: var(--trace-text-primary);
         }
 
-        .spinner-container svg {
+        /*
+         * Pure-CSS spinner — avoids Safari's rotating-SVG wobble bug.
+         * Arc painted via conic-gradient, carved to a ring via radial mask,
+         * and pseudo-element dots provide rounded caps at the arc endpoints.
+         */
+        .css-spinner {
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          top: 0; left: 0; right: 0; bottom: 0;
+          width: 22px;
+          height: 22px;
           margin: auto;
-          width: 24px;
-          height: 24px;
-          backface-visibility: hidden;
+          border-radius: 50%;
+          background: conic-gradient(from 0deg, currentColor 0deg 270deg, transparent 270deg 360deg);
+          -webkit-mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
+                  mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
           animation: spin 1s linear infinite;
         }
 
+        .css-spinner::before,
+        .css-spinner::after {
+          content: '';
+          position: absolute;
+          width: 2px;
+          height: 2px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+        .css-spinner::before { top: 0; left: 50%; margin-left: -1px; }
+        .css-spinner::after { top: 50%; left: 0; margin-top: -1px; }
+
         @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         .button-text {
