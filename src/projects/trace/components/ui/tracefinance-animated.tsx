@@ -3,23 +3,117 @@
  * Framer Motion wrappers for finance components with entry/exit animations
  */
 
-import React, { useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import React, { useRef, useEffect, useState } from 'react';
+import { motion, AnimatePresence, animate, useReducedMotion } from 'framer-motion';
 import {
   TextBox,
   FinanceBox,
   DayBlock,
   MerchantBlock,
   MasterBlockHolder,
+  MasterTotalPrice,
   EmptyFinanceState,
   type TextBoxProps,
   type FinanceBoxProps,
   type DayBlockProps,
   type MerchantBlockProps,
+  type MasterTotalPriceProps,
 } from './tracefinance';
 import type { ProcessingState } from './traceIcons';
 import { ANIMATION_CONFIG, SCROLL_CONFIG } from '@/projects/trace/config/animations';
 import styles from '@/projects/trace/styles/trace.module.css';
+
+/* ==================== ANIMATED MASTER TOTAL PRICE ==================== */
+
+/**
+ * Parse a display string like "1,556.41" or "0.00" into a number.
+ * Returns 0 for empty/invalid input.
+ */
+const parseTotalString = (s: string): number => {
+  const n = parseFloat(s.replace(/,/g, ''));
+  return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * Format a number back into the display string used by MasterTotalPrice
+ * (always 2 decimals, en-GB grouping for thousands).
+ */
+const formatTotalNumber = (n: number): string =>
+  n.toLocaleString('en-GB', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+export interface AnimatedMasterTotalPriceProps extends MasterTotalPriceProps {
+  /** Animation duration in seconds. Defaults to 0.6s. */
+  duration?: number;
+}
+
+/**
+ * Counts up (or down) to the new total whenever the `total` prop changes.
+ *
+ * - Right-edge anchored: relies on the existing flex layout in MasterTotalPrice
+ *   so digits grow leftward; the £ symbol slides left as the value widens.
+ * - Tabular figures: .master-amount uses font-variant-numeric: tabular-nums,
+ *   so per-frame digit swaps don't cause horizontal jitter.
+ * - Snaps on first render and when reduced-motion is requested.
+ * - Mid-animation interrupts resume from the live frame value, not the stale
+ *   start, so rapid prop changes don't snap backwards.
+ */
+export const AnimatedMasterTotalPrice: React.FC<AnimatedMasterTotalPriceProps> = ({
+  total,
+  duration = 0.6,
+  className = '',
+}) => {
+  const shouldReduceMotion = useReducedMotion();
+  const [displayValue, setDisplayValue] = useState(total);
+  // Tracks the current live numeric value, updated every animation frame.
+  // Used as the start point for the next animation when total changes again.
+  const currentNumericRef = useRef(parseTotalString(total));
+  const isFirstRenderRef = useRef(true);
+
+  useEffect(() => {
+    const targetNumeric = parseTotalString(total);
+
+    // Snap on first render — never animate from 0 on initial mount.
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      currentNumericRef.current = targetNumeric;
+      setDisplayValue(formatTotalNumber(targetNumeric));
+      return;
+    }
+
+    // No-op if the underlying value didn't change.
+    if (currentNumericRef.current === targetNumeric) {
+      return;
+    }
+
+    // Respect reduced-motion: snap to target.
+    if (shouldReduceMotion) {
+      currentNumericRef.current = targetNumeric;
+      setDisplayValue(formatTotalNumber(targetNumeric));
+      return;
+    }
+
+    const startNumeric = currentNumericRef.current;
+    const controls = animate(startNumeric, targetNumeric, {
+      duration,
+      ease: ANIMATION_CONFIG.easing.standard,
+      onUpdate: (latest) => {
+        currentNumericRef.current = latest;
+        setDisplayValue(formatTotalNumber(latest));
+      },
+      onComplete: () => {
+        currentNumericRef.current = targetNumeric;
+        setDisplayValue(formatTotalNumber(targetNumeric));
+      },
+    });
+
+    return () => controls.stop();
+  }, [total, duration, shouldReduceMotion]);
+
+  return <MasterTotalPrice total={displayValue} className={className} />;
+};
 
 /* ==================== ANIMATED MERCHANT BLOCK ==================== */
 

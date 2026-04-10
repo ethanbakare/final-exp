@@ -466,6 +466,9 @@ export const MasterTotalPrice: React.FC<MasterTotalPriceProps> = ({
           text-align: right;
           color: var(--trace-text-primary); /* #FFFFFF */
           flex: none;
+          /* Tabular figures keep each digit at the same width so count-up
+             animations don't jitter horizontally as digits change */
+          font-variant-numeric: tabular-nums;
         }
       `}</style>
     </div>

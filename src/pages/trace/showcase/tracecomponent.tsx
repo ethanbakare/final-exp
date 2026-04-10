@@ -34,6 +34,7 @@ import {
   FinanceBox,
   TextBox
 } from '@/projects/trace/components/ui/tracefinance';
+import { AnimatedMasterTotalPrice } from '@/projects/trace/components/ui/tracefinance-animated';
 import { EmptyTraceIcon, EmptyTraceIconAnimated } from '@/projects/trace/components/ui/traceIcons';
 import { TraceToast } from '@/projects/trace/components/ui/TraceToast';
 
@@ -198,6 +199,9 @@ const TraceComponent: React.FC = () => {
   // Processing button animation control
   const [isProcessingAudio, setIsProcessingAudio] = useState(true);
   const [isProcessingImage, setIsProcessingImage] = useState(true);
+
+  // AnimatedMasterTotalPrice toggle — flips between "0.00" and "120.25"
+  const [masterTotalToggle, setMasterTotalToggle] = useState(false);
 
   // Navbar state control (for demonstration)
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
@@ -672,6 +676,16 @@ const TraceComponent: React.FC = () => {
 
             <ButtonGrid label="MASTER TOTAL PRICE - £ (18PX), AMOUNT (28PX)" isDouble={true}>
               <MasterTotalPrice total="1,556.41" />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="MASTER TOTAL PRICE - ANIMATED COUNT-UP (TOGGLE)"
+              isDouble={true}
+              showToggle={true}
+              toggleState={masterTotalToggle}
+              onToggle={() => setMasterTotalToggle(!masterTotalToggle)}
+            >
+              <AnimatedMasterTotalPrice total={masterTotalToggle ? '120.25' : '0.00'} />
             </ButtonGrid>
           </div>
 
