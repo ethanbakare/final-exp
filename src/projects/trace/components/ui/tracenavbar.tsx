@@ -560,11 +560,6 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           justify-content: center;
           width: 24px;
           height: 24px;
-        }
-
-        .spinner-container svg {
-          transform-box: fill-box;
-          transform-origin: 50% 50%;
           animation: spin 1s linear infinite;
         }
 
