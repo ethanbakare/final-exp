@@ -123,6 +123,13 @@ export const AnimatedMasterTotalPrice: React.FC<AnimatedMasterTotalPriceProps> =
              NumberFlow's per-digit transitions, this guarantees the decimal
              point never shifts horizontally as digits change. */
           font-variant-numeric: tabular-nums;
+
+          /* NumberFlow's spinning digits travel into a small padded area above
+             and below the baseline before being masked away. The default mask
+             height (0.25em) lets the digit peek noticeably above the frame on
+             upward swaps; halving it (0.125em) gives a tighter, less airborne
+             motion while still leaving enough room for the fade. */
+          --number-flow-mask-height: 0.125em;
         }
       `}</style>
     </div>
