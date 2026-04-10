@@ -285,6 +285,8 @@ export default function TracePage() {
           flex-direction: column;
           align-items: center;
           gap: 10px;
+          overflow: hidden;
+          border-radius: 16px;
         }
       `}</style>
     </>
