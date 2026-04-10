@@ -618,45 +618,64 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
           width: 100%;
         }
 
-        /* Idle: both buttons share available space equally */
+        /* Idle: both buttons share available space equally.
+           Using explicit calc width (not flex:1) so transitions to processing
+           states stay smooth — a flex-basis swap between 0% and auto causes
+           a discrete jitter on the Upload→Processing morph. */
         .full-width .left-button-tracker {
-          flex: 1;
-          width: auto;
+          flex: 0 0 auto;
+          width: calc((100% - var(--trace-button-gap)) / 2);
         }
 
         .full-width .left-morph-button {
           width: 100%;
-          background: var(--trace-btn-light-80);
         }
 
         .full-width .right-button-tracker {
-          flex: 1;
-          width: auto;
+          flex: 0 0 auto;
+          width: calc((100% - var(--trace-button-gap)) / 2);
         }
 
         .full-width .right-morph-button {
           width: 100%;
+        }
+
+        /* Idle-only: use 80% opacity light variant for Upload/Speak when
+           rendered inside the dark TextBox card. State-specific backgrounds
+           (orange SendAudio, gray processing) must remain untouched. */
+        .full-width.state-idle .left-morph-button,
+        .full-width.state-idle .right-morph-button {
           background: var(--trace-btn-light-80);
+        }
+
+        /* Recording: Close and SendAudio keep their fixed sizes and stick to
+           the left/right edges of the container (not flexed to half-width). */
+        .full-width.state-recording .morphing-group {
+          justify-content: space-between;
+        }
+
+        .full-width.state-recording .left-button-tracker {
+          width: var(--trace-btn-close-width);
+        }
+
+        .full-width.state-recording .right-button-tracker {
+          width: var(--trace-btn-sendaudio-width);
         }
 
         /* Processing states expand to full container width */
         .full-width.state-processing_image .left-button-tracker {
-          flex: none;
           width: 100%;
         }
 
         .full-width.state-processing_audio .left-button-tracker {
-          flex: none;
           width: 0;
         }
 
         .full-width.state-processing_audio .right-button-tracker {
-          flex: none;
           width: 100%;
         }
 
         .full-width.state-processing_image .right-button-tracker {
-          flex: none;
           width: 0;
         }
       `}</style>
