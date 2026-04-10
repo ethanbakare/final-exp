@@ -508,18 +508,48 @@ export const AiConfidenceSpinnerTest: React.FC<{ className?: string; text?: stri
           transform: translateZ(0);
         }
 
-        /* Pure CSS border spinner — Safari-safe */
+        /*
+         * Pure CSS spinner — Safari-safe (no rotating SVG).
+         * Arc is painted with conic-gradient and carved to a ring via mask.
+         * Two pseudo-elements at the arc endpoints give the rounded caps
+         * that a CSS border alone cannot produce.
+         */
         .css-spinner {
           position: absolute;
           top: 0; left: 0; right: 0; bottom: 0;
           width: 20px;
           height: 20px;
           margin: auto;
-          box-sizing: border-box;
-          border: 2.5px solid rgba(252, 252, 252, 0.25);
-          border-top-color: #FCFCFC;
           border-radius: 50%;
+          /* 270° white arc, transparent remainder — no visible track */
+          background: conic-gradient(from 0deg, #FCFCFC 0deg 270deg, transparent 270deg 360deg);
+          /* Carve the filled disc into a 2.5px-thick ring */
+          -webkit-mask: radial-gradient(circle at center, transparent 0 7.5px, #000 7.5px 100%);
+                  mask: radial-gradient(circle at center, transparent 0 7.5px, #000 7.5px 100%);
           animation: spin 1s linear infinite;
+        }
+
+        /* Rounded caps at the arc endpoints (rotate with the parent) */
+        .css-spinner::before,
+        .css-spinner::after {
+          content: '';
+          position: absolute;
+          width: 2.5px;
+          height: 2.5px;
+          border-radius: 50%;
+          background: #FCFCFC;
+        }
+        /* Start of arc — 12 o'clock */
+        .css-spinner::before {
+          top: 0;
+          left: 50%;
+          margin-left: -1.25px;
+        }
+        /* End of arc — 9 o'clock (270° clockwise from top) */
+        .css-spinner::after {
+          top: 50%;
+          left: 0;
+          margin-top: -1.25px;
         }
 
         .diag-text {
