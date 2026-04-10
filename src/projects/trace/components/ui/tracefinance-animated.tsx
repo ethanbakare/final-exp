@@ -17,6 +17,7 @@ import {
   type DayBlockProps,
   type MerchantBlockProps,
 } from './tracefinance';
+import type { ProcessingState } from './traceIcons';
 import { ANIMATION_CONFIG, SCROLL_CONFIG } from '@/projects/trace/config/animations';
 import styles from '@/projects/trace/styles/trace.module.css';
 
@@ -166,13 +167,13 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
 
 export interface AnimatedFinanceBoxProps extends FinanceBoxProps {
   onScrollToLatest?: () => void; // Callback when new entry should be scrolled to
-  isProcessing?: boolean; // Show animated empty icon during processing
+  processingState?: ProcessingState; // Drives empty-state icon/copy swap
 }
 
 export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
   days,
   onScrollToLatest,
-  isProcessing = false,
+  processingState = 'idle',
   className = '',
 }) => {
   const shouldReduceMotion = useReducedMotion();
@@ -198,7 +199,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
   if (!days || days.length === 0) {
     return (
       <div className={`finance-box finance-box--empty ${className} ${styles.container}`} ref={containerRef}>
-        <EmptyFinanceState isProcessing={isProcessing} />
+        <EmptyFinanceState processingState={processingState} />
 
         <style jsx>{`
           .finance-box {
@@ -297,7 +298,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 export interface AnimatedTextBoxProps extends TextBoxProps {
   onScrollToLatest?: () => void;
   navbar?: React.ReactNode;
-  isProcessing?: boolean;
+  processingState?: ProcessingState;
 }
 
 export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
@@ -305,13 +306,13 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
   grandTotal = '0.00',
   onScrollToLatest,
   navbar,
-  isProcessing = false,
+  processingState = 'idle',
   className = '',
 }) => {
   return (
     <div className={`text-box ${navbar ? 'text-box--with-navbar' : ''} ${className} ${styles.container}`}>
       <MasterBlockHolder total={grandTotal} fullWidth />
-      <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} isProcessing={isProcessing} />
+      <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} processingState={processingState} />
       {navbar}
 
       <style jsx>{`

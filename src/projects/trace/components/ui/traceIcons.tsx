@@ -5,6 +5,14 @@ import styles from '@/projects/trace/styles/trace.module.css';
 // Icon-based UI elements used across the Trace app
 
 /* ============================================
+   PROCESSING STATE — single source of truth for the
+   empty-state processing copy/icon swap. Single union
+   (rather than boolean + source) prevents the two
+   values from going out of sync.
+   ============================================ */
+export type ProcessingState = 'idle' | 'audio' | 'image';
+
+/* ============================================
    EMPTY TRACE ICON — 48x48 receipt icon on dark tile
    ============================================ */
 
@@ -164,13 +172,22 @@ export const EmptyTraceIconAnimated: React.FC<{ className?: string }> = ({
    EMPTY TRACE TEXT — Heading + subtext
    ============================================ */
 
-export const EmptyTraceText: React.FC<{ className?: string }> = ({
-  className = '',
-}) => {
+export const EmptyTraceText: React.FC<{
+  className?: string;
+  processingState?: ProcessingState;
+}> = ({ className = '', processingState = 'idle' }) => {
+  const heading = processingState !== 'idle' ? 'Just a moment' : 'No expenses logged yet';
+  const subtext =
+    processingState === 'image'
+      ? 'Reading your receipt'
+      : processingState === 'audio'
+        ? 'Processing your voice note'
+        : 'Use the buttons below to get started';
+
   return (
     <div className={`empty-text ${className} ${styles.container}`}>
-      <p className="empty-heading">No expenses logged yet</p>
-      <p className="empty-subtext">Use the buttons below to get started</p>
+      <p className="empty-heading">{heading}</p>
+      <p className="empty-subtext">{subtext}</p>
 
       <style jsx>{`
         .empty-text {
@@ -211,14 +228,16 @@ export const EmptyTraceText: React.FC<{ className?: string }> = ({
    EMPTY FINANCE STATE — Combined icon + text
    ============================================ */
 
-export const EmptyFinanceState: React.FC<{ className?: string; isProcessing?: boolean }> = ({
-  className = '',
-  isProcessing = false,
-}) => {
+export const EmptyFinanceState: React.FC<{
+  className?: string;
+  processingState?: ProcessingState;
+}> = ({ className = '', processingState = 'idle' }) => {
+  const isProcessing = processingState !== 'idle';
+
   return (
     <div className={`empty-state ${className} ${styles.container}`}>
       {isProcessing ? <EmptyTraceIconAnimated /> : <EmptyTraceIcon />}
-      <EmptyTraceText />
+      <EmptyTraceText processingState={processingState} />
 
       <style jsx>{`
         .empty-state {

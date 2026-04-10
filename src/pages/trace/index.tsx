@@ -16,6 +16,7 @@ import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceMod
 import { TraceModalOverlay } from '@/projects/trace/components/ui/TraceModalOverlay';
 import { MicPermissionBanner } from '@/projects/new-home/components/MicPermissionBanner';
 import { TraceToastNotification } from '@/projects/trace/components/ui/TraceToast';
+import type { ProcessingState } from '@/projects/trace/components/ui/traceIcons';
 import { groupEntriesByDay } from '@/projects/trace/utils/dataUtils';
 import { blobToBase64, fileToBase64 } from '@/projects/trace/utils/fileUtils';
 import Head from 'next/head';
@@ -206,6 +207,14 @@ export default function TracePage() {
   // Compute grand total across all entries
   const grandTotal = entries.reduce((sum, entry) => sum + entry.total, 0).toFixed(2);
 
+  // Derive empty-state processing copy/icon from navbar state
+  const processingState: ProcessingState =
+    navbarState === 'processing_audio'
+      ? 'audio'
+      : navbarState === 'processing_image'
+        ? 'image'
+        : 'idle';
+
   return (
     <>
       <Head>
@@ -235,7 +244,7 @@ export default function TracePage() {
           <AnimatedTextBox
             days={groupedDays}
             grandTotal={grandTotal}
-            isProcessing={navbarState === 'processing_audio' || navbarState === 'processing_image'}
+            processingState={processingState}
             navbar={
               <TRNavbarV2
                 state={navbarState}
