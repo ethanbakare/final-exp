@@ -378,12 +378,25 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
         }
 
         .spinner-container {
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 24px;
           height: 24px;
           color: var(--trace-text-primary);
+        }
+
+        .spinner-container svg {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          margin: auto;
+          width: 24px;
+          height: 24px;
+          backface-visibility: hidden;
           animation: spin 1s linear infinite;
         }
 
@@ -453,12 +466,25 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
         }
 
         .spinner-container {
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 24px;
           height: 24px;
           color: var(--trace-text-primary);
+        }
+
+        .spinner-container svg {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          margin: auto;
+          width: 24px;
+          height: 24px;
+          backface-visibility: hidden;
           animation: spin 1s linear infinite;
         }
 
