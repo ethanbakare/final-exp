@@ -128,8 +128,14 @@ export default function TracePage() {
         return;
       }
 
-      const entry: ExpenseEntry = await response.json();
-      setEntries((prev) => [entry, ...prev]);
+      // parse-voice returns ExpenseEntry[] — one entry per (merchant, date)
+      // pair Gemini identified in the recording. A single sentence like
+      // "I got bread at Tesco and then a chair at B&Q" comes back as two
+      // entries; we spread them into state so groupEntriesByDay can bucket
+      // them downstream. Storing the raw array at index 0 (the old code's
+      // bug) was what caused dataUtils to crash on `entry.items.map`.
+      const newEntries: ExpenseEntry[] = await response.json();
+      setEntries((prev) => [...newEntries, ...prev]);
       setNavbarState('idle');
     } catch {
       showError("Didn't hear anything, try again");
