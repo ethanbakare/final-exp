@@ -131,6 +131,35 @@ export const AnimatedMasterTotalPrice: React.FC<AnimatedMasterTotalPriceProps> =
              motion while still leaving enough room for the fade. */
           --number-flow-mask-height: 0.125em;
         }
+
+        /* Soften the mask edge. NumberFlow's built-in mask uses a very short
+           transparent→opaque ramp, which reads as a hard edge when digits
+           spin past the boundary. The component exposes the inner masked
+           element via ::part(number), so we can replace its mask with a
+           longer gradient that fades the digit in/out over a wider distance
+           while keeping the overall boundary at the same location. */
+        .master-total-price-anim :global(.master-amount-anim::part(number)) {
+          -webkit-mask-image: linear-gradient(
+            to bottom,
+            transparent 0%,
+            #000 35%,
+            #000 65%,
+            transparent 100%
+          );
+          mask-image: linear-gradient(
+            to bottom,
+            transparent 0%,
+            #000 35%,
+            #000 65%,
+            transparent 100%
+          );
+          -webkit-mask-size: 100% 100%;
+          mask-size: 100% 100%;
+          -webkit-mask-position: 0 0;
+          mask-position: 0 0;
+          -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+        }
       `}</style>
     </div>
   );
