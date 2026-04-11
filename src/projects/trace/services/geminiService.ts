@@ -257,9 +257,8 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
             Same merchant, same date, many items -> ONE entry with multiple items.
             Different merchants on the same date -> multiple entries, same date.
             Same merchant on different dates -> multiple entries, different dates.
-          - MERCHANT: Only set "merchant" when the user explicitly names one. If the user doesn't mention a merchant for an item, leave that entry's merchant as null — do NOT guess or fabricate. If some items have a merchant and others don't, split them into separate entries.
-            Example: "I got bread for two pounds and a coffee at Starbucks for five pounds" ->
-              [{ "merchant": null, "items": [bread] }, { "merchant": "Starbucks", "items": [coffee] }]
+          - MERCHANT: When the user names a merchant, assume it applies to ALL items in the surrounding context — people usually mention a place once for a whole list of things they bought there. Only split into separate entries when the user clearly switches places (e.g. "at Tesco... then at Boots...", "first I went to X, then to Y"). Never fabricate a merchant; if the user never mentions one, leave it as null — do NOT guess one from the item names.
+            Example: "I got bread for two pounds and a coffee at Starbucks for five pounds" -> ONE entry, merchant="Starbucks", items=[bread, coffee].
           - If user says "it was five pounds for a coffee and three for a cake" (same merchant implied), that entry's total is 8.00.
           - Return ONLY valid JSON matching the schema.`
         },
