@@ -359,8 +359,19 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
           align-items: center;
           justify-content: flex-start;
           gap: 0;
+          /* Scroll spacer lives on the container's padding-bottom (200px),
+             NOT as a margin on :last-child. padding-bottom contributes to
+             scrollHeight natively, so:
+               - when content fits: no overflow, scroll disabled (no void)
+               - when content overflows: 200px of trailing scroll room lets
+                 the oldest day block be scrolled up near the top of the
+                 viewport for reading.
+             This replaces the old :last-child { margin-bottom: calc(500 - 150) }
+             rule, which was calibrated against the wrong viewport value (the
+             outer TextBox height instead of the FinanceBox's real ~420px
+             visible area) and produced a dead-scroll void on short lists. */
           padding: var(--trace-financebox-padding-top) var(--trace-financebox-padding-horizontal)
-            var(--trace-financebox-padding-bottom) var(--trace-financebox-padding-horizontal);
+            200px var(--trace-financebox-padding-horizontal);
           border-radius: var(--trace-financebox-radius);
           width: 100%;
           flex: 1;
@@ -372,11 +383,6 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 
           /* Smooth scroll on iOS */
           -webkit-overflow-scrolling: touch;
-        }
-
-        /* Scroll spacer - allows last DayBlock to scroll to top */
-        .finance-box > :global(*):last-child {
-          margin-bottom: calc(var(--trace-textbox-height) - 150px);
         }
 
         /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
