@@ -145,10 +145,22 @@ export const TraceApp: React.FC<TraceAppProps> = ({
 
       const responseText = await response.text();
       console.log('[TRACE APP] Response body:', responseText);
-      const entry: ExpenseEntry = JSON.parse(responseText);
-      console.log('[TRACE APP] Successfully parsed entry:', entry.id);
+      // parse-voice now returns an array of ExpenseEntry — one per unique
+      // (merchant, date) pair Gemini detected in the recording. A single
+      // sentence like "I spent £5 at Tesco and £12 at Boots" comes back
+      // as two entries; the grouping logic in dataUtils handles the rest.
+      const newEntries: ExpenseEntry[] = JSON.parse(responseText);
+      console.log('[TRACE APP] Successfully parsed entries:', {
+        count: newEntries.length,
+        ids: newEntries.map((e) => e.id),
+      });
 
-      setEntries((prev) => [entry, ...prev]);
+      // Spread the new entries at the front of the store in the order
+      // Gemini returned them. Date-based sorting in groupEntriesByDay
+      // still handles cross-day ordering (newest date at top), so this
+      // only affects within-day ordering when multiple entries land on
+      // the same date from one recording.
+      setEntries((prev) => [...newEntries, ...prev]);
       setAppState('idle');
       setError(null);
     } catch (err) {
