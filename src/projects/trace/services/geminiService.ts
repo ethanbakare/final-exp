@@ -273,12 +273,23 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
     config: {
       responseMimeType: "application/json",
       responseSchema: VOICE_ENTRIES_SCHEMA,
-      thinkingConfig: { thinkingBudget: 0 }
+      // Unlike the receipt path (thinkingBudget: 0), the voice path
+      // legitimately needs reasoning capacity: Gemini has to listen
+      // for multiple purchases, group them by (merchant, date), and
+      // decide when to merge vs. split. With thinkingBudget: 0 the
+      // model's limited output budget gets split between "figure out
+      // the grouping" and "fill in schema fields", and on harder
+      // recordings it runs out of runway and drops required fields
+      // (most commonly `items`), producing malformed entries that
+      // pass schema validation in name only. Giving it a real
+      // thinking budget restores reliable schema compliance.
+      thinkingConfig: { thinkingBudget: 1024 }
     }
   });
 
   console.log('[GEMINI SERVICE] parseVoiceAudio: Response received');
   const textOutput = response.text || '{"entries":[]}';
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Raw textOutput from Gemini:', textOutput);
   console.log('[GEMINI SERVICE] parseVoiceAudio: Parsing JSON response');
   const parsed = JSON.parse(textOutput) as { entries?: Array<Record<string, unknown>> };
 
