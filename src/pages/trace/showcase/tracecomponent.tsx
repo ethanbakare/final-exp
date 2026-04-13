@@ -642,36 +642,29 @@ const TraceComponent: React.FC = () => {
               <TraceDate date="14th Jul" />
             </ButtonGrid>
 
-            <ButtonGrid label="TOTAL FRAME - £ BEFORE (GBP)" isDouble={true}>
-              <TotalFrame total="928.20" />
-            </ButtonGrid>
-
-            <ButtonGrid label="TOTAL FRAME - € AFTER (EUR)" isDouble={true}>
-              <TotalFrame total="928.20" currency="EUR" />
-            </ButtonGrid>
-
-            <ButtonGrid label="TOTAL FRAME - ₦ BEFORE (NGN)" isDouble={true}>
-              <TotalFrame total="6,080.00" currency="NGN" />
+            <ButtonGrid label="TOTAL FRAME - £ (GBP) / € (EUR)" isDouble={true}>
+              <div style={{ display: 'flex', gap: '24px', alignItems: 'baseline' }}>
+                <TotalFrame total="928.20" />
+                <TotalFrame total="928.20" currency="EUR" />
+              </div>
             </ButtonGrid>
 
             <ButtonGrid label="MERCHANT FRAME - 12PX">
               <MerchantFrame merchantName="TESCOS" />
             </ButtonGrid>
 
-            <ButtonGrid label="MERCHANT TOTAL - £ BEFORE (GBP)">
-              <MerchantTotalFrame total="628.21" />
+            <ButtonGrid label="MERCHANT TOTAL - £ (GBP) / € (EUR)">
+              <div style={{ display: 'flex', gap: '24px', alignItems: 'baseline' }}>
+                <MerchantTotalFrame total="628.21" />
+                <MerchantTotalFrame total="628.21" currency="EUR" />
+              </div>
             </ButtonGrid>
 
-            <ButtonGrid label="MERCHANT TOTAL - € AFTER (EUR)">
-              <MerchantTotalFrame total="628.21" currency="EUR" />
-            </ButtonGrid>
-
-            <ButtonGrid label="NET PRICE - £ BEFORE (GBP)">
-              <NetPriceFrame price="104.99" />
-            </ButtonGrid>
-
-            <ButtonGrid label="NET PRICE - € AFTER (EUR)">
-              <NetPriceFrame price="104.99" currency="EUR" />
+            <ButtonGrid label="NET PRICE - £ (GBP) / € (EUR)">
+              <div style={{ display: 'flex', gap: '24px', alignItems: 'baseline' }}>
+                <NetPriceFrame price="104.99" />
+                <NetPriceFrame price="104.99" currency="EUR" />
+              </div>
             </ButtonGrid>
 
             <ButtonGrid label="QUANTITY - 12PX">
@@ -682,12 +675,11 @@ const TraceComponent: React.FC = () => {
               <ItemName itemName="Headphones" />
             </ButtonGrid>
 
-            <ButtonGrid label="DISCOUNT - £ BEFORE (GBP)">
-              <DiscountFrame discount="3.99" />
-            </ButtonGrid>
-
-            <ButtonGrid label="DISCOUNT - € AFTER (EUR)">
-              <DiscountFrame discount="3.99" currency="EUR" />
+            <ButtonGrid label="DISCOUNT - £ (GBP) / € (EUR)">
+              <div style={{ display: 'flex', gap: '24px', alignItems: 'baseline' }}>
+                <DiscountFrame discount="3.99" />
+                <DiscountFrame discount="3.99" currency="EUR" />
+              </div>
             </ButtonGrid>
 
             <ButtonGrid label="TOTAL AMT SPENT - RED PILL + LABEL">
@@ -700,10 +692,6 @@ const TraceComponent: React.FC = () => {
 
             <ButtonGrid label="MASTER TOTAL - € AFTER (EUR)" isDouble={true}>
               <MasterTotalPrice total="1,556.41" currency="EUR" />
-            </ButtonGrid>
-
-            <ButtonGrid label="MASTER TOTAL - ₦ BEFORE (NGN)" isDouble={true}>
-              <MasterTotalPrice total="6,080.00" currency="NGN" />
             </ButtonGrid>
 
             <ButtonGrid
