@@ -108,7 +108,7 @@ export const ShowcaseNavbarCompact: React.FC<ShowcaseNavbarCompactProps> = ({
       .nav-arrows {
         display: flex;
         align-items: center;
-        gap: 0;
+        gap: 4px;
       }
       .arrow-btn {
         display: flex;
@@ -117,18 +117,20 @@ export const ShowcaseNavbarCompact: React.FC<ShowcaseNavbarCompactProps> = ({
         justify-content: center;
         align-items: center;
         border: none;
-        border-radius: 0;
+        border-radius: 32px;
         background: #525252;
         cursor: pointer;
         transition: background 0.15s ease;
       }
-      /* Down arrow: round left corners, flat right */
+      /* Down arrow (left): reduce right corners */
       .arrow-btn:first-child {
-        border-radius: 32px 0 0 32px;
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
       }
-      /* Up arrow: round right corners, flat left */
+      /* Up arrow (right): reduce left corners */
       .arrow-btn:last-child {
-        border-radius: 0 32px 32px 0;
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
       }
       .arrow-btn:hover {
         background: #616161;
