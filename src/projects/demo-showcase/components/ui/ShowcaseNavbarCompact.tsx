@@ -80,7 +80,7 @@ export const ShowcaseNavbarCompact: React.FC<ShowcaseNavbarCompactProps> = ({
         align-items: center;
         border-radius: 20px;
         background: #F7F6F2;
-        box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.04);
+        box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.06);
       }
       .selector-label {
         display: flex;
