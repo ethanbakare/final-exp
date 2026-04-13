@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { ShowcaseNavbar } from '@/projects/demo-showcase/components/ui/ShowcaseNavbar';
@@ -6,6 +7,12 @@ import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/com
 import { ShowcaseProgress } from '@/projects/demo-showcase/components/ui/ShowcaseProgress';
 import { ShowcaseIntro } from '@/projects/demo-showcase/components/ui/ShowcaseIntro';
 import { ShowcaseSlot } from '@/projects/demo-showcase/components/ui/ShowcaseSlot';
+
+// Dynamic import to avoid SSR issues with AI tracker styles/components
+const AIConfidenceSim = dynamic(
+  () => import('@/projects/demo-showcase/components/simulations/AIConfidenceSim').then(m => m.AIConfidenceSim),
+  { ssr: false }
+);
 
 // ─── Project Configuration ─────────────────────────────────
 const PROJECTS = [
@@ -68,16 +75,18 @@ const PlaceholderSim: React.FC<{ color: string; name: string }> = ({ color, name
 export default function DemoShowcasePage() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loopProgress] = useState(0);
+  const [loopProgress, setLoopProgress] = useState(0);
 
   const project = PROJECTS[currentIndex];
 
   const handleNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % PROJECTS.length);
+    setLoopProgress(0);
   }, []);
 
   const handlePrev = useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + PROJECTS.length) % PROJECTS.length);
+    setLoopProgress(0);
   }, []);
 
   const handleTryDemo = useCallback(() => {
@@ -109,11 +118,15 @@ export default function DemoShowcasePage() {
             <ShowcaseIntro description={project.description} />
 
             <ShowcaseSlot>
-              <PlaceholderSim
-                key={currentIndex}
-                color={project.placeholderColor}
-                name={project.name}
-              />
+              {currentIndex === 0 ? (
+                <AIConfidenceSim key={currentIndex} onProgress={setLoopProgress} />
+              ) : (
+                <PlaceholderSim
+                  key={currentIndex}
+                  color={project.placeholderColor}
+                  name={project.name}
+                />
+              )}
             </ShowcaseSlot>
 
             <ShowcaseProgress progress={loopProgress} />
