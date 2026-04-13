@@ -131,6 +131,13 @@ export default function DemoShowcasePage() {
 
       <div className="hero-banner">
         <div className="hero-card">
+          {/* Background pattern — matches Figma "image 328" inside Demo-project */}
+          <img
+            src="/images/demo-showcase/demo-bg-pattern.webp"
+            alt=""
+            className="bg-pattern"
+            aria-hidden="true"
+          />
           <ShowcaseNavbar
             projectName={project.name}
             currentIndex={currentIndex}
@@ -187,16 +194,18 @@ export default function DemoShowcasePage() {
           overflow: hidden;
           position: relative;
         }
-        .hero-card::before {
-          content: '';
+        .hero-card > :global(.bg-pattern) {
           position: absolute;
-          inset: 0;
-          background: url('/images/demo-showcase/demo-bg-pattern.webp') center / cover no-repeat;
-          opacity: 0.06;
+          top: -32px;
+          left: -240px;
+          width: 1920px;
+          height: 1080px;
+          object-fit: cover;
+          opacity: 0.30;
           pointer-events: none;
           z-index: 0;
         }
-        .hero-card > :global(*) {
+        .hero-card > :global(*:not(.bg-pattern)) {
           position: relative;
           z-index: 1;
         }
