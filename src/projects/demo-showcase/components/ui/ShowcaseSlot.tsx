@@ -12,14 +12,16 @@ export const ShowcaseSlot: React.FC<ShowcaseSlotProps> = ({ children }) => (
       .demo-content-group {
         display: flex;
         justify-content: center;
-        align-items: center;
+        align-items: flex-start;
         width: 620px;
-        min-height: 333px;
+        /* Fixed height reserves space for the full simulation including
+           any expanding drawers, so nothing below shifts when they open */
+        height: 400px;
       }
       @media (max-width: 768px) {
         .demo-content-group {
           width: 100%;
-          min-height: 280px;
+          height: 360px;
         }
       }
     `}</style>

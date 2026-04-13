@@ -161,6 +161,20 @@ export default function DemoShowcasePage() {
           border-radius: 12px;
           background: #FFF;
           overflow: hidden;
+          position: relative;
+        }
+        .hero-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: url('/images/demo-showcase/demo-bg-pattern.webp') center / cover no-repeat;
+          opacity: 0.06;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .hero-card > :global(*) {
+          position: relative;
+          z-index: 1;
         }
         .demo-showcase {
           display: flex;

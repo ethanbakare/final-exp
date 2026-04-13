@@ -21,13 +21,15 @@ const MOCK_HIGHLIGHTS = MOCK_WORDS
   .filter(h => h.confidenceLevel !== 'high');
 
 // ─── Timing (ms) ────────────────────────────────────────────
-const PHASE_INITIAL   = 1500;  // brief pause before "recording"
-const PHASE_RECORDING = 2000;  // simulated recording
-const PHASE_PROCESSING = 1000; // simulated processing
-const PHASE_RESULTS   = 5000;  // hold results so badges can be seen
-const TOTAL_LOOP = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS;
+// Each phase duration is measured so progress bar fills accurately.
+const PHASE_INITIAL    = 1500;  // pause before "recording" starts
+const PHASE_RECORDING  = 2000;  // simulated recording
+const PHASE_PROCESSING = 1000;  // simulated processing
+const PHASE_RESULTS    = 5000;  // hold results (badges visible, hoverable)
+const PHASE_PAUSE      = 2000;  // pause after results before loop restarts
+const TOTAL_LOOP = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS + PHASE_PAUSE;
 
-type SimState = 'initial' | 'recording' | 'processing' | 'results';
+type SimState = 'initial' | 'recording' | 'processing' | 'results' | 'pause';
 
 interface AIConfidenceSimProps {
   onProgress?: (progress: number) => void;
@@ -39,52 +41,97 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) 
   const [activeWordId, setActiveWordId] = useState<number | null>(null);
   const [badgeStates, setBadgeStates] = useState<Map<number, boolean>>(new Map());
   const [modelCopyActiveWordId, setModelCopyActiveWordId] = useState<number | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   const loopStartRef = useRef(Date.now());
+  const elapsedBeforePauseRef = useRef(0);
   const rafRef = useRef<number>(0);
   const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const isPausedRef = useRef(false);
 
-  // ── Auto-play loop ──────────────────────────────────────────
-  const startLoop = useCallback(() => {
-    // Clear any pending timers
+  // ── Clear all pending timers ────────────────────────────────
+  const clearTimers = useCallback(() => {
     timerRefs.current.forEach(clearTimeout);
     timerRefs.current = [];
-
-    loopStartRef.current = Date.now();
-    setSimState('initial');
-    setIsCollapsed(true);
-    setActiveWordId(null);
-    setBadgeStates(new Map());
-    setModelCopyActiveWordId(null);
-
-    // Schedule state transitions
-    const t1 = setTimeout(() => setSimState('recording'), PHASE_INITIAL);
-    const t2 = setTimeout(() => setSimState('processing'), PHASE_INITIAL + PHASE_RECORDING);
-    const t3 = setTimeout(() => {
-      setSimState('results');
-      setTimeout(() => setIsCollapsed(false), 300);
-    }, PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING);
-    const t4 = setTimeout(() => startLoop(), TOTAL_LOOP);
-
-    timerRefs.current = [t1, t2, t3, t4];
   }, []);
 
+  // ── Schedule remaining transitions from a given elapsed offset ──
+  const scheduleFrom = useCallback((elapsedSoFar: number) => {
+    clearTimers();
+    loopStartRef.current = Date.now() - elapsedSoFar;
+
+    const at = (target: number, fn: () => void) => {
+      const delay = target - elapsedSoFar;
+      if (delay > 0) timerRefs.current.push(setTimeout(fn, delay));
+      else fn(); // already past this point
+    };
+
+    const T1 = PHASE_INITIAL;
+    const T2 = T1 + PHASE_RECORDING;
+    const T3 = T2 + PHASE_PROCESSING;
+    const T4 = T3 + PHASE_RESULTS;
+
+    at(T1, () => setSimState('recording'));
+    at(T2, () => setSimState('processing'));
+    at(T3, () => {
+      setSimState('results');
+      setTimeout(() => setIsCollapsed(false), 300);
+    });
+    at(T4, () => {
+      setSimState('pause');
+      setIsCollapsed(true);
+    });
+    at(TOTAL_LOOP, () => {
+      // Reset and start fresh
+      setSimState('initial');
+      setIsCollapsed(true);
+      setActiveWordId(null);
+      setBadgeStates(new Map());
+      setModelCopyActiveWordId(null);
+      elapsedBeforePauseRef.current = 0;
+      scheduleFrom(0);
+    });
+  }, [clearTimers]);
+
+  // ── Start on mount ────────────────────────────────────────
   useEffect(() => {
-    startLoop();
+    scheduleFrom(0);
     return () => {
-      timerRefs.current.forEach(clearTimeout);
+      clearTimers();
       cancelAnimationFrame(rafRef.current);
     };
-  }, [startLoop]);
+  }, [scheduleFrom, clearTimers]);
+
+  // ── Hover pause/resume ────────────────────────────────────
+  // When user hovers over the simulation, pause all timers so they
+  // can interact with badges. Resume from the same point on leave.
+  useEffect(() => {
+    if (isHovered && !isPausedRef.current) {
+      // Pause: save elapsed time and clear timers
+      isPausedRef.current = true;
+      const elapsed = Date.now() - loopStartRef.current;
+      elapsedBeforePauseRef.current = elapsed;
+      clearTimers();
+      cancelAnimationFrame(rafRef.current);
+    } else if (!isHovered && isPausedRef.current) {
+      // Resume: reschedule from where we left off
+      isPausedRef.current = false;
+      scheduleFrom(elapsedBeforePauseRef.current);
+    }
+  }, [isHovered, clearTimers, scheduleFrom]);
 
   // ── Progress reporting ────────────────────────────────────
   useEffect(() => {
     if (!onProgress) return;
 
     const tick = () => {
-      const elapsed = Date.now() - loopStartRef.current;
-      const progress = Math.min(1, elapsed / TOTAL_LOOP);
-      onProgress(progress);
+      if (isPausedRef.current) {
+        // While paused, report the frozen progress
+        onProgress(Math.min(1, elapsedBeforePauseRef.current / TOTAL_LOOP));
+      } else {
+        const elapsed = Date.now() - loopStartRef.current;
+        onProgress(Math.min(1, elapsed / TOTAL_LOOP));
+      }
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -92,7 +139,7 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) 
     return () => cancelAnimationFrame(rafRef.current);
   }, [onProgress]);
 
-  // ── Interaction handlers (hover/touch for badges) ────────
+  // ── Interaction handlers ──────────────────────────────────
   const clearInteraction = useCallback(() => {
     setActiveWordId(null);
     setBadgeStates(new Map());
@@ -108,10 +155,11 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) 
   }, []);
 
   // ── Derived state ────────────────────────────────────────
-  const navState: NavState = simState;
-  const textState: TextState = simState;
-  const transcriptText = simState === 'results' ? MOCK_TRANSCRIPT : '';
-  const highlights = simState === 'results' ? MOCK_HIGHLIGHTS : [];
+  const showResults = simState === 'results';
+  const navState: NavState = simState === 'pause' ? 'results' : simState;
+  const textState: TextState = simState === 'pause' ? 'results' : simState;
+  const transcriptText = showResults ? MOCK_TRANSCRIPT : '';
+  const highlights = showResults ? MOCK_HIGHLIGHTS : [];
   const isHighConfidenceState = highlights.length === 0 && transcriptText.length > 0;
 
   const getOrderedBadges = () => {
@@ -158,7 +206,11 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) 
   const modelCopyContent = getModelCopyContent();
 
   return (
-    <div className={`sim-transcript-interface ${styles.container}`}>
+    <div
+      className={`sim-transcript-interface ${styles.container}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => { setIsHovered(false); clearInteraction(); }}
+    >
       <TranscriptBar isMobile={false} isHighConfidenceState={isHighConfidenceState} navState={navState} />
 
       <div className={`sim-transcript-mainframe ${isCollapsed ? 'collapsed' : ''}`}>
@@ -234,8 +286,9 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) 
           position: relative;
           width: 100%;
           max-width: 620px;
-          height: auto;
-          min-height: 300px;
+          /* Fixed height so the drawer expanding doesn't shift
+             the progress bar or CTA buttons below */
+          height: 400px;
         }
         .sim-transcript-mainframe {
           display: flex;
