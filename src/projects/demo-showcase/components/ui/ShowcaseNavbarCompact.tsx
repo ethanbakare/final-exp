@@ -75,7 +75,7 @@ export const ShowcaseNavbarCompact: React.FC<ShowcaseNavbarCompactProps> = ({
         display: flex;
         width: 100%;
         max-width: 668px;
-        padding: 8px 8px 8px 16px;
+        padding: 8px;
         justify-content: space-between;
         align-items: center;
         border-radius: 20px;
