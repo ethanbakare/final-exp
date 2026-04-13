@@ -21,6 +21,7 @@ import {
 } from './tracefinance';
 import type { ProcessingState } from './traceIcons';
 import { ANIMATION_CONFIG, SCROLL_CONFIG } from '@/projects/trace/config/animations';
+import { getCurrencyDisplay } from '@/lib/currency-data';
 import styles from '@/projects/trace/styles/trace.module.css';
 
 /* ==================== ANIMATED MASTER TOTAL PRICE ==================== */
@@ -57,9 +58,11 @@ export interface AnimatedMasterTotalPriceProps extends MasterTotalPriceProps {}
  */
 export const AnimatedMasterTotalPrice: React.FC<AnimatedMasterTotalPriceProps> = ({
   total,
+  currency,
   className = '',
 }) => {
   const numericValue = parseTotalString(total);
+  const { symbol, position } = getCurrencyDisplay(currency ?? 'GBP');
 
   // NumberFlow renders a custom element (<number-flow-react>) which is only
   // defined client-side. To avoid any SSR/hydration issues with the Pages
@@ -79,7 +82,7 @@ export const AnimatedMasterTotalPrice: React.FC<AnimatedMasterTotalPriceProps> =
 
   return (
     <div className={`master-total-price-anim ${className}`}>
-      <span className="master-currency-anim">£</span>
+      {position === 'before' && <span className="master-currency-anim">{symbol}</span>}
       {mounted ? (
         <NumberFlow
           value={numericValue}
@@ -94,6 +97,7 @@ export const AnimatedMasterTotalPrice: React.FC<AnimatedMasterTotalPriceProps> =
       ) : (
         <span className="master-amount-anim">{staticFormatted}</span>
       )}
+      {position === 'after' && <span className="master-currency-anim">{symbol}</span>}
 
       <style jsx>{`
         .master-total-price-anim {
@@ -345,6 +349,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
             dateOriginal={day.dateOriginal}
             total={day.total}
             merchants={day.merchants}
+            currency={day.currency}
             width="100%"
             index={index}
             containerRef={containerRef} // Pass container ref for scroll tracking
@@ -430,12 +435,14 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
   processingState = 'idle',
   className = '',
 }) => {
+  const currency = days?.[0]?.currency;
   return (
     <div className={`text-box ${navbar ? 'text-box--with-navbar' : ''} ${className} ${styles.container}`}>
       <MasterBlockHolder
         total={grandTotal}
         fullWidth
-        priceSlot={<AnimatedMasterTotalPrice total={grandTotal} />}
+        currency={currency}
+        priceSlot={<AnimatedMasterTotalPrice total={grandTotal} currency={currency} />}
       />
       <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} processingState={processingState} />
       {navbar}

@@ -6,6 +6,7 @@
 import React from 'react';
 import styles from '@/projects/trace/styles/trace.module.css';
 import { EmptyTraceIcon, EmptyTraceText, EmptyFinanceState } from './traceIcons';
+import { getCurrencyDisplay } from '@/lib/currency-data';
 
 /* ==================== TYPE DEFINITIONS ==================== */
 
@@ -16,6 +17,7 @@ export interface DateProps {
 
 export interface TotalFrameProps {
   total: string;
+  currency?: string;
   className?: string;
 }
 
@@ -26,12 +28,14 @@ export interface MerchantFrameProps {
 
 export interface MerchantTotalFrameProps {
   total: string;
+  currency?: string;
   width?: number; // Optional width override (in px) - for adaptive sizing
   className?: string;
 }
 
 export interface NetPriceFrameProps {
   price: string;
+  currency?: string;
   className?: string;
 }
 
@@ -47,6 +51,7 @@ export interface ItemNameProps {
 
 export interface DiscountFrameProps {
   discount: string;
+  currency?: string;
   className?: string;
 }
 
@@ -86,12 +91,15 @@ export const Date: React.FC<DateProps> = ({
 // Modern CSS: Single container with baseline alignment, no nested divs
 export const TotalFrame: React.FC<TotalFrameProps> = ({
   total,
+  currency,
   className = '',
 }) => {
+  const { symbol, position } = getCurrencyDisplay(currency ?? 'GBP');
   return (
     <div className={`total-frame ${className} ${styles.container}`}>
-      <span className="currency">£</span>
+      {position === 'before' && <span className="currency">{symbol}</span>}
       <span className="amount">{total}</span>
+      {position === 'after' && <span className="currency">{symbol}</span>}
 
       <style jsx>{`
         .total-frame {
@@ -169,6 +177,7 @@ export const MerchantFrame: React.FC<MerchantFrameProps> = ({
 // Modern CSS: Single container with baseline alignment, no nested divs
 export const MerchantTotalFrame: React.FC<MerchantTotalFrameProps> = ({
   total,
+  currency,
   width,
   className = '',
 }) => {
@@ -183,11 +192,13 @@ export const MerchantTotalFrame: React.FC<MerchantTotalFrameProps> = ({
   };
 
   const frameWidth = width ?? getDefaultWidth();
+  const { symbol, position } = getCurrencyDisplay(currency ?? 'GBP');
 
   return (
     <div className={`merchant-total-frame ${className} ${styles.container}`}>
-      <span className="currency">£</span>
+      {position === 'before' && <span className="currency">{symbol}</span>}
       <span className="amount">{total}</span>
+      {position === 'after' && <span className="currency">{symbol}</span>}
 
       <style jsx>{`
         .merchant-total-frame {
@@ -227,12 +238,15 @@ export const MerchantTotalFrame: React.FC<MerchantTotalFrameProps> = ({
 // Modern CSS: Single container with baseline alignment, no nested divs
 export const NetPriceFrame: React.FC<NetPriceFrameProps> = ({
   price,
+  currency,
   className = '',
 }) => {
+  const { symbol, position } = getCurrencyDisplay(currency ?? 'GBP');
   return (
     <div className={`net-price-frame ${className} ${styles.container}`}>
-      <span className="currency">£</span>
+      {position === 'before' && <span className="currency">{symbol}</span>}
       <span className="amount">{price}</span>
+      {position === 'after' && <span className="currency">{symbol}</span>}
 
       <style jsx>{`
         .net-price-frame {
@@ -342,12 +356,15 @@ export const ItemName: React.FC<ItemNameProps> = ({
 // Modern CSS: Single container with baseline alignment, no nested divs
 export const DiscountFrame: React.FC<DiscountFrameProps> = ({
   discount,
+  currency,
   className = '',
 }) => {
+  const { symbol, position } = getCurrencyDisplay(currency ?? 'GBP');
   return (
     <div className={`discount-frame ${className} ${styles.container}`}>
-      <span className="currency">-£</span>
-      <span className="amount">{discount}</span>
+      {position === 'before' && <span className="currency">-{symbol}</span>}
+      <span className="amount">{position === 'after' ? '-' : ''}{discount}</span>
+      {position === 'after' && <span className="currency">{symbol}</span>}
 
       <style jsx>{`
         .discount-frame {
@@ -428,17 +445,21 @@ export const TotalAmtSpent: React.FC<TotalAmtSpentProps> = ({
 // MasterTotalPrice - Currency symbol (£) + Amount value (master total)
 export interface MasterTotalPriceProps {
   total: string;
+  currency?: string;
   className?: string;
 }
 
 export const MasterTotalPrice: React.FC<MasterTotalPriceProps> = ({
   total,
+  currency,
   className = '',
 }) => {
+  const { symbol, position } = getCurrencyDisplay(currency ?? 'GBP');
   return (
     <div className={`master-total-price ${className} ${styles.container}`}>
-      <span className="master-currency">£</span>
+      {position === 'before' && <span className="master-currency">{symbol}</span>}
       <span className="master-amount">{total}</span>
+      {position === 'after' && <span className="master-currency">{symbol}</span>}
 
       <style jsx>{`
         .master-total-price {
@@ -482,6 +503,7 @@ export interface DayTotalProps {
   total: string;
   width?: string; // Default: 277px, can be overridden to "100%" or other values
   isFirst?: boolean; // First DayBlock gets reduced top padding (12px vs 24px)
+  currency?: string;
   className?: string;
 }
 
@@ -490,6 +512,7 @@ export interface RowIdentifierProps {
   merchantTotal: string;
   showRowIdentifier?: boolean; // Default: true, set to false to hide this component entirely
   width?: string; // Default: 100%, can be overridden
+  currency?: string;
   className?: string;
 }
 
@@ -503,6 +526,7 @@ export interface PriceFrameProps {
   netPrice: string;
   discount?: string; // Optional discount
   width?: number; // Optional width override (in px) - only allows values SMALLER than 85px
+  currency?: string;
   className?: string;
 }
 
@@ -515,6 +539,7 @@ export interface ContentRowProps {
   isLast?: boolean; // Hide bottom border on last row
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   priceFrameWidth?: number; // Optional PriceFrame width override (in px) - only allows values SMALLER than 85px
+  currency?: string;
   className?: string;
 }
 
@@ -530,6 +555,7 @@ export interface MerchantBlockProps {
   showRowIdentifier?: boolean; // Default: true, controls whether RowIdentifier is shown
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   priceFrameWidth?: number; // Optional PriceFrame width override (in px) - only allows values SMALLER than 85px
+  currency?: string;
   className?: string;
 }
 
@@ -546,6 +572,7 @@ export interface DayExpensesProps {
   }>;
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   priceFrameWidth?: number; // Optional PriceFrame width override (in px) - only allows values SMALLER than 85px
+  currency?: string;
   className?: string;
 }
 
@@ -565,6 +592,7 @@ export interface DayBlockProps {
   }>;
   width?: string; // Default: 277px (matches TextBox inner width), pass "100%" when inside parent
   isFirst?: boolean; // First DayBlock gets reduced top padding
+  currency?: string;
   className?: string;
   dayTotalRef?: React.RefObject<HTMLDivElement>; // For scroll-linked fade
 }
@@ -574,6 +602,7 @@ export interface FinanceBoxProps {
     date: string;
     dateOriginal?: string; // Original ISO date for sorting and stable keys
     total: string;
+    currency?: string;
     merchants: Array<{
       merchantName?: string; // Optional merchant name
       merchantTotal: string;
@@ -593,6 +622,7 @@ export interface TextBoxProps {
     date: string;
     dateOriginal?: string; // Original ISO date for sorting and stable keys
     total: string;
+    currency?: string;
     merchants: Array<{
       merchantName?: string; // Optional merchant name
       merchantTotal: string;
@@ -610,11 +640,11 @@ export interface TextBoxProps {
 
 // DayTotal - Date + TotalFrame
 export const DayTotal = React.forwardRef<HTMLDivElement, DayTotalProps>(
-  ({ date, total, width = '277px', isFirst = false, className = '' }, ref) => {
+  ({ date, total, width = '277px', isFirst = false, currency, className = '' }, ref) => {
     return (
       <div ref={ref} className={`day-total ${className} ${styles.container}`}>
         <Date date={date} />
-        <TotalFrame total={total} />
+        <TotalFrame total={total} currency={currency} />
 
         <style jsx>{`
           .day-total {
@@ -653,6 +683,7 @@ export const RowIdentifier: React.FC<RowIdentifierProps> = ({
   merchantTotal,
   showRowIdentifier = true,
   width = '100%',
+  currency,
   className = '',
 }) => {
   // Hide this component entirely if showRowIdentifier is false
@@ -675,7 +706,7 @@ export const RowIdentifier: React.FC<RowIdentifierProps> = ({
   return (
     <div className={`row-identifier ${className} ${styles.container}`}>
       <MerchantFrame merchantName={merchantName} />
-      <MerchantTotalFrame total={merchantTotal} width={merchantTotalWidth} />
+      <MerchantTotalFrame total={merchantTotal} width={merchantTotalWidth} currency={currency} />
 
       <style jsx>{`
         .row-identifier {
@@ -723,14 +754,15 @@ export const PriceFrame: React.FC<PriceFrameProps> = ({
   netPrice,
   discount,
   width,
+  currency,
   className = '',
 }) => {
   return (
     <div className={`price-frame ${className} ${styles.container}`}>
-      <NetPriceFrame price={netPrice} />
+      <NetPriceFrame price={netPrice} currency={currency} />
       {discount && (
         <div className="discount-wrapper">
-          <DiscountFrame discount={discount} />
+          <DiscountFrame discount={discount} currency={currency} />
         </div>
       )}
 
@@ -762,6 +794,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   isLast = false,
   width = '277px',
   priceFrameWidth,
+  currency,
   className = '',
 }) => {
   // Determine padding based on position and discount presence
@@ -775,7 +808,7 @@ export const ContentRow: React.FC<ContentRowProps> = ({
   return (
     <div className={`content-row ${className} ${styles.container}`}>
       <QuantityItemName quantity={quantity} itemName={itemName} />
-      <PriceFrame netPrice={netPrice} discount={discount} width={priceFrameWidth} />
+      <PriceFrame netPrice={netPrice} discount={discount} width={priceFrameWidth} currency={currency} />
 
       <style jsx>{`
         .content-row {
@@ -800,6 +833,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
   showRowIdentifier = true,
   width = '277px',
   priceFrameWidth,
+  currency,
   className = '',
 }) => {
   // When RowIdentifier is hidden, add 6px top padding to preserve spacing
@@ -811,6 +845,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
         merchantName={merchantName}
         merchantTotal={merchantTotal}
         showRowIdentifier={showRowIdentifier}
+        currency={currency}
       />
       {items.map((item, index) => (
         <ContentRow
@@ -823,6 +858,7 @@ export const MerchantBlock: React.FC<MerchantBlockProps> = ({
           isLast={index === items.length - 1}
           width="100%"
           priceFrameWidth={priceFrameWidth}
+          currency={currency}
         />
       ))}
 
@@ -847,6 +883,7 @@ export const DayExpenses: React.FC<DayExpensesProps> = ({
   merchants,
   width = '277px',
   priceFrameWidth,
+  currency,
   className = '',
 }) => {
   return (
@@ -866,6 +903,7 @@ export const DayExpenses: React.FC<DayExpensesProps> = ({
             showRowIdentifier={showRowIdentifier}
             width="100%"
             priceFrameWidth={priceFrameWidth}
+            currency={currency}
           />
         );
       })}
@@ -886,6 +924,7 @@ export const DayExpenses: React.FC<DayExpensesProps> = ({
 export interface MasterBlockHolderProps {
   total: string;
   fullWidth?: boolean;
+  currency?: string;
   className?: string;
   /**
    * Optional override for the price element. When omitted, the static
@@ -898,6 +937,7 @@ export interface MasterBlockHolderProps {
 export const MasterBlockHolder: React.FC<MasterBlockHolderProps> = ({
   total,
   fullWidth = false,
+  currency,
   className = '',
   priceSlot,
 }) => {
@@ -906,7 +946,7 @@ export const MasterBlockHolder: React.FC<MasterBlockHolderProps> = ({
       <div className="master-block">
         <div className="master-total-frame">
           <TotalAmtSpent />
-          {priceSlot ?? <MasterTotalPrice total={total} />}
+          {priceSlot ?? <MasterTotalPrice total={total} currency={currency} />}
         </div>
       </div>
 
@@ -974,7 +1014,7 @@ export const MasterBlockHolder: React.FC<MasterBlockHolderProps> = ({
 
 // DayBlock - DayTotal + DayExpenses
 export const DayBlock = React.forwardRef<HTMLDivElement, DayBlockProps>(
-  ({ date, dateOriginal, total, merchants, width = '277px', isFirst = false, className = '', dayTotalRef }, ref) => {
+  ({ date, dateOriginal, total, merchants, width = '277px', isFirst = false, currency, className = '', dayTotalRef }, ref) => {
     // Calculate optimal PriceFrame width based on longest price in this day
     const calculateOptimalPriceWidth = (): number | undefined => {
       const DEFAULT_WIDTH = 85;
@@ -1016,8 +1056,8 @@ export const DayBlock = React.forwardRef<HTMLDivElement, DayBlockProps>(
 
     return (
       <div ref={ref} className={`day-block ${className} ${styles.container}`}>
-        <DayTotal ref={dayTotalRef} date={date} total={total} width="100%" isFirst={isFirst} />
-        <DayExpenses merchants={merchants} width="100%" priceFrameWidth={priceFrameWidth} />
+        <DayTotal ref={dayTotalRef} date={date} total={total} width="100%" isFirst={isFirst} currency={currency} />
+        <DayExpenses merchants={merchants} width="100%" priceFrameWidth={priceFrameWidth} currency={currency} />
 
         <style jsx>{`
           .day-block {
@@ -1080,6 +1120,7 @@ export const FinanceBox: React.FC<FinanceBoxProps> = ({
           total={day.total}
           merchants={day.merchants}
           width="100%"
+          currency={day.currency}
         />
       ))}
 
@@ -1146,9 +1187,10 @@ export const TextBox: React.FC<TextBoxProps> = ({
   grandTotal = '0.00',
   className = '',
 }) => {
+  const currency = days?.[0]?.currency;
   return (
     <div className={`text-box ${className} ${styles.container}`}>
-      <MasterBlockHolder total={grandTotal} fullWidth />
+      <MasterBlockHolder total={grandTotal} fullWidth currency={currency} />
       <FinanceBox days={days} />
 
       <style jsx>{`
