@@ -10,7 +10,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatedTextBox } from '@/projects/trace/components/ui/tracefinance-animated';
 import { TRNavbarV2 } from '@/projects/trace/components/ui/tracenavbar-v2';
-import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
+import { ClearButton, SimSendAudioButton, CloseButton } from '@/projects/trace/components/ui/tracebuttons';
 import type { ProcessingState } from '@/projects/trace/components/ui/traceIcons';
 import Head from 'next/head';
 
@@ -131,13 +131,20 @@ export default function TraceSimulation() {
             grandTotal={grandTotal}
             processingState={processingState}
             navbar={
-              <TRNavbarV2
-                state={navbarState}
-                onUploadClick={() => {}}
-                onSpeakClick={() => {}}
-                onCloseClick={() => {}}
-                onSendAudioClick={() => {}}
-              />
+              simState === 'recording' ? (
+                <div className="sim-navbar-recording">
+                  <CloseButton onClick={() => {}} />
+                  <SimSendAudioButton />
+                </div>
+              ) : (
+                <TRNavbarV2
+                  state={navbarState}
+                  onUploadClick={() => {}}
+                  onSpeakClick={() => {}}
+                  onCloseClick={() => {}}
+                  onSendAudioClick={() => {}}
+                />
+              )
             }
           />
         </div>
@@ -159,6 +166,14 @@ export default function TraceSimulation() {
           align-items: center;
           padding: 20px;
           gap: 16px;
+        }
+        .sim-navbar-recording {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          width: 100%;
         }
         .trace-sim-container {
           position: relative;
