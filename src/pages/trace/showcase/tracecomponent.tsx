@@ -642,20 +642,36 @@ const TraceComponent: React.FC = () => {
               <TraceDate date="14th Jul" />
             </ButtonGrid>
 
-            <ButtonGrid label="TOTAL FRAME - £ (9PX), AMOUNT (12PX)" isDouble={true}>
+            <ButtonGrid label="TOTAL FRAME - £ BEFORE (GBP)" isDouble={true}>
               <TotalFrame total="928.20" />
+            </ButtonGrid>
+
+            <ButtonGrid label="TOTAL FRAME - € AFTER (EUR)" isDouble={true}>
+              <TotalFrame total="928.20" currency="EUR" />
+            </ButtonGrid>
+
+            <ButtonGrid label="TOTAL FRAME - ₦ BEFORE (NGN)" isDouble={true}>
+              <TotalFrame total="6,080.00" currency="NGN" />
             </ButtonGrid>
 
             <ButtonGrid label="MERCHANT FRAME - 12PX">
               <MerchantFrame merchantName="TESCOS" />
             </ButtonGrid>
 
-            <ButtonGrid label="MERCHANT TOTAL FRAME - £ (9PX), AMOUNT (12PX)">
+            <ButtonGrid label="MERCHANT TOTAL - £ BEFORE (GBP)">
               <MerchantTotalFrame total="628.21" />
             </ButtonGrid>
 
-            <ButtonGrid label="NET PRICE FRAME - £ (10PX), AMOUNT (16PX)">
+            <ButtonGrid label="MERCHANT TOTAL - € AFTER (EUR)">
+              <MerchantTotalFrame total="628.21" currency="EUR" />
+            </ButtonGrid>
+
+            <ButtonGrid label="NET PRICE - £ BEFORE (GBP)">
               <NetPriceFrame price="104.99" />
+            </ButtonGrid>
+
+            <ButtonGrid label="NET PRICE - € AFTER (EUR)">
+              <NetPriceFrame price="104.99" currency="EUR" />
             </ButtonGrid>
 
             <ButtonGrid label="QUANTITY - 12PX">
@@ -666,16 +682,28 @@ const TraceComponent: React.FC = () => {
               <ItemName itemName="Headphones" />
             </ButtonGrid>
 
-            <ButtonGrid label="DISCOUNT FRAME - £ (9PX), AMOUNT (12PX)">
+            <ButtonGrid label="DISCOUNT - £ BEFORE (GBP)">
               <DiscountFrame discount="3.99" />
+            </ButtonGrid>
+
+            <ButtonGrid label="DISCOUNT - € AFTER (EUR)">
+              <DiscountFrame discount="3.99" currency="EUR" />
             </ButtonGrid>
 
             <ButtonGrid label="TOTAL AMT SPENT - RED PILL + LABEL">
               <TotalAmtSpent />
             </ButtonGrid>
 
-            <ButtonGrid label="MASTER TOTAL PRICE - £ (18PX), AMOUNT (28PX)" isDouble={true}>
+            <ButtonGrid label="MASTER TOTAL - £ BEFORE (GBP)" isDouble={true}>
               <MasterTotalPrice total="1,556.41" />
+            </ButtonGrid>
+
+            <ButtonGrid label="MASTER TOTAL - € AFTER (EUR)" isDouble={true}>
+              <MasterTotalPrice total="1,556.41" currency="EUR" />
+            </ButtonGrid>
+
+            <ButtonGrid label="MASTER TOTAL - ₦ BEFORE (NGN)" isDouble={true}>
+              <MasterTotalPrice total="6,080.00" currency="NGN" />
             </ButtonGrid>
 
             <ButtonGrid
