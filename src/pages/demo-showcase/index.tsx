@@ -173,7 +173,6 @@ export default function DemoShowcasePage() {
           min-height: 100vh;
           flex-direction: column;
           align-items: center;
-          background: #0F0E0D;
           backdrop-filter: blur(45px);
         }
         .hero-card {
@@ -184,7 +183,6 @@ export default function DemoShowcasePage() {
           flex: 1;
           width: 100%;
           max-width: 1440px;
-          border-radius: 12px;
           background: #FFF;
           overflow: hidden;
           position: relative;
