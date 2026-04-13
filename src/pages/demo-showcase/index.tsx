@@ -232,6 +232,7 @@ export default function DemoShowcasePage() {
           flex: 1;
           align-self: stretch;
           margin: 0 auto;
+          box-sizing: border-box;
         }
         @media (max-width: 768px) {
           .demo-showcase {
