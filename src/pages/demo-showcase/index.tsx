@@ -16,9 +16,18 @@ const AIConfidenceDemo = dynamic(
   () => import('@/projects/demo-showcase/components/demos/AIConfidenceDemo').then(m => m.AIConfidenceDemo),
   { ssr: false }
 );
+const TraceSim = dynamic(
+  () => import('@/projects/demo-showcase/components/simulations/TraceSim').then(m => m.TraceSim),
+  { ssr: false }
+);
+const TraceDemo = dynamic(
+  () => import('@/pages/trace/index').then(m => m.default),
+  { ssr: false }
+);
 
 // Timing constants
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
+import { TRACE_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/TraceSim';
 
 // ─── Project Configuration ─────────────────────────────────
 const PROJECTS = [
@@ -108,10 +117,16 @@ export default function DemoShowcasePage() {
     window.location.href = project.caseStudyUrl;
   }, [project.caseStudyUrl]);
 
+  // ── Per-project progress bar duration ────────────────────
+  const getSimDuration = () => {
+    if (currentIndex === 0) return SIM_DURATION;
+    if (currentIndex === 1) return TRACE_SIM_DURATION;
+    return 5000; // placeholder default
+  };
+
   // ── Render the right content in the slot ──────────────────
   const renderSlotContent = () => {
     if (isDemoMode) {
-      // Show the actual interactive demo for the current project
       if (currentIndex === 0) return <AIConfidenceDemo key={`demo-${currentIndex}`} />;
       // Other projects: placeholder for now
       return <PlaceholderSim key={`demo-${currentIndex}`} color={project.placeholderColor} name={`${project.name} demo`} />;
@@ -119,6 +134,7 @@ export default function DemoShowcasePage() {
 
     // Simulation mode
     if (currentIndex === 0) return <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
+    if (currentIndex === 1) return <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
     return <PlaceholderSim key={`sim-${currentIndex}`} color={project.placeholderColor} name={project.name} />;
   };
 
@@ -150,7 +166,7 @@ export default function DemoShowcasePage() {
 
             {!isDemoMode && (
               <ShowcaseProgress
-                duration={SIM_DURATION}
+                duration={getSimDuration()}
                 loopKey={loopKey}
               />
             )}
