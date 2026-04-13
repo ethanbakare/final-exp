@@ -31,10 +31,11 @@ const TOTAL_LOOP = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RE
 
 type SimState = 'initial' | 'recording' | 'processing' | 'results' | 'pause';
 
-// Simulation duration = everything BEFORE the 2s pause.
-// The progress bar fills over this duration, then holds at 100% during pause.
-export const SIM_DURATION = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS;
-export const SIM_HOLD_TIME = PHASE_PAUSE;
+// Bar fill duration = only the phases where something is actively happening
+// (initial wait, recording, processing). Once results appear with badges,
+// the demo has shown everything — the bar should already be full by then.
+// It stays full during PHASE_RESULTS + PHASE_PAUSE (viewing/rest time).
+export const SIM_DURATION = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING;
 
 interface AIConfidenceSimProps {
   onLoopRestart?: () => void;
