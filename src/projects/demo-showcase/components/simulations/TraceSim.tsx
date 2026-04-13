@@ -127,6 +127,8 @@ export const TraceSim: React.FC<TraceSimProps> = ({ onLoopRestart }) => {
           width: 100%;
           max-width: 400px;
           margin: 0 auto;
+          display: flex;
+          justify-content: center;
         }
         /* Reduce the TextBox height so it fits in the showcase slot
            without clipping. The native height is 500px + navbar;
