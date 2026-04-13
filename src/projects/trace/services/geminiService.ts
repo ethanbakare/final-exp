@@ -183,12 +183,15 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
     config: {
       responseMimeType: "application/json",
       responseSchema: EXPENSE_SCHEMA,
-      thinkingConfig: { thinkingBudget: 0 }
+      // Raised from 0 to give Gemini reasoning capacity for multi-step
+      // currency detection (symbols → ISO codes → location context).
+      thinkingConfig: { thinkingBudget: 1024 }
     }
   });
 
   console.log('[GEMINI SERVICE] parseReceiptImage: Response received');
   const text = response.text || '{}';
+  console.log('[GEMINI SERVICE] parseReceiptImage: Raw textOutput from Gemini:', text);
   console.log('[GEMINI SERVICE] parseReceiptImage: Parsing JSON response');
   const parsed = JSON.parse(text);
 

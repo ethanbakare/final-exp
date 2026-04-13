@@ -62,6 +62,7 @@ export function groupEntriesByDay(entries: ExpenseEntry[]): any[] {
       date: formatDate(date), // Formatted for display (e.g., "27th Jan")
       dateOriginal: date, // Keep original ISO format for sorting (e.g., "2026-01-27")
       total: dayTotal.toFixed(2),
+      currency: dayEntries[0]?.currency || 'GBP',
       merchants,
     };
   });
