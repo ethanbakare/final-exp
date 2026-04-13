@@ -129,15 +129,8 @@ export default function DemoShowcasePage() {
         <meta name="description" content="Interactive demos of our projects" />
       </Head>
 
-      <div className="hero-banner">
-        <div className="hero-card">
-          {/* Background pattern — matches Figma "image 328" inside Demo-project */}
-          <img
-            src="/images/demo-showcase/demo-bg-pattern.webp"
-            alt=""
-            className="bg-pattern"
-            aria-hidden="true"
-          />
+      <div className="demo-banner">
+        <div className="demo-project">
           <ShowcaseNavbar
             projectName={project.name}
             currentIndex={currentIndex}
@@ -175,14 +168,14 @@ export default function DemoShowcasePage() {
       </div>
 
       <style jsx>{`
-        .hero-banner {
+        .demo-banner {
           display: flex;
           min-height: 100vh;
           flex-direction: column;
           align-items: center;
           backdrop-filter: blur(45px);
         }
-        .hero-card {
+        .demo-project {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
@@ -190,24 +183,16 @@ export default function DemoShowcasePage() {
           flex: 1;
           width: 100%;
           max-width: 1440px;
-          background: #FFF;
+          /* White base with pattern overlay. The pattern image is the
+             full-opacity export of Figma's "demo-bg-pattern" rectangle.
+             The white overlay at 97% opacity gives the same 3% pattern
+             visibility as Figma's 3% fill opacity. background-size: cover
+             ensures the pattern fills the full card at any viewport. */
+          background:
+            linear-gradient(rgba(255,255,255,0.97), rgba(255,255,255,0.97)),
+            url('/images/demo-showcase/demo-bg-pattern.webp') center / cover no-repeat;
           overflow: hidden;
           position: relative;
-        }
-        .hero-card > :global(.bg-pattern) {
-          position: absolute;
-          top: -32px;
-          left: -240px;
-          width: 1920px;
-          height: 1080px;
-          object-fit: cover;
-          opacity: 0.03;
-          pointer-events: none;
-          z-index: 0;
-        }
-        .hero-card > :global(*:not(.bg-pattern)) {
-          position: relative;
-          z-index: 1;
         }
         .demo-showcase {
           display: flex;
