@@ -372,7 +372,7 @@ export const SimSendAudioButton: React.FC<{ className?: string }> = ({ className
         width: 2px;
         border-radius: 1px;
         background: var(--trace-text-primary);
-        animation: sim-pulse 0.8s ease-in-out infinite alternate;
+        animation: sim-pulse 1.6s ease-in-out infinite alternate;
       }
       .sim-bar-0 { height: 8px; animation-delay: 0s; }
       .sim-bar-1 { height: 14px; animation-delay: 0.15s; }
