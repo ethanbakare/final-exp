@@ -233,11 +233,6 @@ export default function TracePage() {
         {/* Mic Permission Banner — reusable across any audio demo */}
         <MicPermissionBanner />
 
-        {/* Clear All Button - Fixed position top-right */}
-        <div className="clear-button-container">
-          <ClearButton onClick={handleClearAll} />
-        </div>
-
         {/* Wrapper container for TextBox with Navbar inside */}
         <div className="trace-container">
           {/* Error Toast — floats above TextBox */}
@@ -263,6 +258,11 @@ export default function TracePage() {
           />
         </div>
 
+        {/* Clear All Button - below the card */}
+        <div className="clear-button-below">
+          <ClearButton onClick={handleClearAll} />
+        </div>
+
         {/* Clear Expenses Modal */}
         <TraceModalOverlay
           isVisible={showClearModal}
@@ -282,15 +282,16 @@ export default function TracePage() {
           min-height: 100vh;
           background: var(--trace-bg-dark);
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
           padding: 20px;
+          gap: 16px;
         }
 
-        .clear-button-container {
-          position: absolute;
-          bottom: 20px;
-          right: 20px;
+        .clear-button-below {
+          display: flex;
+          justify-content: center;
           z-index: 10;
         }
 
