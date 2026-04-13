@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { ShowcaseNavbar } from '@/projects/demo-showcase/components/ui/ShowcaseNavbar';
+import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
 import { ShowcaseProgress } from '@/projects/demo-showcase/components/ui/ShowcaseProgress';
 import { ShowcaseIntro } from '@/projects/demo-showcase/components/ui/ShowcaseIntro';
@@ -152,7 +153,7 @@ export default function DemoShowcasePage() {
       <div className="demo-banner">
         <div className="demo-project">
           <div className="bg-pattern" aria-hidden="true" />
-          <ShowcaseNavbar
+          <ShowcaseNavbarCompact
             projectName={project.name}
             currentIndex={currentIndex}
             totalCount={PROJECTS.length}
