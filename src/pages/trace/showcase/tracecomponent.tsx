@@ -643,7 +643,7 @@ const TraceComponent: React.FC = () => {
             </ButtonGrid>
 
             <ButtonGrid label="TOTAL FRAME - £ (GBP) / € (EUR)" isDouble={true}>
-              <div style={{ display: 'flex', gap: '24px', alignItems: 'baseline' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px', alignItems: 'flex-end' }}>
                 <TotalFrame total="928.20" />
                 <TotalFrame total="928.20" currency="EUR" />
               </div>
@@ -654,14 +654,14 @@ const TraceComponent: React.FC = () => {
             </ButtonGrid>
 
             <ButtonGrid label="MERCHANT TOTAL - £ (GBP) / € (EUR)">
-              <div style={{ display: 'flex', gap: '24px', alignItems: 'baseline' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px', alignItems: 'flex-end' }}>
                 <MerchantTotalFrame total="628.21" />
                 <MerchantTotalFrame total="628.21" currency="EUR" />
               </div>
             </ButtonGrid>
 
             <ButtonGrid label="NET PRICE - £ (GBP) / € (EUR)">
-              <div style={{ display: 'flex', gap: '24px', alignItems: 'baseline' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px', alignItems: 'flex-end' }}>
                 <NetPriceFrame price="104.99" />
                 <NetPriceFrame price="104.99" currency="EUR" />
               </div>
@@ -676,7 +676,7 @@ const TraceComponent: React.FC = () => {
             </ButtonGrid>
 
             <ButtonGrid label="DISCOUNT - £ (GBP) / € (EUR)">
-              <div style={{ display: 'flex', gap: '24px', alignItems: 'baseline' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px', alignItems: 'flex-end' }}>
                 <DiscountFrame discount="3.99" />
                 <DiscountFrame discount="3.99" currency="EUR" />
               </div>
