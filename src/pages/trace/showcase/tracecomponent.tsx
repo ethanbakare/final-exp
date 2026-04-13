@@ -36,7 +36,7 @@ import {
   TextBox
 } from '@/projects/trace/components/ui/tracefinance';
 import { AnimatedMasterTotalPrice } from '@/projects/trace/components/ui/tracefinance-animated';
-import { EmptyTraceIcon, EmptyTraceIconAnimated, EmptyTraceIconToggleable } from '@/projects/trace/components/ui/traceIcons';
+import { EmptyTraceIcon, EmptyTraceIconCross, EmptyTraceIconAnimated, EmptyTraceIconToggleable } from '@/projects/trace/components/ui/traceIcons';
 import { TraceToast } from '@/projects/trace/components/ui/TraceToast';
 
 // Trace UI Component Showcase
@@ -505,6 +505,10 @@ const TraceComponent: React.FC = () => {
 
             <ButtonGrid label="EMPTY TRACE ICON - 48×48PX">
               <EmptyTraceIcon />
+            </ButtonGrid>
+
+            <ButtonGrid label="EMPTY TRACE ICON CROSS - 48×48PX">
+              <EmptyTraceIconCross />
             </ButtonGrid>
 
             <ButtonGrid label="EMPTY TRACE ICON ANIMATED - 48×48PX">

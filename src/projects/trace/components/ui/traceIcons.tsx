@@ -42,6 +42,37 @@ export const EmptyTraceIcon: React.FC<{ className?: string }> = ({
 };
 
 /* ============================================
+   EMPTY TRACE ICON CROSS — Receipt icon with X mark
+   (no receipt / clear state)
+   ============================================ */
+
+export const EmptyTraceIconCross: React.FC<{ className?: string }> = ({
+  className = '',
+}) => {
+  return (
+    <div className={`empty-icon ${className} ${styles.container}`}>
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="48" rx="8" fill="#292524"/>
+        <g transform="translate(12, 12)">
+          <path d="M5.13281 14.0899L5.13281 4.89966C5.13281 3.79509 6.02824 2.89966 7.13281 2.89966L17.1311 2.89966C18.2356 2.89966 19.131 3.795 19.1311 4.89951L19.1319 15.3308L19.1328 5.88462M5.13304 13.5859L5.1349 20.7568C5.13494 20.9101 5.30038 21.0063 5.43368 20.9306L8.55117 19.1598C8.61257 19.1249 8.68781 19.125 8.74913 19.16L12.0475 21.0436C12.1091 21.0787 12.1847 21.0786 12.2462 21.0434L15.5323 19.1604C15.5937 19.1252 15.6692 19.1251 15.7308 19.1602L18.8337 20.9297C18.9671 21.0057 19.1328 20.9094 19.1328 20.7559L19.1309 13.5859" stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M8.90241 7.81201L15.3633 14.2731M15.3634 7.81207L8.90234 14.273" stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round"/>
+        </g>
+      </svg>
+
+      <style jsx>{`
+        .empty-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+/* ============================================
    EMPTY TRACE ICON (ANIMATED) — Receipt icon with
    divider line moving up and down, cycling through:
    middle → top → middle → bottom → middle
