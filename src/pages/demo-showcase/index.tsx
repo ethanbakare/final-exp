@@ -1,20 +1,23 @@
 import React, { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
-import { useRouter } from 'next/router';
 import { ShowcaseNavbar } from '@/projects/demo-showcase/components/ui/ShowcaseNavbar';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
 import { ShowcaseProgress } from '@/projects/demo-showcase/components/ui/ShowcaseProgress';
 import { ShowcaseIntro } from '@/projects/demo-showcase/components/ui/ShowcaseIntro';
 import { ShowcaseSlot } from '@/projects/demo-showcase/components/ui/ShowcaseSlot';
 
-// Dynamic import to avoid SSR issues with AI tracker styles/components
+// Dynamic imports (SSR-unsafe components)
 const AIConfidenceSim = dynamic(
   () => import('@/projects/demo-showcase/components/simulations/AIConfidenceSim').then(m => m.AIConfidenceSim),
   { ssr: false }
 );
+const AIConfidenceDemo = dynamic(
+  () => import('@/projects/demo-showcase/components/demos/AIConfidenceDemo').then(m => m.AIConfidenceDemo),
+  { ssr: false }
+);
 
-// Timing constants (plain numbers, no SSR concern)
+// Timing constants
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
 
 // ─── Project Configuration ─────────────────────────────────
@@ -22,35 +25,30 @@ const PROJECTS = [
   {
     name: 'AI Confidence tracker',
     description: 'A grammar checker, but for how confident AI is in what it heard',
-    demoUrl: '/ai-confidence-tracker/simulation',
     caseStudyUrl: '#',
     placeholderColor: '#FEF3C7',
   },
   {
     name: 'Trace',
     description: 'Voice-powered finance journal. Know exactly what you spend.',
-    demoUrl: '/trace',
     caseStudyUrl: '#',
     placeholderColor: '#1C1917',
   },
   {
     name: 'Voice Interface',
     description: 'A voice-first conversational interface',
-    demoUrl: '/voiceinterface/carousel',
     caseStudyUrl: '#',
     placeholderColor: '#EDE9FE',
   },
   {
     name: 'ClipStream',
     description: 'Record, transcribe, and organise voice clips instantly',
-    demoUrl: '/clipperstream',
     caseStudyUrl: '#',
     placeholderColor: '#DBEAFE',
   },
 ];
 
 // ─── Placeholder Simulation ────────────────────────────────
-// Temporary colored box per project until real simulations are built
 const PlaceholderSim: React.FC<{ color: string; name: string }> = ({ color, name }) => (
   <div className="placeholder-sim">
     <span className="placeholder-label">{name} simulation</span>
@@ -76,34 +74,53 @@ const PlaceholderSim: React.FC<{ color: string; name: string }> = ({ color, name
 
 // ─── Main Page ─────────────────────────────────────────────
 export default function DemoShowcasePage() {
-  const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loopKey, setLoopKey] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   const project = PROJECTS[currentIndex];
 
   const handleNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % PROJECTS.length);
     setLoopKey((k) => k + 1);
+    setIsDemoMode(false); // always reset to simulation when switching projects
   }, []);
 
   const handlePrev = useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + PROJECTS.length) % PROJECTS.length);
     setLoopKey((k) => k + 1);
+    setIsDemoMode(false);
   }, []);
 
   const handleLoopRestart = useCallback(() => {
     setLoopKey((k) => k + 1);
   }, []);
 
-  const handleTryDemo = useCallback(() => {
-    router.push(project.demoUrl);
-  }, [router, project.demoUrl]);
+  const handleToggleDemo = useCallback(() => {
+    setIsDemoMode((prev) => !prev);
+    if (!isDemoMode) {
+      // Switching TO demo mode — reset loop key so sim restarts fresh when they switch back
+      setLoopKey((k) => k + 1);
+    }
+  }, [isDemoMode]);
 
   const handleViewCaseStudy = useCallback(() => {
-    router.push(project.caseStudyUrl);
-  }, [router, project.caseStudyUrl]);
+    window.location.href = project.caseStudyUrl;
+  }, [project.caseStudyUrl]);
+
+  // ── Render the right content in the slot ──────────────────
+  const renderSlotContent = () => {
+    if (isDemoMode) {
+      // Show the actual interactive demo for the current project
+      if (currentIndex === 0) return <AIConfidenceDemo key={`demo-${currentIndex}`} />;
+      // Other projects: placeholder for now
+      return <PlaceholderSim key={`demo-${currentIndex}`} color={project.placeholderColor} name={`${project.name} demo`} />;
+    }
+
+    // Simulation mode
+    if (currentIndex === 0) return <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
+    return <PlaceholderSim key={`sim-${currentIndex}`} color={project.placeholderColor} name={project.name} />;
+  };
 
   return (
     <>
@@ -123,30 +140,27 @@ export default function DemoShowcasePage() {
           />
 
           <div className="demo-showcase">
-            <ShowcaseIntro description={project.description} />
+            {/* Description + progress bar only show in simulation mode */}
+            {!isDemoMode && <ShowcaseIntro description={project.description} />}
 
             <ShowcaseSlot>
-              {currentIndex === 0 ? (
-                <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
-              ) : (
-                <PlaceholderSim
-                  key={currentIndex}
-                  color={project.placeholderColor}
-                  name={project.name}
-                />
-              )}
+              {renderSlotContent()}
             </ShowcaseSlot>
 
-            <ShowcaseProgress
-              duration={SIM_DURATION}
-              loopKey={loopKey}
-              isPaused={isPaused}
-            />
+            {!isDemoMode && (
+              <ShowcaseProgress
+                duration={SIM_DURATION}
+                loopKey={loopKey}
+              />
+            )}
           </div>
 
           <div className="cta-section">
             <div className="cta-buttons">
-              <TryDemoButton onClick={handleTryDemo} />
+              <TryDemoButton
+                onClick={handleToggleDemo}
+                label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
+              />
               <ViewCaseStudyButton onClick={handleViewCaseStudy} />
             </div>
           </div>

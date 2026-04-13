@@ -3,14 +3,15 @@ import styles from '@/projects/demo-showcase/styles/showcase.module.css';
 
 interface ButtonProps {
   onClick?: () => void;
+  label?: string;
 }
 
-export const TryDemoButton: React.FC<ButtonProps> = ({ onClick }) => (
+export const TryDemoButton: React.FC<ButtonProps> = ({ onClick, label = 'Try Demo' }) => (
   <button className={`try-demo-btn ${styles.OpenRunde500_16}`} onClick={onClick}>
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
       <path d="M6.5 4.5L15.5 10L6.5 15.5V4.5Z" fill="white" />
     </svg>
-    Try Demo
+    {label}
 
     <style jsx>{`
       .try-demo-btn {
