@@ -16,13 +16,13 @@ interface ShowcaseNavbarCompactProps {
 
 const ArrowDownIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-    <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="#5E5E5C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const ArrowUpIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-    <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="#5E5E5C" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -112,21 +112,21 @@ export const ShowcaseNavbarCompact: React.FC<ShowcaseNavbarCompactProps> = ({
       }
       .arrow-btn {
         display: flex;
-        height: 32px;
-        width: 32px;
+        height: 35px;
+        width: 40px;
         justify-content: center;
         align-items: center;
         border: none;
-        border-radius: 50%;
-        background: rgba(50, 51, 51, 0.10);
+        border-radius: 32px;
+        background: #525252;
         cursor: pointer;
         transition: background 0.15s ease;
       }
       .arrow-btn:hover {
-        background: rgba(50, 51, 51, 0.18);
+        background: #616161;
       }
       .arrow-btn:active {
-        background: rgba(50, 51, 51, 0.25);
+        background: #444;
       }
     `}</style>
   </div>
