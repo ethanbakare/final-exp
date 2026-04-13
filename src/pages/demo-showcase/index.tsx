@@ -143,7 +143,7 @@ export default function DemoShowcasePage() {
             {/* Description + progress bar only show in simulation mode */}
             {!isDemoMode && <ShowcaseIntro description={project.description} />}
 
-            <ShowcaseSlot>
+            <ShowcaseSlot autoHeight={isDemoMode}>
               {renderSlotContent()}
             </ShowcaseSlot>
 
@@ -207,7 +207,7 @@ export default function DemoShowcasePage() {
           max-width: 1160px;
           padding: 50px 116px 15px;
           flex-direction: column;
-          justify-content: center;
+          justify-content: flex-start;
           align-items: center;
           gap: 34px;
           flex: 1;
