@@ -169,9 +169,8 @@ export default function TraceSimulation() {
         }
         .sim-navbar-recording {
           display: flex;
-          justify-content: center;
+          justify-content: space-between;
           align-items: center;
-          gap: 8px;
           padding: 10px 12px;
           width: 100%;
         }
