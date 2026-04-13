@@ -163,7 +163,11 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
           If it IS a receipt/invoice/bill, extract structured data using these rules:
           - FALLBACK DATE: Use today's date: ${today} if not found.
           - MERCHANT: Try to identify the business name accurately.
-          - CURRENCY: Detect from symbols (£, $, €, etc). Defaults to GBP.
+          - CURRENCY: Return the ISO 4217 code. Detect using this priority:
+            1. Currency symbols on the receipt (£, $, €, ₦, ₹, ¥, ₩, ﷼, ฿, R, etc.)
+            2. ISO codes printed on the receipt (e.g. NGN, USD, EUR, GBP, JPY, KRW, SAR, INR, ZAR)
+            3. Location context — use the merchant address, city, or country on the receipt to infer currency (e.g. Lagos → NGN, California → USD, Dubai → AED, Tokyo → JPY)
+            If none of the above yield a result, default to GBP.
           - FORMATTING: Item names MUST start with a capital letter (e.g., "Coffee", "Milk").
           - ACCURACY: Ensure quantity * unit_price - discount = total_price.
           - Return ONLY valid JSON.`
@@ -250,7 +254,7 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
 
           If it DOES contain expense information, parse it into structured JSON using these rules:
           - DATE: Defaults to ${today}.
-          - CURRENCY: Defaults to GBP unless specified.
+          - CURRENCY: Return the ISO 4217 code. If the user mentions a currency (pounds, dollars, naira, euros, yen, etc.), use the matching code (GBP, USD, NGN, EUR, JPY, etc.). Defaults to GBP if no currency is mentioned.
           - ITEMS: Extract specific items and their prices.
           - FORMATTING: Item names MUST start with a capital letter (e.g., "Coffee", "Phone charger").
           - MULTIPLE ENTRIES: Return a list of entries under the "entries" key. Create ONE entry per unique (merchant, date) pair.
