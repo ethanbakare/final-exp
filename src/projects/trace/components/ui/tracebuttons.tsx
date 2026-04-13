@@ -337,9 +337,9 @@ export const SendAudioButton: React.FC<SendAudioButtonProps> = ({
 export const SimSendAudioButton: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`sim-send-audio-button ${className} ${styles.container}`}>
     <div className="sim-waveform">
-      {Array.from({ length: 7 }).map((_, i) => (
-        <span key={i} className={`sim-bar sim-bar-${i}`} />
-      ))}
+      <span className="sim-bar sim-bar-0" />
+      <span className="sim-bar sim-bar-1" />
+      <span className="sim-bar sim-bar-2" />
     </div>
     <span className="button-text">Send Audio</span>
 
@@ -364,23 +364,19 @@ export const SimSendAudioButton: React.FC<{ className?: string }> = ({ className
       .sim-waveform {
         display: flex;
         align-items: center;
-        gap: 2.5px;
-        height: 20px;
+        gap: 3px;
+        height: 18px;
       }
       .sim-bar {
         display: block;
-        width: 2.5px;
-        border-radius: 2px;
+        width: 2px;
+        border-radius: 1px;
         background: var(--trace-text-primary);
-        animation: sim-pulse 1.2s ease-in-out infinite;
+        animation: sim-pulse 0.8s ease-in-out infinite alternate;
       }
-      .sim-bar-0 { height: 6px; animation-delay: 0s; }
-      .sim-bar-1 { height: 10px; animation-delay: 0.1s; }
-      .sim-bar-2 { height: 16px; animation-delay: 0.2s; }
-      .sim-bar-3 { height: 20px; animation-delay: 0.3s; }
-      .sim-bar-4 { height: 16px; animation-delay: 0.4s; }
-      .sim-bar-5 { height: 10px; animation-delay: 0.5s; }
-      .sim-bar-6 { height: 6px; animation-delay: 0.6s; }
+      .sim-bar-0 { height: 8px; animation-delay: 0s; }
+      .sim-bar-1 { height: 14px; animation-delay: 0.15s; }
+      .sim-bar-2 { height: 8px; animation-delay: 0.3s; }
       @keyframes sim-pulse {
         0%, 100% { transform: scaleY(0.3); }
         50% { transform: scaleY(1); }
