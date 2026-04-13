@@ -126,18 +126,18 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
               <div className="sendaudio-content">
                 <TraceLiveWaveform
                   active={state === 'recording'}
-                  barWidth={2.5}
-                  barGap={2.5}
+                  barWidth={2.8}
+                  barGap={4}
                   barRadius={2}
                   barColor={TraceColors.textPrimary}
-                  barHeight={4}
+                  barHeight={5}
                   mode="static"
                   ambientWave={state === 'recording'}
-                  waveSpeed={4}
-                  waveAmplitude={0.9}
-                  waveHeight={3.5}
+                  waveSpeed={6}
+                  waveAmplitude={0.55}
+                  waveHeight={1.4}
                   height={24}
-                  style={{ width: '56px' }}
+                  style={{ width: '24px' }}
                 />
                 <span className="button-text">Send Audio</span>
               </div>
