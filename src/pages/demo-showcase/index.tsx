@@ -201,7 +201,7 @@ export default function DemoShowcasePage() {
           width: 1920px;
           height: 1080px;
           object-fit: cover;
-          opacity: 0.30;
+          opacity: 0.03;
           pointer-events: none;
           z-index: 0;
         }
