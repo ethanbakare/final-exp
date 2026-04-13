@@ -413,6 +413,18 @@ export const TraceLiveWaveform = ({
         const timeSinceLast = currentTime - lastUpdateRef.current
         const stepsToPush = Math.floor(timeSinceLast / updateRate)
 
+        if (!analyserRef.current && mode === "static") {
+          // No mic stream (e.g. simulation mode) — fill with baseline
+          // values so ambientWave has something to modulate visually.
+          const rect = canvas.getBoundingClientRect()
+          const barCountNoMic = Math.floor(rect.width / (barWidth + barGap))
+          if (staticBarsRef.current.length !== barCountNoMic) {
+            staticBarsRef.current = Array(barCountNoMic).fill(0.15)
+          }
+          lastUpdateRef.current = currentTime
+          needsRedrawRef.current = true
+        }
+
         if (analyserRef.current) {
           const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount)
           analyserRef.current.getByteFrequencyData(dataArray)
