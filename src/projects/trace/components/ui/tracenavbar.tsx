@@ -125,22 +125,29 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
 
               {/* SendAudio Waveform + Text - visible in recording */}
               <div className="sendaudio-content">
-                <TraceLiveWaveform
-                  active={state === 'recording'}
-                  simulateAudio={simulateAudio}
-                  barWidth={2.8}
-                  barGap={4}
-                  barRadius={2}
-                  barColor={TraceColors.textPrimary}
-                  barHeight={5}
-                  mode="static"
-                  ambientWave={state === 'recording'}
-                  waveSpeed={6}
-                  waveAmplitude={0.55}
-                  waveHeight={1.4}
-                  height={24}
-                  style={{ width: '24px' }}
-                />
+                {simulateAudio ? (
+                  <div className="sim-waveform-inline">
+                    <span className="sim-bar" style={{ animationDelay: '0s' }} />
+                    <span className="sim-bar" style={{ animationDelay: '0.15s' }} />
+                    <span className="sim-bar" style={{ animationDelay: '0.3s' }} />
+                  </div>
+                ) : (
+                  <TraceLiveWaveform
+                    active={state === 'recording'}
+                    barWidth={2.8}
+                    barGap={4}
+                    barRadius={2}
+                    barColor={TraceColors.textPrimary}
+                    barHeight={5}
+                    mode="static"
+                    ambientWave={state === 'recording'}
+                    waveSpeed={6}
+                    waveAmplitude={0.55}
+                    waveHeight={1.4}
+                    height={24}
+                    style={{ width: '24px' }}
+                  />
+                )}
                 <span className="button-text">Send Audio</span>
               </div>
 
@@ -685,6 +692,26 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
 
         .full-width.state-processing_image .right-button-tracker {
           width: 0;
+        }
+
+        /* Simulation waveform — CSS animated bars inside the Send Audio button */
+        .sim-waveform-inline {
+          display: flex;
+          align-items: center;
+          gap: 3px;
+          height: 18px;
+        }
+        .sim-waveform-inline .sim-bar {
+          display: block;
+          width: 2px;
+          border-radius: 1px;
+          background: var(--trace-text-primary);
+          height: 14px;
+          animation: sim-bar-pulse 1.6s ease-in-out infinite alternate;
+        }
+        @keyframes sim-bar-pulse {
+          0%, 100% { transform: scaleY(0.3); }
+          50% { transform: scaleY(1); }
         }
       `}</style>
     </div>
