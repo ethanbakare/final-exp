@@ -47,6 +47,12 @@ export type TraceLiveWaveformProps = HTMLAttributes<HTMLDivElement> & {
   onStreamEnd?: () => void
   // Callback to reset history (for parent to trigger)
   resetHistoryTrigger?: number
+  // Simulation mode: skip mic access, animate with fake data only.
+  // When true, the waveform never calls getUserMedia — it uses
+  // baseline values + ambientWave to produce visible animation.
+  // This prop ONLY affects simulation pages; the live demo page
+  // should never set this.
+  simulateAudio?: boolean
 }
 
 export const TraceLiveWaveform = ({
@@ -90,6 +96,7 @@ export const TraceLiveWaveform = ({
   onStreamReady,
   onStreamEnd,
   resetHistoryTrigger = 0,
+  simulateAudio = false,
   className,
   style,
   ...restProps
@@ -300,8 +307,9 @@ export const TraceLiveWaveform = ({
     }
   }, [processing, active, barWidth, barGap, mode])
 
-  // Handle microphone setup and teardown
+  // Handle microphone setup and teardown (skipped in simulation mode)
   useEffect(() => {
+    if (simulateAudio) return
     if (!active) {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop())
@@ -385,6 +393,7 @@ export const TraceLiveWaveform = ({
     }
   }, [
     active,
+    simulateAudio,
     deviceId,
     fftSize,
     smoothingTimeConstant,

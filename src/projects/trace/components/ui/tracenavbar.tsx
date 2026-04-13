@@ -31,6 +31,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
   onSendAudioClick,
   disabled = false,
   fullWidth = false,
+  simulateAudio = false,
   className = '',
 }) => {
   return (
@@ -126,6 +127,7 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
               <div className="sendaudio-content">
                 <TraceLiveWaveform
                   active={state === 'recording'}
+                  simulateAudio={simulateAudio}
                   barWidth={2.8}
                   barGap={4}
                   barRadius={2}
