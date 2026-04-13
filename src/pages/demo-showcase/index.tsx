@@ -224,11 +224,11 @@ export default function DemoShowcasePage() {
         .demo-showcase {
           display: flex;
           max-width: 1160px;
-          padding: 20px 116px 15px;
+          padding: 0 116px 15px;
           flex-direction: column;
-          justify-content: flex-start;
+          justify-content: center;
           align-items: center;
-          gap: 20px;
+          gap: 24px;
           flex: 1;
           align-self: stretch;
           margin: 0 auto;

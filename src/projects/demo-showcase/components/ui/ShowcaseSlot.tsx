@@ -16,7 +16,7 @@ export const ShowcaseSlot: React.FC<ShowcaseSlotProps> = ({ children, autoHeight
       .demo-content-group {
         display: flex;
         justify-content: center;
-        align-items: flex-start;
+        align-items: center;
         width: 620px;
         height: ${height}px;
       }

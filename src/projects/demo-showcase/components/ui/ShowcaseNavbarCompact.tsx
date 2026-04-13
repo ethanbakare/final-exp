@@ -108,7 +108,7 @@ export const ShowcaseNavbarCompact: React.FC<ShowcaseNavbarCompactProps> = ({
       .nav-arrows {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 2px;
       }
       .arrow-btn {
         display: flex;
