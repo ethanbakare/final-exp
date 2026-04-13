@@ -46,7 +46,7 @@ const MOCK_ENTRIES = [
 // ─── Timing (ms) ─────────────────────────────────────────────
 const PHASE_IDLE       = 1500;  // empty state, record button visible
 const PHASE_RECORDING  = 3000;  // waveform animating
-const PHASE_PROCESSING = 1500;  // "processing_audio" spinner
+const PHASE_PROCESSING = 2500;  // "processing_audio" spinner
 const PHASE_RESULTS    = 5000;  // entries visible with animations
 const PHASE_PAUSE      = 2000;  // hold before loop restarts
 
