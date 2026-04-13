@@ -223,18 +223,24 @@ export default function DemoShowcasePage() {
         .demo-showcase {
           display: flex;
           max-width: 1160px;
-          padding: 50px 116px 15px;
+          padding: 20px 116px 15px;
           flex-direction: column;
           justify-content: flex-start;
           align-items: center;
-          gap: 34px;
+          gap: 20px;
           flex: 1;
           align-self: stretch;
           margin: 0 auto;
         }
+        @media (max-width: 768px) {
+          .demo-showcase {
+            padding: 10px 16px 10px;
+            gap: 16px;
+          }
+        }
         .cta-section {
           display: flex;
-          padding: 40px 0;
+          padding: 20px 0;
           flex-direction: column;
           justify-content: center;
           align-items: center;
