@@ -2,14 +2,27 @@ import React from 'react';
 import styles from '@/projects/demo-showcase/styles/showcase.module.css';
 
 interface ShowcaseProgressProps {
-  progress: number; // 0 to 1
+  /** Total time the simulation takes to play through (ms), excluding pause */
+  duration: number;
+  /** Incremented each time the loop restarts — remounts the fill element to restart animation */
+  loopKey: number;
+  /** Whether the simulation is paused (e.g. user hovering) */
+  isPaused?: boolean;
 }
 
-export const ShowcaseProgress: React.FC<ShowcaseProgressProps> = ({ progress }) => (
+export const ShowcaseProgress: React.FC<ShowcaseProgressProps> = ({
+  duration,
+  loopKey,
+  isPaused = false,
+}) => (
   <div className="progress-section">
     <div className="progress-bar">
       <div className="progress-track">
-        <div className="progress-fill" style={{ width: `${Math.min(100, progress * 100)}%` }} />
+        <div
+          key={loopKey}
+          className={`progress-fill ${isPaused ? 'paused' : ''}`}
+          style={{ animationDuration: `${duration}ms` }}
+        />
       </div>
     </div>
     <span className={`progress-caption ${styles.OpenRunde500_12}`}>
@@ -46,9 +59,18 @@ export const ShowcaseProgress: React.FC<ShowcaseProgressProps> = ({ progress }) 
       }
       .progress-fill {
         height: 100%;
-        border-radius: 121px 0 0 121px;
+        width: 0%;
+        border-radius: 121px;
         background: rgba(38, 37, 36, 0.50);
-        transition: width 0.3s linear;
+        animation: sim-fill linear 1 forwards;
+        animation-play-state: running;
+      }
+      .progress-fill.paused {
+        animation-play-state: paused;
+      }
+      @keyframes sim-fill {
+        from { width: 0%; }
+        to { width: 100%; }
       }
       .progress-caption {
         color: rgba(28, 25, 23, 0.50);

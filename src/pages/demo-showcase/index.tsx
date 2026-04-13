@@ -14,6 +14,9 @@ const AIConfidenceSim = dynamic(
   { ssr: false }
 );
 
+// Timing constants (plain numbers, no SSR concern)
+import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
+
 // ─── Project Configuration ─────────────────────────────────
 const PROJECTS = [
   {
@@ -75,18 +78,23 @@ const PlaceholderSim: React.FC<{ color: string; name: string }> = ({ color, name
 export default function DemoShowcasePage() {
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loopProgress, setLoopProgress] = useState(0);
+  const [loopKey, setLoopKey] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   const project = PROJECTS[currentIndex];
 
   const handleNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % PROJECTS.length);
-    setLoopProgress(0);
+    setLoopKey((k) => k + 1);
   }, []);
 
   const handlePrev = useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + PROJECTS.length) % PROJECTS.length);
-    setLoopProgress(0);
+    setLoopKey((k) => k + 1);
+  }, []);
+
+  const handleLoopRestart = useCallback(() => {
+    setLoopKey((k) => k + 1);
   }, []);
 
   const handleTryDemo = useCallback(() => {
@@ -119,7 +127,7 @@ export default function DemoShowcasePage() {
 
             <ShowcaseSlot>
               {currentIndex === 0 ? (
-                <AIConfidenceSim key={currentIndex} onProgress={setLoopProgress} />
+                <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
               ) : (
                 <PlaceholderSim
                   key={currentIndex}
@@ -129,7 +137,11 @@ export default function DemoShowcasePage() {
               )}
             </ShowcaseSlot>
 
-            <ShowcaseProgress progress={loopProgress} />
+            <ShowcaseProgress
+              duration={SIM_DURATION}
+              loopKey={loopKey}
+              isPaused={isPaused}
+            />
           </div>
 
           <div className="cta-section">

@@ -31,11 +31,16 @@ const TOTAL_LOOP = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RE
 
 type SimState = 'initial' | 'recording' | 'processing' | 'results' | 'pause';
 
+// Simulation duration = everything BEFORE the 2s pause.
+// The progress bar fills over this duration, then holds at 100% during pause.
+export const SIM_DURATION = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS;
+export const SIM_HOLD_TIME = PHASE_PAUSE;
+
 interface AIConfidenceSimProps {
-  onProgress?: (progress: number) => void;
+  onLoopRestart?: () => void;
 }
 
-export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) => {
+export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onLoopRestart }) => {
   const [simState, setSimState] = useState<SimState>('initial');
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [activeWordId, setActiveWordId] = useState<number | null>(null);
@@ -45,7 +50,6 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) 
 
   const loopStartRef = useRef(Date.now());
   const elapsedBeforePauseRef = useRef(0);
-  const rafRef = useRef<number>(0);
   const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
   const isPausedRef = useRef(false);
 
@@ -89,6 +93,7 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) 
       setBadgeStates(new Map());
       setModelCopyActiveWordId(null);
       elapsedBeforePauseRef.current = 0;
+      onLoopRestart?.();
       scheduleFrom(0);
     });
   }, [clearTimers]);
@@ -96,10 +101,7 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) 
   // ── Start on mount ────────────────────────────────────────
   useEffect(() => {
     scheduleFrom(0);
-    return () => {
-      clearTimers();
-      cancelAnimationFrame(rafRef.current);
-    };
+    return () => clearTimers();
   }, [scheduleFrom, clearTimers]);
 
   // ── Hover pause/resume ────────────────────────────────────
@@ -107,37 +109,15 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onProgress }) 
   // can interact with badges. Resume from the same point on leave.
   useEffect(() => {
     if (isHovered && !isPausedRef.current) {
-      // Pause: save elapsed time and clear timers
       isPausedRef.current = true;
       const elapsed = Date.now() - loopStartRef.current;
       elapsedBeforePauseRef.current = elapsed;
       clearTimers();
-      cancelAnimationFrame(rafRef.current);
     } else if (!isHovered && isPausedRef.current) {
-      // Resume: reschedule from where we left off
       isPausedRef.current = false;
       scheduleFrom(elapsedBeforePauseRef.current);
     }
   }, [isHovered, clearTimers, scheduleFrom]);
-
-  // ── Progress reporting ────────────────────────────────────
-  useEffect(() => {
-    if (!onProgress) return;
-
-    const tick = () => {
-      if (isPausedRef.current) {
-        // While paused, report the frozen progress
-        onProgress(Math.min(1, elapsedBeforePauseRef.current / TOTAL_LOOP));
-      } else {
-        const elapsed = Date.now() - loopStartRef.current;
-        onProgress(Math.min(1, elapsed / TOTAL_LOOP));
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [onProgress]);
 
   // ── Interaction handlers ──────────────────────────────────
   const clearInteraction = useCallback(() => {
