@@ -126,6 +126,7 @@ export const TraceSim: React.FC<TraceSimProps> = ({ onLoopRestart }) => {
         .trace-sim-embed {
           width: 100%;
           max-width: 400px;
+          margin: 0 auto;
         }
         /* Reduce the TextBox height so it fits in the showcase slot
            without clipping. The native height is 500px + navbar;
