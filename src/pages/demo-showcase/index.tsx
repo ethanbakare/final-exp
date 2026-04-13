@@ -131,6 +131,7 @@ export default function DemoShowcasePage() {
 
       <div className="demo-banner">
         <div className="demo-project">
+          <div className="bg-pattern" aria-hidden="true" />
           <ShowcaseNavbar
             projectName={project.name}
             currentIndex={currentIndex}
@@ -183,16 +184,21 @@ export default function DemoShowcasePage() {
           flex: 1;
           width: 100%;
           max-width: 1440px;
-          /* White base with pattern overlay. The pattern image is the
-             full-opacity export of Figma's "demo-bg-pattern" rectangle.
-             The white overlay at 97% opacity gives the same 3% pattern
-             visibility as Figma's 3% fill opacity. background-size: cover
-             ensures the pattern fills the full card at any viewport. */
-          background:
-            linear-gradient(rgba(255,255,255,0.97), rgba(255,255,255,0.97)),
-            url('/images/demo-showcase/demo-bg-pattern.webp') center / cover no-repeat;
+          background: #FFF;
           overflow: hidden;
           position: relative;
+        }
+        .bg-pattern {
+          position: absolute;
+          inset: 0;
+          background: url('/images/demo-showcase/demo-bg-pattern.webp') center / cover no-repeat;
+          opacity: 0.03;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .demo-project > :global(*:not(.bg-pattern)) {
+          position: relative;
+          z-index: 1;
         }
         .demo-showcase {
           display: flex;
