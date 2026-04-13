@@ -330,6 +330,69 @@ export const SendAudioButton: React.FC<SendAudioButtonProps> = ({
 };
 
 
+/* ==================== SIM SEND AUDIO BUTTON ==================== */
+// Simulation variant — pure CSS animated bars, no mic access needed.
+// Used on simulation pages where we can't get a real audio stream.
+
+export const SimSendAudioButton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`sim-send-audio-button ${className} ${styles.container}`}>
+    <div className="sim-waveform">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <span key={i} className={`sim-bar sim-bar-${i}`} />
+      ))}
+    </div>
+    <span className="button-text">Send Audio</span>
+
+    <style jsx>{`
+      .sim-send-audio-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--trace-spacing-sm);
+        height: var(--trace-button-height);
+        padding: 0 var(--trace-spacing-xl);
+        background: var(--trace-btn-orange);
+        border: var(--trace-button-stroke) solid transparent;
+        border-radius: var(--trace-button-radius);
+        font-family: var(--trace-font-family);
+        font-size: var(--trace-fs-button);
+        font-weight: var(--trace-fw-medium);
+        line-height: var(--trace-lh-button);
+        color: var(--trace-text-primary);
+        user-select: none;
+      }
+      .sim-waveform {
+        display: flex;
+        align-items: center;
+        gap: 2.5px;
+        height: 20px;
+      }
+      .sim-bar {
+        display: block;
+        width: 2.5px;
+        border-radius: 2px;
+        background: var(--trace-text-primary);
+        animation: sim-pulse 1.2s ease-in-out infinite;
+      }
+      .sim-bar-0 { height: 6px; animation-delay: 0s; }
+      .sim-bar-1 { height: 10px; animation-delay: 0.1s; }
+      .sim-bar-2 { height: 16px; animation-delay: 0.2s; }
+      .sim-bar-3 { height: 20px; animation-delay: 0.3s; }
+      .sim-bar-4 { height: 16px; animation-delay: 0.4s; }
+      .sim-bar-5 { height: 10px; animation-delay: 0.5s; }
+      .sim-bar-6 { height: 6px; animation-delay: 0.6s; }
+      @keyframes sim-pulse {
+        0%, 100% { transform: scaleY(0.3); }
+        50% { transform: scaleY(1); }
+      }
+      .button-text {
+        white-space: nowrap;
+      }
+    `}</style>
+  </div>
+);
+
+
 /* ==================== PROCESSING AUDIO BUTTON ==================== */
 // 301×44px, stone-400 background, loader + text (non-interactive)
 

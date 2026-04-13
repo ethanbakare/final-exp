@@ -6,6 +6,7 @@ import {
   CloseButton,
   ClearButton,
   SendAudioButton,
+  SimSendAudioButton,
   ProcessingAudioButton,
   ProcessingImageButton,
   OldSpinnerReference
@@ -519,6 +520,10 @@ const TraceComponent: React.FC = () => {
                 onClick={() => console.log('Send Audio clicked')}
                 isRecording={isSendAudioRecording}
               />
+            </ButtonGrid>
+
+            <ButtonGrid label="SIM SEND AUDIO - CSS WAVEFORM (NO MIC)">
+              <SimSendAudioButton />
             </ButtonGrid>
 
             <ButtonGrid
