@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import styles from '@/projects/trace/styles/trace.module.css';
 
 // Trace Icons & Empty State Components
@@ -147,6 +147,144 @@ export const EmptyTraceIconAnimated: React.FC<{ className?: string }> = ({
             values={`${DIV_UP};${DIV_DOWN};${DIV_UP}`}
             dur={LOOP_DURATION}
             begin="0.6s"
+            repeatCount="indefinite"
+            calcMode="spline"
+            keyTimes={LOOP_KEY_TIMES}
+            keySplines={LOOP_KEY_SPLINES}
+          />
+        </path>
+      </svg>
+
+      <style jsx>{`
+        .empty-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+/* ============================================
+   EMPTY TRACE ICON (TOGGLEABLE) — Same animation as
+   EmptyTraceIconAnimated but uses begin="indefinite"
+   so the warmup plays visibly on mount. When active
+   becomes false, animations stop and the icon returns
+   to the static resting position.
+   ============================================ */
+
+export const EmptyTraceIconToggleable: React.FC<{
+  active: boolean;
+  className?: string;
+}> = ({ active, className = '' }) => {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const warmups = svgRef.current.querySelectorAll('.warmup-anim');
+    const loops = svgRef.current.querySelectorAll('.loop-anim');
+
+    if (active) {
+      // Restart warmups from scratch
+      warmups.forEach((el) => {
+        (el as SVGAnimateElement).beginElement();
+      });
+      // Loops start after warmup duration (0.6s)
+      setTimeout(() => {
+        loops.forEach((el) => {
+          (el as SVGAnimateElement).beginElement();
+        });
+      }, 600);
+    } else {
+      // Stop all animations — paths revert to their initial `d` attribute
+      warmups.forEach((el) => {
+        (el as SVGAnimateElement).endElement();
+      });
+      loops.forEach((el) => {
+        (el as SVGAnimateElement).endElement();
+      });
+    }
+  }, [active]);
+
+  return (
+    <div className={`empty-icon ${className} ${styles.container}`}>
+      <svg ref={svgRef} width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="48" rx="8" fill="#292524"/>
+
+        {/* Top shape */}
+        <path stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" d={TOP_MIDDLE}>
+          <animate
+            className="warmup-anim"
+            attributeName="d"
+            values={`${TOP_MIDDLE};${TOP_UP}`}
+            dur={WARMUP_DURATION}
+            begin="indefinite"
+            fill="freeze"
+            calcMode="spline"
+            keyTimes="0;1"
+            keySplines={EASE_SPLINE}
+          />
+          <animate
+            className="loop-anim"
+            attributeName="d"
+            values={`${TOP_UP};${TOP_DOWN};${TOP_UP}`}
+            dur={LOOP_DURATION}
+            begin="indefinite"
+            repeatCount="indefinite"
+            calcMode="spline"
+            keyTimes={LOOP_KEY_TIMES}
+            keySplines={LOOP_KEY_SPLINES}
+          />
+        </path>
+
+        {/* Bottom shape */}
+        <path stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" d={BTM_MIDDLE}>
+          <animate
+            className="warmup-anim"
+            attributeName="d"
+            values={`${BTM_MIDDLE};${BTM_UP}`}
+            dur={WARMUP_DURATION}
+            begin="indefinite"
+            fill="freeze"
+            calcMode="spline"
+            keyTimes="0;1"
+            keySplines={EASE_SPLINE}
+          />
+          <animate
+            className="loop-anim"
+            attributeName="d"
+            values={`${BTM_UP};${BTM_DOWN};${BTM_UP}`}
+            dur={LOOP_DURATION}
+            begin="indefinite"
+            repeatCount="indefinite"
+            calcMode="spline"
+            keyTimes={LOOP_KEY_TIMES}
+            keySplines={LOOP_KEY_SPLINES}
+          />
+        </path>
+
+        {/* Divider line */}
+        <path stroke="white" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" d={DIV_MIDDLE}>
+          <animate
+            className="warmup-anim"
+            attributeName="d"
+            values={`${DIV_MIDDLE};${DIV_UP}`}
+            dur={WARMUP_DURATION}
+            begin="indefinite"
+            fill="freeze"
+            calcMode="spline"
+            keyTimes="0;1"
+            keySplines={EASE_SPLINE}
+          />
+          <animate
+            className="loop-anim"
+            attributeName="d"
+            values={`${DIV_UP};${DIV_DOWN};${DIV_UP}`}
+            dur={LOOP_DURATION}
+            begin="indefinite"
             repeatCount="indefinite"
             calcMode="spline"
             keyTimes={LOOP_KEY_TIMES}

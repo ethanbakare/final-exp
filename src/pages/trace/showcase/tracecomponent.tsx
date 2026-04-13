@@ -36,7 +36,7 @@ import {
   TextBox
 } from '@/projects/trace/components/ui/tracefinance';
 import { AnimatedMasterTotalPrice } from '@/projects/trace/components/ui/tracefinance-animated';
-import { EmptyTraceIcon, EmptyTraceIconAnimated } from '@/projects/trace/components/ui/traceIcons';
+import { EmptyTraceIcon, EmptyTraceIconAnimated, EmptyTraceIconToggleable } from '@/projects/trace/components/ui/traceIcons';
 import { TraceToast } from '@/projects/trace/components/ui/TraceToast';
 
 // Trace UI Component Showcase
@@ -203,6 +203,7 @@ const TraceComponent: React.FC = () => {
 
   // AnimatedMasterTotalPrice toggle — flips between "0.00" and "120.25"
   const [masterTotalToggle, setMasterTotalToggle] = useState(false);
+  const [isIconAnimating, setIsIconAnimating] = useState(false);
 
   // Navbar state control (for demonstration)
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
@@ -508,6 +509,15 @@ const TraceComponent: React.FC = () => {
 
             <ButtonGrid label="EMPTY TRACE ICON ANIMATED - 48×48PX">
               <EmptyTraceIconAnimated />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="EMPTY TRACE ICON TOGGLEABLE (SMIL FIX)"
+              showToggle={true}
+              toggleState={isIconAnimating}
+              onToggle={() => setIsIconAnimating(!isIconAnimating)}
+            >
+              <EmptyTraceIconToggleable active={isIconAnimating} />
             </ButtonGrid>
 
             <ButtonGrid
