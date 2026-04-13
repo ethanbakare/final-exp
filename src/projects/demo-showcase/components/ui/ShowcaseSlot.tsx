@@ -4,9 +4,11 @@ interface ShowcaseSlotProps {
   children: React.ReactNode;
   /** When true (demo mode), the slot grows to fit content instead of using a fixed height */
   autoHeight?: boolean;
+  /** Per-project slot height in px. Each simulation specifies how tall it needs. */
+  height?: number;
 }
 
-export const ShowcaseSlot: React.FC<ShowcaseSlotProps> = ({ children, autoHeight = false }) => (
+export const ShowcaseSlot: React.FC<ShowcaseSlotProps> = ({ children, autoHeight = false, height = 400 }) => (
   <div className={`demo-content-group ${autoHeight ? 'auto-height' : ''}`}>
     {children}
 
@@ -16,9 +18,7 @@ export const ShowcaseSlot: React.FC<ShowcaseSlotProps> = ({ children, autoHeight
         justify-content: center;
         align-items: flex-start;
         width: 620px;
-        /* Fixed height in simulation mode reserves space for expanding
-           drawers so nothing below shifts when they open */
-        height: 400px;
+        height: ${height}px;
       }
       .demo-content-group.auto-height {
         height: auto;
@@ -26,7 +26,6 @@ export const ShowcaseSlot: React.FC<ShowcaseSlotProps> = ({ children, autoHeight
       @media (max-width: 768px) {
         .demo-content-group {
           width: 100%;
-          height: 360px;
         }
         .demo-content-group.auto-height {
           height: auto;

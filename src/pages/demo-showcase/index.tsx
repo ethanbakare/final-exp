@@ -36,24 +36,28 @@ const PROJECTS = [
     description: 'A grammar checker, but for how confident AI is in what it heard',
     caseStudyUrl: '#',
     placeholderColor: '#FEF3C7',
+    slotHeight: 400,
   },
   {
     name: 'Trace',
     description: 'Voice-powered finance journal. Know exactly what you spend.',
     caseStudyUrl: '#',
     placeholderColor: '#1C1917',
+    slotHeight: 500,
   },
   {
     name: 'Voice Interface',
     description: 'A voice-first conversational interface',
     caseStudyUrl: '#',
     placeholderColor: '#EDE9FE',
+    slotHeight: 400,
   },
   {
     name: 'ClipStream',
     description: 'Record, transcribe, and organise voice clips instantly',
     caseStudyUrl: '#',
     placeholderColor: '#DBEAFE',
+    slotHeight: 400,
   },
 ];
 
@@ -160,7 +164,7 @@ export default function DemoShowcasePage() {
             {/* Description + progress bar only show in simulation mode */}
             {!isDemoMode && <ShowcaseIntro description={project.description} />}
 
-            <ShowcaseSlot autoHeight={isDemoMode}>
+            <ShowcaseSlot autoHeight={isDemoMode} height={project.slotHeight}>
               {renderSlotContent()}
             </ShowcaseSlot>
 
