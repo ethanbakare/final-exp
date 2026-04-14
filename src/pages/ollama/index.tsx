@@ -16,6 +16,10 @@ export default function OllamaPage() {
     ollamaEnlightenment: { src: '/images/ollama/cs-ollama-enlightenment.webp', alt: 'Ollama enlightenment illustration' },
     gpuRich: { src: '/images/ollama/cs-gpu-rich.webp', alt: 'GPU Rich illustration' },
     letHimCook: { src: '/images/ollama/cs-let-him-cook.webp', alt: 'Let him cook illustration' },
+    conclusionImageA: { src: '/images/ollama/cs-conclusion-image-a.webp', alt: 'Twitter DM from Ollama team, part 1' },
+    conclusionImageB: { src: '/images/ollama/cs-conclusion-image-b.webp', alt: 'Twitter DM from Ollama team, part 2' },
+    conclusionImageAMobile: { src: '/images/ollama/cs-conclusion-image-a-mobile.webp', alt: 'Twitter DM from Ollama team, part 1 (mobile)' },
+    conclusionImageBMobile: { src: '/images/ollama/cs-conclusion-image-b-mobile.webp', alt: 'Twitter DM from Ollama team, part 2 (mobile)' },
   };
 
   return <OllamaLayout images={images} />;
