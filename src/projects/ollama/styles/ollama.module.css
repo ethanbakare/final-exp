@@ -799,6 +799,8 @@
   align-items: center;
   gap: 65px;
   max-width: 700px;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .ollama-conclusion-title {
@@ -1511,6 +1513,7 @@
 
   .ollama-conclusion-header {
     gap: 36px;
+    padding: 0 20px;
   }
 
   .ollama-conclusion-title {
