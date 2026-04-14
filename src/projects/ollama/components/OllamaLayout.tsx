@@ -56,8 +56,8 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
             <div className={styles['ollama-description-wrapper']}>
               <p className={styles['ollama-hero-description']}>
                 Ollama lets you run open-source LLMs locally. This project? It&apos;s a personal
-                exploration of how its mascot and visual identity system narrates the product
-                — and the community values built around it.
+                exploration of how its mascot and visual identity system narrates the product,
+                and the community values built around it.
               </p>
               <div className={styles['ollama-stats-row']}>
                 <div className={styles['ollama-stat']}>
@@ -99,7 +99,7 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
           <div className={styles['ollama-approach-text']}>
             <p className={styles['ollama-approach-title']}>Approach</p>
             <p className={styles['ollama-approach-body']}>
-              Audited how Ollama&apos;s brand showed up across touchpoints — live events,
+              Audited how Ollama&apos;s brand showed up across touchpoints: live events,
               social media, website, email, and partnerships. Three things stood out:
             </p>
             <ol className={styles['ollama-approach-list']}>
@@ -201,7 +201,7 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
             ))}
           </div>
           <p className={styles['ollama-charbible-description']}>
-            The character bible is the source of truth — setting the standard for how expressive,
+            The character bible is the source of truth, setting the standard for how expressive,
             emotive, and charged future illustrations should feel. Each expression lands without
             explanation, instantly understood and emotionally resonant in the way only the best
             memes are.
@@ -258,7 +258,7 @@ export const OllamaLayout: React.FC<OllamaLayoutProps> = ({ images }) => {
             />
           </div>
           <p className={styles['ollama-announcements-description']}>
-            A repeatable template for every new model — swap the name, the artwork,
+            A repeatable template for every new model. Swap the name, the artwork,
             the pose. The system scales, the brand stays consistent.
           </p>
         </div>

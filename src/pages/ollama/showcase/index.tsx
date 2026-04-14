@@ -125,7 +125,7 @@ export default function OllamaComponentsPage() {
             </div>
           </div>
           <p className={styles['ollama-components-desc']}>
-            All mascot expressions — each is an atomic unit deployed across posters, announcements, and social content.
+            All mascot expressions. Each is an atomic unit deployed across posters, announcements, and social content.
           </p>
           <div className={styles['ollama-expression-grid']}>
             {expressions.map((expr) => (
