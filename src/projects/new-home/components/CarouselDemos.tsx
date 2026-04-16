@@ -4,7 +4,7 @@ import styles from '../styles/new-home.module.css';
 import DemoCard from './DemoCard';
 
 const PreviewOllama = dynamic(() => import('./previews/PreviewOllama'), { ssr: false });
-const PreviewTrace = dynamic(() => import('./previews/PreviewTraceAnimated'), { ssr: false });
+const PreviewTrace = dynamic(() => import('./previews/PreviewTrace'), { ssr: false });
 const PreviewAIConfidence = dynamic(() => import('./previews/PreviewAIConfidence'), { ssr: false });
 const PreviewClipstream = dynamic(() => import('./previews/PreviewClipstream'), { ssr: false });
 
