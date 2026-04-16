@@ -84,7 +84,8 @@ export const LoopingBlob: React.FC<LoopingBlobProps> = ({
 
     const pulseCycleMs = states.thinking.thickenSpeed * 2 * 1000;
     const thinkingDuration = pulseCycleMs * Math.round(PHASE_THINKING / pulseCycleMs);
-    const morphDurationMs = states.thinking.thickenSpeed * 1.2 * 1000;
+    // Morph speed: 1.08x thickenSpeed (10% faster than previous 1.2x)
+    const morphDurationMs = states.thinking.thickenSpeed * 1.08 * 1000;
 
     let t = 0;
 
@@ -209,7 +210,7 @@ export const LoopingBlob: React.FC<LoopingBlobProps> = ({
   }, [voiceState, base.thinRadius, base.thickRadius, states.thinking.thickenSpeed]);
 
   const goal = voiceState === 'talking' ? 0 : 1;
-  const morphSpeed = states.thinking.thickenSpeed * 1.2;
+  const morphSpeed = states.thinking.thickenSpeed * 1.08;
   const stateSettings = states[voiceState];
   const effectiveTorusRadius = pulseRadius ?? base.thinRadius;
 
