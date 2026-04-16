@@ -10,7 +10,6 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { AnimatePresence, motion } from 'framer-motion';
 import CoralStoneMorph from '@/projects/blob-orb/variants/CoralStoneMorph';
 import type { AudioData } from '@/projects/voiceinterface/types';
 import {
@@ -188,23 +187,13 @@ export const LoopingBlob: React.FC<LoopingBlobProps> = ({
 
       {showLabel && (
         <div className="state-label-wrap" style={{ marginTop: -labelOffset }}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={voiceState}
-              className="state-label"
-              style={{ fontSize: labelFontSize }}
-              initial={{ opacity: 0, filter: 'blur(2px)' }}
-              animate={{ opacity: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, filter: 'blur(2px)' }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-            >
-              {voiceState === 'listening' || voiceState === 'thinking' ? (
-                <em>{BLOB_STATE_LABELS[voiceState]}</em>
-              ) : (
-                BLOB_STATE_LABELS[voiceState]
-              )}
-            </motion.div>
-          </AnimatePresence>
+          <div key={voiceState} className="state-label" style={{ fontSize: labelFontSize }}>
+            {voiceState === 'listening' || voiceState === 'thinking' ? (
+              <em>{BLOB_STATE_LABELS[voiceState]}</em>
+            ) : (
+              BLOB_STATE_LABELS[voiceState]
+            )}
+          </div>
         </div>
       )}
 

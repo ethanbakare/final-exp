@@ -51,7 +51,7 @@ const PreviewVoiceAnimated: React.FC = () => {
            that amount so the blob-plus-state-label group is visually
            centered in the remaining space above the card label. */
         .preview-voice :global(.looping-blob) {
-          transform: translateY(-16px);
+          transform: translateY(-26px);
         }
       `}</style>
     </div>
