@@ -28,6 +28,8 @@ interface BlobStateCellProps {
   state: BlobVoiceState;
   base: BlobBaseSettings;
   settings: BlobStateSettings;
+  isActive: boolean;
+  onSelect: () => void;
   onSettingsChange: (settings: BlobStateSettings) => void;
 }
 
@@ -35,21 +37,24 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
   state,
   base,
   settings,
+  isActive,
+  onSelect,
   onSettingsChange,
 }) => {
-  const [expanded, setExpanded] = useState(false);
   const [audioData, setAudioData] = useState<AudioData>(ZERO_AUDIO);
   const [thinkingGoal, setThinkingGoal] = useState(0);
   const rafRef = useRef<number>(0);
   const startTimeRef = useRef(Date.now());
 
-  // Audio simulation loop
+  // Audio simulation loop — only runs when cell is active
   useEffect(() => {
-    if (state === 'idle' || state === 'thinking') {
+    if (!isActive || state === 'idle' || state === 'thinking') {
       setAudioData(ZERO_AUDIO);
+      cancelAnimationFrame(rafRef.current);
       return;
     }
 
+    startTimeRef.current = Date.now();
     const animate = () => {
       const elapsed = Date.now() - startTimeRef.current;
       if (state === 'talking') {
@@ -61,11 +66,11 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
     };
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [state]);
+  }, [state, isActive]);
 
-  // Thinking goal pulsing
+  // Thinking goal pulsing — only when active
   useEffect(() => {
-    if (state !== 'thinking') {
+    if (!isActive || state !== 'thinking') {
       setThinkingGoal(0);
       return;
     }
@@ -73,7 +78,7 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
     const ms = settings.thickenSpeed * 1000;
     const id = setInterval(() => setThinkingGoal((p) => (p === 0 ? 1 : 0)), ms);
     return () => clearInterval(id);
-  }, [state, settings.thickenSpeed]);
+  }, [state, isActive, settings.thickenSpeed]);
 
   const handleChange = useCallback(
     (key: keyof BlobStateSettings, value: number) => {
@@ -86,14 +91,14 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
   const goal = state === 'thinking' ? thinkingGoal : state === 'talking' ? 0 : 0;
 
   return (
-    <div className="blob-state-cell">
+    <div className={`blob-state-cell ${isActive ? 'active' : ''}`} onClick={onSelect}>
       {/* Canvas */}
       <div className="cell-canvas" style={{ width: CELL_SIZE, height: CELL_SIZE }}>
         <Canvas
           camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
           dpr={[1, 1.5]}
           gl={{ antialias: true }}
-          frameloop="always"
+          frameloop={isActive ? 'always' : 'demand'}
           style={{ position: 'absolute', inset: 0 }}
         >
           <color attach="background" args={[base.bgColor]} />
@@ -131,96 +136,41 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
         </Canvas>
       </div>
 
-      {/* Label */}
-      <div className="cell-label">{BLOB_STATE_LABELS[state]}</div>
-
-      {/* Expand/collapse controls */}
-      <button className="cell-toggle" onClick={() => setExpanded((e) => !e)}>
-        {expanded ? '▲ Hide Controls' : '▼ Controls'}
-      </button>
-
-      {/* Sliders */}
-      {expanded && (
-        <div className="cell-controls">
-          <SliderRow
-            label="Wave Intensity"
-            value={settings.waveIntensity}
-            min={0.02}
-            max={0.5}
-            step={0.01}
-            onChange={(v) => handleChange('waveIntensity', v)}
-          />
-          <SliderRow
-            label="Breath Amp"
-            value={settings.breathAmp}
-            min={0}
-            max={0.1}
-            step={0.005}
-            onChange={(v) => handleChange('breathAmp', v)}
-          />
-          <SliderRow
-            label="Idle Amp"
-            value={settings.idleAmp}
-            min={0}
-            max={0.1}
-            step={0.005}
-            onChange={(v) => handleChange('idleAmp', v)}
-          />
-          <SliderRow
-            label={state === 'thinking' ? 'Pulse Speed (s)' : state === 'talking' ? 'Morph Speed (s)' : 'Thicken Speed (s)'}
-            value={settings.thickenSpeed}
-            min={0.3}
-            max={4.0}
-            step={0.1}
-            onChange={(v) => handleChange('thickenSpeed', v)}
-          />
-        </div>
-      )}
+      {/* Label — italic Inter, directly under blob */}
+      <div className="cell-label">
+        <em>{BLOB_STATE_LABELS[state]}</em>
+      </div>
 
       <style jsx>{`
         .blob-state-cell {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
+          cursor: pointer;
+          transition: opacity 0.15s ease;
+        }
+        .blob-state-cell:not(.active) {
+          opacity: 0.6;
+        }
+        .blob-state-cell.active {
+          opacity: 1;
         }
         .cell-canvas {
           position: relative;
           border-radius: 12px;
           overflow: hidden;
           border: 1px solid rgba(0, 0, 0, 0.08);
+          transition: border-color 0.15s ease;
+        }
+        .blob-state-cell.active .cell-canvas {
+          border-color: rgba(0, 0, 0, 0.15);
         }
         .cell-label {
-          font-family: 'Open Runde', 'Inter', sans-serif;
-          font-size: 16px;
-          font-weight: 600;
-          color: #262424;
-        }
-        .cell-toggle {
-          font-family: 'Open Runde', 'Inter', sans-serif;
-          font-size: 12px;
-          font-weight: 500;
-          color: rgba(38, 36, 36, 0.4);
-          background: none;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          border-radius: 6px;
-          padding: 4px 12px;
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-        .cell-toggle:hover {
-          color: rgba(38, 36, 36, 0.6);
-          border-color: rgba(0, 0, 0, 0.2);
-        }
-        .cell-controls {
-          width: ${CELL_SIZE}px;
-          padding: 12px 16px;
-          background: rgba(0, 0, 0, 0.02);
-          border: 1px solid rgba(0, 0, 0, 0.06);
-          border-radius: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
+          font-family: 'Inter', sans-serif;
+          font-size: 15px;
+          font-weight: 400;
+          color: rgba(38, 36, 36, 0.35);
         }
       `}</style>
     </div>

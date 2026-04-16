@@ -50,28 +50,32 @@ export const WHIMSY_BASE: BlobBaseSettings = {
 };
 
 export const DEFAULT_STATE_SETTINGS: Record<BlobVoiceState, BlobStateSettings> = {
+  // Idle = Whimsy's actual default values (source of truth)
   idle: {
-    waveIntensity: 0.08,
-    breathAmp: 0.015,
-    idleAmp: 0.01,
+    waveIntensity: 0.18,
+    breathAmp: 0.03,
+    idleAmp: 0.02,
     thickenSpeed: 1.2,
   },
+  // Listening = same as idle but receives simulated audio
   listening: {
     waveIntensity: 0.18,
     breathAmp: 0.03,
     idleAmp: 0.02,
     thickenSpeed: 1.2,
   },
+  // Thinking = slightly reduced motion, goal pulses thick/thin
   thinking: {
-    waveIntensity: 0.06,
+    waveIntensity: 0.15,
     breathAmp: 0.02,
     idleAmp: 0.01,
     thickenSpeed: 1.2, // Speed of thick/thin oscillation
   },
+  // Talking = moderate reaction to simulated audio (not extreme)
   talking: {
-    waveIntensity: 0.25,
-    breathAmp: 0.04,
-    idleAmp: 0.03,
+    waveIntensity: 0.20,
+    breathAmp: 0.03,
+    idleAmp: 0.02,
     thickenSpeed: 0.5, // morphSpeed — torus→sphere transition
   },
 };

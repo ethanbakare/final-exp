@@ -89,13 +89,15 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
 
     // Talking
     t += PHASE_TALKING;
-    // Morph sphere → torus
+    // Morph sphere → torus (smooth transition back)
     at(t, () => setInternalState('morph_to_torus'));
     t += MORPH_DURATION;
-    at(t, () => setInternalState('pause'));
+    // Land back in idle (torus resting state) — seamless loop
+    at(t, () => setInternalState('idle'));
 
-    // Pause
-    t += PHASE_PAUSE;
+    // Idle hold before next cycle
+    t += PHASE_IDLE;
+    // Restart the full loop
     at(t, () => startLoop());
   }, [clearTimers]);
 
@@ -184,7 +186,7 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
       </div>
 
       <div className="demo-canvas-wrapper">
-        <div className="demo-canvas" style={{ width: 500, height: 500 }}>
+        <div className="demo-canvas" style={{ width: 500, height: 600 }}>
           <Canvas
             camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
             dpr={[1, 1.5]}
@@ -227,12 +229,10 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           </Canvas>
         </div>
 
-        {/* State label */}
-        {displayState && (
-          <div className="demo-label" key={displayState}>
-            {BLOB_STATE_LABELS[displayState]}
-          </div>
-        )}
+        {/* State label — italic Inter, directly under blob */}
+        <div className="demo-label" key={displayState || 'none'}>
+          {displayState ? <em>{BLOB_STATE_LABELS[displayState]}</em> : '\u00A0'}
+        </div>
       </div>
 
       <style jsx>{`
@@ -256,7 +256,7 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           margin: 0;
         }
         .play-pause {
-          font-family: 'Open Runde', 'Inter', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 14px;
           font-weight: 500;
           color: #262424;
@@ -275,7 +275,7 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 12px;
+          gap: 8px;
         }
         .demo-canvas {
           position: relative;
@@ -284,10 +284,11 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           border: 1px solid rgba(0, 0, 0, 0.08);
         }
         .demo-label {
-          font-family: 'Open Runde', 'Inter', sans-serif;
-          font-size: 18px;
-          font-weight: 500;
+          font-family: 'Inter', sans-serif;
+          font-size: 16px;
+          font-weight: 400;
           color: rgba(38, 36, 36, 0.3);
+          min-height: 24px;
           animation: fadeIn 150ms ease-out;
         }
         @keyframes fadeIn {
