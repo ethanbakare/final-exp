@@ -83,7 +83,10 @@ export const LoopingBlob: React.FC<LoopingBlobProps> = ({
     };
 
     const pulseCycleMs = states.thinking.thickenSpeed * 2 * 1000;
-    const thinkingDuration = pulseCycleMs * Math.round(PHASE_THINKING / pulseCycleMs);
+    // +1 extra cycle so thinking feels more substantial. We measure by
+    // whole cycles (not wall-clock time) so the phase always ends on
+    // the thin trough for a clean morph to sphere.
+    const thinkingDuration = pulseCycleMs * (Math.round(PHASE_THINKING / pulseCycleMs) + 1);
     // Morph speed: 1.08x thickenSpeed (10% faster than previous 1.2x)
     const morphDurationMs = states.thinking.thickenSpeed * 1.08 * 1000;
 
