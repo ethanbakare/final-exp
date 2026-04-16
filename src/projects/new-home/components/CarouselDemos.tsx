@@ -6,6 +6,7 @@ import DemoCard from './DemoCard';
 const PreviewOllama = dynamic(() => import('./previews/PreviewOllama'), { ssr: false });
 const PreviewTrace = dynamic(() => import('./previews/PreviewTraceAnimated'), { ssr: false });
 const PreviewAIConfidence = dynamic(() => import('./previews/PreviewAIConfidence'), { ssr: false });
+const PreviewVoice = dynamic(() => import('./previews/PreviewVoiceAnimated'), { ssr: false });
 const PreviewClipstream = dynamic(() => import('./previews/PreviewClipstream'), { ssr: false });
 
 const CarouselDemos: React.FC = () => {
@@ -61,12 +62,7 @@ const CarouselDemos: React.FC = () => {
           innerBg="var(--preview-voice-bg)"
           className="card card-voice"
         >
-          <img
-            src="/images/new-home/voice-ui-blob.webp"
-            alt="Voice UI blob visualization"
-            className="voice-blob"
-            draggable={false}
-          />
+          <PreviewVoice />
         </DemoCard>
 
         {/* card-5: Clipstream — col 2-3, row 2 (wide), label bottom-center */}
