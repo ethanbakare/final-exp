@@ -231,7 +231,11 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
                 exit={{ opacity: 0, filter: 'blur(2px)' }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
               >
-                <em>{BLOB_STATE_LABELS[voiceState]}</em>
+                {voiceState === 'listening' || voiceState === 'thinking' ? (
+                  <em>{BLOB_STATE_LABELS[voiceState]}</em>
+                ) : (
+                  BLOB_STATE_LABELS[voiceState]
+                )}
               </motion.div>
             </AnimatePresence>
           </div>

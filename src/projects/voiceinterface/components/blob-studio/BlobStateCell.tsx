@@ -132,7 +132,11 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
 
       {/* Label — inside the cell, directly under blob */}
       <div className="cell-label">
-        <em>{BLOB_STATE_LABELS[state]}</em>
+        {state === 'listening' || state === 'thinking' ? (
+          <em>{BLOB_STATE_LABELS[state]}</em>
+        ) : (
+          BLOB_STATE_LABELS[state]
+        )}
       </div>
 
       <style jsx>{`
