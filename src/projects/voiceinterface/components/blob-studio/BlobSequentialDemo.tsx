@@ -72,6 +72,14 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
       timerRefs.current.push(setTimeout(fn, delay));
     };
 
+    // One full pulse cycle (thin→thick→thin) = 2 * thickenSpeed
+    const pulseCycleMs = states.thinking.thickenSpeed * 2 * 1000;
+    // Thinking duration = whole number of cycles so it ends on thinRadius
+    const thinkingDuration = pulseCycleMs * Math.round(PHASE_THINKING / pulseCycleMs);
+
+    // Morph speed matches thicken speed + 20% for extra distance (closing the hole)
+    const morphDurationMs = states.thinking.thickenSpeed * 1.2 * 1000;
+
     let t = 0;
 
     // 1. Idle (torus, goal=1)
@@ -82,22 +90,21 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
     t += PHASE_LISTENING;
     at(t, () => setVoiceState('thinking'));
 
-    // 3. Thinking (torus, goal=1, breathing pulse via elevated breathAmp)
-    t += PHASE_THINKING;
+    // 3. Thinking — ends precisely on thinRadius (whole cycle count)
+    t += thinkingDuration;
 
-    // 4. Talking — just change state, goal will become 0 (sphere)
-    //    CoralStoneMorph smoothly morphs torus→sphere via morphSpeed
+    // 4. Talking — goal becomes 0, torus morphs smoothly to sphere
+    //    Morph speed proportional to thickenSpeed
     at(t, () => setVoiceState('talking'));
-    t += MORPH_HOLD + PHASE_TALKING;
+    t += morphDurationMs + PHASE_TALKING;
 
-    // 5. Back to idle — goal changes to 1 (torus reforms)
-    //    CoralStoneMorph smoothly morphs sphere→torus
+    // 5. Back to idle — goal becomes 1, sphere morphs back to torus
     at(t, () => setVoiceState('idle'));
-    t += MORPH_HOLD + SETTLE_DURATION;
+    t += morphDurationMs + SETTLE_DURATION;
 
     // 6. Restart
     at(t, () => startLoop());
-  }, [clearTimers]);
+  }, [clearTimers, states.thinking.thickenSpeed]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -156,8 +163,8 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
   // goal: 0=sphere (talking), 1=torus (everything else)
   const goal = voiceState === 'talking' ? 0 : 1;
 
-  // morphSpeed: controls torus↔sphere transition
-  const morphSpeed = states.talking.thickenSpeed;
+  // morphSpeed: matches thickenSpeed + 20% for extra distance (closing the hole)
+  const morphSpeed = states.thinking.thickenSpeed * 1.2;
 
   // Per-state motion values
   const stateSettings = states[voiceState];
