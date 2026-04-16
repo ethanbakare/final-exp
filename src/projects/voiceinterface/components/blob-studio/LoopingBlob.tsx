@@ -134,15 +134,24 @@ export const LoopingBlob: React.FC<LoopingBlobProps> = ({
     }
   }, [voiceState]);
 
-  // Thinking pulse — oscillate torusRadius
-  // First upstroke: thinRadius → thickRadius (matches listening start)
-  // Subsequent cycles: oscillate between thickRadius and thinRadius*0.8
-  // (20% thinner than listening), ending at the thinner value.
+  // TorusRadius management per state:
+  // - idle / listening: thinRadius (0.275)
+  // - thinking: oscillates thinRadius → thickRadius → thinner (0.22) ↔ thickRadius
+  //             ends at the thinner value (0.22)
+  // - talking: HOLDS at the thinner value (0.22) so the thinking→talking
+  //            morph starts from where the pulse left off, no jump
+  // - returning to idle: smoothly animate from 0.22 back up to 0.275
+  const pulseRadiusRef = useRef<number | null>(null);
   useEffect(() => {
+    pulseRadiusRef.current = pulseRadius;
+  }, [pulseRadius]);
+
+  useEffect(() => {
+    const thickenSpeed = states.thinking.thickenSpeed;
+    const newThin = base.thinRadius * 0.8; // 20% thinner than listening
+
     if (voiceState === 'thinking') {
       const startTime = Date.now();
-      const thickenSpeed = states.thinking.thickenSpeed;
-      const newThin = base.thinRadius * 0.8; // 20% thinner than listening
       const animate = () => {
         const elapsed = (Date.now() - startTime) / 1000;
         let radius: number;
@@ -160,11 +169,42 @@ export const LoopingBlob: React.FC<LoopingBlobProps> = ({
         pulseRafRef.current = requestAnimationFrame(animate);
       };
       pulseRafRef.current = requestAnimationFrame(animate);
-      return () => {
-        cancelAnimationFrame(pulseRafRef.current);
-        setPulseRadius(null);
-      };
+      return () => cancelAnimationFrame(pulseRafRef.current);
     }
+
+    if (voiceState === 'talking') {
+      // Hold at the thinner value so the torus→sphere morph starts
+      // from where the pulse left off (no jitter)
+      setPulseRadius(newThin);
+      return;
+    }
+
+    if (voiceState === 'idle') {
+      // Smoothly animate back from wherever we are to thinRadius
+      const startValue = pulseRadiusRef.current ?? base.thinRadius;
+      if (startValue === base.thinRadius) {
+        setPulseRadius(null);
+        return;
+      }
+      const startTime = Date.now();
+      const duration = 800; // ms
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+        const radius = startValue + (base.thinRadius - startValue) * eased;
+        if (t < 1) {
+          setPulseRadius(radius);
+          pulseRafRef.current = requestAnimationFrame(animate);
+        } else {
+          setPulseRadius(null); // back to default
+        }
+      };
+      pulseRafRef.current = requestAnimationFrame(animate);
+      return () => cancelAnimationFrame(pulseRafRef.current);
+    }
+
+    // listening — use default thinRadius
     setPulseRadius(null);
   }, [voiceState, base.thinRadius, base.thickRadius, states.thinking.thickenSpeed]);
 
