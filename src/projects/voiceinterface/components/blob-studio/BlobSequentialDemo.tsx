@@ -50,8 +50,10 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
   const [voiceState, setVoiceState] = useState<BlobVoiceState>('idle');
   const [isPlaying, setIsPlaying] = useState(true);
   const [audioData, setAudioData] = useState<AudioData>(ZERO_AUDIO);
+  const [pulseRadius, setPulseRadius] = useState<number | null>(null);
   const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
   const rafRef = useRef<number>(0);
+  const pulseRafRef = useRef<number>(0);
   const startTimeRef = useRef(Date.now());
 
   const { base, states } = studioSettings;
@@ -127,6 +129,29 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
     }
   }, [voiceState]);
 
+  // ── Thinking pulse — oscillate torusRadius ─────────────────
+  useEffect(() => {
+    if (voiceState === 'thinking') {
+      const startTime = Date.now();
+      const animate = () => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        // Oscillate between base.torusRadius and a thinner value
+        const thinRadius = base.torusRadius * 0.6;
+        const range = base.torusRadius - thinRadius;
+        // Sine wave oscillation — matches thickenSpeed rhythm
+        const t = (Math.sin(elapsed * Math.PI / states.thinking.thickenSpeed) + 1) / 2;
+        setPulseRadius(thinRadius + range * t);
+        pulseRafRef.current = requestAnimationFrame(animate);
+      };
+      pulseRafRef.current = requestAnimationFrame(animate);
+      return () => {
+        cancelAnimationFrame(pulseRafRef.current);
+        setPulseRadius(null);
+      };
+    }
+    setPulseRadius(null);
+  }, [voiceState, base.torusRadius, states.thinking.thickenSpeed]);
+
   // ── Derive prop values from current state ─────────────────
   // goal: 0=sphere (talking), 1=torus (everything else)
   const goal = voiceState === 'talking' ? 0 : 1;
@@ -136,6 +161,9 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
 
   // Per-state motion values
   const stateSettings = states[voiceState];
+
+  // torusRadius: use pulse value during thinking, base value otherwise
+  const effectiveTorusRadius = pulseRadius ?? base.torusRadius;
 
   return (
     <div className="sequential-demo">
@@ -166,7 +194,7 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
                 goal={goal}
                 scale={base.scale}
                 morphSpeed={morphSpeed}
-                torusRadius={base.torusRadius}
+                torusRadius={effectiveTorusRadius}
                 waveIntensity={stateSettings.waveIntensity}
                 breathAmp={stateSettings.breathAmp}
                 idleAmp={stateSettings.idleAmp}
