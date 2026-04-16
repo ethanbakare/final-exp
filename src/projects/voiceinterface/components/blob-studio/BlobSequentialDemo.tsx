@@ -16,6 +16,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { AnimatePresence, motion } from 'framer-motion';
 import CoralStoneMorph from '@/projects/blob-orb/variants/CoralStoneMorph';
 import type { AudioData } from '@/projects/voiceinterface/types';
 import {
@@ -214,8 +215,25 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
             </Canvas>
           </div>
 
-          <div className="state-label" key={voiceState}>
-            <em>{BLOB_STATE_LABELS[voiceState]}</em>
+          {/*
+            Label transition — Emil's "blur to mask imperfect transitions"
+            pattern. filter: blur(2px) + opacity crossfade at 200ms ease
+            blends the two states so the swap feels like one element
+            transforming, not two elements swapping.
+          */}
+          <div className="state-label-wrap">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={voiceState}
+                className="state-label"
+                initial={{ opacity: 0, filter: 'blur(2px)' }}
+                animate={{ opacity: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, filter: 'blur(2px)' }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                <em>{BLOB_STATE_LABELS[voiceState]}</em>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -275,23 +293,21 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           width: 400px;
           height: 400px;
         }
-        .state-label {
+        .state-label-wrap {
+          /* Blob fills ~40% of the 400×400 canvas. Pull label up so it
+             sits just beneath the visible blob shape, not the canvas bounds. */
+          margin-top: -120px;
+          min-height: 20px;
+          display: flex;
+          justify-content: center;
+        }
+        .state-label-wrap :global(.state-label) {
           font-family: 'Inter', sans-serif;
           font-size: 16px;
           font-weight: 500;
           color: rgba(38, 36, 36, 0.3);
           text-align: center;
-          min-height: 20px;
-          /* Blob is rendered via perspective camera and fills ~40% of the
-             400×400 canvas. Pull label up so it sits ~10px below the
-             visible blob shape, not the canvas bounds. */
-          margin-top: -120px;
           padding: 0 20px;
-          animation: fadeIn 150ms ease-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
         }
         @media (max-width: 768px) {
           .demo-card {
