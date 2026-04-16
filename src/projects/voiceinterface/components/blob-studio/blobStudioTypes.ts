@@ -39,7 +39,7 @@ export interface BlobStudioSettings {
 
 // ─── Whimsy profile values (source of truth) ──────────────
 export const WHIMSY_BASE: BlobBaseSettings = {
-  scale: 0.5,
+  scale: 0.55,
   thinRadius: 0.275,
   thickRadius: 0.35,
   torusRadius: 0.3,
