@@ -185,53 +185,57 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
         </button>
       </div>
 
-      <div className="demo-canvas-wrapper">
-        <div className="demo-canvas" style={{ width: 500, height: 600 }}>
-          <Canvas
-            camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
-            dpr={[1, 1.5]}
-            gl={{ antialias: true }}
-            frameloop="always"
-            style={{ position: 'absolute', inset: 0 }}
-          >
-            <color attach="background" args={[base.bgColor]} />
-            <ambientLight intensity={0.5} />
-            {useMorphComponent ? (
-              <CoralStoneMorph
-                audioData={audioData}
-                goal={morphGoal}
-                scale={base.scale}
-                morphSpeed={states.talking.thickenSpeed}
-                torusRadius={base.torusRadius}
-                waveIntensity={currentStateSettings.waveIntensity}
-                breathAmp={currentStateSettings.breathAmp}
-                idleAmp={currentStateSettings.idleAmp}
-                color1={base.color1}
-                color2={base.color2}
-                color3={base.color3}
-              />
-            ) : (
-              <CoralStoneTorusDamped
-                audioData={audioData}
-                goal={thickenGoal}
-                scale={base.scale}
-                thinRadius={base.thinRadius}
-                thickRadius={base.thickRadius}
-                thickenSpeed={currentStateSettings.thickenSpeed}
-                waveIntensity={currentStateSettings.waveIntensity}
-                breathAmp={currentStateSettings.breathAmp}
-                idleAmp={currentStateSettings.idleAmp}
-                color1={base.color1}
-                color2={base.color2}
-                color3={base.color3}
-              />
-            )}
-          </Canvas>
-        </div>
+      {/* Card — matches realtime page layout */}
+      <div className="demo-card">
+        {/* Orb + Label Group */}
+        <div className="orb-label-group">
+          <div className="orb-container">
+            <Canvas
+              camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
+              dpr={[1, 1.5]}
+              gl={{ antialias: true }}
+              frameloop="always"
+              style={{ position: 'absolute', inset: 0 }}
+            >
+              <color attach="background" args={[base.bgColor]} />
+              <ambientLight intensity={0.5} />
+              {useMorphComponent ? (
+                <CoralStoneMorph
+                  audioData={audioData}
+                  goal={morphGoal}
+                  scale={base.scale}
+                  morphSpeed={states.talking.thickenSpeed}
+                  torusRadius={base.torusRadius}
+                  waveIntensity={currentStateSettings.waveIntensity}
+                  breathAmp={currentStateSettings.breathAmp}
+                  idleAmp={currentStateSettings.idleAmp}
+                  color1={base.color1}
+                  color2={base.color2}
+                  color3={base.color3}
+                />
+              ) : (
+                <CoralStoneTorusDamped
+                  audioData={audioData}
+                  goal={thickenGoal}
+                  scale={base.scale}
+                  thinRadius={base.thinRadius}
+                  thickRadius={base.thickRadius}
+                  thickenSpeed={currentStateSettings.thickenSpeed}
+                  waveIntensity={currentStateSettings.waveIntensity}
+                  breathAmp={currentStateSettings.breathAmp}
+                  idleAmp={currentStateSettings.idleAmp}
+                  color1={base.color1}
+                  color2={base.color2}
+                  color3={base.color3}
+                />
+              )}
+            </Canvas>
+          </div>
 
-        {/* State label — italic Inter, directly under blob */}
-        <div className="demo-label" key={displayState || 'none'}>
-          {displayState ? <em>{BLOB_STATE_LABELS[displayState]}</em> : '\u00A0'}
+          {/* State label — directly under orb inside the group */}
+          <div className="state-label" key={displayState || 'none'}>
+            {displayState ? <em>{BLOB_STATE_LABELS[displayState]}</em> : '\u00A0'}
+          </div>
         </div>
       </div>
 
@@ -240,8 +244,8 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 16px;
-          padding: 40px 0;
+          gap: 20px;
+          padding: 20px 0;
         }
         .demo-header {
           display: flex;
@@ -271,29 +275,62 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           background: rgba(0, 0, 0, 0.08);
           border-color: rgba(0, 0, 0, 0.2);
         }
-        .demo-canvas-wrapper {
+
+        /* Card — matches realtime voice-realtime-card */
+        .demo-card {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
-        }
-        .demo-canvas {
-          position: relative;
+          gap: 20px;
+          width: 100%;
+          max-width: 1000px;
+          padding: 40px 20px 20px;
+          background: #F7F6F4;
+          border: 1px solid #F2F2F2;
+          box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.06);
           border-radius: 16px;
-          overflow: hidden;
-          border: 1px solid rgba(0, 0, 0, 0.08);
         }
-        .demo-label {
+
+        /* Orb + Label Group */
+        .orb-label-group {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        /* Orb Container */
+        .orb-container {
+          position: relative;
+          flex-shrink: 0;
+          width: 400px;
+          height: 400px;
+        }
+
+        /* State Label — directly under orb */
+        .state-label {
           font-family: 'Inter', sans-serif;
           font-size: 16px;
-          font-weight: 400;
+          font-weight: 500;
           color: rgba(38, 36, 36, 0.3);
+          text-align: center;
           min-height: 24px;
+          padding: 4px 20px;
           animation: fadeIn 150ms ease-out;
         }
+
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+          .demo-card {
+            padding: 30px 15px 15px;
+          }
+          .orb-container {
+            width: 300px;
+            height: 300px;
+          }
         }
       `}</style>
     </div>

@@ -1,13 +1,12 @@
 /**
- * Individual blob state cell — renders the blob for one voice state
- * with a canvas, label, and expandable slider controls.
+ * Individual blob state cell — renders the blob for one voice state.
+ * Follows the GalleryCell pattern: click to activate, green dot indicator.
+ * Label sits inside the cell directly under the blob.
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { PerspectiveCamera } from '@react-three/drei';
 import CoralStoneTorusDamped from '@/projects/blob-orb/variants/CoralStoneTorusDamped';
 import CoralStoneMorph from '@/projects/blob-orb/variants/CoralStoneMorph';
-import SliderRow from '@/projects/blob-orb/components/shared/SliderRow';
 import type { AudioData } from '@/projects/voiceinterface/types';
 import {
   getSimulatedAudioData,
@@ -80,20 +79,15 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
     return () => clearInterval(id);
   }, [state, isActive, settings.thickenSpeed]);
 
-  const handleChange = useCallback(
-    (key: keyof BlobStateSettings, value: number) => {
-      onSettingsChange({ ...settings, [key]: value });
-    },
-    [settings, onSettingsChange]
-  );
-
-  // Determine goal for the blob
   const goal = state === 'thinking' ? thinkingGoal : state === 'talking' ? 0 : 0;
 
   return (
-    <div className={`blob-state-cell ${isActive ? 'active' : ''}`} onClick={onSelect}>
+    <div className="blob-state-cell" onClick={onSelect}>
+      {/* Green active indicator — top right, inside the cell */}
+      {isActive && <div className="active-dot" />}
+
       {/* Canvas */}
-      <div className="cell-canvas" style={{ width: CELL_SIZE, height: CELL_SIZE }}>
+      <div className="cell-canvas">
         <Canvas
           camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
           dpr={[1, 1.5]}
@@ -136,41 +130,44 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
         </Canvas>
       </div>
 
-      {/* Label — italic Inter, directly under blob */}
+      {/* Label — inside the cell, directly under blob */}
       <div className="cell-label">
         <em>{BLOB_STATE_LABELS[state]}</em>
       </div>
 
       <style jsx>{`
         .blob-state-cell {
+          position: relative;
+          width: ${CELL_SIZE}px;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 6px;
           cursor: pointer;
-          transition: opacity 0.15s ease;
+          border: 0.8px solid rgba(38, 36, 36, 0.05);
+          background: ${base.bgColor};
+          overflow: hidden;
         }
-        .blob-state-cell:not(.active) {
-          opacity: 0.6;
-        }
-        .blob-state-cell.active {
-          opacity: 1;
+        .active-dot {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: #4ade80;
+          z-index: 2;
         }
         .cell-canvas {
           position: relative;
-          border-radius: 12px;
-          overflow: hidden;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          transition: border-color 0.15s ease;
-        }
-        .blob-state-cell.active .cell-canvas {
-          border-color: rgba(0, 0, 0, 0.15);
+          width: ${CELL_SIZE}px;
+          height: ${CELL_SIZE}px;
         }
         .cell-label {
           font-family: 'Inter', sans-serif;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 400;
           color: rgba(38, 36, 36, 0.35);
+          text-align: center;
+          padding: 6px 0 10px;
         }
       `}</style>
     </div>
