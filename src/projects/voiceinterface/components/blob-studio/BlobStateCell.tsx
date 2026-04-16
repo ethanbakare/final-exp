@@ -132,7 +132,7 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
 
       {/* Label — inside the cell, directly under blob */}
       <div className="cell-label">
-        {state === 'listening' || state === 'thinking' ? (
+        {state === 'listening' ? (
           <em>{BLOB_STATE_LABELS[state]}</em>
         ) : (
           BLOB_STATE_LABELS[state]
@@ -169,7 +169,7 @@ export const BlobStateCell: React.FC<BlobStateCellProps> = ({
           font-family: 'Inter', sans-serif;
           font-size: 14px;
           font-weight: 400;
-          color: rgba(38, 36, 36, 0.35);
+          color: rgba(38, 36, 36, 0.25);
           text-align: center;
           padding: 6px 0 10px;
         }

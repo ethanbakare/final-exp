@@ -188,7 +188,7 @@ export const LoopingBlob: React.FC<LoopingBlobProps> = ({
       {showLabel && (
         <div className="state-label-wrap" style={{ marginTop: -labelOffset }}>
           <div key={voiceState} className="state-label" style={{ fontSize: labelFontSize }}>
-            {voiceState === 'listening' || voiceState === 'thinking' ? (
+            {voiceState === 'listening' ? (
               <em>{BLOB_STATE_LABELS[voiceState]}</em>
             ) : (
               BLOB_STATE_LABELS[voiceState]
@@ -215,7 +215,7 @@ export const LoopingBlob: React.FC<LoopingBlobProps> = ({
         .state-label-wrap :global(.state-label) {
           font-family: 'Inter', sans-serif;
           font-weight: 500;
-          color: rgba(38, 36, 36, 0.4);
+          color: rgba(38, 36, 36, 0.25);
           text-align: center;
           padding: 0 20px;
         }
