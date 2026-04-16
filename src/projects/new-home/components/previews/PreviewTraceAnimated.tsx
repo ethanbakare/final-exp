@@ -37,9 +37,9 @@ const DUMMY_DAYS = [
 ];
 
 // ─── Timing (ms) — matches TraceSim ────────────────────────
-const PHASE_IDLE       = 1500;
+const PHASE_IDLE       = 1000;
 const PHASE_RECORDING  = 3000;
-const PHASE_PROCESSING = 2500;
+const PHASE_PROCESSING = 3000;
 const PHASE_RESULTS    = 4000;
 const PHASE_PAUSE      = 2000;
 const TOTAL_LOOP = PHASE_IDLE + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS + PHASE_PAUSE;
