@@ -31,17 +31,18 @@ export function getSimulatedAudioData(timeMs: number): AudioData {
  * Speaking state — continuous irregular energy, never drops to silence.
  * Uses multiple overlapping sine waves per band with spread frequencies
  * so troughs never align. High floor ensures constant movement.
+ * Middle-ground peaks (~0.45–0.55) — reactive without overdoing it.
  */
 export function getSimulatedAudioDataIntense(timeMs: number): AudioData {
   const t = timeMs / 1000;
   return {
-    // floor 0.22, range 0.08+0.06 — never below 0.08
-    bass: 0.22 + 0.08 * Math.sin(t * 1.8) + 0.06 * Math.sin(t * 3.1 + 2.4),
-    // floor 0.18, range 0.07+0.05 — never below 0.06
-    mid: 0.18 + 0.07 * Math.sin(t * 2.9 + 0.8) + 0.05 * Math.sin(t * 4.6 + 3.7),
-    // floor 0.12, range 0.05+0.04 — never below 0.03
-    treble: 0.12 + 0.05 * Math.sin(t * 4.3 + 1.5) + 0.04 * Math.sin(t * 6.1 + 0.9),
-    // floor 0.20, range 0.06+0.04 — never below 0.10
-    rms: 0.20 + 0.06 * Math.sin(t * 2.2 + 0.3) + 0.04 * Math.sin(t * 3.8 + 2.1),
+    // floor 0.28, peaks ~0.54 — never below 0.16
+    bass: 0.28 + 0.15 * Math.sin(t * 1.8) + 0.11 * Math.sin(t * 3.1 + 2.4),
+    // floor 0.24, peaks ~0.46 — never below 0.12
+    mid: 0.24 + 0.13 * Math.sin(t * 2.9 + 0.8) + 0.09 * Math.sin(t * 4.6 + 3.7),
+    // floor 0.18, peaks ~0.35 — never below 0.07
+    treble: 0.18 + 0.09 * Math.sin(t * 4.3 + 1.5) + 0.08 * Math.sin(t * 6.1 + 0.9),
+    // floor 0.26, peaks ~0.45 — never below 0.15
+    rms: 0.26 + 0.11 * Math.sin(t * 2.2 + 0.3) + 0.08 * Math.sin(t * 3.8 + 2.1),
   };
 }
