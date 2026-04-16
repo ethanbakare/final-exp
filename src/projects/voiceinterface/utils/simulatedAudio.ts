@@ -1,26 +1,30 @@
 /**
  * Simulated audio data generator for blob demos.
- * Produces fake AudioData values using sine waves at different
- * frequencies — no mic or WebAudio needed.
+ * Listening uses real amplitude data extracted from
+ * Naruto - Animal I Have Become (8s–18s, 625 frames at 16ms).
+ * Speaking uses overlapping sine waves with high floor.
  */
 import type { AudioData } from '@/projects/voiceinterface/types';
+import narutoFrames from './narutoAudioData.json';
 
 /** Zero audio — used for idle/thinking states */
 export const ZERO_AUDIO: AudioData = { bass: 0, mid: 0, treble: 0, rms: 0 };
 
+/** Frame duration in ms (60fps) */
+const FRAME_MS = 16;
+
 /**
- * Generate simulated audio data from a timestamp.
- * Gentle oscillation — used for "listening" state.
- * Peaks are moderate to give natural mic-like movement.
+ * Get audio data from the Naruto track amplitude profile.
+ * Loops the 10s clip. Used for "listening" state.
  */
 export function getSimulatedAudioData(timeMs: number): AudioData {
-  const t = timeMs / 1000;
-  return {
-    bass: 0.15 + 0.15 * Math.sin(t * 2.1),
-    mid: 0.1 + 0.12 * Math.sin(t * 3.7 + 1),
-    treble: 0.05 + 0.08 * Math.sin(t * 5.3 + 2),
-    rms: 0.12 + 0.1 * Math.sin(t * 2.8 + 0.5),
-  };
+  const totalDuration = narutoFrames.length * FRAME_MS;
+  const loopedTime = timeMs % totalDuration;
+  const frameIndex = Math.min(
+    Math.floor(loopedTime / FRAME_MS),
+    narutoFrames.length - 1
+  );
+  return narutoFrames[frameIndex] as AudioData;
 }
 
 /**

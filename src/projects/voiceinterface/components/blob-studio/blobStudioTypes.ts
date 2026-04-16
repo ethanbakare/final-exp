@@ -82,7 +82,7 @@ export const DEFAULT_STATE_SETTINGS: Record<BlobVoiceState, BlobStateSettings> =
 
 // ─── Sequential demo timing (ms) ──────────────────────────
 export const PHASE_IDLE = 2000;
-export const PHASE_LISTENING = 3000;
+export const PHASE_LISTENING = 5000;
 export const PHASE_THINKING = 4000;
 export const PHASE_TALKING = 5000;
 export const PHASE_PAUSE = 1500;
