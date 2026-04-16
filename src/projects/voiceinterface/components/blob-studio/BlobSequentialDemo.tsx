@@ -137,8 +137,9 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
       const startTime = Date.now();
       const animate = () => {
         const elapsed = (Date.now() - startTime) / 1000;
-        // Sine oscillation between thinRadius and thickRadius
-        const t = (Math.sin(elapsed * Math.PI / states.thinking.thickenSpeed) + 1) / 2;
+        // Cosine oscillation — starts at 0 (thinRadius) and rises to 1 (thickRadius)
+        // cos starts at 1, so (1 - cos) / 2 starts at 0 = thinRadius, matching listening
+        const t = (1 - Math.cos(elapsed * Math.PI / states.thinking.thickenSpeed)) / 2;
         setPulseRadius(base.thinRadius + (base.thickRadius - base.thinRadius) * t);
         pulseRafRef.current = requestAnimationFrame(animate);
       };
