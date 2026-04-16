@@ -64,11 +64,11 @@ export const DEFAULT_STATE_SETTINGS: Record<BlobVoiceState, BlobStateSettings> =
     idleAmp: 0.02,
     thickenSpeed: 1.2,
   },
-  // Thinking = slightly reduced motion, goal pulses thick/thin
+  // Thinking = idle base motion + thick/thin pulsing
   thinking: {
-    waveIntensity: 0.15,
-    breathAmp: 0.02,
-    idleAmp: 0.01,
+    waveIntensity: 0.18,
+    breathAmp: 0.03,
+    idleAmp: 0.02,
     thickenSpeed: 1.2, // Speed of thick/thin oscillation
   },
   // Talking = moderate reaction to simulated audio (not extreme)
