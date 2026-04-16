@@ -318,7 +318,14 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
   if (!days || days.length === 0) {
     return (
       <div className={`finance-box finance-box--empty ${className} ${styles.container}`} ref={containerRef}>
-        <EmptyFinanceState processingState={processingState} />
+        <motion.div
+          initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}
+        >
+          <EmptyFinanceState processingState={processingState} />
+        </motion.div>
 
         <style jsx>{`
           .finance-box {
