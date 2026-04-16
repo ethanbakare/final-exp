@@ -129,18 +129,17 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
     }
   }, [voiceState]);
 
-  // ── Thinking pulse — oscillate torusRadius ─────────────────
+  // ── Thinking pulse — oscillate torusRadius between thinRadius and thickRadius ──
+  // Matches exactly what CoralStoneTorusDamped does in the gallery cell:
+  //   goal=0 → thinRadius (0.275), goal=1 → thickRadius (0.35)
   useEffect(() => {
     if (voiceState === 'thinking') {
       const startTime = Date.now();
       const animate = () => {
         const elapsed = (Date.now() - startTime) / 1000;
-        // Oscillate between base.torusRadius and a thinner value
-        const thinRadius = base.torusRadius * 0.6;
-        const range = base.torusRadius - thinRadius;
-        // Sine wave oscillation — matches thickenSpeed rhythm
+        // Sine oscillation between thinRadius and thickRadius
         const t = (Math.sin(elapsed * Math.PI / states.thinking.thickenSpeed) + 1) / 2;
-        setPulseRadius(thinRadius + range * t);
+        setPulseRadius(base.thinRadius + (base.thickRadius - base.thinRadius) * t);
         pulseRafRef.current = requestAnimationFrame(animate);
       };
       pulseRafRef.current = requestAnimationFrame(animate);
@@ -150,20 +149,23 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
       };
     }
     setPulseRadius(null);
-  }, [voiceState, base.torusRadius, states.thinking.thickenSpeed]);
+  }, [voiceState, base.thinRadius, base.thickRadius, states.thinking.thickenSpeed]);
 
   // ── Derive prop values from current state ─────────────────
   // goal: 0=sphere (talking), 1=torus (everything else)
   const goal = voiceState === 'talking' ? 0 : 1;
 
-  // morphSpeed: fast for the transition
+  // morphSpeed: controls torus↔sphere transition
   const morphSpeed = states.talking.thickenSpeed;
 
   // Per-state motion values
   const stateSettings = states[voiceState];
 
-  // torusRadius: use pulse value during thinking, base value otherwise
-  const effectiveTorusRadius = pulseRadius ?? base.torusRadius;
+  // torusRadius must match the gallery cells:
+  //   idle/listening: thinRadius (0.275) — matches CoralStoneTorusDamped at goal=0
+  //   thinking: oscillates thinRadius↔thickRadius (0.275↔0.35)
+  //   talking: thinRadius (sphere morph starts from thin state)
+  const effectiveTorusRadius = pulseRadius ?? base.thinRadius;
 
   return (
     <div className="sequential-demo">
