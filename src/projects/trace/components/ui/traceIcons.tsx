@@ -405,7 +405,7 @@ export const EmptyFinanceState: React.FC<{
 
   return (
     <div className={`empty-state ${className} ${styles.container}`}>
-      {isProcessing ? <EmptyTraceIconAnimated /> : <EmptyTraceIcon />}
+      <EmptyTraceIconToggleable active={isProcessing} />
       <EmptyTraceText processingState={processingState} />
 
       <style jsx>{`
