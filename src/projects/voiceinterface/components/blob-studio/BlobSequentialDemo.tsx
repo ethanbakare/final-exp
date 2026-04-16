@@ -193,11 +193,10 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
             <Canvas
               camera={{ position: [0, 0, CAMERA_Z], fov: CAMERA_FOV }}
               dpr={[1, 1.5]}
-              gl={{ antialias: true }}
+              gl={{ antialias: true, alpha: true }}
               frameloop="always"
-              style={{ position: 'absolute', inset: 0 }}
+              style={{ position: 'absolute', inset: 0, background: 'transparent' }}
             >
-              <color attach="background" args={[base.bgColor]} />
               <ambientLight intensity={0.5} />
               <CoralStoneMorph
                 audioData={audioData}
@@ -261,14 +260,9 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 20px;
           width: 100%;
           max-width: 1000px;
-          padding: 40px 20px 20px;
-          background: #F7F6F4;
-          border: 1px solid #F2F2F2;
-          box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.06);
-          border-radius: 16px;
+          padding: 20px;
         }
         .orb-label-group {
           display: flex;
@@ -287,8 +281,12 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           font-weight: 500;
           color: rgba(38, 36, 36, 0.3);
           text-align: center;
-          min-height: 24px;
-          padding: 4px 20px;
+          min-height: 20px;
+          /* Blob is rendered via perspective camera and fills ~40% of the
+             400×400 canvas. Pull label up so it sits ~10px below the
+             visible blob shape, not the canvas bounds. */
+          margin-top: -120px;
+          padding: 0 20px;
           animation: fadeIn 150ms ease-out;
         }
         @keyframes fadeIn {
