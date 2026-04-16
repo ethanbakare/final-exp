@@ -135,13 +135,28 @@ export const LoopingBlob: React.FC<LoopingBlobProps> = ({
   }, [voiceState]);
 
   // Thinking pulse — oscillate torusRadius
+  // First upstroke: thinRadius → thickRadius (matches listening start)
+  // Subsequent cycles: oscillate between thickRadius and thinRadius*0.8
+  // (20% thinner than listening), ending at the thinner value.
   useEffect(() => {
     if (voiceState === 'thinking') {
       const startTime = Date.now();
+      const thickenSpeed = states.thinking.thickenSpeed;
+      const newThin = base.thinRadius * 0.8; // 20% thinner than listening
       const animate = () => {
         const elapsed = (Date.now() - startTime) / 1000;
-        const t = (1 - Math.cos(elapsed * Math.PI / states.thinking.thickenSpeed)) / 2;
-        setPulseRadius(base.thinRadius + (base.thickRadius - base.thinRadius) * t);
+        let radius: number;
+        if (elapsed < thickenSpeed) {
+          // First upstroke: thinRadius → thickRadius
+          const t = (1 - Math.cos(elapsed * Math.PI / thickenSpeed)) / 2;
+          radius = base.thinRadius + (base.thickRadius - base.thinRadius) * t;
+        } else {
+          // Subsequent oscillations between thickRadius and newThin
+          const phase = elapsed - thickenSpeed;
+          const t = (1 + Math.cos(phase * Math.PI / thickenSpeed)) / 2;
+          radius = newThin + (base.thickRadius - newThin) * t;
+        }
+        setPulseRadius(radius);
         pulseRafRef.current = requestAnimationFrame(animate);
       };
       pulseRafRef.current = requestAnimationFrame(animate);
