@@ -64,12 +64,13 @@ export const DEFAULT_STATE_SETTINGS: Record<BlobVoiceState, BlobStateSettings> =
     idleAmp: 0.02,
     thickenSpeed: 1.2,
   },
-  // Thinking = idle base motion + thick/thin pulsing
+  // Thinking = idle base motion + elevated breathing for pulse effect
+  // (CoralStoneMorph doesn't have thicken, so breathing creates the pulse)
   thinking: {
     waveIntensity: 0.18,
-    breathAmp: 0.03,
+    breathAmp: 0.06,
     idleAmp: 0.02,
-    thickenSpeed: 1.2, // Speed of thick/thin oscillation
+    thickenSpeed: 1.2, // Used as thickenSpeed in gallery cell (CoralStoneTorusDamped)
   },
   // Talking = moderate reaction to simulated audio (not extreme)
   talking: {

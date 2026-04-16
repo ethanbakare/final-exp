@@ -1,15 +1,21 @@
 /**
- * Sequential demo — single blob that auto-loops through all 4 states.
- * Uses settings from the gallery cells above.
+ * Sequential demo — single CoralStoneMorph blob that auto-loops through
+ * all 4 voice states by changing prop values over time.
  *
- * Transition: idle → listening → thinking → (morph torus→sphere) → talking → (morph sphere→torus) → idle
+ * NO component swapping. One component, different values:
+ *   - goal: 1 = torus (idle/listening/thinking), 0 = sphere (talking)
+ *   - morphSpeed: controls how fast torus↔sphere transition happens
+ *   - waveIntensity/breathAmp/idleAmp: per-state motion values
+ *   - audioData: zero for idle/thinking, simulated for listening/talking
  *
- * Uses CoralStoneTorusDamped for idle/listening/thinking,
- * swaps to CoralStoneMorph for the talking transition.
+ * Flow:
+ *   idle (torus, goal=1) → listening (torus, goal=1, audio)
+ *   → thinking (torus, goal=1, elevated breathAmp for breathing pulse)
+ *   → talking (goal changes to 0, sphere forms, audio reactive)
+ *   → idle (goal changes back to 1, torus reforms, settle)
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
-import CoralStoneTorusDamped from '@/projects/blob-orb/variants/CoralStoneTorusDamped';
 import CoralStoneMorph from '@/projects/blob-orb/variants/CoralStoneMorph';
 import type { AudioData } from '@/projects/voiceinterface/types';
 import {
@@ -19,16 +25,12 @@ import {
 } from '@/projects/voiceinterface/utils/simulatedAudio';
 import {
   type BlobVoiceState,
-  type BlobBaseSettings,
-  type BlobStateSettings,
   type BlobStudioSettings,
   BLOB_STATE_LABELS,
   PHASE_IDLE,
   PHASE_LISTENING,
   PHASE_THINKING,
   PHASE_TALKING,
-  PHASE_PAUSE,
-  TOTAL_LOOP,
   CAMERA_Z,
   CAMERA_FOV,
 } from './blobStudioTypes';
@@ -37,18 +39,17 @@ interface BlobSequentialDemoProps {
   studioSettings: BlobStudioSettings;
 }
 
-// Internal state includes a morph transition phase
-type InternalState = BlobVoiceState | 'morph_to_sphere' | 'morph_to_torus' | 'pause';
-
-const MORPH_DURATION = 500; // ms for torus↔sphere morph
+// Morph needs time to complete before next state
+const MORPH_HOLD = 1000;
+// Settle time after morphing back to torus before restarting
+const SETTLE_DURATION = 1500;
 
 export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
   studioSettings,
 }) => {
-  const [internalState, setInternalState] = useState<InternalState>('idle');
+  const [voiceState, setVoiceState] = useState<BlobVoiceState>('idle');
   const [isPlaying, setIsPlaying] = useState(true);
   const [audioData, setAudioData] = useState<AudioData>(ZERO_AUDIO);
-  const [thinkingGoal, setThinkingGoal] = useState(0);
   const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
   const rafRef = useRef<number>(0);
   const startTimeRef = useRef(Date.now());
@@ -62,9 +63,8 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
 
   const startLoop = useCallback(() => {
     clearTimers();
-    setInternalState('idle');
+    setVoiceState('idle');
     setAudioData(ZERO_AUDIO);
-    setThinkingGoal(0);
 
     const at = (delay: number, fn: () => void) => {
       timerRefs.current.push(setTimeout(fn, delay));
@@ -72,32 +72,28 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
 
     let t = 0;
 
-    // Idle
+    // 1. Idle (torus, goal=1)
     t += PHASE_IDLE;
-    at(t, () => setInternalState('listening'));
+    at(t, () => setVoiceState('listening'));
 
-    // Listening
+    // 2. Listening (torus, goal=1, audio reactive)
     t += PHASE_LISTENING;
-    at(t, () => setInternalState('thinking'));
+    at(t, () => setVoiceState('thinking'));
 
-    // Thinking
+    // 3. Thinking (torus, goal=1, breathing pulse via elevated breathAmp)
     t += PHASE_THINKING;
-    // Morph torus → sphere
-    at(t, () => setInternalState('morph_to_sphere'));
-    t += MORPH_DURATION;
-    at(t, () => setInternalState('talking'));
 
-    // Talking
-    t += PHASE_TALKING;
-    // Morph sphere → torus (smooth transition back)
-    at(t, () => setInternalState('morph_to_torus'));
-    t += MORPH_DURATION;
-    // Land back in idle (torus resting state) — seamless loop
-    at(t, () => setInternalState('idle'));
+    // 4. Talking — just change state, goal will become 0 (sphere)
+    //    CoralStoneMorph smoothly morphs torus→sphere via morphSpeed
+    at(t, () => setVoiceState('talking'));
+    t += MORPH_HOLD + PHASE_TALKING;
 
-    // Idle hold before next cycle
-    t += PHASE_IDLE;
-    // Restart the full loop
+    // 5. Back to idle — goal changes to 1 (torus reforms)
+    //    CoralStoneMorph smoothly morphs sphere→torus
+    at(t, () => setVoiceState('idle'));
+    t += MORPH_HOLD + SETTLE_DURATION;
+
+    // 6. Restart
     at(t, () => startLoop());
   }, [clearTimers]);
 
@@ -110,68 +106,36 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
     return () => clearTimers();
   }, [isPlaying, startLoop, clearTimers]);
 
-  // Audio simulation
+  // ── Audio simulation ──────────────────────────────────────
   useEffect(() => {
-    const needsAudio = internalState === 'listening' || internalState === 'talking' || internalState === 'morph_to_sphere' || internalState === 'morph_to_torus';
-    if (!needsAudio) {
+    if (voiceState === 'listening' || voiceState === 'talking') {
+      startTimeRef.current = Date.now();
+      const animate = () => {
+        const elapsed = Date.now() - startTimeRef.current;
+        if (voiceState === 'talking') {
+          setAudioData(getSimulatedAudioDataIntense(elapsed));
+        } else {
+          setAudioData(getSimulatedAudioData(elapsed));
+        }
+        rafRef.current = requestAnimationFrame(animate);
+      };
+      rafRef.current = requestAnimationFrame(animate);
+      return () => cancelAnimationFrame(rafRef.current);
+    } else {
       setAudioData(ZERO_AUDIO);
       cancelAnimationFrame(rafRef.current);
-      return;
     }
+  }, [voiceState]);
 
-    startTimeRef.current = Date.now();
-    const animate = () => {
-      const elapsed = Date.now() - startTimeRef.current;
-      if (internalState === 'talking') {
-        setAudioData(getSimulatedAudioDataIntense(elapsed));
-      } else {
-        setAudioData(getSimulatedAudioData(elapsed));
-      }
-      rafRef.current = requestAnimationFrame(animate);
-    };
-    rafRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [internalState]);
+  // ── Derive prop values from current state ─────────────────
+  // goal: 0=sphere (talking), 1=torus (everything else)
+  const goal = voiceState === 'talking' ? 0 : 1;
 
-  // Thinking goal pulsing
-  useEffect(() => {
-    if (internalState !== 'thinking') {
-      if (internalState !== 'morph_to_sphere') setThinkingGoal(0);
-      return;
-    }
-    setThinkingGoal(1);
-    const ms = states.thinking.thickenSpeed * 1000;
-    const id = setInterval(() => setThinkingGoal((p) => (p === 0 ? 1 : 0)), ms);
-    return () => clearInterval(id);
-  }, [internalState, states.thinking.thickenSpeed]);
+  // morphSpeed: fast for the transition
+  const morphSpeed = states.talking.thickenSpeed;
 
-  // Determine which component and props to use
-  const useMorphComponent = internalState === 'morph_to_sphere' || internalState === 'talking' || internalState === 'morph_to_torus';
-
-  // Map internal state to display state for label
-  const displayState: BlobVoiceState | null =
-    internalState === 'pause' ? null :
-    internalState === 'morph_to_sphere' ? 'thinking' :
-    internalState === 'morph_to_torus' ? 'idle' :
-    internalState as BlobVoiceState;
-
-  // Get the right per-state settings
-  const currentStateSettings = useMorphComponent
-    ? states.talking
-    : internalState === 'thinking'
-      ? states.thinking
-      : internalState === 'listening'
-        ? states.listening
-        : states.idle;
-
-  // Morph goal: 0=sphere, 1=torus
-  const morphGoal =
-    internalState === 'morph_to_sphere' ? 0 :
-    internalState === 'talking' ? 0 :
-    1; // morph_to_torus or default
-
-  // Thicken goal for CoralStoneTorusDamped
-  const thickenGoal = internalState === 'thinking' ? thinkingGoal : 0;
+  // Per-state motion values
+  const stateSettings = states[voiceState];
 
   return (
     <div className="sequential-demo">
@@ -185,9 +149,7 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
         </button>
       </div>
 
-      {/* Card — matches realtime page layout */}
       <div className="demo-card">
-        {/* Orb + Label Group */}
         <div className="orb-label-group">
           <div className="orb-container">
             <Canvas
@@ -199,42 +161,24 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
             >
               <color attach="background" args={[base.bgColor]} />
               <ambientLight intensity={0.5} />
-              {useMorphComponent ? (
-                <CoralStoneMorph
-                  audioData={audioData}
-                  goal={morphGoal}
-                  scale={base.scale}
-                  morphSpeed={states.talking.thickenSpeed}
-                  torusRadius={base.torusRadius}
-                  waveIntensity={currentStateSettings.waveIntensity}
-                  breathAmp={currentStateSettings.breathAmp}
-                  idleAmp={currentStateSettings.idleAmp}
-                  color1={base.color1}
-                  color2={base.color2}
-                  color3={base.color3}
-                />
-              ) : (
-                <CoralStoneTorusDamped
-                  audioData={audioData}
-                  goal={thickenGoal}
-                  scale={base.scale}
-                  thinRadius={base.thinRadius}
-                  thickRadius={base.thickRadius}
-                  thickenSpeed={currentStateSettings.thickenSpeed}
-                  waveIntensity={currentStateSettings.waveIntensity}
-                  breathAmp={currentStateSettings.breathAmp}
-                  idleAmp={currentStateSettings.idleAmp}
-                  color1={base.color1}
-                  color2={base.color2}
-                  color3={base.color3}
-                />
-              )}
+              <CoralStoneMorph
+                audioData={audioData}
+                goal={goal}
+                scale={base.scale}
+                morphSpeed={morphSpeed}
+                torusRadius={base.torusRadius}
+                waveIntensity={stateSettings.waveIntensity}
+                breathAmp={stateSettings.breathAmp}
+                idleAmp={stateSettings.idleAmp}
+                color1={base.color1}
+                color2={base.color2}
+                color3={base.color3}
+              />
             </Canvas>
           </div>
 
-          {/* State label — directly under orb inside the group */}
-          <div className="state-label" key={displayState || 'none'}>
-            {displayState ? <em>{BLOB_STATE_LABELS[displayState]}</em> : '\u00A0'}
+          <div className="state-label" key={voiceState}>
+            <em>{BLOB_STATE_LABELS[voiceState]}</em>
           </div>
         </div>
       </div>
@@ -275,8 +219,6 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           background: rgba(0, 0, 0, 0.08);
           border-color: rgba(0, 0, 0, 0.2);
         }
-
-        /* Card — matches realtime voice-realtime-card */
         .demo-card {
           display: flex;
           flex-direction: column;
@@ -290,23 +232,17 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.06);
           border-radius: 16px;
         }
-
-        /* Orb + Label Group */
         .orb-label-group {
           display: flex;
           flex-direction: column;
           align-items: center;
         }
-
-        /* Orb Container */
         .orb-container {
           position: relative;
           flex-shrink: 0;
           width: 400px;
           height: 400px;
         }
-
-        /* State Label — directly under orb */
         .state-label {
           font-family: 'Inter', sans-serif;
           font-size: 16px;
@@ -317,12 +253,10 @@ export const BlobSequentialDemo: React.FC<BlobSequentialDemoProps> = ({
           padding: 4px 20px;
           animation: fadeIn 150ms ease-out;
         }
-
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-
         @media (max-width: 768px) {
           .demo-card {
             padding: 30px 15px 15px;
