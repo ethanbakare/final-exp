@@ -1,17 +1,48 @@
 /**
  * Animated Trace preview for the home page card.
- * Reuses the TraceSim auto-loop (idle → recording → processing → results → clear → restart)
- * fitted within the preview card dimensions.
+ * Same data as the original static PreviewTrace, but uses the animated
+ * components so figures animate in on mount.
  */
 import React from 'react';
 import traceStyles from '@/projects/trace/styles/trace.module.css';
-import { TraceSim } from '@/projects/demo-showcase/components/simulations/TraceSim';
+import { AnimatedTextBox } from '@/projects/trace/components/ui/tracefinance-animated';
+import { TRNavbarV2 } from '@/projects/trace/components/ui/tracenavbar-v2';
+
+const DUMMY_DAYS = [
+  {
+    date: '14th Jul',
+    total: '720.97',
+    merchants: [
+      {
+        merchantName: 'TESCOS',
+        merchantTotal: '720.97',
+        items: [
+          { quantity: '2x', itemName: 'Headphones', netPrice: '104.99', discount: '3.99' },
+          { quantity: '1x', itemName: 'Playstation 5', netPrice: '499.99' },
+          { quantity: '1x', itemName: 'Chino Trousers', netPrice: '14.99' },
+        ],
+      },
+    ],
+  },
+];
 
 const PreviewTraceAnimated: React.FC = () => {
   return (
     <div className="preview-trace">
       <div className={`trace-frame ${traceStyles.container}`}>
-        <TraceSim />
+        <AnimatedTextBox
+          days={DUMMY_DAYS}
+          grandTotal="720.97"
+          navbar={
+            <TRNavbarV2
+              state="idle"
+              onUploadClick={() => {}}
+              onSpeakClick={() => {}}
+              onCloseClick={() => {}}
+              onSendAudioClick={() => {}}
+            />
+          }
+        />
       </div>
 
       <style jsx>{`
@@ -27,23 +58,11 @@ const PreviewTraceAnimated: React.FC = () => {
           bottom: 27px;
           width: 301px;
           height: 530px;
-          border-radius: 16px;
-          border: 1px solid #44403C;
-          background: #1C1917;
-          box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.06);
           display: flex;
           flex-direction: column;
-          align-items: center;
           overflow: hidden;
           pointer-events: none;
           will-change: transform;
-        }
-
-        /* Let TraceSim fill the frame width without its centering max-width */
-        .trace-frame :global(.trace-sim-embed) {
-          max-width: 100%;
-          margin: 0;
-          width: 100%;
         }
       `}</style>
     </div>
