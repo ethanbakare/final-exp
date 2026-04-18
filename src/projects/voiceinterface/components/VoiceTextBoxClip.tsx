@@ -234,10 +234,10 @@ export const VoiceTextBoxClip: React.FC = () => {
               />
             </div>
 
-            {/* Fade overlay at bottom (only visible when text overflows) */}
-            {appState === 'complete' && transcription && (
-              <div className="fade-overlay"></div>
-            )}
+            {/* Fade overlay at bottom — always rendered (defensive, in case
+                content ever overflows). In practice, animations should keep
+                text within bounds so this rarely actually applies. */}
+            <div className="fade-overlay"></div>
           </div>
 
           {/*
@@ -317,10 +317,7 @@ export const VoiceTextBoxClip: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 12px 4px;     /* 12 V keeps Figma top breathing; 4 H aligns
-                                    with .txt-nav-bar so text right-edge ends
-                                    at the same inset as the mic button (16px
-                                    from card edge: outer 12 + inner 4). */
+          padding: 12px 9px;     /* Figma: text-container 12 vertical / 9 horizontal */
           overflow-wrap: anywhere; /* let no-space strings wrap mid-char
                                       instead of clipping into hidden overflow */
           gap: 10px;
@@ -342,7 +339,8 @@ export const VoiceTextBoxClip: React.FC = () => {
           max-height: 100%;
           overflow-y: auto;
           overflow-x: hidden;
-          padding-right: 4px;
+          /* removed 'padding-right: 4px' scrollbar gutter — text can now
+             reach the full inner width without a reserved scrollbar lane */
 
           transition: opacity 200ms ease-out;
         }
@@ -369,16 +367,18 @@ export const VoiceTextBoxClip: React.FC = () => {
           background: var(--VoiceDarkGrey_80);
         }
 
-        /* Fade overlay at bottom */
+        /* Fade overlay at bottom — recoloured to the dark card bg #2C2929.
+           Insets match the new .txt-transcript-box padding (12 V / 9 H)
+           so the fade sits flush with the visible text content area. */
         .fade-overlay {
           position: absolute;
           bottom: 12px;
-          left: 12px;
-          right: 12px;
+          left: 9px;
+          right: 9px;
           height: 24px;
           background: linear-gradient(to bottom,
-            rgba(247, 246, 244, 0) 0%,
-            rgba(247, 246, 244, 1) 100%
+            rgba(44, 41, 41, 0) 0%,
+            rgba(44, 41, 41, 1) 100%
           );
           pointer-events: none;
           z-index: 10;
