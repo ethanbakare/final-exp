@@ -9,7 +9,7 @@ import {
   ClipProcessingDarkBtn,
   ClipTimer,
 } from '@/projects/voiceinterface/components/ui/voicebuttons-clip';
-import { RecordBarClip } from '@/projects/voiceinterface/components/RecordBarClip';
+import { VoiceTextBoxClip } from '@/projects/voiceinterface/components/VoiceTextBoxClip';
 
 /**
  * Showcase of the 34px clip-style buttons destined for the dark
@@ -93,8 +93,8 @@ const VoiceComponentsClip: React.FC = () => (
       </div>
 
       <div className="card-row">
-        <div className="card-label">RecordBar — Idle</div>
-        <RecordBarClip />
+        <div className="card-label">VoiceTextBox Clip (port of variation 1, dark container)</div>
+        <VoiceTextBoxClip />
       </div>
       </div>
     </div>
