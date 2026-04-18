@@ -94,6 +94,13 @@ const VoiceInterfaceShowcase: React.FC = () => {
               Individual buttons and UI components
             </div>
           </Link>
+
+          <Link href="/voiceinterface/showcase/voicecomponent-clip" className="link-card">
+            Clip Buttons (34px)
+            <div className="link-description">
+              Dark-card RecordBar button set — sourced from Dictation app Figma
+            </div>
+          </Link>
         </div>
       </div>
     </>
