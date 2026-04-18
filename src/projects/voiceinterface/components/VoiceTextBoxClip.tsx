@@ -254,7 +254,10 @@ export const VoiceTextBoxClip: React.FC = () => {
       </div>
 
       <style jsx>{`
-        /* TextBox - Outermost Container */
+        /* TextBox - Outermost Container
+           Adapter pass 1: outer container restyled to match Figma
+           record-bar-* (width, height, radius, border, bg, shadow).
+           Inner layout (padding, gap, text colour) handled in later passes. */
         .text-box {
           box-sizing: border-box;
           display: flex;
@@ -265,14 +268,27 @@ export const VoiceTextBoxClip: React.FC = () => {
           gap: 10px;
 
           position: relative;
-          width: 398px;
+          width: 393px;          /* Figma: 393 (was 398) */
           max-width: 100%;
-          height: 213px;
+          height: 160px;         /* Figma: 160 (was 213) */
 
-          background: var(--VoiceBoxBg);
-          border: 1px solid var(--VoiceBoxOutline);
-          box-shadow: 0px 4px 12px var(--VoiceBoxShadow);
-          border-radius: 16px;
+          background: #2C2929;   /* Figma: #2C2929 (was --VoiceBoxBg cream) */
+          border: 1.5px solid #4D4747;  /* Figma: 1.5px #4D4747 (was 1px --VoiceBoxOutline) */
+          border-radius: 28px;   /* Figma: 28 (was 16) */
+          /* Figma dual drop shadow (spread -4 / -8) */
+          box-shadow:
+            0 4px  4px -4px rgba(12, 12, 13, 0.08),
+            0 16px 16px -8px rgba(12, 12, 13, 0.12);
+        }
+
+        /* Text colour overrides — placeholder + transcript both white-ish on dark.
+           Uses :global() to reach into VoiceTextBatch internals.
+           Order matters: parent first, then more-specific placeholder override. */
+        .text-box :global(.voice-text-content) {
+          color: #FFFFFF;                     /* Figma: text-transcript */
+        }
+        .text-box :global(.voice-text-content .placeholder-text) {
+          color: rgba(255, 255, 255, 0.30);   /* Figma: text-placeholder */
         }
 
         /* TxtBox - Inner Container */
