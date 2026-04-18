@@ -230,6 +230,7 @@ export const VoiceTextBoxClip: React.FC = () => {
                 textState={getTextState()}
                 transcriptText={transcription}
                 oldTextLength={oldTextLengthRef.current}
+                placeholderText="ThisIsALongPlaceholderStringWithNoSpacesUsedToInspectHowTheTextReachesTheRightEdgeOfTheTranscriptBox"
               />
             </div>
 
