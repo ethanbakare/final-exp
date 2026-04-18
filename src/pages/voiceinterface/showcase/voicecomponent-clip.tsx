@@ -9,6 +9,7 @@ import {
   ClipProcessingDarkBtn,
   ClipTimer,
 } from '@/projects/voiceinterface/components/ui/voicebuttons-clip';
+import { RecordBarClip } from '@/projects/voiceinterface/components/RecordBarClip';
 
 /**
  * Showcase of the 34px clip-style buttons destined for the dark
@@ -16,9 +17,9 @@ import {
  * Dark background so the buttons render on the target surface.
  */
 
-const Cell: React.FC<{ children: React.ReactNode; label: string }> = ({ children, label }) => (
+const Cell: React.FC<{ children: React.ReactNode; label: string; tinted?: boolean }> = ({ children, label, tinted }) => (
   <>
-    <div className="cell">
+    <div className={`cell ${tinted ? 'tinted' : ''}`}>
       <div className="center">{children}</div>
       <div className="label">{label}</div>
     </div>
@@ -30,6 +31,12 @@ const Cell: React.FC<{ children: React.ReactNode; label: string }> = ({ children
         display: flex;
         flex-direction: column;
         border: 0.8px solid rgba(255, 255, 255, 0.06);
+      }
+      /* Subtle lift behind the dark Processing button so its #2C2929
+         circle is visible — mirrors the white-10 nav-pill context
+         the button sits in when used inside a real RecordBar. */
+      .cell.tinted {
+        background: rgba(255, 255, 255, 0.04);
       }
       .center {
         flex: 1;
@@ -57,6 +64,7 @@ const Cell: React.FC<{ children: React.ReactNode; label: string }> = ({ children
 const VoiceComponentsClip: React.FC = () => (
   <>
     <div className="page">
+      <div className="stack">
       <div className="grid">
         <Cell label="Clear Btn — 34px">
           <ClipClearBtn />
@@ -76,12 +84,18 @@ const VoiceComponentsClip: React.FC = () => (
         <Cell label="Processing White — 34px">
           <ClipProcessingWhiteBtn />
         </Cell>
-        <Cell label="Processing Dark — 34px">
+        <Cell label="Processing Dark — 34px" tinted>
           <ClipProcessingDarkBtn />
         </Cell>
         <Cell label="Timer — 0:26">
           <ClipTimer value="0:26" />
         </Cell>
+      </div>
+
+      <div className="card-row">
+        <div className="card-label">RecordBar — Idle</div>
+        <RecordBarClip />
+      </div>
       </div>
     </div>
     <style jsx>{`
@@ -93,11 +107,31 @@ const VoiceComponentsClip: React.FC = () => (
         justify-content: center;
         padding: 40px;
       }
+      .stack {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 60px;
+      }
       .grid {
         display: grid;
         grid-template-columns: repeat(2, 200px);
         gap: 0;
         border: 0.8px solid rgba(255, 255, 255, 0.06);
+      }
+      .card-row {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+      .card-label {
+        font-family: 'Inter', -apple-system, sans-serif;
+        font-size: 9px;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: rgba(255, 255, 255, 0.4);
       }
     `}</style>
   </>
