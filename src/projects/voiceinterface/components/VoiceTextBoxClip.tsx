@@ -261,10 +261,10 @@ export const VoiceTextBoxClip: React.FC = () => {
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
-          justify-content: center;
+          justify-content: flex-end;  /* was center — content sticks to bottom */
           align-items: center;
           padding: 12px;         /* Figma: 12 (was 20px 15px) */
-          gap: 10px;
+          gap: 12px;             /* was 10 — bumped to 12 for breathing room */
 
           position: relative;
           width: 393px;          /* Figma: 393 (was 398) */
@@ -273,7 +273,7 @@ export const VoiceTextBoxClip: React.FC = () => {
 
           background: #2C2929;   /* Figma: #2C2929 (was --VoiceBoxBg cream) */
           border: 1.5px solid #4D4747;  /* Figma: 1.5px #4D4747 (was 1px --VoiceBoxOutline) */
-          border-radius: 28px;   /* Figma: 28 (was 16) */
+          border-radius: 20px;   /* was 28 — softer corners */
           /* Figma dual drop shadow (spread -4 / -8) */
           box-shadow:
             0 4px  4px -4px rgba(12, 12, 13, 0.08),
@@ -316,7 +316,7 @@ export const VoiceTextBoxClip: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 12px;
+          padding: 4px;          /* was 12 — match bottom nav padding */
           gap: 10px;
 
           width: 100%;
@@ -387,7 +387,7 @@ export const VoiceTextBoxClip: React.FC = () => {
           flex-direction: row;
           justify-content: flex-end;
           align-items: center;
-          padding: 0px 12px;
+          padding: 4px;          /* Figma: 4 (was 0 12px) */
           gap: 0px;
 
           width: 100%;
