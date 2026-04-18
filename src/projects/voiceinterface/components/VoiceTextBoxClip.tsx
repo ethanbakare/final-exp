@@ -317,7 +317,12 @@ export const VoiceTextBoxClip: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 12px 9px;     /* Figma: text-container 12 vertical / 9 horizontal */
+          padding: 12px 4px;     /* 12 V keeps Figma top breathing; 4 H aligns
+                                    with .txt-nav-bar so text right-edge ends
+                                    at the same inset as the mic button (16px
+                                    from card edge: outer 12 + inner 4). */
+          overflow-wrap: anywhere; /* let no-space strings wrap mid-char
+                                      instead of clipping into hidden overflow */
           gap: 10px;
 
           width: 100%;
