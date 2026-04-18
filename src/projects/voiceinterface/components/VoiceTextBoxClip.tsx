@@ -291,7 +291,10 @@ export const VoiceTextBoxClip: React.FC = () => {
           color: rgba(255, 255, 255, 0.30);   /* Figma: text-placeholder */
         }
 
-        /* TxtBox - Inner Container */
+        /* TxtBox - Inner Container
+           Adapter pass 1 (cont): removed the hardcoded 173px height
+           and 'flex: none' so this box now shrinks/grows to fill the
+           outer container instead of overflowing it. */
         .txt-box {
           display: flex;
           flex-direction: column;
@@ -300,15 +303,15 @@ export const VoiceTextBoxClip: React.FC = () => {
           gap: 10px;
 
           width: 100%;
-          height: 173px;
+          min-height: 0;     /* allow flex children to shrink below content size */
 
-          flex: none;
+          flex: 1 1 auto;    /* grow + shrink to fit parent (was: flex none + height 173) */
           order: 0;
           align-self: stretch;
-          flex-grow: 1;
         }
 
-        /* TxtTranscriptBox - Text Display Area */
+        /* TxtTranscriptBox - Text Display Area
+           Same deal — drop fixed height + flex: none so it flexes. */
         .txt-transcript-box {
           position: relative;
           display: flex;
@@ -318,14 +321,13 @@ export const VoiceTextBoxClip: React.FC = () => {
           gap: 10px;
 
           width: 100%;
-          height: 125px;
+          min-height: 0;
 
           border-radius: 6px;
 
-          flex: none;
+          flex: 1 1 auto;
           order: 0;
           align-self: stretch;
-          flex-grow: 1;
           overflow: hidden;
         }
 
