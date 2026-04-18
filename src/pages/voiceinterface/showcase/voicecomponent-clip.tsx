@@ -63,8 +63,7 @@ const Cell: React.FC<{ children: React.ReactNode; label: string; tinted?: boolea
 
 const VoiceComponentsClip: React.FC = () => (
   <>
-    <div className="page">
-      <div className="stack">
+    <section className="section-buttons">
       <div className="grid">
         <Cell label="Clear Btn — 34px">
           <ClipClearBtn />
@@ -91,15 +90,16 @@ const VoiceComponentsClip: React.FC = () => (
           <ClipTimer value="0:26" />
         </Cell>
       </div>
+    </section>
 
+    <section className="section-card">
       <div className="card-row">
         <div className="card-label">VoiceTextBox Clip — verbatim clone of variation 1 (no style changes yet)</div>
         <VoiceTextBoxClip />
       </div>
-      </div>
-    </div>
+    </section>
     <style jsx>{`
-      .page {
+      .section-buttons {
         min-height: 100vh;
         background: #2C2929;
         display: flex;
@@ -107,17 +107,21 @@ const VoiceComponentsClip: React.FC = () => (
         justify-content: center;
         padding: 40px;
       }
-      .stack {
+      .section-card {
+        min-height: 100vh;
+        background: #FFFFFF;
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 60px;
+        justify-content: center;
+        padding: 40px;
       }
       .grid {
         display: grid;
-        grid-template-columns: repeat(2, 200px);
+        grid-template-columns: repeat(auto-fill, 200px);
+        justify-content: center;
         gap: 0;
         border: 0.8px solid rgba(255, 255, 255, 0.06);
+        max-width: 100%;
       }
       .card-row {
         display: flex;
@@ -131,7 +135,7 @@ const VoiceComponentsClip: React.FC = () => (
         font-weight: 400;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        color: rgba(255, 255, 255, 0.4);
+        color: rgba(0, 0, 0, 0.4);
       }
     `}</style>
   </>
