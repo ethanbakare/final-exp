@@ -268,8 +268,11 @@ export const VoiceTextBoxClip: React.FC = () => {
           gap: 12px;             /* was 10 — bumped to 12 for breathing room */
 
           position: relative;
-          width: 393px;          /* Figma: 393 (was 398) */
-          max-width: 100%;
+          /* Responsive: fills available width up to the Figma 393px cap.
+             Below the cap (e.g. mobile) the card shrinks with the viewport
+             instead of overflowing horizontally. */
+          width: 100%;
+          max-width: 393px;
           height: 160px;         /* Figma: 160 (was 213) */
 
           background: #2C2929;   /* Figma: #2C2929 (was --VoiceBoxBg cream) */
