@@ -317,7 +317,7 @@ export const VoiceTextBoxClip: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          padding: 4px;          /* was 12 — match bottom nav padding */
+          padding: 12px 9px;     /* Figma: text-container 12 vertical / 9 horizontal */
           gap: 10px;
 
           width: 100%;
