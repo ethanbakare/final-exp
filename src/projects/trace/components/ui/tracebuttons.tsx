@@ -330,6 +330,65 @@ export const SendAudioButton: React.FC<SendAudioButtonProps> = ({
 };
 
 
+/* ==================== SIM SEND AUDIO BUTTON ==================== */
+// Simulation variant — pure CSS animated bars, no mic access needed.
+// Used on simulation pages where we can't get a real audio stream.
+
+export const SimSendAudioButton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`sim-send-audio-button ${className} ${styles.container}`}>
+    <div className="sim-waveform">
+      <span className="sim-bar sim-bar-0" />
+      <span className="sim-bar sim-bar-1" />
+      <span className="sim-bar sim-bar-2" />
+    </div>
+    <span className="button-text">Send Audio</span>
+
+    <style jsx>{`
+      .sim-send-audio-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--trace-spacing-sm);
+        height: var(--trace-button-height);
+        padding: 0 var(--trace-spacing-xl);
+        background: var(--trace-btn-orange);
+        border: var(--trace-button-stroke) solid transparent;
+        border-radius: var(--trace-button-radius);
+        font-family: var(--trace-font-family);
+        font-size: var(--trace-fs-button);
+        font-weight: var(--trace-fw-medium);
+        line-height: var(--trace-lh-button);
+        color: var(--trace-text-primary);
+        user-select: none;
+      }
+      .sim-waveform {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        height: 18px;
+      }
+      .sim-bar {
+        display: block;
+        width: 2px;
+        border-radius: 1px;
+        background: var(--trace-text-primary);
+        animation: sim-pulse 1.6s ease-in-out infinite alternate;
+      }
+      .sim-bar-0 { height: 8px; animation-delay: 0s; }
+      .sim-bar-1 { height: 14px; animation-delay: 0.15s; }
+      .sim-bar-2 { height: 8px; animation-delay: 0.3s; }
+      @keyframes sim-pulse {
+        0%, 100% { transform: scaleY(0.3); }
+        50% { transform: scaleY(1); }
+      }
+      .button-text {
+        white-space: nowrap;
+      }
+    `}</style>
+  </div>
+);
+
+
 /* ==================== PROCESSING AUDIO BUTTON ==================== */
 // 301×44px, stone-400 background, loader + text (non-interactive)
 
@@ -343,15 +402,9 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
       disabled
       type="button"
     >
-      {/* Spinner Icon */}
+      {/* Spinner — pure-CSS C-shape ring (Safari-safe, no rotating SVG) */}
       <div className="spinner-container">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
-            transform="translate(2, 2) scale(0.025)"
-            fill="currentColor"
-          />
-        </svg>
+        <div className="css-spinner" />
       </div>
 
       {/* Text */}
@@ -378,22 +431,48 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
         }
 
         .spinner-container {
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 24px;
           height: 24px;
           color: var(--trace-text-primary);
+        }
+
+        /*
+         * Pure-CSS spinner — avoids Safari's rotating-SVG wobble bug.
+         * Arc painted via conic-gradient, carved to a ring via radial mask,
+         * and pseudo-element dots provide rounded caps at the arc endpoints.
+         */
+        .css-spinner {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          width: 22px;
+          height: 22px;
+          margin: auto;
+          border-radius: 50%;
+          background: conic-gradient(from 0deg, currentColor 0deg 270deg, transparent 270deg 360deg);
+          -webkit-mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
+                  mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
           animation: spin 1s linear infinite;
         }
 
+        .css-spinner::before,
+        .css-spinner::after {
+          content: '';
+          position: absolute;
+          width: 2px;
+          height: 2px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+        .css-spinner::before { top: 0; left: 50%; margin-left: -1px; }
+        .css-spinner::after { top: 50%; left: 0; margin-top: -1px; }
+
         @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         .button-text {
@@ -401,6 +480,52 @@ export const ProcessingAudioButton: React.FC<ProcessingButtonProps> = ({
         }
       `}</style>
     </button>
+  );
+};
+
+
+/* ==================== OLD SPINNER REFERENCE ==================== */
+// Preserved snapshot of the pre-fix spinner implementation — rotates an <svg>
+// element directly, which wobbles in Safari due to a WebKit compositor bug.
+// Kept in the showcase as a standalone spinner for side-by-side comparison
+// with the CSS-spinner fix. Not a button — just the raw spinner.
+
+export const OldSpinnerReference: React.FC<{ className?: string }> = ({
+  className = '',
+}) => {
+  return (
+    <div className={`old-spinner-reference ${className}`} aria-hidden="true">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
+          transform="translate(2, 2) scale(0.025)"
+          fill="currentColor"
+        />
+      </svg>
+
+      <style jsx>{`
+        .old-spinner-reference {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          color: var(--trace-text-primary);
+        }
+
+        .old-spinner-reference svg {
+          width: 24px;
+          height: 24px;
+          backface-visibility: hidden;
+          animation: spin-old 1s linear infinite;
+        }
+
+        @keyframes spin-old {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
   );
 };
 
@@ -418,15 +543,9 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
       disabled
       type="button"
     >
-      {/* Spinner Icon */}
+      {/* Spinner — pure-CSS C-shape ring (Safari-safe, no rotating SVG) */}
       <div className="spinner-container">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M400 800c-54.66666 0-106.33334-10.5-155-31.5-48.66667-21-91.16667-49.66669-127.5-86-36.33333-36.33331-65-78.83331-86-127.5-21-48.66666-31.5-100.33334-31.5-155 0-55.33334 10.5-107.16666 31.5-155.5 21-48.33333 49.66667-90.66667 86-127 36.33333-36.33333 78.83333-65 127.5-86 48.66666-21 100.33334-31.5 155-31.5 11.33334 0 20.83334 3.83333 28.5 11.5 7.66666 7.66667 11.5 17.16667 11.5 28.5 0 11.33333-3.83334 20.83333-11.5 28.5-7.66666 7.66666-17.16666 11.5-28.5 11.5-88.66666 0-164.16667 31.16667-226.5 93.5-62.33333 62.33333-93.5 137.83334-93.5 226.5 0 88.66666 31.16667 164.16669 93.5 226.5 62.33333 62.33331 137.83334 93.5 226.5 93.5 88.66666 0 164.16669-31.16669 226.5-93.5 62.33331-62.33331 93.5-137.83334 93.5-226.5 0-11.33334 3.83331-20.83334 11.5-28.5 7.66669-7.66666 17.16669-11.5 28.5-11.5 11.33331 0 20.83331 3.83334 28.5 11.5 7.66669 7.66666 11.5 17.16666 11.5 28.5 0 54.66666-10.5 106.33334-31.5 155-21 48.66669-49.66669 91.16669-86 127.5-36.33331 36.33331-78.66669 65-127 86-48.33334 21-100.16666 31.5-155.5 31.5z"
-            transform="translate(2, 2) scale(0.025)"
-            fill="currentColor"
-          />
-        </svg>
+        <div className="css-spinner" />
       </div>
 
       {/* Text */}
@@ -453,22 +572,48 @@ export const ProcessingImageButton: React.FC<ProcessingButtonProps> = ({
         }
 
         .spinner-container {
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
           width: 24px;
           height: 24px;
           color: var(--trace-text-primary);
+        }
+
+        /*
+         * Pure-CSS spinner — avoids Safari's rotating-SVG wobble bug.
+         * Arc painted via conic-gradient, carved to a ring via radial mask,
+         * and pseudo-element dots provide rounded caps at the arc endpoints.
+         */
+        .css-spinner {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          width: 22px;
+          height: 22px;
+          margin: auto;
+          border-radius: 50%;
+          background: conic-gradient(from 0deg, currentColor 0deg 270deg, transparent 270deg 360deg);
+          -webkit-mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
+                  mask: radial-gradient(circle at center, transparent 0 9px, #000 9px 100%);
           animation: spin 1s linear infinite;
         }
 
+        .css-spinner::before,
+        .css-spinner::after {
+          content: '';
+          position: absolute;
+          width: 2px;
+          height: 2px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+        .css-spinner::before { top: 0; left: 50%; margin-left: -1px; }
+        .css-spinner::after { top: 50%; left: 0; margin-top: -1px; }
+
         @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         .button-text {

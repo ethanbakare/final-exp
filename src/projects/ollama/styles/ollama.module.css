@@ -774,6 +774,128 @@
 }
 
 /* ==============================================
+   Section 08 — Conclusion
+   ============================================== */
+
+.ollama-conclusion-section {
+  width: 100%;
+  padding: 0 20px 20px;
+}
+
+.ollama-conclusion-content {
+  display: flex;
+  padding: 100px 50px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 90px;
+  background: var(--ollama-bg-white);
+  border-radius: var(--ollama-radius-card);
+}
+
+.ollama-conclusion-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 65px;
+  max-width: 700px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.ollama-conclusion-title {
+  color: var(--ollama-text-heading);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 121%;
+  letter-spacing: -1.8px;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.ollama-conclusion-body {
+  color: var(--ollama-text-body);
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 143.75%;
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.ollama-conclusion-tweet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 44px;
+  padding: 27px 17px 40px;
+  width: 623px;
+  max-width: 100%;
+  background: var(--ollama-bg-warm-light);
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+.ollama-conclusion-tweet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  align-self: stretch;
+  padding-bottom: 24px;
+}
+
+.ollama-conclusion-tweet-pill {
+  display: inline-flex;
+  padding: 2px 7px;
+  align-items: center;
+  border-radius: 12px;
+  background: rgba(0, 163, 249, 0.10);
+  color: #00A3F9;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+}
+
+.ollama-conclusion-tweet-logo {
+  width: 48px;
+  height: 48px;
+  color: #1DA1F2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ollama-conclusion-tweet-logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ollama-conclusion-tweet-images {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.ollama-conclusion-tweet-img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.ollama-conclusion-img-mobile {
+  display: none;
+}
+
+/* ==============================================
    Components Showcase Page
    ============================================== */
 
@@ -1377,5 +1499,65 @@
   .showcase-stage {
     height: auto;
     aspect-ratio: 2216 / 1254;
+  }
+
+  /* Section 08 — Conclusion (mobile) */
+  .ollama-conclusion-section {
+    padding: 0 10px 10px;
+  }
+
+  .ollama-conclusion-content {
+    padding: 60px 0;
+    gap: 50px;
+  }
+
+  .ollama-conclusion-header {
+    gap: 36px;
+    padding: 0 10px;
+  }
+
+  .ollama-conclusion-title {
+    font-size: 24px;
+    letter-spacing: -1.2px;
+  }
+
+  .ollama-conclusion-body {
+    font-size: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .ollama-conclusion-tweet {
+    width: 100%;
+    max-width: 481px;
+    padding: 33px 21px 49px;
+    gap: 54px;
+    border-radius: 17px;
+  }
+
+  .ollama-conclusion-tweet-header {
+    padding-bottom: 30px;
+  }
+
+  .ollama-conclusion-tweet-pill {
+    font-size: 15px;
+    padding: 3px 9px;
+    border-radius: 15px;
+  }
+
+  .ollama-conclusion-tweet-logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .ollama-conclusion-tweet-images {
+    gap: 16px;
+  }
+
+  .ollama-conclusion-img-desktop {
+    display: none;
+  }
+
+  .ollama-conclusion-img-mobile {
+    display: block;
   }
 }

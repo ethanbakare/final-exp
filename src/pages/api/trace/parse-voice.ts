@@ -23,7 +23,7 @@ export const config = {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ExpenseEntry | { error: string }>
+  res: NextApiResponse<ExpenseEntry[] | { error: string }>
 ) {
   console.log('[TRACE API] parse-voice: Request received');
 
@@ -51,10 +51,13 @@ export default async function handler(
     }
 
     console.log('[TRACE API] parse-voice: Calling parseVoiceAudio...');
-    const entry = await parseVoiceAudio(base64Audio, mimeType);
-    console.log('[TRACE API] parse-voice: Successfully parsed entry:', entry.id);
+    const entries = await parseVoiceAudio(base64Audio, mimeType);
+    console.log('[TRACE API] parse-voice: Successfully parsed entries:', {
+      count: entries.length,
+      ids: entries.map((e) => e.id),
+    });
 
-    return res.status(200).json(entry);
+    return res.status(200).json(entries);
 
   } catch (error) {
     // No expense detected — return 422 with specific error type

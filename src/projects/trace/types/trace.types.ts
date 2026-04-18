@@ -184,6 +184,7 @@ export interface TRNavbarProps {
   onSendAudioClick?: () => void; // Parent component manages audio blob from recording state
   disabled?: boolean;
   fullWidth?: boolean; // When true, processing state expands to 100% of parent instead of fixed 247px
+  simulateAudio?: boolean; // Simulation pages only: skip mic access, animate waveform with fake data
   className?: string;
 }
 

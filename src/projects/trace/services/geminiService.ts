@@ -42,48 +42,90 @@ function getGeminiAI(): GoogleGenAI {
 }
 
 /**
- * JSON schema for expense entry validation
+ * Shared shape of a single expense entry. Used directly by the receipt
+ * path (EXPENSE_SCHEMA) and as the array-item shape of the voice path
+ * (VOICE_ENTRIES_SCHEMA). Keeping the fields/required in a single place
+ * so the two schemas can never drift apart.
+ */
+const EXPENSE_ENTRY_PROPERTIES = {
+  date: { type: Type.STRING, description: 'YYYY-MM-DD format. Empty string if not a receipt.' },
+  merchant: { type: Type.STRING, nullable: true },
+  currency: { type: Type.STRING, description: 'ISO 4217 code (e.g. GBP, USD, EUR). Empty string if not a receipt.' },
+  total: { type: Type.NUMBER, description: '0 if not a receipt or no expense detected.' },
+  items: {
+    type: Type.ARRAY,
+    items: {
+      type: Type.OBJECT,
+      properties: {
+        quantity: { type: Type.NUMBER },
+        name: { type: Type.STRING },
+        unit_price: { type: Type.NUMBER },
+        total_price: { type: Type.NUMBER },
+        discount: { type: Type.NUMBER },
+      },
+      required: ["quantity", "name", "unit_price", "total_price", "discount"]
+    }
+  }
+};
+
+const EXPENSE_ENTRY_REQUIRED = ["date", "currency", "total", "items"];
+
+/**
+ * JSON schema for a single expense entry (used by the receipt/image path).
+ * Receipts are still one transaction per image, so the single-object shape
+ * is the right fit for that path.
  */
 const EXPENSE_SCHEMA = {
   type: Type.OBJECT,
-  properties: {
-    date: { type: Type.STRING, description: 'YYYY-MM-DD format. Empty string if not a receipt.' },
-    merchant: { type: Type.STRING, nullable: true },
-    currency: { type: Type.STRING, description: 'ISO 4217 code (e.g. GBP, USD, EUR). Empty string if not a receipt.' },
-    total: { type: Type.NUMBER, description: '0 if not a receipt or no expense detected.' },
-    items: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          quantity: { type: Type.NUMBER },
-          name: { type: Type.STRING },
-          unit_price: { type: Type.NUMBER },
-          total_price: { type: Type.NUMBER },
-          discount: { type: Type.NUMBER },
-        },
-        required: ["quantity", "name", "unit_price", "total_price", "discount"]
-      }
-    }
-  },
-  required: ["date", "currency", "total", "items"]
+  properties: EXPENSE_ENTRY_PROPERTIES,
+  required: EXPENSE_ENTRY_REQUIRED,
 };
 
 /**
- * Validate that Gemini's response contains real expense data.
+ * JSON schema for a list of expense entries (used by the voice/audio path).
+ * A single recording can describe multiple purchases across multiple
+ * merchants and multiple dates, so the voice path returns a wrapped list
+ * `{ entries: [...] }`. We wrap in an object (rather than returning a bare
+ * top-level array) because Gemini's structured output is noticeably more
+ * reliable when the root is an object.
+ */
+const VOICE_ENTRIES_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    entries: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: EXPENSE_ENTRY_PROPERTIES,
+        required: EXPENSE_ENTRY_REQUIRED,
+      }
+    }
+  },
+  required: ["entries"]
+};
+
+/**
+ * True if a single entry is empty / contains no real expense data. Used
+ * both for the single-object (receipt) path and to filter individual
+ * entries out of the multi-entry (voice) response.
+ */
+function isEmptyEntry(entry: Record<string, unknown>): boolean {
+  const items = entry.items as Array<unknown> | undefined;
+  const total = entry.total as number | undefined;
+  const hasNoItems = !items || items.length === 0;
+  const hasNoTotal = !total || total === 0;
+  return hasNoItems && hasNoTotal;
+}
+
+/**
+ * Validate that Gemini's single-object response contains real expense data.
  * Rejects empty/zero responses that indicate non-receipt images or non-expense audio.
  */
 function validateExpenseResponse(
   parsed: Record<string, unknown>,
   source: 'image' | 'audio'
 ): void {
-  const items = parsed.items as Array<unknown> | undefined;
-  const total = parsed.total as number | undefined;
-
-  const hasNoItems = !items || items.length === 0;
-  const hasNoTotal = !total || total === 0;
-
-  if (hasNoItems && hasNoTotal) {
+  if (isEmptyEntry(parsed)) {
     if (source === 'image') {
       throw new NotAReceiptError();
     } else {
@@ -121,7 +163,11 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
           If it IS a receipt/invoice/bill, extract structured data using these rules:
           - FALLBACK DATE: Use today's date: ${today} if not found.
           - MERCHANT: Try to identify the business name accurately.
-          - CURRENCY: Detect from symbols (£, $, €, etc). Defaults to GBP.
+          - CURRENCY: Return the ISO 4217 code. Detect using this priority:
+            1. Currency symbols on the receipt (£, $, €, ₦, ₹, ¥, ₩, ﷼, ฿, R, etc.)
+            2. ISO codes printed on the receipt (e.g. NGN, USD, EUR, GBP, JPY, KRW, SAR, INR, ZAR)
+            3. Location context — use the merchant address, city, or country on the receipt to infer currency (e.g. Lagos → NGN, California → USD, Dubai → AED, Tokyo → JPY)
+            If none of the above yield a result, default to GBP.
           - FORMATTING: Item names MUST start with a capital letter (e.g., "Coffee", "Milk").
           - ACCURACY: Ensure quantity * unit_price - discount = total_price.
           - Return ONLY valid JSON.`
@@ -137,12 +183,15 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
     config: {
       responseMimeType: "application/json",
       responseSchema: EXPENSE_SCHEMA,
-      thinkingConfig: { thinkingBudget: 0 }
+      // Raised from 0 to give Gemini reasoning capacity for multi-step
+      // currency detection (symbols → ISO codes → location context).
+      thinkingConfig: { thinkingBudget: 1024 }
     }
   });
 
   console.log('[GEMINI SERVICE] parseReceiptImage: Response received');
   const text = response.text || '{}';
+  console.log('[GEMINI SERVICE] parseReceiptImage: Raw textOutput from Gemini:', text);
   console.log('[GEMINI SERVICE] parseReceiptImage: Parsing JSON response');
   const parsed = JSON.parse(text);
 
@@ -163,10 +212,21 @@ export async function parseReceiptImage(base64Image: string, mimeType: string): 
 }
 
 /**
- * Parse voice audio using Gemini AI
- * V1: Direct audio parsing (no transcription step)
+ * Parse voice audio using Gemini AI.
+ *
+ * V2: Multi-entry. A single recording can describe multiple purchases
+ * across multiple merchants and multiple dates; this returns one
+ * ExpenseEntry per unique (merchant, date) pair Gemini identifies.
+ *
+ * Partial-failure handling: individual empty entries (no items AND no
+ * total) are dropped silently. NoExpenseDetectedError is only thrown
+ * when EVERY entry in the batch is empty (i.e. Gemini heard no
+ * expense-worthy content at all).
+ *
+ * The previous single-entry prompt is archived in
+ * src/projects/trace/services/archived-prompts.ts for reference.
  */
-export async function parseVoiceAudio(base64Audio: string, mimeType: string): Promise<ExpenseEntry> {
+export async function parseVoiceAudio(base64Audio: string, mimeType: string): Promise<ExpenseEntry[]> {
   console.log('[GEMINI SERVICE] parseVoiceAudio: Starting', {
     audioLength: base64Audio.length,
     mimeType
@@ -186,23 +246,28 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
 
   console.log('[GEMINI SERVICE] parseVoiceAudio: Calling Gemini API...');
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3.1-flash-lite-preview',
     contents: {
       parts: [
         {
           text: `FIRST: Determine if this audio contains spoken expense or purchase information.
           If it does NOT (e.g. silence, music, unrelated conversation, background noise, or speech with no mention of prices/items/spending):
-          - Return {"date": "", "merchant": null, "currency": "", "total": 0, "items": []}.
+          - Return {"entries": []}.
           - Do NOT hallucinate or guess expense data from non-expense audio.
 
           If it DOES contain expense information, parse it into structured JSON using these rules:
           - DATE: Defaults to ${today}.
-          - CURRENCY: Defaults to GBP unless specified.
+          - CURRENCY: Return the ISO 4217 code. If the user mentions a currency (pounds, dollars, naira, euros, yen, etc.), use the matching code (GBP, USD, NGN, EUR, JPY, etc.). Defaults to GBP if no currency is mentioned.
           - ITEMS: Extract specific items and their prices.
           - FORMATTING: Item names MUST start with a capital letter (e.g., "Coffee", "Phone charger").
-          - MERCHANT: If all items from same merchant, extract to merchant field. If multiple merchants, incorporate naturally into item names where appropriate (e.g., "Starbucks coffee", "Nando's chicken"). If merchant doesn't fit naturally, use brackets (e.g., "Charger (Argos)") or omit.
-          - If user says "it was five pounds for a coffee and three for a cake", total is 8.00.
-          - Return ONLY valid JSON.`
+          - MULTIPLE ENTRIES: Return a list of entries under the "entries" key. Create ONE entry per unique (merchant, date) pair.
+            Same merchant, same date, many items -> ONE entry with multiple items.
+            Different merchants on the same date -> multiple entries, same date.
+            Same merchant on different dates -> multiple entries, different dates.
+          - MERCHANT: When the user names a merchant, assume it applies to ALL items in the surrounding context — people usually mention a place once for a whole list of things they bought there. Only split into separate entries when the user clearly switches places (e.g. "at Tesco... then at Boots...", "first I went to X, then to Y"). Never fabricate a merchant; if the user never mentions one, leave it as null — do NOT guess one from the item names.
+            Example: "I got bread for two pounds and a coffee at Starbucks for five pounds" -> ONE entry, merchant="Starbucks", items=[bread, coffee].
+          - If user says "it was five pounds for a coffee and three for a cake" (same merchant implied), that entry's total is 8.00.
+          - Return ONLY valid JSON matching the schema.`
         },
         {
           inlineData: {
@@ -214,28 +279,51 @@ export async function parseVoiceAudio(base64Audio: string, mimeType: string): Pr
     },
     config: {
       responseMimeType: "application/json",
-      responseSchema: EXPENSE_SCHEMA,
-      thinkingConfig: { thinkingBudget: 0 }
+      responseSchema: VOICE_ENTRIES_SCHEMA,
+      // Unlike the receipt path (thinkingBudget: 0), the voice path
+      // legitimately needs reasoning capacity: Gemini has to listen
+      // for multiple purchases, group them by (merchant, date), and
+      // decide when to merge vs. split. With thinkingBudget: 0 the
+      // model's limited output budget gets split between "figure out
+      // the grouping" and "fill in schema fields", and on harder
+      // recordings it runs out of runway and drops required fields
+      // (most commonly `items`), producing malformed entries that
+      // pass schema validation in name only. Giving it a real
+      // thinking budget restores reliable schema compliance.
+      thinkingConfig: { thinkingBudget: 1024 }
     }
   });
 
   console.log('[GEMINI SERVICE] parseVoiceAudio: Response received');
-  const textOutput = response.text || '{}';
+  const textOutput = response.text || '{"entries":[]}';
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Raw textOutput from Gemini:', textOutput);
   console.log('[GEMINI SERVICE] parseVoiceAudio: Parsing JSON response');
-  const parsed = JSON.parse(textOutput);
+  const parsed = JSON.parse(textOutput) as { entries?: Array<Record<string, unknown>> };
 
-  // Validate: reject non-expense audio
-  validateExpenseResponse(parsed, 'audio');
+  const rawEntries = Array.isArray(parsed.entries) ? parsed.entries : [];
 
-  const entry = parsed as Omit<ExpenseEntry, 'id' | 'source' | 'createdAt'>;
+  // Drop empty entries (Gemini sometimes emits a stray empty item when
+  // it's uncertain about part of the audio). If EVERY entry is empty,
+  // we treat the whole recording as non-expense audio.
+  const validEntries = rawEntries.filter((entry) => !isEmptyEntry(entry));
 
-  const result = {
-    ...entry,
+  if (validEntries.length === 0) {
+    console.log('[GEMINI SERVICE] parseVoiceAudio: No valid entries in response');
+    throw new NoExpenseDetectedError();
+  }
+
+  const createdAt = new Date().toISOString();
+  const results: ExpenseEntry[] = validEntries.map((entry) => ({
+    ...(entry as unknown as Omit<ExpenseEntry, 'id' | 'source' | 'createdAt'>),
     id: crypto.randomUUID(),
     source: 'voice' as const,
-    createdAt: new Date().toISOString(),
-  };
+    createdAt,
+  }));
 
-  console.log('[GEMINI SERVICE] parseVoiceAudio: Success', { id: result.id });
-  return result;
+  console.log('[GEMINI SERVICE] parseVoiceAudio: Success', {
+    count: results.length,
+    ids: results.map((r) => r.id),
+    dropped: rawEntries.length - validEntries.length,
+  });
+  return results;
 }

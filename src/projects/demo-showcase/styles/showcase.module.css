@@ -1,0 +1,29 @@
+/* ----------------------------------------
+   DEMO SHOWCASE — Shared Typography
+   Uses Open Runde loaded via new-home.module.css @font-face
+   ---------------------------------------- */
+
+.OpenRunde600_16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 143.75%;
+  letter-spacing: -0.16px;
+}
+
+.OpenRunde500_16 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 143.75%;
+}
+
+.OpenRunde500_12 {
+  font-family: 'Open Runde', 'Inter', sans-serif;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 143.75%;
+}

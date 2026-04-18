@@ -6,8 +6,10 @@ import {
   CloseButton,
   ClearButton,
   SendAudioButton,
+  SimSendAudioButton,
   ProcessingAudioButton,
-  ProcessingImageButton
+  ProcessingImageButton,
+  OldSpinnerReference
 } from '@/projects/trace/components/ui/tracebuttons';
 import { TRNavbar } from '@/projects/trace/components/ui/tracenavbar';
 import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
@@ -33,7 +35,8 @@ import {
   FinanceBox,
   TextBox
 } from '@/projects/trace/components/ui/tracefinance';
-import { EmptyTraceIcon, EmptyTraceIconAnimated } from '@/projects/trace/components/ui/traceIcons';
+import { AnimatedMasterTotalPrice } from '@/projects/trace/components/ui/tracefinance-animated';
+import { EmptyTraceIcon, EmptyTraceIconCross, EmptyTraceIconAnimated, EmptyTraceIconToggleable } from '@/projects/trace/components/ui/traceIcons';
 import { TraceToast } from '@/projects/trace/components/ui/TraceToast';
 
 // Trace UI Component Showcase
@@ -197,6 +200,10 @@ const TraceComponent: React.FC = () => {
   // Processing button animation control
   const [isProcessingAudio, setIsProcessingAudio] = useState(true);
   const [isProcessingImage, setIsProcessingImage] = useState(true);
+
+  // AnimatedMasterTotalPrice toggle — flips between "0.00" and "120.25"
+  const [masterTotalToggle, setMasterTotalToggle] = useState(false);
+  const [isIconAnimating, setIsIconAnimating] = useState(false);
 
   // Navbar state control (for demonstration)
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
@@ -500,8 +507,21 @@ const TraceComponent: React.FC = () => {
               <EmptyTraceIcon />
             </ButtonGrid>
 
+            <ButtonGrid label="EMPTY TRACE ICON CROSS - 48×48PX">
+              <EmptyTraceIconCross />
+            </ButtonGrid>
+
             <ButtonGrid label="EMPTY TRACE ICON ANIMATED - 48×48PX">
               <EmptyTraceIconAnimated />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="EMPTY TRACE ICON TOGGLEABLE (SMIL FIX)"
+              showToggle={true}
+              toggleState={isIconAnimating}
+              onToggle={() => setIsIconAnimating(!isIconAnimating)}
+            >
+              <EmptyTraceIconToggleable active={isIconAnimating} />
             </ButtonGrid>
 
             <ButtonGrid
@@ -514,6 +534,10 @@ const TraceComponent: React.FC = () => {
                 onClick={() => console.log('Send Audio clicked')}
                 isRecording={isSendAudioRecording}
               />
+            </ButtonGrid>
+
+            <ButtonGrid label="SIM SEND AUDIO - CSS WAVEFORM (NO MIC)">
+              <SimSendAudioButton />
             </ButtonGrid>
 
             <ButtonGrid
@@ -534,6 +558,13 @@ const TraceComponent: React.FC = () => {
               isDouble={true}
             >
               <ProcessingImageButton text="Processing Image" />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="[REFERENCE] WOBBLY SVG SPINNER - PRE-FIX (SAFARI BUG)"
+              isDouble={true}
+            >
+              <OldSpinnerReference />
             </ButtonGrid>
           </div>
 
@@ -630,20 +661,29 @@ const TraceComponent: React.FC = () => {
               <TraceDate date="14th Jul" />
             </ButtonGrid>
 
-            <ButtonGrid label="TOTAL FRAME - £ (9PX), AMOUNT (12PX)" isDouble={true}>
-              <TotalFrame total="928.20" />
+            <ButtonGrid label="TOTAL FRAME - £ (GBP) / € (EUR)" isDouble={true}>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px', alignItems: 'flex-end' }}>
+                <TotalFrame total="928.20" />
+                <TotalFrame total="928.20" currency="EUR" />
+              </div>
             </ButtonGrid>
 
             <ButtonGrid label="MERCHANT FRAME - 12PX">
               <MerchantFrame merchantName="TESCOS" />
             </ButtonGrid>
 
-            <ButtonGrid label="MERCHANT TOTAL FRAME - £ (9PX), AMOUNT (12PX)">
-              <MerchantTotalFrame total="628.21" />
+            <ButtonGrid label="MERCHANT TOTAL - £ (GBP) / € (EUR)">
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px', alignItems: 'flex-end' }}>
+                <MerchantTotalFrame total="628.21" />
+                <MerchantTotalFrame total="628.21" currency="EUR" />
+              </div>
             </ButtonGrid>
 
-            <ButtonGrid label="NET PRICE FRAME - £ (10PX), AMOUNT (16PX)">
-              <NetPriceFrame price="104.99" />
+            <ButtonGrid label="NET PRICE - £ (GBP) / € (EUR)">
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px', alignItems: 'flex-end' }}>
+                <NetPriceFrame price="104.99" />
+                <NetPriceFrame price="104.99" currency="EUR" />
+              </div>
             </ButtonGrid>
 
             <ButtonGrid label="QUANTITY - 12PX">
@@ -654,16 +694,44 @@ const TraceComponent: React.FC = () => {
               <ItemName itemName="Headphones" />
             </ButtonGrid>
 
-            <ButtonGrid label="DISCOUNT FRAME - £ (9PX), AMOUNT (12PX)">
-              <DiscountFrame discount="3.99" />
+            <ButtonGrid label="DISCOUNT - £ (GBP) / € (EUR)">
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px', alignItems: 'flex-end' }}>
+                <DiscountFrame discount="3.99" />
+                <DiscountFrame discount="3.99" currency="EUR" />
+              </div>
             </ButtonGrid>
 
             <ButtonGrid label="TOTAL AMT SPENT - RED PILL + LABEL">
               <TotalAmtSpent />
             </ButtonGrid>
 
-            <ButtonGrid label="MASTER TOTAL PRICE - £ (18PX), AMOUNT (28PX)" isDouble={true}>
+            <ButtonGrid label="MASTER TOTAL - £ BEFORE (GBP)" isDouble={true}>
               <MasterTotalPrice total="1,556.41" />
+            </ButtonGrid>
+
+            <ButtonGrid label="MASTER TOTAL - € AFTER (EUR)" isDouble={true}>
+              <MasterTotalPrice total="1,556.41" currency="EUR" />
+            </ButtonGrid>
+
+            <ButtonGrid
+              label="MASTER TOTAL PRICE - ANIMATED COUNT-UP (TOGGLE)"
+              isDouble={true}
+              showToggle={true}
+              toggleState={masterTotalToggle}
+              onToggle={() => setMasterTotalToggle(!masterTotalToggle)}
+            >
+              {/* Fixed-width right-aligned wrapper pins the right edge so the
+                  count-up only grows leftward, never rightward. The reserved
+                  width gives the £ + digits room to expand into. */}
+              <div
+                style={{
+                  width: '220px',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                }}
+              >
+                <AnimatedMasterTotalPrice total={masterTotalToggle ? '120.25' : '0.00'} />
+              </div>
             </ButtonGrid>
           </div>
 

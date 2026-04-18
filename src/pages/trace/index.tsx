@@ -16,6 +16,7 @@ import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceMod
 import { TraceModalOverlay } from '@/projects/trace/components/ui/TraceModalOverlay';
 import { MicPermissionBanner } from '@/projects/new-home/components/MicPermissionBanner';
 import { TraceToastNotification } from '@/projects/trace/components/ui/TraceToast';
+import type { ProcessingState } from '@/projects/trace/components/ui/traceIcons';
 import { groupEntriesByDay } from '@/projects/trace/utils/dataUtils';
 import { blobToBase64, fileToBase64 } from '@/projects/trace/utils/fileUtils';
 import Head from 'next/head';
@@ -127,8 +128,14 @@ export default function TracePage() {
         return;
       }
 
-      const entry: ExpenseEntry = await response.json();
-      setEntries((prev) => [entry, ...prev]);
+      // parse-voice returns ExpenseEntry[] — one entry per (merchant, date)
+      // pair Gemini identified in the recording. A single sentence like
+      // "I got bread at Tesco and then a chair at B&Q" comes back as two
+      // entries; we spread them into state so groupEntriesByDay can bucket
+      // them downstream. Storing the raw array at index 0 (the old code's
+      // bug) was what caused dataUtils to crash on `entry.items.map`.
+      const newEntries: ExpenseEntry[] = await response.json();
+      setEntries((prev) => [...newEntries, ...prev]);
       setNavbarState('idle');
     } catch {
       showError("Didn't hear anything, try again");
@@ -206,6 +213,14 @@ export default function TracePage() {
   // Compute grand total across all entries
   const grandTotal = entries.reduce((sum, entry) => sum + entry.total, 0).toFixed(2);
 
+  // Derive empty-state processing copy/icon from navbar state
+  const processingState: ProcessingState =
+    navbarState === 'processing_audio'
+      ? 'audio'
+      : navbarState === 'processing_image'
+        ? 'image'
+        : 'idle';
+
   return (
     <>
       <Head>
@@ -217,11 +232,6 @@ export default function TracePage() {
       <div className="trace-page">
         {/* Mic Permission Banner — reusable across any audio demo */}
         <MicPermissionBanner />
-
-        {/* Clear All Button - Fixed position top-right */}
-        <div className="clear-button-container">
-          <ClearButton onClick={handleClearAll} />
-        </div>
 
         {/* Wrapper container for TextBox with Navbar inside */}
         <div className="trace-container">
@@ -235,7 +245,7 @@ export default function TracePage() {
           <AnimatedTextBox
             days={groupedDays}
             grandTotal={grandTotal}
-            isProcessing={navbarState === 'processing_audio' || navbarState === 'processing_image'}
+            processingState={processingState}
             navbar={
               <TRNavbarV2
                 state={navbarState}
@@ -246,6 +256,11 @@ export default function TracePage() {
               />
             }
           />
+        </div>
+
+        {/* Clear All Button - below the card */}
+        <div className="clear-button-below">
+          <ClearButton onClick={handleClearAll} />
         </div>
 
         {/* Clear Expenses Modal */}
@@ -267,15 +282,16 @@ export default function TracePage() {
           min-height: 100vh;
           background: var(--trace-bg-dark);
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
           padding: 20px;
+          gap: 16px;
         }
 
-        .clear-button-container {
-          position: absolute;
-          bottom: 20px;
-          right: 20px;
+        .clear-button-below {
+          display: flex;
+          justify-content: center;
           z-index: 10;
         }
 
@@ -285,6 +301,8 @@ export default function TracePage() {
           flex-direction: column;
           align-items: center;
           gap: 10px;
+          overflow: hidden;
+          border-radius: 16px;
         }
       `}</style>
     </>

@@ -3,8 +3,9 @@
  * Framer Motion wrappers for finance components with entry/exit animations
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import NumberFlow from '@number-flow/react';
 import {
   TextBox,
   FinanceBox,
@@ -16,9 +17,128 @@ import {
   type FinanceBoxProps,
   type DayBlockProps,
   type MerchantBlockProps,
+  type MasterTotalPriceProps,
 } from './tracefinance';
+import type { ProcessingState } from './traceIcons';
 import { ANIMATION_CONFIG, SCROLL_CONFIG } from '@/projects/trace/config/animations';
+import { getCurrencyDisplay } from '@/lib/currency-data';
 import styles from '@/projects/trace/styles/trace.module.css';
+
+/* ==================== ANIMATED MASTER TOTAL PRICE ==================== */
+
+/**
+ * Parse a display string like "1,556.41" or "0.00" into a number.
+ * Returns 0 for empty/invalid input.
+ */
+const parseTotalString = (s: string): number => {
+  const n = parseFloat(s.replace(/,/g, ''));
+  return Number.isFinite(n) ? n : 0;
+};
+
+export interface AnimatedMasterTotalPriceProps extends MasterTotalPriceProps {}
+
+/**
+ * Per-digit count-up animation for the master total, powered by NumberFlow.
+ *
+ * Behaviour:
+ * - Each digit slot animates independently (odometer style); only digits that
+ *   actually change move. The decimal point is a static slot — it never shifts.
+ * - The £ symbol is rendered as a separate prefix span at its own font size
+ *   (18px) so it can sit naturally to the left of the animated digits at 28px.
+ * - Right edge stays anchored via the parent layout (MasterBlockHolder's
+ *   .master-total-frame uses justify-content: space-between, so this component
+ *   sits flush against the right edge of the frame).
+ * - NumberFlow respects prefers-reduced-motion by default.
+ * - Tabular figures + per-digit transitions mean digit count changes
+ *   (e.g. 9.99 → 10.00) cleanly slide a new digit in on the left without
+ *   jittering existing digits.
+ *
+ * The component keeps the same prop API as MasterTotalPrice so it can be
+ * dropped in anywhere the static version is used.
+ */
+export const AnimatedMasterTotalPrice: React.FC<AnimatedMasterTotalPriceProps> = ({
+  total,
+  currency,
+  className = '',
+}) => {
+  const numericValue = parseTotalString(total);
+  const { symbol, position } = getCurrencyDisplay(currency ?? 'GBP');
+
+  // NumberFlow renders a custom element (<number-flow-react>) which is only
+  // defined client-side. To avoid any SSR/hydration issues with the Pages
+  // Router, defer mounting until after the first client paint and render a
+  // matching static fallback in the meantime so the layout doesn't shift.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Pre-format the static fallback to match NumberFlow's output exactly.
+  const staticFormatted = numericValue.toLocaleString('en-GB', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: true,
+  });
+
+  return (
+    <div className={`master-total-price-anim ${className}`}>
+      {position === 'before' && <span className="master-currency-anim">{symbol}</span>}
+      {mounted ? (
+        <NumberFlow
+          value={numericValue}
+          locales="en-GB"
+          format={{
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+            useGrouping: true,
+          }}
+          className="master-amount-anim"
+        />
+      ) : (
+        <span className="master-amount-anim">{staticFormatted}</span>
+      )}
+      {position === 'after' && <span className="master-currency-anim">{symbol}</span>}
+
+      <style jsx>{`
+        .master-total-price-anim {
+          display: flex;
+          flex-direction: row;
+          justify-content: flex-end;
+          align-items: baseline;
+        }
+
+        .master-currency-anim {
+          font-family: var(--trace-font-family);
+          font-size: var(--trace-fs-master-currency); /* 18px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: 1;
+          color: var(--trace-text-primary); /* #FFFFFF */
+          flex: none;
+        }
+
+        .master-total-price-anim :global(.master-amount-anim) {
+          font-family: var(--trace-font-family);
+          font-size: var(--trace-fs-master-amount); /* 28px */
+          font-weight: var(--trace-fw-medium); /* 500 */
+          line-height: 1;
+          color: var(--trace-text-primary); /* #FFFFFF */
+          flex: none;
+          /* Tabular figures keep digit slots a uniform width — combined with
+             NumberFlow's per-digit transitions, this guarantees the decimal
+             point never shifts horizontally as digits change. */
+          font-variant-numeric: tabular-nums;
+
+          /* NumberFlow's spinning digits travel into a small padded area above
+             and below the baseline before being masked away. The default mask
+             height (0.25em) lets the digit peek noticeably above the frame on
+             upward swaps; halving it (0.125em) gives a tighter, less airborne
+             motion while still leaving enough room for the fade. */
+          --number-flow-mask-height: 0.125em;
+        }
+      `}</style>
+    </div>
+  );
+};
 
 /* ==================== ANIMATED MERCHANT BLOCK ==================== */
 
@@ -166,13 +286,13 @@ export const AnimatedDayBlock: React.FC<AnimatedDayBlockWithFadeProps> = ({
 
 export interface AnimatedFinanceBoxProps extends FinanceBoxProps {
   onScrollToLatest?: () => void; // Callback when new entry should be scrolled to
-  isProcessing?: boolean; // Show animated empty icon during processing
+  processingState?: ProcessingState; // Drives empty-state icon/copy swap
 }
 
 export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
   days,
   onScrollToLatest,
-  isProcessing = false,
+  processingState = 'idle',
   className = '',
 }) => {
   const shouldReduceMotion = useReducedMotion();
@@ -198,7 +318,14 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
   if (!days || days.length === 0) {
     return (
       <div className={`finance-box finance-box--empty ${className} ${styles.container}`} ref={containerRef}>
-        <EmptyFinanceState isProcessing={isProcessing} />
+        <motion.div
+          initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}
+        >
+          <EmptyFinanceState processingState={processingState} />
+        </motion.div>
 
         <style jsx>{`
           .finance-box {
@@ -229,6 +356,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
             dateOriginal={day.dateOriginal}
             total={day.total}
             merchants={day.merchants}
+            currency={day.currency}
             width="100%"
             index={index}
             containerRef={containerRef} // Pass container ref for scroll tracking
@@ -243,8 +371,19 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
           align-items: center;
           justify-content: flex-start;
           gap: 0;
+          /* Scroll spacer lives on the container's padding-bottom (200px),
+             NOT as a margin on :last-child. padding-bottom contributes to
+             scrollHeight natively, so:
+               - when content fits: no overflow, scroll disabled (no void)
+               - when content overflows: 200px of trailing scroll room lets
+                 the oldest day block be scrolled up near the top of the
+                 viewport for reading.
+             This replaces the old :last-child { margin-bottom: calc(500 - 150) }
+             rule, which was calibrated against the wrong viewport value (the
+             outer TextBox height instead of the FinanceBox's real ~420px
+             visible area) and produced a dead-scroll void on short lists. */
           padding: var(--trace-financebox-padding-top) var(--trace-financebox-padding-horizontal)
-            var(--trace-financebox-padding-bottom) var(--trace-financebox-padding-horizontal);
+            200px var(--trace-financebox-padding-horizontal);
           border-radius: var(--trace-financebox-radius);
           width: 100%;
           flex: 1;
@@ -256,11 +395,6 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 
           /* Smooth scroll on iOS */
           -webkit-overflow-scrolling: touch;
-        }
-
-        /* Scroll spacer - allows last DayBlock to scroll to top */
-        .finance-box > :global(*):last-child {
-          margin-bottom: calc(var(--trace-textbox-height) - 150px);
         }
 
         /* Custom scrollbar styling - Modern iOS-style pill scrollbar */
@@ -297,7 +431,7 @@ export const AnimatedFinanceBox: React.FC<AnimatedFinanceBoxProps> = ({
 export interface AnimatedTextBoxProps extends TextBoxProps {
   onScrollToLatest?: () => void;
   navbar?: React.ReactNode;
-  isProcessing?: boolean;
+  processingState?: ProcessingState;
 }
 
 export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
@@ -305,13 +439,19 @@ export const AnimatedTextBox: React.FC<AnimatedTextBoxProps> = ({
   grandTotal = '0.00',
   onScrollToLatest,
   navbar,
-  isProcessing = false,
+  processingState = 'idle',
   className = '',
 }) => {
+  const currency = days?.[0]?.currency;
   return (
     <div className={`text-box ${navbar ? 'text-box--with-navbar' : ''} ${className} ${styles.container}`}>
-      <MasterBlockHolder total={grandTotal} fullWidth />
-      <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} isProcessing={isProcessing} />
+      <MasterBlockHolder
+        total={grandTotal}
+        fullWidth
+        currency={currency}
+        priceSlot={<AnimatedMasterTotalPrice total={grandTotal} currency={currency} />}
+      />
+      <AnimatedFinanceBox days={days} onScrollToLatest={onScrollToLatest} processingState={processingState} />
       {navbar}
 
       <style jsx>{`
