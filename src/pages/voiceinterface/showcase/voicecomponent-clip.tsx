@@ -93,7 +93,7 @@ const VoiceComponentsClip: React.FC = () => (
       </div>
 
       <div className="card-row">
-        <div className="card-label">VoiceTextBox Clip (port of variation 1, dark container)</div>
+        <div className="card-label">VoiceTextBox Clip — verbatim clone of variation 1 (no style changes yet)</div>
         <VoiceTextBoxClip />
       </div>
       </div>

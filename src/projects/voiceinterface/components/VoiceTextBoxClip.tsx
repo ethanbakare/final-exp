@@ -4,18 +4,12 @@ import { MorphingRecordDarkToPillWaveProcessing } from './ui/voicenavbar';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 /**
- * Variation 4 (Clip): TextBox Clip
+ * VoiceTextBoxClip
  *
- * Direct port of VoiceTextBoxStandard.tsx with the OUTER CONTAINER
- * (.text-box) restyled to match the Figma "RecordBar" dark card
- * (Dictation app file, record-bar-* frames). All state machine,
- * recording, transcription, scrollbar, and morphing nav-bar logic
- * is preserved unchanged from the original.
- *
- * The inner nav-bar / transcript styling will look out-of-place
- * against the dark card until we layer in:
- *  - LinearWaveform (ported from otherexp) for the recording bar
- *  - The 34px clip-style buttons (already built in voicebuttons-clip.tsx)
+ * VERBATIM CLONE of VoiceTextBoxStandard (variation 1). No style or
+ * structural changes. Used as the starting baseline for the dark
+ * "RecordBar" card port — we'll compare this side-by-side with the
+ * Figma record-bar-* frames and iterate the styling step by step.
  *
  * State Flow:
  * IDLE → RECORDING → PROCESSING → COMPLETE
@@ -239,6 +233,7 @@ export const VoiceTextBoxClip: React.FC = () => {
               />
             </div>
 
+            {/* Fade overlay at bottom (only visible when text overflows) */}
             {appState === 'complete' && transcription && (
               <div className="fade-overlay"></div>
             )}
@@ -259,33 +254,28 @@ export const VoiceTextBoxClip: React.FC = () => {
       </div>
 
       <style jsx>{`
-        /* TextBox - Outermost Container
-           Restyled from VoiceTextBoxStandard to match Figma
-           record-bar-* frames (Dictation app). */
+        /* TextBox - Outermost Container */
         .text-box {
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 12px;
+          padding: 20px 15px;
           gap: 10px;
 
           position: relative;
-          width: 393px;
+          width: 398px;
           max-width: 100%;
-          height: 160px;
+          height: 213px;
 
-          background: #2C2929;
-          border: 1.5px solid #4D4747;
-          border-radius: 28px;
-          /* Dual layered drop shadow (Figma: spread -4 / -8) */
-          box-shadow:
-            0 4px 4px -4px rgba(12, 12, 13, 0.08),
-            0 16px 16px -8px rgba(12, 12, 13, 0.12);
+          background: var(--VoiceBoxBg);
+          border: 1px solid var(--VoiceBoxOutline);
+          box-shadow: 0px 4px 12px var(--VoiceBoxShadow);
+          border-radius: 16px;
         }
 
-        /* TxtBox - Inner Container (unchanged from variation 1) */
+        /* TxtBox - Inner Container */
         .txt-box {
           display: flex;
           flex-direction: column;
@@ -302,7 +292,7 @@ export const VoiceTextBoxClip: React.FC = () => {
           flex-grow: 1;
         }
 
-        /* TxtTranscriptBox - Text Display Area (unchanged) */
+        /* TxtTranscriptBox - Text Display Area */
         .txt-transcript-box {
           position: relative;
           display: flex;
@@ -356,8 +346,7 @@ export const VoiceTextBoxClip: React.FC = () => {
           background: var(--VoiceDarkGrey_80);
         }
 
-        /* Fade overlay at bottom (unchanged — light-mode gradient,
-           will be retuned for dark card later) */
+        /* Fade overlay at bottom */
         .fade-overlay {
           position: absolute;
           bottom: 12px;
@@ -372,7 +361,7 @@ export const VoiceTextBoxClip: React.FC = () => {
           z-index: 10;
         }
 
-        /* TxtNavBar - Navigation Controls (unchanged) */
+        /* TxtNavBar - Navigation Controls */
         .txt-nav-bar {
           display: flex;
           flex-direction: row;
