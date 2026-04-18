@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { VoiceTextBatch, VoiceTextBatchState } from './ui/VoiceTextBatch';
-import { MorphingRecordDarkToPillWaveProcessing } from './ui/voicenavbar';
+import { ClipRecordRedBtn } from './ui/voicebuttons-clip';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 /**
@@ -239,16 +239,15 @@ export const VoiceTextBoxClip: React.FC = () => {
             )}
           </div>
 
-          {/* Navigation Bar - Morphing Button System */}
+          {/*
+            Navigation Bar — IDLE-state only for now.
+            Swapped MorphingRecordDarkToPillWaveProcessing for the
+            Figma-matching ClipRecordRedBtn (red mic in red-tint pill).
+            Recording / processing / complete state visuals will come
+            back once LinearWaveform is ported in.
+          */}
           <div className="txt-nav-bar">
-            <MorphingRecordDarkToPillWaveProcessing
-              state={appState}
-              onRecordClick={handleStartRecording}
-              onStopRecordingClick={handleStopRecording}
-              onProcessingComplete={() => setAppState('complete')}
-              onCloseClick={handleClose}
-              onClearClick={handleClear}
-            />
+            <ClipRecordRedBtn onClick={handleStartRecording} />
           </div>
         </div>
       </div>
@@ -264,7 +263,7 @@ export const VoiceTextBoxClip: React.FC = () => {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 20px 15px;
+          padding: 12px;         /* Figma: 12 (was 20px 15px) */
           gap: 10px;
 
           position: relative;
@@ -379,11 +378,14 @@ export const VoiceTextBoxClip: React.FC = () => {
           z-index: 10;
         }
 
-        /* TxtNavBar - Navigation Controls */
+        /* TxtNavBar - Navigation Controls
+           Height kept at 38px (NOT touched). Only justify-content
+           changed: center -> flex-end so the right-aligned mic
+           matches Figma idle state (no left button). */
         .txt-nav-bar {
           display: flex;
           flex-direction: row;
-          justify-content: center;
+          justify-content: flex-end;
           align-items: center;
           padding: 0px 12px;
           gap: 0px;
