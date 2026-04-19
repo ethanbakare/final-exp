@@ -184,28 +184,43 @@ export const VoiceTextBoxClip: React.FC = () => {
     await transcribeAudio(audioBlob);
   };
 
+  // Dummy sample lines — cycled through on each transcription so the
+  // VoiceTextBatch animation has fresh content to reveal each time.
+  // Real Deepgram call is shelved while the API is broken (400s).
+  const SAMPLE_LINES = [
+    'Quick brown fox jumps over the lazy dog.',
+    'Voice interface prototype is now wired end-to-end.',
+    'Linear waveform freezes the moment recording stops.',
+    'Try saying something — it does not matter what.',
+    'Phase five committed and verified in browser preview.',
+  ];
+  const sampleIndexRef = React.useRef(0);
+
   /**
-   * Transcribe audio blob - send to Deepgram API
+   * Transcribe audio blob — DUMMY STUB.
+   * The real /api/voice-interface/transcribe endpoint is currently
+   * returning 400s; until that's fixed we simulate the latency and
+   * pull from SAMPLE_LINES so the rest of the state machine
+   * (processing -> complete + VoiceTextBatch reveal) stays exercised.
+   * Audio blob is unused but kept in the signature so the call site
+   * doesn't have to change when the real endpoint comes back.
    */
-  const transcribeAudio = async (audioBlob: Blob) => {
+  const transcribeAudio = async (_audioBlob: Blob) => {
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
-
-      abortControllerRef.current = new AbortController();
-
-      const response = await fetch('/api/voice-interface/transcribe', {
-        method: 'POST',
-        body: formData,
-        signal: abortControllerRef.current.signal
+      // Simulate ~1.2s of network/transcription latency, abortable.
+      await new Promise<void>((resolve, reject) => {
+        const id = setTimeout(resolve, 1200);
+        signal.addEventListener('abort', () => {
+          clearTimeout(id);
+          reject(new DOMException('Aborted', 'AbortError'));
+        }, { once: true });
       });
 
-      if (!response.ok) {
-        throw new Error(`Transcription failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const newText = data.text || '';
+      const newText = SAMPLE_LINES[sampleIndexRef.current % SAMPLE_LINES.length];
+      sampleIndexRef.current += 1;
 
       setTranscription(prev => {
         const combined = prev ? prev + ' ' + newText : newText;
@@ -224,7 +239,6 @@ export const VoiceTextBoxClip: React.FC = () => {
         return;
       }
       console.error('Transcription error:', error);
-      alert('Transcription failed. Please try again.');
       setAppState('complete');
     }
   };
