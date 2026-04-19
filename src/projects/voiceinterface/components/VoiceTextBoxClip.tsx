@@ -270,9 +270,21 @@ export const VoiceTextBoxClip: React.FC = () => {
     <>
       <div className={`text-box ${styles.container}`}>
         <div className="txt-box">
-          {/* Transcript Display Area */}
+          {/* Transcript Display Area
+              Phase 4 — text visibility is tied to appState:
+                idle     → visible (shows 'Tap to speak' placeholder)
+                rec/proc → hidden (opacity+blur fade out, matches Figma
+                           which has no text-container in those states)
+                complete → visible (transcript animates in via
+                           VoiceTextBatch's own internal animation)
+              The DOM stays mounted throughout to preserve layout and
+              let VoiceTextBatch's transcription animation run cleanly. */}
           <div className="txt-transcript-box">
-            <div className={`transcript-scroll-wrapper ${isClearing ? 'clearing' : ''}`}>
+            <div
+              className={`transcript-scroll-wrapper ${isClearing ? 'clearing' : ''} ${
+                appState === 'recording' || appState === 'processing' ? 'is-hidden' : ''
+              }`}
+            >
               <VoiceTextBatch
                 textState={getTextState()}
                 transcriptText={transcription}
@@ -445,11 +457,27 @@ export const VoiceTextBoxClip: React.FC = () => {
           /* removed 'padding-right: 4px' scrollbar gutter — text can now
              reach the full inner width without a reserved scrollbar lane */
 
-          transition: opacity 200ms ease-out;
+          /* Same Emil crossfade as the button morphs: opacity + blur over
+             200ms with a strong cubic-bezier. Reused here so text
+             visibility (shown in idle/complete, hidden in rec/proc) feels
+             consistent with every other state transition in the card. */
+          transition:
+            opacity 200ms cubic-bezier(0.77, 0, 0.175, 1),
+            filter 200ms cubic-bezier(0.77, 0, 0.175, 1);
         }
 
         .transcript-scroll-wrapper.clearing {
           opacity: 0;
+          pointer-events: none;
+        }
+
+        /* Hide the text area during rec/proc — Figma has no text-container
+           in those states. We keep the DOM mounted so VoiceTextBatch's own
+           internal transcription animation still runs when we return to
+           'complete' and fade it back in. */
+        .transcript-scroll-wrapper.is-hidden {
+          opacity: 0;
+          filter: blur(2px);
           pointer-events: none;
         }
 
