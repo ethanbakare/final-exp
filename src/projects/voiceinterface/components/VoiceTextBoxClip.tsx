@@ -87,54 +87,44 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
   // rec/proc (see effect below).
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
-  // Simulation-only AudioContext for the synthetic oscillator stream.
-  // Held separately from the real-mic plumbing so we can close it
-  // independently when the loop returns to idle.
+  // Simulation-only AudioContext + cached decoded buffer for the
+  // sample audio stream. The buffer is decoded once and reused across
+  // every loop cycle; the AudioContext is per-cycle so it can be
+  // closed cleanly when we return to idle.
   const fakeCtxRef = React.useRef<AudioContext | null>(null);
+  const fakeBufferRef = React.useRef<AudioBuffer | null>(null);
 
   /**
-   * Build a synthetic MediaStream that LOOKS like real mic input to
-   * the AnalyserNode inside ClipLinearWaveform. Two oscillators (saw
-   * + square) FM-modulated by a slow LFO produce a moving frequency
-   * spectrum, so the bars sway organically instead of being flat.
+   * Build a MediaStream that feeds the AnalyserNode inside
+   * ClipLinearWaveform with a real audio waveform. We replay a 3s
+   * segment of the sample track starting at the 8s mark so the bars
+   * move with the dynamics of actual music instead of a synthesised
+   * tone. Output is connected ONLY to the MediaStreamDestination —
+   * not to ctx.destination — so nothing plays through the speakers.
    * Used only when simulate=true.
    */
-  const createFakeStream = (): MediaStream => {
+  const createFakeStream = async (): Promise<MediaStream> => {
     const Ctx =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext })
         .webkitAudioContext;
     const ctx = new Ctx();
+
+    // Decode once across all cycles. AudioBuffer is portable across
+    // contexts so we can keep it after the per-cycle ctx closes.
+    if (!fakeBufferRef.current) {
+      const resp = await fetch(
+        '/audio/Naruto__Animal_I_have_become_-_YouTube.mp3'
+      );
+      const arrBuf = await resp.arrayBuffer();
+      fakeBufferRef.current = await ctx.decodeAudioData(arrBuf);
+    }
+
     const dest = ctx.createMediaStreamDestination();
-
-    const osc1 = ctx.createOscillator();
-    osc1.type = 'sawtooth';
-    osc1.frequency.value = 220;
-    const osc2 = ctx.createOscillator();
-    osc2.type = 'square';
-    osc2.frequency.value = 440;
-
-    // LFO modulates both oscillator pitches so spectral content moves
-    // and the analyser sees varying frequency bins over time.
-    const lfo = ctx.createOscillator();
-    lfo.frequency.value = 4; // 4 Hz wobble
-    const lfoGain = ctx.createGain();
-    lfoGain.gain.value = 80;
-    lfo.connect(lfoGain);
-    lfoGain.connect(osc1.frequency);
-    lfoGain.connect(osc2.frequency);
-
-    // Master gain kept very low — we don't actually want this audible
-    // through any speaker that picks up the destination stream.
-    const gain = ctx.createGain();
-    gain.gain.value = 0.05;
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(dest);
-
-    osc1.start();
-    osc2.start();
-    lfo.start();
+    const source = ctx.createBufferSource();
+    source.buffer = fakeBufferRef.current;
+    source.connect(dest); // only to MediaStream, never to speakers
+    source.start(0, 8);   // start playback at 8s offset
 
     fakeCtxRef.current = ctx;
     return dest.stream;
@@ -189,7 +179,7 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
       // browsers, and we don't need a recording — transcribeAudio
       // ignores the blob and pulls from SAMPLE_LINES).
       if (simulate) {
-        const stream = createFakeStream();
+        const stream = await createFakeStream();
         mediaStreamRef.current = stream;
         setMediaStream(stream);
         setAppState('recording');
