@@ -292,15 +292,18 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
     await transcribeAudio(audioBlob);
   };
 
-  // Dummy sample lines — cycled through on each transcription so the
-  // VoiceTextBatch animation has fresh content to reveal each time.
-  // Real Deepgram call is shelved while the API is broken (400s).
+  // Demo sample lines — speak to what Clipperstream actually solves
+  // (offline-first voice capture, queued sync, browser-only stack)
+  // and who built it. Each line kept under ~60 chars so it lands in
+  // 1-2 lines on the 393px card without triggering overflow.
+  // Cycled in order, looping back to #1 after the last.
   const SAMPLE_LINES = [
-    'Quick brown fox jumps over the lazy dog.',
-    'Voice interface prototype is now wired end-to-end.',
-    'Linear waveform freezes the moment recording stops.',
-    'Try saying something — it does not matter what.',
-    'Phase five committed and verified in browser preview.',
+    "I'm Ethan. I build voice tools that survive bad networks.",
+    'This demo records and transcribes — online or offline.',
+    'Recordings queue locally, then sync the moment you reconnect.',
+    "Most voice apps die without internet. This one doesn't.",
+    'On a plane or in a tunnel, the transcript catches up later.',
+    'Web Audio, Service Workers, IndexedDB — all in the browser.',
   ];
   const sampleIndexRef = React.useRef(0);
 
