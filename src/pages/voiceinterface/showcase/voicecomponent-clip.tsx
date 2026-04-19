@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ClipClearBtn,
   ClipCloseBtn,
@@ -87,6 +87,16 @@ const MorphCell: React.FC<{
     if (pressTimer.current) clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => setIsPressed(false), 140);
   };
+
+  // Auto-advance out of 'proc' back to 'idle' after 3s, simulating the
+  // real flow where processing completes automatically (no click).
+  // Uses setState (not triggerPress) so no press-feedback scale fires
+  // on the automatic return — that matches real app behaviour.
+  useEffect(() => {
+    if (state !== 'proc') return;
+    const t = setTimeout(() => setState('idle'), 3000);
+    return () => clearTimeout(t);
+  }, [state]);
 
   return (
     <>
@@ -215,18 +225,14 @@ const VoiceComponentsClip: React.FC = () => (
             <ClipRecordMorph
               state={s}
               isPressed={pressed}
-              onClick={() => {
-                // Cycle idle -> rec -> proc -> idle so you can press the
-                // morph itself and feel the scale feedback, or use the
-                // toggle buttons above — both route through triggerPress
-                // so the morph's scale is applied either way.
-                const next: Record<ClipRecordMorphState, ClipRecordMorphState> = {
-                  idle: 'rec',
-                  rec: 'proc',
-                  proc: 'idle',
-                };
-                triggerPress(next[s]);
-              }}
+              // Proc is not clickable — it auto-advances to idle after 3s
+              // (handled by the useEffect in MorphCell). idle -> rec and
+              // rec -> proc are the only press-driven transitions.
+              onClick={
+                s === 'proc'
+                  ? undefined
+                  : () => triggerPress(s === 'idle' ? 'rec' : 'proc')
+              }
             />
           )}
         />
