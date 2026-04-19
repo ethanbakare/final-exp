@@ -286,7 +286,13 @@ export const VoiceTextBoxClip: React.FC = () => {
 
           background: #2C2929;   /* Figma: #2C2929 (was --VoiceBoxBg cream) */
           border: 1.5px solid #4D4747;  /* Figma: 1.5px #4D4747 (was 1px --VoiceBoxOutline) */
-          border-radius: 20px;   /* was 28 — softer corners */
+          border-radius: 28px;   /* Figma exact. 20px caused a visual mismatch
+                                    once the nav-pill became visible: the pill's
+                                    effective right-end arc is 21px (half its
+                                    42px height), so at radius 20 the inner
+                                    pill was MORE rounded than the outer card,
+                                    which reads as wrong. 28 keeps outer >
+                                    inner for concentric harmony. */
           /* Figma dual drop shadow (spread -4 / -8) */
           box-shadow:
             0 4px  4px -4px rgba(12, 12, 13, 0.08),
