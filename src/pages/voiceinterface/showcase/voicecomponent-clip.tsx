@@ -332,7 +332,7 @@ const VoiceComponentsClip: React.FC = () => (
     <section className="section-card">
       <div className="card-row">
         <div className="card-label">VoiceTextBox Clip — verbatim clone of variation 1 (no style changes yet)</div>
-        <VoiceTextBoxClip />
+        <VoiceTextBoxClip simulate />
       </div>
     </section>
     <style jsx>{`

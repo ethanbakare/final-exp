@@ -51,7 +51,19 @@ const rightMorphState = (s: AppStateNarrow): ClipRecordMorphState => {
 
 type AppState = 'idle' | 'recording' | 'processing' | 'complete';
 
-export const VoiceTextBoxClip: React.FC = () => {
+interface VoiceTextBoxClipProps {
+  // Demo / simulation mode: bypasses the mic + MediaRecorder, drives
+  // the state machine on a fixed loop (idle 1s -> rec 3s -> proc 1.2s
+  // -> complete 2s -> idle, repeat). Buttons stay rendered for visual
+  // continuity but their click handlers go undefined so the loop is
+  // the sole driver. The waveform is fed by a synthetic LFO-modulated
+  // oscillator MediaStream so bars sway organically without a mic.
+  simulate?: boolean;
+}
+
+export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
+  simulate = false,
+}) => {
   // Simple state management (Phase 0)
   const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
@@ -75,6 +87,59 @@ export const VoiceTextBoxClip: React.FC = () => {
   // rec/proc (see effect below).
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
 
+  // Simulation-only AudioContext for the synthetic oscillator stream.
+  // Held separately from the real-mic plumbing so we can close it
+  // independently when the loop returns to idle.
+  const fakeCtxRef = React.useRef<AudioContext | null>(null);
+
+  /**
+   * Build a synthetic MediaStream that LOOKS like real mic input to
+   * the AnalyserNode inside ClipLinearWaveform. Two oscillators (saw
+   * + square) FM-modulated by a slow LFO produce a moving frequency
+   * spectrum, so the bars sway organically instead of being flat.
+   * Used only when simulate=true.
+   */
+  const createFakeStream = (): MediaStream => {
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    const ctx = new Ctx();
+    const dest = ctx.createMediaStreamDestination();
+
+    const osc1 = ctx.createOscillator();
+    osc1.type = 'sawtooth';
+    osc1.frequency.value = 220;
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'square';
+    osc2.frequency.value = 440;
+
+    // LFO modulates both oscillator pitches so spectral content moves
+    // and the analyser sees varying frequency bins over time.
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 4; // 4 Hz wobble
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 80;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc1.frequency);
+    lfoGain.connect(osc2.frequency);
+
+    // Master gain kept very low — we don't actually want this audible
+    // through any speaker that picks up the destination stream.
+    const gain = ctx.createGain();
+    gain.gain.value = 0.05;
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(dest);
+
+    osc1.start();
+    osc2.start();
+    lfo.start();
+
+    fakeCtxRef.current = ctx;
+    return dest.stream;
+  };
+
   // Timer counter — runs during 'recording', freezes during 'processing',
   // resets to 0 when returning to 'idle'. Kept in sync with appState via
   // the useEffect below.
@@ -91,10 +156,16 @@ export const VoiceTextBoxClip: React.FC = () => {
 
   // Phase 5 — release the MediaStream reference held for the waveform
   // once we're no longer in an active recording context. This unmounts
-  // the analyser graph inside ClipLinearWaveform.
+  // the analyser graph inside ClipLinearWaveform. Also closes the
+  // synthetic AudioContext used in simulate mode so the demo loop
+  // doesn't leak audio contexts across cycles.
   useEffect(() => {
     if (appState !== 'recording' && appState !== 'processing') {
       setMediaStream(null);
+      if (fakeCtxRef.current) {
+        fakeCtxRef.current.close().catch(() => {});
+        fakeCtxRef.current = null;
+      }
     }
   }, [appState]);
 
@@ -111,6 +182,18 @@ export const VoiceTextBoxClip: React.FC = () => {
     try {
       if (appState === 'complete' && transcription) {
         oldTextLengthRef.current = transcription.length;
+      }
+
+      // simulate mode: synthesise the stream, skip MediaRecorder
+      // entirely (it errors on Oscillator-driven streams in some
+      // browsers, and we don't need a recording — transcribeAudio
+      // ignores the blob and pulls from SAMPLE_LINES).
+      if (simulate) {
+        const stream = createFakeStream();
+        mediaStreamRef.current = stream;
+        setMediaStream(stream);
+        setAppState('recording');
+        return;
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -173,6 +256,14 @@ export const VoiceTextBoxClip: React.FC = () => {
    * Stop Recording (explicitly transcribe)
    */
   const handleStopRecording = async () => {
+    // simulate mode: no MediaRecorder to stop. Just advance the state
+    // machine and let the dummy transcribeAudio resolve to 'complete'.
+    if (simulate) {
+      setAppState('processing');
+      await transcribeAudio(new Blob());
+      return;
+    }
+
     if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
       return;
     }
@@ -286,6 +377,30 @@ export const VoiceTextBoxClip: React.FC = () => {
     }, 200);
   };
 
+  // Demo auto-loop. Each appState transition schedules the next call:
+  //   idle      -> wait 1s, then handleStartRecording
+  //   recording -> wait 3s, then handleStopRecording (proc auto-resolves
+  //                via the SAMPLE_LINES timeout inside transcribeAudio)
+  //   complete  -> wait 2s, then handleClear -> back to idle
+  // Closures over the handlers are fine here: the effect re-runs on
+  // every appState change, so the handler refs are always fresh.
+  useEffect(() => {
+    if (!simulate) return;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    if (appState === 'idle') {
+      timeoutId = setTimeout(() => { handleStartRecording(); }, 1000);
+    } else if (appState === 'recording') {
+      timeoutId = setTimeout(() => { handleStopRecording(); }, 3000);
+    } else if (appState === 'complete') {
+      timeoutId = setTimeout(() => { handleClear(); }, 2000);
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [simulate, appState]);
+
   // Cleanup on unmount
   React.useEffect(() => {
     return () => {
@@ -354,7 +469,9 @@ export const VoiceTextBoxClip: React.FC = () => {
             <ClipLeftSlotMorph
               state={leftMorphState(appState)}
               onClick={
-                appState === 'recording' || appState === 'processing'
+                simulate
+                  ? undefined
+                  : appState === 'recording' || appState === 'processing'
                   ? handleClose
                   : appState === 'complete'
                   ? handleClear
@@ -388,7 +505,9 @@ export const VoiceTextBoxClip: React.FC = () => {
               <ClipRecordMorph
                 state={rightMorphState(appState)}
                 onClick={
-                  appState === 'recording'
+                  simulate
+                    ? undefined
+                    : appState === 'recording'
                     ? handleStopRecording
                     : appState === 'processing'
                     ? undefined
@@ -624,11 +743,21 @@ export const VoiceTextBoxClip: React.FC = () => {
           align-self: stretch;
         }
 
-        /* Right cluster — timer + record morph, 10px between them. */
+        /* Right cluster — timer + record morph, 10px between them.
+           4px padding-left visually balances the gap on either side
+           of the waveform. Without it the left side reads wider: the
+           close icon sits centred inside its 34×34 hit-target so its
+           visible right edge stops well before the waveform's first
+           bar (the bar zone also fades 20px in via fadeWidth). On the
+           right the timer's first digit starts close to the waveform
+           edge, making the right gap look tight by comparison. The
+           4px nudge equalises the perceived spacing without touching
+           either button's hit-target. */
         .right-cluster {
           display: flex;
           align-items: center;
           gap: 10px;
+          padding-left: 4px;
         }
       `}</style>
     </>
