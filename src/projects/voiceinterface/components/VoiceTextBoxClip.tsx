@@ -460,6 +460,14 @@ export const VoiceTextBoxClip: React.FC = () => {
         .text-box :global(.voice-text-content .static-text) {
           color: #FFFFFF;                     /* Figma: text-transcript */
         }
+        /* VoiceTextAnimation wraps each word in a .animated-word span
+           that sets its own color (var(--VoiceDarkGrey_90)). That child
+           rule beats the .result-text parent — same pattern as above,
+           one level deeper. Override or the per-word reveal renders
+           dark grey on the dark card. */
+        .text-box :global(.voice-text-content .animated-word) {
+          color: #FFFFFF;
+        }
 
         /* TxtBox - Inner Container
            Adapter pass 1 (cont): removed the hardcoded 173px height
