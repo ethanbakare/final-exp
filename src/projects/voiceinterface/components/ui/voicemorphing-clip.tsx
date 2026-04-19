@@ -10,6 +10,11 @@ export type ClipRecordMorphState = 'idle' | 'rec' | 'proc';
 interface Props {
   state: ClipRecordMorphState;
   onClick?: () => void;
+  /** Programmatic press trigger. Set true briefly to replay the
+   *  scale-down feedback when the state change originates from
+   *  somewhere other than a direct press on this element (e.g. a
+   *  toggle button outside it). */
+  isPressed?: boolean;
   className?: string;
 }
 
@@ -28,10 +33,10 @@ interface Props {
  * Click is routed through the outer wrapper so the caller controls
  * transitions (e.g. idle → rec on click, rec → proc on click).
  */
-export const ClipRecordMorph: React.FC<Props> = ({ state, onClick, className = '' }) => (
+export const ClipRecordMorph: React.FC<Props> = ({ state, onClick, isPressed, className = '' }) => (
   <>
     <div
-      className={`clip-record-morph ${className}`}
+      className={`clip-record-morph ${isPressed ? 'is-pressed' : ''} ${className}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
     >
@@ -58,24 +63,30 @@ export const ClipRecordMorph: React.FC<Props> = ({ state, onClick, className = '
            don't trigger a scale, only real user presses do. */
         transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
       }
-      .clip-record-morph:active {
-        transform: scale(0.97);
+      /* Both real presses (:active) and programmatic presses
+         (.is-pressed, set briefly when state is changed from a
+         toggle outside the morph) apply the same scale so the
+         feedback reads the same regardless of origin. */
+      .clip-record-morph:active,
+      .clip-record-morph.is-pressed {
+        transform: scale(0.95);
       }
       /* Layers sit on top of each other; only the active one shows.
          Blur during crossfade (per Emil) masks the "two distinct objects
          overlapping" artifact you get from plain opacity fades — each
          layer blurs out while fading, the incoming blurs in while fading,
          so mid-transition you read a single blended element instead of
-         two swapping ones. */
+         two swapping ones. 6px blur over 260ms is visibly perceptible
+         at the 34px button size. */
       .layer {
         position: absolute;
         inset: 0;
         opacity: 0;
-        filter: blur(2px);
+        filter: blur(6px);
         pointer-events: none;
         transition:
-          opacity 200ms cubic-bezier(0.77, 0, 0.175, 1),
-          filter 200ms cubic-bezier(0.77, 0, 0.175, 1);
+          opacity 260ms cubic-bezier(0.77, 0, 0.175, 1),
+          filter 260ms cubic-bezier(0.77, 0, 0.175, 1);
       }
       .layer.active {
         opacity: 1;

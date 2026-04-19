@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ClipClearBtn,
   ClipCloseBtn,
@@ -72,33 +72,46 @@ const Cell: React.FC<{ children: React.ReactNode; label: string; tinted?: boolea
  */
 const MorphCell: React.FC<{
   label: string;
-  render: (state: ClipRecordMorphState, setState: (s: ClipRecordMorphState) => void) => React.ReactNode;
+  render: (state: ClipRecordMorphState, setState: (s: ClipRecordMorphState) => void, isPressed: boolean) => React.ReactNode;
 }> = ({ label, render }) => {
   const [state, setState] = useState<ClipRecordMorphState>('idle');
+  const [isPressed, setIsPressed] = useState(false);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Trigger the same feedback the morph shows on real press, but
+  // when the state change is driven from a toggle button outside it.
+  // Clicking a toggle should look identical to pressing the morph.
+  const triggerPress = (next: ClipRecordMorphState) => {
+    setState(next);
+    setIsPressed(true);
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => setIsPressed(false), 140);
+  };
+
   return (
     <>
       <div className="cell">
         <div className="toggle">
           <button
             className={`toggle-btn first ${state === 'idle' ? 'active' : ''}`}
-            onClick={() => setState('idle')}
+            onClick={() => triggerPress('idle')}
           >
             IDLE
           </button>
           <button
             className={`toggle-btn ${state === 'rec' ? 'active' : ''}`}
-            onClick={() => setState('rec')}
+            onClick={() => triggerPress('rec')}
           >
             REC
           </button>
           <button
             className={`toggle-btn last ${state === 'proc' ? 'active' : ''}`}
-            onClick={() => setState('proc')}
+            onClick={() => triggerPress('proc')}
           >
             PROC
           </button>
         </div>
-        <div className="center">{render(state, setState)}</div>
+        <div className="center">{render(state, triggerPress, isPressed)}</div>
         <div className="label">{label}</div>
       </div>
       <style jsx>{`
@@ -157,7 +170,10 @@ const MorphCell: React.FC<{
           text-transform: uppercase;
           letter-spacing: 0.04em;
           color: rgba(255, 255, 255, 0.4);
-          white-space: nowrap;
+          white-space: normal;
+          text-align: center;
+          max-width: 180px;
+          line-height: 1.4;
         }
       `}</style>
     </>
@@ -198,18 +214,21 @@ const VoiceComponentsClip: React.FC = () => (
       <div className="morph-grid">
         <MorphCell
           label="Record Morph — Idle / Rec / Proc (click to cycle)"
-          render={(s, set) => (
+          render={(s, triggerPress, pressed) => (
             <ClipRecordMorph
               state={s}
+              isPressed={pressed}
               onClick={() => {
                 // Cycle idle -> rec -> proc -> idle so you can press the
-                // morph itself and feel the :active scale(0.97) feedback.
+                // morph itself and feel the scale feedback, or use the
+                // toggle buttons above — both route through triggerPress
+                // so the morph's scale is applied either way.
                 const next: Record<ClipRecordMorphState, ClipRecordMorphState> = {
                   idle: 'rec',
                   rec: 'proc',
                   proc: 'idle',
                 };
-                set(next[s]);
+                triggerPress(next[s]);
               }}
             />
           )}
