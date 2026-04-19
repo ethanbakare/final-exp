@@ -437,14 +437,28 @@ export const VoiceTextBoxClip: React.FC = () => {
             0 16px 16px -8px rgba(12, 12, 13, 0.12);
         }
 
-        /* Text colour overrides — placeholder + transcript both white-ish on dark.
-           Uses :global() to reach into VoiceTextBatch internals.
-           Order matters: parent first, then more-specific placeholder override. */
+        /* Text colour overrides — VoiceTextBatch ships with dark-grey
+           colors (var(--VoiceDarkGrey_30/90)) hardcoded on its inner
+           classes (.placeholder-text, .dimmed-text, .result-text,
+           .old-text, .static-text). Those direct child rules beat any
+           inherited color from the parent, so on this dark card every
+           one of them needs an explicit white override or the text
+           renders invisible (dark-on-dark). Variation 1 works because
+           its card background is cream — these grey rules read fine
+           there. Uses :global() to reach into VoiceTextBatch internals. */
         .text-box :global(.voice-text-content) {
-          color: #FFFFFF;                     /* Figma: text-transcript */
+          color: #FFFFFF;                     /* parent inherit fallback */
         }
         .text-box :global(.voice-text-content .placeholder-text) {
           color: rgba(255, 255, 255, 0.30);   /* Figma: text-placeholder */
+        }
+        .text-box :global(.voice-text-content .dimmed-text) {
+          color: rgba(255, 255, 255, 0.30);   /* old text during rec/proc */
+        }
+        .text-box :global(.voice-text-content .result-text),
+        .text-box :global(.voice-text-content .old-text),
+        .text-box :global(.voice-text-content .static-text) {
+          color: #FFFFFF;                     /* Figma: text-transcript */
         }
 
         /* TxtBox - Inner Container
