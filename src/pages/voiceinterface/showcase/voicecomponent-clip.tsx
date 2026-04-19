@@ -77,7 +77,7 @@ const TimerRecordCluster: React.FC<{
         .right-cluster {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
         }
       `}</style>
     </>
