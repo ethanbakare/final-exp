@@ -19,7 +19,10 @@ type AppState = 'idle' | 'recording' | 'processing' | 'complete';
 
 export const VoiceTextBoxClip: React.FC = () => {
   // Simple state management (Phase 0)
-  const [appState, setAppState] = useState<AppState>('idle');
+  // TEMP: forced to 'recording' so the Phase 1 nav-pill active bg is
+  // visible without needing to grant mic permission. Revert to 'idle'
+  // once Phase 2 wires the full morph in.
+  const [appState, setAppState] = useState<AppState>('recording');
   const [transcription, setTranscription] = useState<string>('');
   const [isClearing, setIsClearing] = useState<boolean>(false);
 
@@ -414,7 +417,10 @@ export const VoiceTextBoxClip: React.FC = () => {
           gap: 0px;
 
           width: 100%;
-          height: 38px;
+          height: 42px;          /* Figma: 42 (was 38). At 38, padding 4
+                                    + button 34 left only 2px top/bottom,
+                                    making vertical/horizontal look uneven.
+                                    42 gives true symmetric 4px all sides. */
 
           border-radius: 28px;   /* Figma: knife-peel ~28.8 — 28 per design call */
           background: transparent;
