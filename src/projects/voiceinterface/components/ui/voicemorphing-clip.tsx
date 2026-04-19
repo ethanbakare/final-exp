@@ -46,22 +46,40 @@ export const ClipRecordMorph: React.FC<Props> = ({ state, onClick, className = '
       </div>
     </div>
     <style jsx>{`
+      /* Easing curves (per Emil's design-eng skill): built-in easings are
+         too weak; these custom bezier curves have more intentional punch. */
       .clip-record-morph {
         position: relative;
         width: 34px;
         height: 34px;
         cursor: pointer;
+        /* Press feedback — :active only fires on real mousedown/touchdown,
+           so programmatic state changes (e.g. proc → idle on completion)
+           don't trigger a scale, only real user presses do. */
+        transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
       }
-      /* Layers sit on top of each other; only the active one shows. */
+      .clip-record-morph:active {
+        transform: scale(0.97);
+      }
+      /* Layers sit on top of each other; only the active one shows.
+         Blur during crossfade (per Emil) masks the "two distinct objects
+         overlapping" artifact you get from plain opacity fades — each
+         layer blurs out while fading, the incoming blurs in while fading,
+         so mid-transition you read a single blended element instead of
+         two swapping ones. */
       .layer {
         position: absolute;
         inset: 0;
         opacity: 0;
+        filter: blur(2px);
         pointer-events: none;
-        transition: opacity 200ms ease-in-out;
+        transition:
+          opacity 200ms cubic-bezier(0.77, 0, 0.175, 1),
+          filter 200ms cubic-bezier(0.77, 0, 0.175, 1);
       }
       .layer.active {
         opacity: 1;
+        filter: blur(0);
       }
       /* Inner buttons shouldn't receive their own clicks — the outer
          wrapper handles the whole tap. */
