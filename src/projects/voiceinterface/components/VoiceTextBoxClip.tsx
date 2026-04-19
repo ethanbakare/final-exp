@@ -19,10 +19,7 @@ type AppState = 'idle' | 'recording' | 'processing' | 'complete';
 
 export const VoiceTextBoxClip: React.FC = () => {
   // Simple state management (Phase 0)
-  // TEMP: forced to 'recording' so the Phase 1 nav-pill active bg is
-  // visible without needing to grant mic permission. Revert to 'idle'
-  // once Phase 2 wires the full morph in.
-  const [appState, setAppState] = useState<AppState>('recording');
+  const [appState, setAppState] = useState<AppState>('idle');
   const [transcription, setTranscription] = useState<string>('');
   const [isClearing, setIsClearing] = useState<boolean>(false);
 
