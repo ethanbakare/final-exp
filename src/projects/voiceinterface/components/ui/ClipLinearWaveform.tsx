@@ -89,8 +89,17 @@ export const ClipLinearWaveform: React.FC<ClipLinearWaveformProps> = ({
   }, [mediaStream]);
 
   // Poll only when active. Flipping to inactive freezes the bars.
+  // Critical: we also clear freqData here. Without this, the last
+  // Uint8Array we passed stays in state and LinearWaveform keeps
+  // pushing that same stale frame to its history every updateRate ms,
+  // making the bars appear to keep scrolling. Setting freqData=null
+  // turns hasData off in the renderer; historyRef retains the prior
+  // bars so they remain visible, frozen at their last positions.
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive) {
+      setFreqData(null);
+      return;
+    }
     const tick = () => {
       const analyser = analyserRef.current;
       const dataArray = dataArrayRef.current;
