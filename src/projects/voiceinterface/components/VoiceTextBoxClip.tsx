@@ -245,8 +245,15 @@ export const VoiceTextBoxClip: React.FC = () => {
             Figma-matching ClipRecordRedBtn (red mic in red-tint pill).
             Recording / processing / complete state visuals will come
             back once LinearWaveform is ported in.
+
+            Phase 1 — nav-pill container styling only. Background
+            fades in/out via the 'is-active' class on rec/proc states.
           */}
-          <div className="txt-nav-bar">
+          <div
+            className={`txt-nav-bar ${
+              appState === 'recording' || appState === 'processing' ? 'is-active' : ''
+            }`}
+          >
             <ClipRecordRedBtn onClick={handleStartRecording} />
           </div>
         </div>
@@ -389,7 +396,15 @@ export const VoiceTextBoxClip: React.FC = () => {
         /* TxtNavBar - Navigation Controls
            Height kept at 38px (NOT touched). Only justify-content
            changed: center -> flex-end so the right-aligned mic
-           matches Figma idle state (no left button). */
+           matches Figma idle state (no left button).
+
+           Phase 1 — container styling:
+           - border-radius 6 -> 28 (Figma's nav-pill "knife peel" shape)
+           - background fades in on rec/proc (active recording context),
+             transparent in idle/complete
+           - 200ms transition with the same Emil cubic-bezier used by
+             the button morphs so the bg change feels consistent with
+             everything else in the card */
         .txt-nav-bar {
           display: flex;
           flex-direction: row;
@@ -401,12 +416,17 @@ export const VoiceTextBoxClip: React.FC = () => {
           width: 100%;
           height: 38px;
 
-          border-radius: 6px;
+          border-radius: 28px;   /* Figma: knife-peel ~28.8 — 28 per design call */
+          background: transparent;
+          transition: background-color 200ms cubic-bezier(0.77, 0, 0.175, 1);
 
           flex: none;
           order: 1;
           align-self: stretch;
           flex-grow: 0;
+        }
+        .txt-nav-bar.is-active {
+          background: rgba(255, 255, 255, 0.10);
         }
       `}</style>
     </>
