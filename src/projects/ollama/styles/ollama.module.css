@@ -395,7 +395,7 @@
   width: 71.8%;
   left: 14.1%;
   top: 12%;
-  animation: moodboard-stack-1 12s infinite linear;
+  animation: moodboard-stack-1 10.7s infinite linear;
 }
 
 /* Image 2: noritake */
@@ -403,7 +403,7 @@
   width: 41%;
   left: 23.1%;
   bottom: 7.8%;
-  animation: moodboard-stack-2 12s infinite linear;
+  animation: moodboard-stack-2 10.7s infinite linear;
 }
 
 /* Image 3: notionstack */
@@ -411,7 +411,7 @@
   width: 66.4%;
   left: 6.1%;
   bottom: 2%;
-  animation: moodboard-stack-3 12s infinite linear;
+  animation: moodboard-stack-3 10.7s infinite linear;
 }
 
 /* Image 4: laptopwindow */
@@ -419,7 +419,7 @@
   width: 44%;
   left: 25.4%;
   bottom: 8.9%;
-  animation: moodboard-stack-4 12s infinite linear;
+  animation: moodboard-stack-4 10.7s infinite linear;
 }
 
 /* Image 5: toast notion */
@@ -427,7 +427,7 @@
   width: 76.2%;
   right: 11%;
   top: 26.5%;
-  animation: moodboard-stack-5 12s infinite linear;
+  animation: moodboard-stack-5 10.7s infinite linear;
 }
 
 /* Image 6: notiontools */
@@ -435,7 +435,7 @@
   width: 54.8%;
   right: 12%;
   bottom: 11.2%;
-  animation: moodboard-stack-6 12s infinite linear;
+  animation: moodboard-stack-6 10.7s infinite linear;
 }
 
 /* Image 7: noritakestare */
@@ -443,67 +443,71 @@
   width: 29.2%;
   left: 25.4%;
   bottom: 8.9%;
-  animation: moodboard-stack-7 12s infinite linear;
+  animation: moodboard-stack-7 10.7s infinite linear;
 }
 
-/* Stacking keyframes — 7 images, 12s cycle
-   Stack-up accelerates:   gaps 5%, 4.5%, 4%, 3.5%, 3%, 2.5% (0.6s → 0.3s)
-   Hold:                   22.5–54.5% all visible (~3.8s)
-   Unstack decelerates:    gaps 2.5%, 3%, 3.5%, 4%, 4.5%, 5% (0.3s → 0.6s)
-   Empty:                  77–100% placeholder visible (~2.8s) */
+/* Stacking keyframes — 7 images, 10.7s cycle (was 12s; trimmed
+   only the empty/blank tail from ~2.8s -> ~1.5s. Stack-up, hold,
+   and unstack absolute durations are unchanged — every percentage
+   below was rescaled by 12/10.7 ≈ 1.1215 so the visible phases
+   land at the same wall-clock times.)
+   Stack-up accelerates:   ~0.6s → ~0.3s (gaps 5.6, 5.0, 4.5, 3.9, 3.4, 2.8 %)
+   Hold:                   25.2–61.1% all visible (~3.8s)
+   Unstack decelerates:    ~0.3s → ~0.6s (mirror)
+   Empty:                  86.4–100% placeholder (~1.5s) */
 @keyframes moodboard-stack-1 {
   0% { opacity: 0; }
   0.1% { opacity: 1; }
-  76.9% { opacity: 1; }
-  77% { opacity: 0; }
+  86.2% { opacity: 1; }
+  86.4% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-2 {
-  0%, 5% { opacity: 0; }
-  5.1% { opacity: 1; }
-  71.9% { opacity: 1; }
-  72% { opacity: 0; }
+  0%, 5.6% { opacity: 0; }
+  5.7% { opacity: 1; }
+  80.6% { opacity: 1; }
+  80.7% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-3 {
-  0%, 9.5% { opacity: 0; }
-  9.6% { opacity: 1; }
-  67.4% { opacity: 1; }
-  67.5% { opacity: 0; }
+  0%, 10.7% { opacity: 0; }
+  10.8% { opacity: 1; }
+  75.6% { opacity: 1; }
+  75.7% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-4 {
-  0%, 13.5% { opacity: 0; }
-  13.6% { opacity: 1; }
-  63.4% { opacity: 1; }
-  63.5% { opacity: 0; }
+  0%, 15.1% { opacity: 0; }
+  15.3% { opacity: 1; }
+  71.1% { opacity: 1; }
+  71.2% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-5 {
-  0%, 17% { opacity: 0; }
-  17.1% { opacity: 1; }
-  59.9% { opacity: 1; }
-  60% { opacity: 0; }
+  0%, 19.1% { opacity: 0; }
+  19.2% { opacity: 1; }
+  67.2% { opacity: 1; }
+  67.3% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-6 {
-  0%, 20% { opacity: 0; }
-  20.1% { opacity: 1; }
-  56.9% { opacity: 1; }
-  57% { opacity: 0; }
+  0%, 22.4% { opacity: 0; }
+  22.5% { opacity: 1; }
+  63.8% { opacity: 1; }
+  63.9% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes moodboard-stack-7 {
-  0%, 22.5% { opacity: 0; }
-  22.6% { opacity: 1; }
-  54.4% { opacity: 1; }
-  54.5% { opacity: 0; }
+  0%, 25.2% { opacity: 0; }
+  25.3% { opacity: 1; }
+  61.0% { opacity: 1; }
+  61.1% { opacity: 0; }
   100% { opacity: 0; }
 }
 
