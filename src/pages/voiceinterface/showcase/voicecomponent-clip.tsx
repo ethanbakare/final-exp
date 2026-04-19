@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ClipClearBtn,
   ClipCloseBtn,
@@ -9,6 +9,10 @@ import {
   ClipProcessingDarkBtn,
   ClipTimer,
 } from '@/projects/voiceinterface/components/ui/voicebuttons-clip';
+import {
+  ClipRecordMorph,
+  ClipRecordMorphState,
+} from '@/projects/voiceinterface/components/ui/voicemorphing-clip';
 import { VoiceTextBoxClip } from '@/projects/voiceinterface/components/VoiceTextBoxClip';
 
 /**
@@ -61,6 +65,105 @@ const Cell: React.FC<{ children: React.ReactNode; label: string; tinted?: boolea
   </>
 );
 
+/**
+ * MorphCell — showcase cell with internal IDLE/REC/PROC toggle that
+ * drives a child render function. Mirrors the toggle pattern used in
+ * the existing voicecomponent.tsx morph section.
+ */
+const MorphCell: React.FC<{
+  label: string;
+  render: (state: ClipRecordMorphState) => React.ReactNode;
+}> = ({ label, render }) => {
+  const [state, setState] = useState<ClipRecordMorphState>('idle');
+  return (
+    <>
+      <div className="cell">
+        <div className="toggle">
+          <button
+            className={`toggle-btn first ${state === 'idle' ? 'active' : ''}`}
+            onClick={() => setState('idle')}
+          >
+            IDLE
+          </button>
+          <button
+            className={`toggle-btn ${state === 'rec' ? 'active' : ''}`}
+            onClick={() => setState('rec')}
+          >
+            REC
+          </button>
+          <button
+            className={`toggle-btn last ${state === 'proc' ? 'active' : ''}`}
+            onClick={() => setState('proc')}
+          >
+            PROC
+          </button>
+        </div>
+        <div className="center">{render(state)}</div>
+        <div className="label">{label}</div>
+      </div>
+      <style jsx>{`
+        .cell {
+          position: relative;
+          width: 200px;
+          height: 200px;
+          display: flex;
+          flex-direction: column;
+          border: 0.8px solid rgba(255, 255, 255, 0.06);
+        }
+        .toggle {
+          position: absolute;
+          top: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          gap: 0;
+        }
+        .toggle-btn {
+          font-family: 'Inter', -apple-system, sans-serif;
+          font-size: 9px;
+          font-weight: 500;
+          letter-spacing: 0.04em;
+          color: rgba(255, 255, 255, 0.7);
+          background: rgba(255, 255, 255, 0.05);
+          border: none;
+          padding: 4px 8px;
+          cursor: pointer;
+          transition: background 150ms ease;
+        }
+        .toggle-btn.first {
+          border-radius: 8px 0 0 8px;
+        }
+        .toggle-btn.last {
+          border-radius: 0 8px 8px 0;
+        }
+        .toggle-btn.active {
+          background: rgba(255, 255, 255, 0.2);
+          color: rgba(255, 255, 255, 1);
+        }
+        .center {
+          flex: 1;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        .label {
+          position: absolute;
+          bottom: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-family: 'Inter', -apple-system, sans-serif;
+          font-size: 9px;
+          font-weight: 400;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: rgba(255, 255, 255, 0.4);
+          white-space: nowrap;
+        }
+      `}</style>
+    </>
+  );
+};
+
 const VoiceComponentsClip: React.FC = () => (
   <>
     <section className="section-buttons">
@@ -90,6 +193,14 @@ const VoiceComponentsClip: React.FC = () => (
           <ClipTimer value="0:26" />
         </Cell>
       </div>
+
+      {/* Morph cells — Cell A: button-only morph. Cell B (timer + button) coming next. */}
+      <div className="morph-grid">
+        <MorphCell
+          label="Record Morph — Idle / Rec / Proc"
+          render={(s) => <ClipRecordMorph state={s} />}
+        />
+      </div>
     </section>
 
     <section className="section-card">
@@ -103,8 +214,10 @@ const VoiceComponentsClip: React.FC = () => (
         min-height: 100vh;
         background: #2C2929;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        gap: 40px;
         padding: 40px;
       }
       .section-card {
@@ -122,6 +235,13 @@ const VoiceComponentsClip: React.FC = () => (
         gap: 0;
         border: 0.8px solid rgba(255, 255, 255, 0.06);
         max-width: 100%;
+      }
+      .morph-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, 200px);
+        justify-content: center;
+        gap: 0;
+        border: 0.8px solid rgba(255, 255, 255, 0.06);
       }
       .card-row {
         display: flex;
