@@ -410,7 +410,7 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
     } else if (appState === 'recording') {
       timeoutId = setTimeout(() => { handleStopRecording(); }, 3000);
     } else if (appState === 'complete') {
-      timeoutId = setTimeout(() => { handleClear(); }, 2000);
+      timeoutId = setTimeout(() => { handleClear(); }, 3500);
     }
 
     return () => {
