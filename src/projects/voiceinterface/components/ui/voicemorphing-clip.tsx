@@ -69,24 +69,23 @@ export const ClipRecordMorph: React.FC<Props> = ({ state, onClick, isPressed, cl
          feedback reads the same regardless of origin. */
       .clip-record-morph:active,
       .clip-record-morph.is-pressed {
-        transform: scale(0.95);
+        transform: scale(0.97);
       }
       /* Layers sit on top of each other; only the active one shows.
          Blur during crossfade (per Emil) masks the "two distinct objects
          overlapping" artifact you get from plain opacity fades — each
          layer blurs out while fading, the incoming blurs in while fading,
          so mid-transition you read a single blended element instead of
-         two swapping ones. 6px blur over 260ms is visibly perceptible
-         at the 34px button size. */
+         two swapping ones. */
       .layer {
         position: absolute;
         inset: 0;
         opacity: 0;
-        filter: blur(6px);
+        filter: blur(2px);
         pointer-events: none;
         transition:
-          opacity 260ms cubic-bezier(0.77, 0, 0.175, 1),
-          filter 260ms cubic-bezier(0.77, 0, 0.175, 1);
+          opacity 200ms cubic-bezier(0.77, 0, 0.175, 1),
+          filter 200ms cubic-bezier(0.77, 0, 0.175, 1);
       }
       .layer.active {
         opacity: 1;

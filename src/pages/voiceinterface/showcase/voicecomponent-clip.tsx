@@ -170,10 +170,7 @@ const MorphCell: React.FC<{
           text-transform: uppercase;
           letter-spacing: 0.04em;
           color: rgba(255, 255, 255, 0.4);
-          white-space: normal;
-          text-align: center;
-          max-width: 180px;
-          line-height: 1.4;
+          white-space: nowrap;
         }
       `}</style>
     </>
@@ -213,7 +210,7 @@ const VoiceComponentsClip: React.FC = () => (
       {/* Morph cells — Cell A: button-only morph. Cell B (timer + button) coming next. */}
       <div className="morph-grid">
         <MorphCell
-          label="Record Morph — Idle / Rec / Proc (click to cycle)"
+          label="Record Morph — 34px"
           render={(s, triggerPress, pressed) => (
             <ClipRecordMorph
               state={s}
