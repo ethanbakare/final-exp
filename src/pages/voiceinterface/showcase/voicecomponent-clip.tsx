@@ -14,6 +14,7 @@ import {
   ClipRecordMorphState,
   ClipLeftSlotMorph,
   ClipLeftMorphState,
+  ClipTimerFade,
 } from '@/projects/voiceinterface/components/ui/voicemorphing-clip';
 import { VoiceTextBoxClip } from '@/projects/voiceinterface/components/VoiceTextBoxClip';
 
@@ -22,6 +23,66 @@ import { VoiceTextBoxClip } from '@/projects/voiceinterface/components/VoiceText
  * RecordBar card (Figma: Dictation app, record-bar-* frames).
  * Dark background so the buttons render on the target surface.
  */
+
+// Formats elapsed seconds as m:ss (e.g. 5 -> "0:05", 73 -> "1:13").
+const formatMMSS = (totalSeconds: number) => {
+  const m = Math.floor(totalSeconds / 60);
+  const s = String(totalSeconds % 60).padStart(2, '0');
+  return `${m}:${s}`;
+};
+
+/**
+ * TimerRecordCluster — the right-side cluster from the card's nav-pill.
+ * Timer + record button sit side-by-side, right-aligned. The timer is
+ * always rendered (opacity fades to 0 in idle) so the record button's
+ * position is stable — it doesn't shift left/right when the timer
+ * appears or disappears.
+ *
+ * Timer counts up in real time while state === 'rec'. Freezes on proc
+ * (keeps showing the captured duration). Resets to 0 on idle.
+ */
+const TimerRecordCluster: React.FC<{
+  state: ClipRecordMorphState;
+  triggerPress: (s: ClipRecordMorphState) => void;
+  isPressed: boolean;
+}> = ({ state, triggerPress, isPressed }) => {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (state === 'idle') {
+      setSeconds(0);
+      return;
+    }
+    if (state !== 'rec') return; // proc freezes at last value
+    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [state]);
+
+  const timerVisible = state === 'rec' || state === 'proc';
+  return (
+    <>
+      <div className="right-cluster">
+        <ClipTimerFade visible={timerVisible} value={formatMMSS(seconds)} />
+        <ClipRecordMorph
+          state={state}
+          isPressed={isPressed}
+          onClick={
+            state === 'proc'
+              ? undefined
+              : () => triggerPress(state === 'idle' ? 'rec' : 'proc')
+          }
+        />
+      </div>
+      <style jsx>{`
+        .right-cluster {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+      `}</style>
+    </>
+  );
+};
 
 const Cell: React.FC<{ children: React.ReactNode; label: string; tinted?: boolean }> = ({ children, label, tinted }) => (
   <>
@@ -254,6 +315,15 @@ const VoiceComponentsClip: React.FC = () => (
                   : () => triggerPress(s === 'rec' ? 'complete' : 'idle')
               }
             />
+          )}
+        />
+        <MorphCell<ClipRecordMorphState>
+          label="Timer + Record — right cluster"
+          states={['idle', 'rec', 'proc'] as const}
+          initialState="idle"
+          autoAdvance={{ from: 'proc', to: 'idle', delayMs: 3000 }}
+          render={(s, triggerPress, pressed) => (
+            <TimerRecordCluster state={s} triggerPress={triggerPress} isPressed={pressed} />
           )}
         />
       </div>

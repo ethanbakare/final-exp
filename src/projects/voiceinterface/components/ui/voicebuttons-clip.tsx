@@ -265,6 +265,10 @@ export const ClipTimer: React.FC<{ value?: string; className?: string }> = ({ va
         font-weight: 500;
         line-height: 23px;
         text-align: center;
+        /* Belt-and-suspenders: JetBrains Mono is already monospaced so
+           every digit is fixed-width, but tabular-nums explicitly opts
+           into tabular figures in case the font stack ever falls back. */
+        font-variant-numeric: tabular-nums;
       }
     `}</style>
   </>

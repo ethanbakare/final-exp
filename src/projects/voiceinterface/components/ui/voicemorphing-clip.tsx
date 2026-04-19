@@ -5,6 +5,7 @@ import {
   ClipProcessingDarkBtn,
   ClipCloseBtn,
   ClipClearBtn,
+  ClipTimer,
 } from './voicebuttons-clip';
 
 export type ClipRecordMorphState = 'idle' | 'rec' | 'proc';
@@ -173,3 +174,41 @@ export const ClipLeftSlotMorph: React.FC<LeftProps> = ({ state, onClick, isPress
     </>
   );
 };
+
+interface TimerFadeProps {
+  /** When false, the timer is invisible but still occupies layout
+   *  space — so neighbours (like the record button) don't shift
+   *  when the timer appears/disappears. */
+  visible: boolean;
+  value: string;
+  className?: string;
+}
+
+/**
+ * ClipTimerFade — the ClipTimer with Emil-style visibility fade.
+ *
+ * Uses the same opacity + blur(2px) crossfade as the button morphs so
+ * appearance/disappearance reads consistently across the card. The
+ * element is ALWAYS rendered — visibility is controlled purely by
+ * opacity — so layout stays stable and sibling elements don't move.
+ */
+export const ClipTimerFade: React.FC<TimerFadeProps> = ({ visible, value, className = '' }) => (
+  <>
+    <div className={`clip-timer-fade ${visible ? 'is-visible' : ''} ${className}`}>
+      <ClipTimer value={value} />
+    </div>
+    <style jsx>{`
+      .clip-timer-fade {
+        opacity: 0;
+        filter: blur(2px);
+        transition:
+          opacity 200ms cubic-bezier(0.77, 0, 0.175, 1),
+          filter 200ms cubic-bezier(0.77, 0, 0.175, 1);
+      }
+      .clip-timer-fade.is-visible {
+        opacity: 1;
+        filter: blur(0);
+      }
+    `}</style>
+  </>
+);
