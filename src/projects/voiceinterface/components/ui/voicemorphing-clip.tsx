@@ -3,9 +3,12 @@ import {
   ClipRecordRedBtn,
   ClipRecordActiveBtn,
   ClipProcessingDarkBtn,
+  ClipCloseBtn,
+  ClipClearBtn,
 } from './voicebuttons-clip';
 
 export type ClipRecordMorphState = 'idle' | 'rec' | 'proc';
+export type ClipLeftMorphState = 'idle' | 'rec' | 'proc' | 'complete';
 
 interface Props {
   state: ClipRecordMorphState;
@@ -99,3 +102,74 @@ export const ClipRecordMorph: React.FC<Props> = ({ state, onClick, isPressed, cl
     `}</style>
   </>
 );
+
+interface LeftProps {
+  state: ClipLeftMorphState;
+  onClick?: () => void;
+  isPressed?: boolean;
+  className?: string;
+}
+
+/**
+ * ClipLeftSlotMorph — 4-state morph for the LEFT slot of the dark clip card.
+ *
+ *   idle     → (nothing, empty slot)
+ *   rec      → ClipCloseBtn (X)
+ *   proc     → ClipCloseBtn (same visual as rec — state progresses invisibly)
+ *   complete → ClipClearBtn (trash)
+ *
+ * Two real button layers (close + clear) cross-fade via opacity + blur.
+ * When state is 'idle' neither is active — both fade out, leaving nothing.
+ * Same Emil-based animation primitives as ClipRecordMorph (scale 0.97 on
+ * press, blur 2px crossfade, cubic-bezier(0.77, 0, 0.175, 1) over 200ms).
+ */
+export const ClipLeftSlotMorph: React.FC<LeftProps> = ({ state, onClick, isPressed, className = '' }) => {
+  const showClose = state === 'rec' || state === 'proc';
+  const showClear = state === 'complete';
+  return (
+    <>
+      <div
+        className={`clip-left-morph ${isPressed ? 'is-pressed' : ''} ${className}`}
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+      >
+        <div className={`layer ${showClose ? 'active' : ''}`}>
+          <ClipCloseBtn />
+        </div>
+        <div className={`layer ${showClear ? 'active' : ''}`}>
+          <ClipClearBtn />
+        </div>
+      </div>
+      <style jsx>{`
+        .clip-left-morph {
+          position: relative;
+          width: 34px;
+          height: 34px;
+          cursor: pointer;
+          transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .clip-left-morph:active,
+        .clip-left-morph.is-pressed {
+          transform: scale(0.97);
+        }
+        .layer {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          filter: blur(2px);
+          pointer-events: none;
+          transition:
+            opacity 200ms cubic-bezier(0.77, 0, 0.175, 1),
+            filter 200ms cubic-bezier(0.77, 0, 0.175, 1);
+        }
+        .layer.active {
+          opacity: 1;
+          filter: blur(0);
+        }
+        .clip-left-morph :global(button) {
+          pointer-events: none;
+        }
+      `}</style>
+    </>
+  );
+};

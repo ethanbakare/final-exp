@@ -12,6 +12,8 @@ import {
 import {
   ClipRecordMorph,
   ClipRecordMorphState,
+  ClipLeftSlotMorph,
+  ClipLeftMorphState,
 } from '@/projects/voiceinterface/components/ui/voicemorphing-clip';
 import { VoiceTextBoxClip } from '@/projects/voiceinterface/components/VoiceTextBoxClip';
 
@@ -70,56 +72,52 @@ const Cell: React.FC<{ children: React.ReactNode; label: string; tinted?: boolea
  * drives a child render function. Mirrors the toggle pattern used in
  * the existing voicecomponent.tsx morph section.
  */
-const MorphCell: React.FC<{
+/**
+ * Generic MorphCell — same primitive for 3-state and 4-state morphs.
+ * `states` drives the toggle buttons. Optional `autoAdvance` simulates
+ * automatic transitions (like processing completing).
+ */
+function MorphCell<S extends string>(props: {
   label: string;
-  render: (state: ClipRecordMorphState, setState: (s: ClipRecordMorphState) => void, isPressed: boolean) => React.ReactNode;
-}> = ({ label, render }) => {
-  const [state, setState] = useState<ClipRecordMorphState>('idle');
+  states: readonly S[];
+  initialState: S;
+  autoAdvance?: { from: S; to: S; delayMs: number };
+  render: (state: S, triggerPress: (s: S) => void, isPressed: boolean) => React.ReactNode;
+}) {
+  const { label, states, initialState, autoAdvance, render } = props;
+  const [state, setState] = useState<S>(initialState);
   const [isPressed, setIsPressed] = useState(false);
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Trigger the same feedback the morph shows on real press, but
-  // when the state change is driven from a toggle button outside it.
-  // Clicking a toggle should look identical to pressing the morph.
-  const triggerPress = (next: ClipRecordMorphState) => {
+  // Same feedback whether the state change came from the morph or a toggle.
+  const triggerPress = (next: S) => {
     setState(next);
     setIsPressed(true);
     if (pressTimer.current) clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => setIsPressed(false), 140);
   };
 
-  // Auto-advance out of 'proc' back to 'idle' after 3s, simulating the
-  // real flow where processing completes automatically (no click).
-  // Uses setState (not triggerPress) so no press-feedback scale fires
-  // on the automatic return — that matches real app behaviour.
+  // Optional auto-transition (e.g. proc -> idle/complete after 3s).
+  // Uses setState directly, not triggerPress, so no press-scale fires.
   useEffect(() => {
-    if (state !== 'proc') return;
-    const t = setTimeout(() => setState('idle'), 3000);
+    if (!autoAdvance || state !== autoAdvance.from) return;
+    const t = setTimeout(() => setState(autoAdvance.to), autoAdvance.delayMs);
     return () => clearTimeout(t);
-  }, [state]);
+  }, [state, autoAdvance]);
 
   return (
     <>
       <div className="cell">
         <div className="toggle">
-          <button
-            className={`toggle-btn first ${state === 'idle' ? 'active' : ''}`}
-            onClick={() => triggerPress('idle')}
-          >
-            IDLE
-          </button>
-          <button
-            className={`toggle-btn ${state === 'rec' ? 'active' : ''}`}
-            onClick={() => triggerPress('rec')}
-          >
-            REC
-          </button>
-          <button
-            className={`toggle-btn last ${state === 'proc' ? 'active' : ''}`}
-            onClick={() => triggerPress('proc')}
-          >
-            PROC
-          </button>
+          {states.map((s, i) => (
+            <button
+              key={s}
+              className={`toggle-btn ${i === 0 ? 'first' : ''} ${i === states.length - 1 ? 'last' : ''} ${state === s ? 'active' : ''}`}
+              onClick={() => triggerPress(s)}
+            >
+              {s.toUpperCase()}
+            </button>
+          ))}
         </div>
         <div className="center">{render(state, triggerPress, isPressed)}</div>
         <div className="label">{label}</div>
@@ -217,21 +215,43 @@ const VoiceComponentsClip: React.FC = () => (
         </Cell>
       </div>
 
-      {/* Morph cells — Cell A: button-only morph. Cell B (timer + button) coming next. */}
+      {/* Morph cells
+          A: right slot — red mic ↔ red dot ↔ red spinner (3 states)
+          B: left slot — nothing ↔ close ↔ clear (4 states) */}
       <div className="morph-grid">
-        <MorphCell
+        <MorphCell<ClipRecordMorphState>
           label="Record Morph — 34px"
+          states={['idle', 'rec', 'proc'] as const}
+          initialState="idle"
+          autoAdvance={{ from: 'proc', to: 'idle', delayMs: 3000 }}
           render={(s, triggerPress, pressed) => (
             <ClipRecordMorph
               state={s}
               isPressed={pressed}
-              // Proc is not clickable — it auto-advances to idle after 3s
-              // (handled by the useEffect in MorphCell). idle -> rec and
-              // rec -> proc are the only press-driven transitions.
+              // Proc not clickable — it auto-advances.
               onClick={
                 s === 'proc'
                   ? undefined
                   : () => triggerPress(s === 'idle' ? 'rec' : 'proc')
+              }
+            />
+          )}
+        />
+        <MorphCell<ClipLeftMorphState>
+          label="Left Slot Morph — 34px"
+          states={['idle', 'rec', 'proc', 'complete'] as const}
+          initialState="idle"
+          autoAdvance={{ from: 'proc', to: 'complete', delayMs: 3000 }}
+          render={(s, triggerPress, pressed) => (
+            <ClipLeftSlotMorph
+              state={s}
+              isPressed={pressed}
+              // Idle = no button shown, so no click target. Proc auto-advances
+              // to complete. rec and complete are the press-driven states.
+              onClick={
+                s === 'idle' || s === 'proc'
+                  ? undefined
+                  : () => triggerPress(s === 'rec' ? 'complete' : 'idle')
               }
             />
           )}
