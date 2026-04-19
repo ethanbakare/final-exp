@@ -1,7 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VoiceTextBatch, VoiceTextBatchState } from './ui/VoiceTextBatch';
-import { ClipRecordRedBtn } from './ui/voicebuttons-clip';
+import {
+  ClipLeftSlotMorph,
+  ClipRecordMorph,
+  ClipTimerFade,
+  ClipLeftMorphState,
+  ClipRecordMorphState,
+} from './ui/voicemorphing-clip';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
+
+// Formats elapsed seconds as m:ss (e.g. 5 -> "0:05", 73 -> "1:13").
+const formatMMSS = (totalSeconds: number) => {
+  const m = Math.floor(totalSeconds / 60);
+  const s = String(totalSeconds % 60).padStart(2, '0');
+  return `${m}:${s}`;
+};
+
+// appState is the variation-1 state machine; the morph primitives use
+// their own state enums. These helpers narrow appState into each morph's
+// vocabulary without altering variation 1's semantics.
+type AppStateNarrow = 'idle' | 'recording' | 'processing' | 'complete';
+
+const leftMorphState = (s: AppStateNarrow): ClipLeftMorphState => {
+  if (s === 'complete') return 'complete';
+  if (s === 'recording') return 'rec';
+  if (s === 'processing') return 'proc';
+  return 'idle';
+};
+
+const rightMorphState = (s: AppStateNarrow): ClipRecordMorphState => {
+  if (s === 'recording') return 'rec';
+  if (s === 'processing') return 'proc';
+  // idle AND complete both show the red mic (press to start new recording
+  // — complete appends; idle starts fresh; handleStartRecording handles both)
+  return 'idle';
+};
 
 /**
  * VoiceTextBoxClip
@@ -33,6 +66,20 @@ export const VoiceTextBoxClip: React.FC = () => {
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const audioChunksRef = React.useRef<Blob[]>([]);
   const mediaStreamRef = React.useRef<MediaStream | null>(null);
+
+  // Timer counter — runs during 'recording', freezes during 'processing',
+  // resets to 0 when returning to 'idle'. Kept in sync with appState via
+  // the useEffect below.
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (appState === 'idle') {
+      setSeconds(0);
+      return;
+    }
+    if (appState !== 'recording') return; // 'processing' freezes
+    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [appState]);
 
   // Map app state to text state
   const getTextState = (): VoiceTextBatchState => {
@@ -240,21 +287,62 @@ export const VoiceTextBoxClip: React.FC = () => {
           </div>
 
           {/*
-            Navigation Bar — IDLE-state only for now.
-            Swapped MorphingRecordDarkToPillWaveProcessing for the
-            Figma-matching ClipRecordRedBtn (red mic in red-tint pill).
-            Recording / processing / complete state visuals will come
-            back once LinearWaveform is ported in.
+            Navigation Bar — Phase 2 full wiring.
+            Left slot  : close (rec/proc) | clear (complete) | nothing (idle)
+            Middle slot: LinearWaveform placeholder (Phase 5 will slot in)
+            Right slot : timer + record morph (red mic | red dot | spinner)
 
-            Phase 1 — nav-pill container styling only. Background
-            fades in/out via the 'is-active' class on rec/proc states.
+            State mapping mirrors variation 1 semantics exactly — the
+            underlying handlers (handleStartRecording, handleStopRecording,
+            handleClose, handleClear) are the same variation 1 functions,
+            just re-pointed to the new clip-style morphs.
           */}
           <div
             className={`txt-nav-bar ${
               appState === 'recording' || appState === 'processing' ? 'is-active' : ''
             }`}
           >
-            <ClipRecordRedBtn onClick={handleStartRecording} />
+            {/* LEFT SLOT
+                idle     → nothing (invisible placeholder, reserves 34x34)
+                rec/proc → close X (click cancels; handleClose also aborts
+                           the transcription fetch mid-processing)
+                complete → clear (trash, click resets) */}
+            <ClipLeftSlotMorph
+              state={leftMorphState(appState)}
+              onClick={
+                appState === 'recording' || appState === 'processing'
+                  ? handleClose
+                  : appState === 'complete'
+                  ? handleClear
+                  : undefined
+              }
+            />
+
+            {/* MIDDLE SLOT — placeholder for ported LinearWaveform.
+                Flex-fills the space between left and right clusters. */}
+            <div className="waveform-slot" />
+
+            {/* RIGHT CLUSTER — timer + record morph.
+                Timer always rendered (layout-stable), visibility faded.
+                Record morph cycles idle/complete (red mic) ↔ rec (red dot)
+                ↔ proc (spinner). Proc is non-interactive (auto-advances
+                when transcribeAudio resolves). */}
+            <div className="right-cluster">
+              <ClipTimerFade
+                visible={appState === 'recording' || appState === 'processing'}
+                value={formatMMSS(seconds)}
+              />
+              <ClipRecordMorph
+                state={rightMorphState(appState)}
+                onClick={
+                  appState === 'recording'
+                    ? handleStopRecording
+                    : appState === 'processing'
+                    ? undefined
+                    : handleStartRecording
+                }
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -414,7 +502,7 @@ export const VoiceTextBoxClip: React.FC = () => {
         .txt-nav-bar {
           display: flex;
           flex-direction: row;
-          justify-content: flex-end;
+          justify-content: space-between;  /* Figma: 3 slots (left / middle / right) */
           align-items: center;
           padding: 4px;          /* Figma: 4 (was 0 12px) */
           gap: 0px;
@@ -436,6 +524,20 @@ export const VoiceTextBoxClip: React.FC = () => {
         }
         .txt-nav-bar.is-active {
           background: rgba(255, 255, 255, 0.10);
+        }
+
+        /* Middle slot — fills the gap between left slot and right cluster.
+           LinearWaveform will slot in here in Phase 5. */
+        .waveform-slot {
+          flex: 1 1 auto;
+          align-self: stretch;
+        }
+
+        /* Right cluster — timer + record morph, 10px between them. */
+        .right-cluster {
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
       `}</style>
     </>
