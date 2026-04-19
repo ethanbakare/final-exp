@@ -7,8 +7,10 @@ export interface LinearWaveformProps {
   barGap: number;
   barRadius: number;
   barColor: string;
-  containerWidth: number;
-  containerHeight: number;
+  // Accept string so consumers can size responsively via "100%" etc.
+  // The playground still passes pixel numbers; both paths work unchanged.
+  containerWidth: number | string;
+  containerHeight: number | string;
   mode: "scrolling" | "static";
   sensitivity: number;
   updateRate: number;

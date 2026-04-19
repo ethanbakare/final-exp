@@ -7,6 +7,7 @@ import {
   ClipLeftMorphState,
   ClipRecordMorphState,
 } from './ui/voicemorphing-clip';
+import { ClipLinearWaveform } from './ui/ClipLinearWaveform';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
 
 // Formats elapsed seconds as m:ss (e.g. 5 -> "0:05", 73 -> "1:13").
@@ -67,6 +68,13 @@ export const VoiceTextBoxClip: React.FC = () => {
   const audioChunksRef = React.useRef<Blob[]>([]);
   const mediaStreamRef = React.useRef<MediaStream | null>(null);
 
+  // Phase 5 — parallel state copy of the live MediaStream so the
+  // ClipLinearWaveform child re-renders when a recording starts.
+  // Refs alone don't trigger renders, so we mirror the ref into state
+  // at the moment the stream is created and clear it once we leave
+  // rec/proc (see effect below).
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+
   // Timer counter — runs during 'recording', freezes during 'processing',
   // resets to 0 when returning to 'idle'. Kept in sync with appState via
   // the useEffect below.
@@ -79,6 +87,15 @@ export const VoiceTextBoxClip: React.FC = () => {
     if (appState !== 'recording') return; // 'processing' freezes
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
+  }, [appState]);
+
+  // Phase 5 — release the MediaStream reference held for the waveform
+  // once we're no longer in an active recording context. This unmounts
+  // the analyser graph inside ClipLinearWaveform.
+  useEffect(() => {
+    if (appState !== 'recording' && appState !== 'processing') {
+      setMediaStream(null);
+    }
   }, [appState]);
 
   // Map app state to text state
@@ -105,6 +122,7 @@ export const VoiceTextBoxClip: React.FC = () => {
       });
 
       mediaStreamRef.current = stream;
+      setMediaStream(stream);
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
@@ -330,9 +348,18 @@ export const VoiceTextBoxClip: React.FC = () => {
               }
             />
 
-            {/* MIDDLE SLOT — placeholder for ported LinearWaveform.
-                Flex-fills the space between left and right clusters. */}
-            <div className="waveform-slot" />
+            {/* MIDDLE SLOT — Lure-profile linear waveform.
+                Flex-fills the space between left and right clusters.
+                Live during 'recording', frozen during 'processing'
+                (scrolling mode + no fresh data = bars hold position),
+                opacity-faded out in idle/complete. */}
+            <div className="waveform-slot">
+              <ClipLinearWaveform
+                mediaStream={mediaStream}
+                isActive={appState === 'recording'}
+                visible={appState === 'recording' || appState === 'processing'}
+              />
+            </div>
 
             {/* RIGHT CLUSTER — timer + record morph.
                 Timer always rendered (layout-stable), visibility faded.
