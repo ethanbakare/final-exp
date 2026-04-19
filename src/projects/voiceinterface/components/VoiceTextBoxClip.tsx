@@ -159,6 +159,33 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
     }
   }, [appState]);
 
+  // Whether the transcript currently overflows its scroll wrapper.
+  // The bottom fade-overlay only makes visual sense when text is
+  // actually being clipped — short transcripts (1-2 lines) sit well
+  // above the bottom 24px fade band, and the always-on overlay was
+  // dimming the bottom of line 2. Re-checked when transcript text
+  // changes and on container resize.
+  const scrollWrapperRef = React.useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  useEffect(() => {
+    const el = scrollWrapperRef.current;
+    if (!el) return;
+    const check = () => setHasOverflow(el.scrollHeight > el.clientHeight + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    // Re-check after VoiceTextBatch's per-word reveal animation grows
+    // the rendered text — the final word lands ~500ms after the last
+    // animationDelay so polling for ~1s covers all reveal lengths.
+    const interval = window.setInterval(check, 100);
+    const stop = window.setTimeout(() => window.clearInterval(interval), 1500);
+    return () => {
+      ro.disconnect();
+      window.clearInterval(interval);
+      window.clearTimeout(stop);
+    };
+  }, [transcription, appState]);
+
   // Map app state to text state
   const getTextState = (): VoiceTextBatchState => {
     if (appState === 'complete') return 'results';
@@ -418,6 +445,7 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
               let VoiceTextBatch's transcription animation run cleanly. */}
           <div className="txt-transcript-box">
             <div
+              ref={scrollWrapperRef}
               className={`transcript-scroll-wrapper ${isClearing ? 'clearing' : ''} ${
                 appState === 'recording' || appState === 'processing' ? 'is-hidden' : ''
               }`}
@@ -429,10 +457,11 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
               />
             </div>
 
-            {/* Fade overlay at bottom — always rendered (defensive, in case
-                content ever overflows). In practice, animations should keep
-                text within bounds so this rarely actually applies. */}
-            <div className="fade-overlay"></div>
+            {/* Fade overlay — only shown when the transcript actually
+                overflows its scroll wrapper. Short 1-2 line transcripts
+                fit entirely above the bottom 24px and don't need (or
+                want) the dim band. */}
+            <div className={`fade-overlay ${hasOverflow ? 'is-active' : ''}`}></div>
           </div>
 
           {/*
@@ -685,6 +714,15 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
           );
           pointer-events: none;
           z-index: 10;
+          /* Hidden by default — only fades in when content overflows
+             the scroll wrapper (see hasOverflow effect). Otherwise
+             1-2 line transcripts had their bottoms dimmed by a
+             gradient that wasn't masking anything. */
+          opacity: 0;
+          transition: opacity 200ms cubic-bezier(0.77, 0, 0.175, 1);
+        }
+        .fade-overlay.is-active {
+          opacity: 1;
         }
 
         /* TxtNavBar - Navigation Controls

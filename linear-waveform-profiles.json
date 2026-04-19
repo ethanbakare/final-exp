@@ -219,7 +219,7 @@
     "id": "l-clip-card-001",
     "name": "Clip",
     "settings": {
-      "barWidth": 3.5,
+      "barWidth": 2.5,
       "barHeight": 6,
       "barGap": 5,
       "barRadius": 10,
@@ -249,7 +249,7 @@
       "intensityOpacity": false,
       "previewBg": "#2C2929"
     },
-    "lastModified": 1776612471531,
+    "lastModified": 1776612557697,
     "bookmarked": true
   }
 ]
