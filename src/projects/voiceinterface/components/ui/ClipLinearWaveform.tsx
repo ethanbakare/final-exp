@@ -13,13 +13,21 @@ interface ClipLinearWaveformProps {
   // Drives opacity. Visible across rec + proc so the frozen frame
   // remains on screen while transcription runs.
   visible: boolean;
+  // Name of the linear-waveform profile (in linear-waveform-profiles.json
+  // / served by /api/studio-profiles?variant=linear-waveform) to source
+  // bar styling from. Defaults to "Clip" — a profile dedicated to this
+  // card so it can be tuned in the playground without touching shared
+  // ones like "Lure". If the profile can't be found / fetched, falls
+  // back to the LURE_FALLBACK constant below.
+  profileName?: string;
 }
 
-// Lure profile, copy-pasted from linear-waveform-profiles.json.
-// Container styling (bg / padding / radius) is intentionally dropped —
-// the nav-pill IS the container. containerWidth / Height are passed as
-// "100%" so the canvas fills the flex slot instead of the saved 368×42.
-const LURE_PRESET = {
+// Lure-derived fallback used when the named profile can't be fetched
+// (offline, API error, profile renamed). Container styling fields
+// (bg / padding / radius / containerWidth / containerHeight) are
+// intentionally absent — the nav-pill IS the container, and width/
+// height are forced to "100%" via the LinearWaveform props.
+const LURE_FALLBACK = {
   barWidth: 3.5,
   barHeight: 6,
   barGap: 5,
@@ -40,17 +48,92 @@ const LURE_PRESET = {
   intensityOpacity: false,
 };
 
+// Pluck the LinearWaveform-relevant fields out of a saved profile's
+// settings blob. The profile schema also stores container styling /
+// preview bg / outline — none of which apply here because the nav-pill
+// owns the container.
+type WaveformProps = typeof LURE_FALLBACK;
+const profileToWaveformProps = (
+  s: Record<string, unknown>
+): WaveformProps => ({
+  barWidth: s.barWidth as number,
+  barHeight: s.barHeight as number,
+  barGap: s.barGap as number,
+  barRadius: s.barRadius as number,
+  barColor: s.barColor as string,
+  mode: s.mode as 'scrolling' | 'static',
+  sensitivity: s.sensitivity as number,
+  updateRate: s.updateRate as number,
+  ambientWave: s.ambientWave as boolean,
+  waveMode: s.waveMode as 'add' | 'mul',
+  waveSpeed: s.waveSpeed as number,
+  waveAmplitude: s.waveAmplitude as number,
+  waveHeight: s.waveHeight as number,
+  ghostBarOpacity: s.ghostBarOpacity as number,
+  fadeEdges: s.fadeEdges as boolean,
+  fadeWidth: s.fadeWidth as number,
+  smoothing: s.smoothing as number,
+  intensityOpacity: s.intensityOpacity as boolean,
+});
+
 export const ClipLinearWaveform: React.FC<ClipLinearWaveformProps> = ({
   mediaStream,
   isActive,
   visible,
+  profileName = 'Clip',
 }) => {
   const [freqData, setFreqData] = useState<Uint8Array | null>(null);
+  const [waveformProps, setWaveformProps] = useState<WaveformProps>(LURE_FALLBACK);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const rafRef = useRef<number | null>(null);
+
+  // Load + watch the named profile from the studio-profiles API.
+  // Refetches on tab focus (covers playground-tab -> showcase-tab
+  // workflow) and polls every 2s while visible (covers live edits in
+  // a side-by-side window). JSON-equality short-circuit avoids any
+  // re-renders when nothing changed.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch(
+          `/api/studio-profiles?variant=linear-waveform`
+        );
+        if (!res.ok || cancelled) return;
+        const list = await res.json();
+        if (!Array.isArray(list) || cancelled) return;
+        const found = list.find(
+          (p: { name?: string }) => p.name === profileName
+        );
+        if (!found?.settings) return;
+        const next = profileToWaveformProps(found.settings);
+        setWaveformProps((prev) =>
+          JSON.stringify(prev) === JSON.stringify(next) ? prev : next
+        );
+      } catch {
+        // keep current props (or fallback) — never let a fetch blip
+        // tear the demo
+      }
+    };
+    load();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', load);
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') load();
+    }, 2000);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', load);
+      clearInterval(intervalId);
+    };
+  }, [profileName]);
 
   // Build/tear-down the audio graph on stream identity changes.
   useEffect(() => {
@@ -124,7 +207,7 @@ export const ClipLinearWaveform: React.FC<ClipLinearWaveformProps> = ({
         frequencyData={freqData}
         containerWidth="100%"
         containerHeight="100%"
-        {...LURE_PRESET}
+        {...waveformProps}
       />
       <style jsx>{`
         .clip-waveform {
