@@ -72,7 +72,7 @@ const Cell: React.FC<{ children: React.ReactNode; label: string; tinted?: boolea
  */
 const MorphCell: React.FC<{
   label: string;
-  render: (state: ClipRecordMorphState) => React.ReactNode;
+  render: (state: ClipRecordMorphState, setState: (s: ClipRecordMorphState) => void) => React.ReactNode;
 }> = ({ label, render }) => {
   const [state, setState] = useState<ClipRecordMorphState>('idle');
   return (
@@ -98,7 +98,7 @@ const MorphCell: React.FC<{
             PROC
           </button>
         </div>
-        <div className="center">{render(state)}</div>
+        <div className="center">{render(state, setState)}</div>
         <div className="label">{label}</div>
       </div>
       <style jsx>{`
@@ -197,8 +197,22 @@ const VoiceComponentsClip: React.FC = () => (
       {/* Morph cells — Cell A: button-only morph. Cell B (timer + button) coming next. */}
       <div className="morph-grid">
         <MorphCell
-          label="Record Morph — Idle / Rec / Proc"
-          render={(s) => <ClipRecordMorph state={s} />}
+          label="Record Morph — Idle / Rec / Proc (click to cycle)"
+          render={(s, set) => (
+            <ClipRecordMorph
+              state={s}
+              onClick={() => {
+                // Cycle idle -> rec -> proc -> idle so you can press the
+                // morph itself and feel the :active scale(0.97) feedback.
+                const next: Record<ClipRecordMorphState, ClipRecordMorphState> = {
+                  idle: 'rec',
+                  rec: 'proc',
+                  proc: 'idle',
+                };
+                set(next[s]);
+              }}
+            />
+          )}
         />
       </div>
     </section>
