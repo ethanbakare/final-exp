@@ -98,14 +98,16 @@ export const ShowcaseNavbarCompact: React.FC<ShowcaseNavbarCompactProps> = ({
       }
       .project-counter {
         display: flex;
+        width: 52px;
+        box-sizing: border-box;
         padding: 6px 10px;
         justify-content: center;
         align-items: center;
+        flex-shrink: 0;
         border-radius: 32px;
         background: rgba(50, 51, 51, 0.10);
         color: #5E5E5C;
         font-variant-numeric: tabular-nums;
-        min-width: 3ch;
       }
       .nav-arrows {
         display: flex;
