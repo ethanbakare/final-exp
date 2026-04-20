@@ -42,13 +42,12 @@ const PHASE_IDLE       = 1500;
 const PHASE_RECORDING  = 3000;
 const PHASE_PROCESSING = 2500;
 const PHASE_RESULTS    = 5000;
-const PHASE_PAUSE      = 2000;
-const TOTAL_LOOP = PHASE_IDLE + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS + PHASE_PAUSE;
 
-// Bar fills over the full loop cycle, starting when the screen resets to original state
-export const TRACE_SIM_DURATION = TOTAL_LOOP;
+// Bar fills exactly over one loop cycle — no separate pause phase,
+// so the bar hits 100% exactly when the screen resets to idle.
+export const TRACE_SIM_DURATION = PHASE_IDLE + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS;
 
-type SimState = 'idle' | 'recording' | 'processing_audio' | 'results' | 'pause';
+type SimState = 'idle' | 'recording' | 'processing_audio' | 'results';
 
 interface TraceSimProps {
   onLoopRestart?: () => void;
@@ -83,12 +82,7 @@ export const TraceSim: React.FC<TraceSimProps> = ({ onLoopRestart }) => {
       setGrandTotal('18.47');
     });
     at(PHASE_IDLE + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS, () => {
-      setSimState('pause');
-      setDays([]);
-      setGrandTotal('0.00');
       onLoopRestart?.();
-    });
-    at(TOTAL_LOOP, () => {
       startLoop();
     });
   }, [clearTimers, onLoopRestart]);
@@ -99,7 +93,7 @@ export const TraceSim: React.FC<TraceSimProps> = ({ onLoopRestart }) => {
   }, [startLoop, clearTimers]);
 
   const navbarState: 'idle' | 'recording' | 'processing_audio' | 'processing_image' =
-    simState === 'results' || simState === 'pause' ? 'idle' : simState;
+    simState === 'results' ? 'idle' : simState;
 
   const processingState: ProcessingState =
     simState === 'processing_audio' ? 'audio' : 'idle';
