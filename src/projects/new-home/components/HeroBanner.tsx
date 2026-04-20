@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import styles from '../styles/new-home.module.css';
 
 const HeroBanner: React.FC = () => {
@@ -23,9 +24,11 @@ const HeroBanner: React.FC = () => {
           <button className="btn-outline">
             <span className={styles.HedvigLettersSans16}>View all Projects</span>
           </button>
-          <button className="btn-solid">
-            <span className={styles.HedvigLettersSans16}>View Demos</span>
-          </button>
+          <Link href="/demo-showcase" style={{ textDecoration: 'none' }}>
+            <button className="btn-solid">
+              <span className={styles.HedvigLettersSans16}>View Demos</span>
+            </button>
+          </Link>
         </div>
       </div>
 
