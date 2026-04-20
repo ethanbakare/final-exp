@@ -210,24 +210,11 @@ export default function DemoShowcasePage() {
 
   // Clones render the same intro and slot frame but never mount the sim
   // or progress bar — they only exist to give the slide somewhere to land.
-  const renderPanel = (realIdx: number, keyName: string, isClone: boolean) => {
-    const p = PROJECTS[realIdx];
-    return (
-      <div
-        key={keyName}
-        className="slide-panel"
-        style={panelHeight > 0 ? { height: `${panelHeight}px` } : undefined}
-      >
-        {!isDemoMode && <ShowcaseIntro description={p.description} />}
-        <ShowcaseSlot autoHeight={isDemoMode} height={p.slotHeight}>
-          {!isClone && realIdx === activeSimIndex ? renderSimForPanel(realIdx) : null}
-        </ShowcaseSlot>
-        {!isDemoMode && !isClone && realIdx === activeSimIndex && (
-          <ShowcaseProgress duration={getSimDuration(realIdx)} loopKey={loopKey} />
-        )}
-      </div>
-    );
-  };
+  const panelSpecs: { realIdx: number; keyName: string; isClone: boolean }[] = [
+    { realIdx: PROJECTS.length - 1, keyName: 'clone-left', isClone: true },
+    ...PROJECTS.map((_, i) => ({ realIdx: i, keyName: `real-${i}`, isClone: false })),
+    { realIdx: 0, keyName: 'clone-right', isClone: true },
+  ];
 
   return (
     <>
@@ -260,9 +247,24 @@ export default function DemoShowcasePage() {
                 transition: noTransition ? 'none' : undefined,
               }}
             >
-              {renderPanel(PROJECTS.length - 1, 'clone-left', true)}
-              {PROJECTS.map((_, i) => renderPanel(i, `real-${i}`, false))}
-              {renderPanel(0, 'clone-right', true)}
+              {panelSpecs.map(({ realIdx, keyName, isClone }) => {
+                const p = PROJECTS[realIdx];
+                return (
+                  <div
+                    key={keyName}
+                    className="slide-panel"
+                    style={panelHeight > 0 ? { height: `${panelHeight}px` } : undefined}
+                  >
+                    {!isDemoMode && <ShowcaseIntro description={p.description} />}
+                    <ShowcaseSlot autoHeight={isDemoMode} height={p.slotHeight}>
+                      {!isClone && realIdx === activeSimIndex ? renderSimForPanel(realIdx) : null}
+                    </ShowcaseSlot>
+                    {!isDemoMode && !isClone && realIdx === activeSimIndex && (
+                      <ShowcaseProgress duration={getSimDuration(realIdx)} loopKey={loopKey} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
