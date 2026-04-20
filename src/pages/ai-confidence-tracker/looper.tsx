@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from '@/projects/ai-confidence-tracker/styles/ai-tracker.module.css';
-import { TranscriptBar } from '@/projects/ai-confidence-tracker/components/ui/transcript-bar';
 import { TranscriptBoxNav, NavState } from '@/projects/ai-confidence-tracker/components/ui/transcript-box-nav';
 import { TranscriptTextStates, TextState } from '@/projects/ai-confidence-tracker/components/ui/transcript-text-states';
 import { LowConfidenceBadge, MediumConfidenceBadge, HighConfidenceBadge } from '@/projects/ai-confidence-tracker/components/ui/deepButtons';
+import PreviewAIConfidence from '@/projects/new-home/components/previews/PreviewAIConfidence';
 
 /**
  * AI Confidence Tracker — auto-loop lab page.
@@ -44,99 +44,6 @@ const TIMINGS = {
 
 // ─── Types ───────────────────────────────────────────────────
 type SimState = 'initial' | 'recording' | 'processing' | 'results';
-
-// ─── Static DeepReader ───────────────────────────────────────
-const StaticDeepReader: React.FC = () => (
-  <div className={`${styles.container} reading-interface`}>
-    <div className="reading-microcopy">
-      <div className={`read-text-label ${styles.InterRegular12}`}>Read text below aloud</div>
-    </div>
-    <div className="reading-box">
-      <div className="reading-box-text">
-        <div className="text-content">
-          <span className={styles.OpenRundeRegular20}>{PROMPT_SENTENCE}</span>
-        </div>
-      </div>
-    </div>
-    <style jsx>{`
-      .reading-interface {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 10px 0px;
-        gap: 10px;
-        width: 100%;
-        max-width: 600px;
-        height: auto;
-        min-height: 100px;
-        flex: none;
-        order: 0;
-        align-self: stretch;
-        flex-grow: 0;
-      }
-      .reading-microcopy {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        margin-bottom: 5px;
-      }
-      .read-text-label {
-        width: auto;
-        height: auto;
-        text-align: center;
-        letter-spacing: -0.01em;
-        color: var(--darkGrey30);
-      }
-      .reading-box {
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px 15px;
-        gap: 4px;
-        width: 100%;
-        max-width: 600px;
-        height: auto;
-        min-height: 80px;
-        background: var(--BaseWhite);
-        border-width: 2px 0px;
-        border-style: solid;
-        border-color: var(--darkGrey05);
-        flex: none;
-        order: 1;
-        align-self: stretch;
-        flex-grow: 0;
-      }
-      .reading-box-text {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 12px 12px 0px;
-        gap: 10px;
-        width: 100%;
-        height: auto;
-        min-height: 41px;
-        border-radius: 6px;
-        flex: none;
-        order: 0;
-        align-self: stretch;
-        flex-grow: 0;
-      }
-      .text-content {
-        width: 100%;
-        height: auto;
-        min-height: 29px;
-        color: var(--darkGrey80);
-        flex: none;
-        order: 0;
-        align-self: stretch;
-        flex-grow: 0;
-      }
-    `}</style>
-  </div>
-);
 
 // ─── Simulated Card ──────────────────────────────────────────
 interface SimCardProps {
@@ -211,8 +118,6 @@ const SimulatedCard: React.FC<SimCardProps> = ({
 
   return (
     <div className={`transcript-interface ${styles.container}`}>
-      <TranscriptBar isMobile={isMobile} isHighConfidenceState={isHighConfidenceState} navState={navState} />
-
       <div className={`transcript-mainframe ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="transcript-box">
           <TranscriptTextStates
@@ -400,11 +305,43 @@ const SimulatedCard: React.FC<SimCardProps> = ({
   );
 };
 
+// ─── Homepage preview wrapper ────────────────────────────────
+// Renders the exact PreviewAIConfidence from the homepage inside a
+// 393×160 card that matches the homepage's card-ai-confidence footprint.
+// The crop (right:-186px / bottom:-76px on the transcript-box) is
+// preserved, so what you see here is byte-for-byte what the homepage
+// shows. A key prop lets us remount the component to retrigger its
+// mount-only animation, and an optional auto-loop interval fires it
+// on a cadence for hands-off observation.
+const HomepagePreviewCard: React.FC<{ replayKey: number }> = ({ replayKey }) => (
+  <div className="homepage-card">
+    <PreviewAIConfidence key={replayKey} />
+    <style jsx>{`
+      .homepage-card {
+        position: relative;
+        width: 393px;
+        height: 160px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+    `}</style>
+  </div>
+);
+
 // ─── Auto-loop driver ────────────────────────────────────────
 const AIConfidenceLooper: React.FC = () => {
   const [simState, setSimState] = useState<SimState>('initial');
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Replay key for the homepage PreviewAIConfidence. Bumping it
+  // unmounts + remounts the component, which is the simplest way to
+  // retrigger a mount-only CSS animation without touching its source.
+  const [replayKey, setReplayKey] = useState(0);
+  const [autoReplay, setAutoReplay] = useState(false);
+  const replayPeriodMs = 5000;
 
   const lastInteractionWasTouchRef = useRef(false);
 
@@ -440,33 +377,63 @@ const AIConfidenceLooper: React.FC = () => {
     return () => clearTimeout(id);
   }, [simState]);
 
+  // Optional auto-replay on a fixed interval.
+  useEffect(() => {
+    if (!autoReplay) return undefined;
+    const id = setInterval(() => setReplayKey(k => k + 1), replayPeriodMs);
+    return () => clearInterval(id);
+  }, [autoReplay]);
+
   return (
     <div className="ai-tracker-container">
       <div className="content-wrapper">
-        <StaticDeepReader />
-        <SimulatedCard
-          simState={simState}
-          isMobile={isMobile}
-          activeWordId={null}
-          badgeStates={new Map()}
-          isCollapsed={isCollapsed}
-          modelCopyActiveWordId={null}
-          lastInteractionWasTouchRef={lastInteractionWasTouchRef}
-        />
-        <div className="phase-readout">
-          phase: <strong>{simState}</strong>
-          {' · '}
-          {TIMINGS[simState]}ms
-        </div>
+        <section className="block">
+          <div className="block-header">
+            <div className="block-title">Homepage animation (PreviewAIConfidence)</div>
+            <div className="block-controls">
+              <button className="ctl" onClick={() => setReplayKey(k => k + 1)}>
+                Replay
+              </button>
+              <label className="ctl-label">
+                <input
+                  type="checkbox"
+                  checked={autoReplay}
+                  onChange={e => setAutoReplay(e.target.checked)}
+                />
+                auto every {replayPeriodMs / 1000}s
+              </label>
+            </div>
+          </div>
+          <HomepagePreviewCard replayKey={replayKey} />
+        </section>
+
+        <section className="block">
+          <div className="block-header">
+            <div className="block-title">Full looper (auto)</div>
+            <div className="phase-readout">
+              phase: <strong>{simState}</strong>
+              {' · '}
+              {TIMINGS[simState]}ms
+            </div>
+          </div>
+          <SimulatedCard
+            simState={simState}
+            isMobile={isMobile}
+            activeWordId={null}
+            badgeStates={new Map()}
+            isCollapsed={isCollapsed}
+            modelCopyActiveWordId={null}
+            lastInteractionWasTouchRef={lastInteractionWasTouchRef}
+          />
+        </section>
       </div>
       <style jsx>{`
         .ai-tracker-container {
           background: #ffffff;
           min-height: 100vh;
-          padding: 20px;
+          padding: 40px 20px;
           display: flex;
           flex-direction: column;
-          justify-content: center;
           align-items: center;
           gap: 30px;
         }
@@ -474,9 +441,56 @@ const AIConfidenceLooper: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 20px;
+          gap: 48px;
           width: 100%;
-          max-width: 620px;
+          max-width: 640px;
+        }
+        .block {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+        }
+        .block-header {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          gap: 12px;
+        }
+        .block-title {
+          font-family: 'Inter', -apple-system, sans-serif;
+          font-size: 12px;
+          font-weight: 500;
+          letter-spacing: 0.02em;
+          color: rgba(0, 0, 0, 0.6);
+          text-transform: uppercase;
+        }
+        .block-controls {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .ctl {
+          font: inherit;
+          font-size: 12px;
+          padding: 6px 12px;
+          border-radius: 6px;
+          border: 1px solid rgba(0, 0, 0, 0.15);
+          background: #fff;
+          color: rgba(0, 0, 0, 0.75);
+          cursor: pointer;
+        }
+        .ctl:hover { background: rgba(0, 0, 0, 0.04); }
+        .ctl-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          color: rgba(0, 0, 0, 0.6);
+          cursor: pointer;
         }
         .phase-readout {
           font-family: 'Inter', -apple-system, sans-serif;
@@ -486,7 +500,8 @@ const AIConfidenceLooper: React.FC = () => {
           text-transform: uppercase;
         }
         @media (max-width: 768px) {
-          .ai-tracker-container { padding: 15px; gap: 20px; }
+          .ai-tracker-container { padding: 20px 12px; gap: 20px; }
+          .content-wrapper { gap: 32px; }
         }
       `}</style>
     </div>
