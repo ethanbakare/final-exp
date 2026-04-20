@@ -91,19 +91,16 @@ export default function DemoShowcasePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loopKey, setLoopKey] = useState(0);
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [slideDir, setSlideDir] = useState<'up' | 'down'>('down');
 
   const project = PROJECTS[currentIndex];
 
   const handleNext = useCallback(() => {
-    setSlideDir('down');
     setCurrentIndex((prev) => (prev + 1) % PROJECTS.length);
     setLoopKey((k) => k + 1);
-    setIsDemoMode(false);
+    setIsDemoMode(false); // always reset to simulation when switching projects
   }, []);
 
   const handlePrev = useCallback(() => {
-    setSlideDir('up');
     setCurrentIndex((prev) => (prev - 1 + PROJECTS.length) % PROJECTS.length);
     setLoopKey((k) => k + 1);
     setIsDemoMode(false);
@@ -165,20 +162,19 @@ export default function DemoShowcasePage() {
           />
 
           <div className="demo-showcase">
-            <div key={currentIndex} className={`slide-content ${slideDir === 'down' ? 'slide-from-below' : 'slide-from-above'}`}>
-              {!isDemoMode && <ShowcaseIntro description={project.description} />}
+            {/* Description + progress bar only show in simulation mode */}
+            {!isDemoMode && <ShowcaseIntro description={project.description} />}
 
-              <ShowcaseSlot autoHeight={isDemoMode} height={project.slotHeight}>
-                {renderSlotContent()}
-              </ShowcaseSlot>
+            <ShowcaseSlot autoHeight={isDemoMode} height={project.slotHeight}>
+              {renderSlotContent()}
+            </ShowcaseSlot>
 
-              {!isDemoMode && (
-                <ShowcaseProgress
-                  duration={getSimDuration()}
-                  loopKey={loopKey}
-                />
-              )}
-            </div>
+            {!isDemoMode && (
+              <ShowcaseProgress
+                duration={getSimDuration()}
+                loopKey={loopKey}
+              />
+            )}
           </div>
 
           <div className="cta-section">
@@ -232,39 +228,15 @@ export default function DemoShowcasePage() {
           flex-direction: column;
           justify-content: center;
           align-items: center;
+          gap: 24px;
           flex: 1;
           align-self: stretch;
           margin: 0 auto;
           box-sizing: border-box;
-          overflow: hidden;
-        }
-        .slide-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 24px;
-          flex: 1;
-          width: 100%;
-        }
-        @keyframes slide-from-below {
-          from { opacity: 0; transform: translateY(40px); }
-          to   { opacity: 1; transform: translateY(0);    }
-        }
-        @keyframes slide-from-above {
-          from { opacity: 0; transform: translateY(-40px); }
-          to   { opacity: 1; transform: translateY(0);     }
-        }
-        .slide-from-below {
-          animation: slide-from-below 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-        }
-        .slide-from-above {
-          animation: slide-from-above 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
         }
         @media (max-width: 768px) {
           .demo-showcase {
             padding: 10px 16px 10px;
-          }
-          .slide-content {
             gap: 16px;
           }
         }
