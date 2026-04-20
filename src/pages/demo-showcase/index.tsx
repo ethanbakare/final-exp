@@ -65,6 +65,21 @@ const PROJECTS = [
   },
 ];
 
+// Virtual track layout: [clone-of-last, ...PROJECTS, clone-of-first].
+// Sliding past the last real panel lands on the right clone (which looks like
+// the first real panel); once the slide settles, we snap back to the real
+// first panel with transitions disabled so the loop feels continuous.
+const LEFT_CLONE = 0;
+const FIRST_REAL = 1;
+const LAST_REAL = PROJECTS.length;
+const RIGHT_CLONE = PROJECTS.length + 1;
+
+const virtualToReal = (v: number): number => {
+  if (v === LEFT_CLONE) return PROJECTS.length - 1;
+  if (v === RIGHT_CLONE) return 0;
+  return v - 1;
+};
+
 // ─── Placeholder Simulation ────────────────────────────────
 const PlaceholderSim: React.FC<{ color: string; name: string }> = ({ color, name }) => (
   <div className="placeholder-sim">
@@ -91,15 +106,17 @@ const PlaceholderSim: React.FC<{ color: string; name: string }> = ({ color, name
 
 // ─── Main Page ─────────────────────────────────────────────
 export default function DemoShowcasePage() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [virtualIndex, setVirtualIndex] = useState(FIRST_REAL);
   const [activeSimIndex, setActiveSimIndex] = useState(0);
   const [loopKey, setLoopKey] = useState(0);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [panelHeight, setPanelHeight] = useState(0);
+  const [noTransition, setNoTransition] = useState(true);
   const showcaseRef = useRef<HTMLDivElement>(null);
   const touchStartY = useRef(0);
 
-  const project = PROJECTS[currentIndex];
+  const realIndex = virtualToReal(virtualIndex);
+  const project = PROJECTS[realIndex];
 
   // Measure panel height; keep in sync with viewport resizes
   useEffect(() => {
@@ -110,24 +127,40 @@ export default function DemoShowcasePage() {
     return () => ro.disconnect();
   }, []);
 
-  // After the slide lands, hand off the active sim and restart the loop.
-  // Keeps only one sim running at a time.
+  // Enable transitions once the track has a real size, and after any snap
   useEffect(() => {
-    if (currentIndex === activeSimIndex) return;
+    if (panelHeight > 0 && noTransition) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setNoTransition(false));
+      });
+    }
+  }, [panelHeight, noTransition]);
+
+  // After the slide lands: swap the active sim, and if we're on a clone
+  // panel, snap back to the matching real panel with transitions off.
+  useEffect(() => {
+    if (realIndex === activeSimIndex) return;
     const t = setTimeout(() => {
-      setActiveSimIndex(currentIndex);
+      setActiveSimIndex(realIndex);
       setLoopKey((k) => k + 1);
+      if (virtualIndex === LEFT_CLONE) {
+        setNoTransition(true);
+        setVirtualIndex(LAST_REAL);
+      } else if (virtualIndex === RIGHT_CLONE) {
+        setNoTransition(true);
+        setVirtualIndex(FIRST_REAL);
+      }
     }, SLIDE_DURATION_MS);
     return () => clearTimeout(t);
-  }, [currentIndex, activeSimIndex]);
+  }, [virtualIndex, activeSimIndex, realIndex]);
 
   const handleNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % PROJECTS.length);
+    setVirtualIndex((v) => Math.min(v + 1, RIGHT_CLONE));
     setIsDemoMode(false);
   }, []);
 
   const handlePrev = useCallback(() => {
-    setCurrentIndex((prev) => (prev - 1 + PROJECTS.length) % PROJECTS.length);
+    setVirtualIndex((v) => Math.max(v - 1, LEFT_CLONE));
     setIsDemoMode(false);
   }, []);
 
@@ -164,7 +197,6 @@ export default function DemoShowcasePage() {
     return 5000;
   };
 
-  // Render the sim for a specific panel. Only called for the active panel.
   const renderSimForPanel = (idx: number) => {
     const p = PROJECTS[idx];
     if (isDemoMode) {
@@ -174,6 +206,27 @@ export default function DemoShowcasePage() {
     if (idx === 0) return <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
     if (idx === 1) return <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
     return <PlaceholderSim key={`sim-${idx}`} color={p.placeholderColor} name={p.name} />;
+  };
+
+  // Clones render the same intro and slot frame but never mount the sim
+  // or progress bar — they only exist to give the slide somewhere to land.
+  const renderPanel = (realIdx: number, keyName: string, isClone: boolean) => {
+    const p = PROJECTS[realIdx];
+    return (
+      <div
+        key={keyName}
+        className="slide-panel"
+        style={panelHeight > 0 ? { height: `${panelHeight}px` } : undefined}
+      >
+        {!isDemoMode && <ShowcaseIntro description={p.description} />}
+        <ShowcaseSlot autoHeight={isDemoMode} height={p.slotHeight}>
+          {!isClone && realIdx === activeSimIndex ? renderSimForPanel(realIdx) : null}
+        </ShowcaseSlot>
+        {!isDemoMode && !isClone && realIdx === activeSimIndex && (
+          <ShowcaseProgress duration={getSimDuration(realIdx)} loopKey={loopKey} />
+        )}
+      </div>
+    );
   };
 
   return (
@@ -188,7 +241,7 @@ export default function DemoShowcasePage() {
           <div className="bg-pattern" aria-hidden="true" />
           <ShowcaseNavbarCompact
             projectName={project.name}
-            currentIndex={currentIndex}
+            currentIndex={realIndex}
             totalCount={PROJECTS.length}
             onNext={handleNext}
             onPrev={handlePrev}
@@ -202,23 +255,14 @@ export default function DemoShowcasePage() {
           >
             <div
               className="slide-track"
-              style={{ transform: `translateY(-${currentIndex * panelHeight}px)` }}
+              style={{
+                transform: `translateY(-${virtualIndex * panelHeight}px)`,
+                transition: noTransition ? 'none' : undefined,
+              }}
             >
-              {PROJECTS.map((p, i) => (
-                <div
-                  key={i}
-                  className="slide-panel"
-                  style={panelHeight > 0 ? { height: `${panelHeight}px` } : undefined}
-                >
-                  {!isDemoMode && <ShowcaseIntro description={p.description} />}
-                  <ShowcaseSlot autoHeight={isDemoMode} height={p.slotHeight}>
-                    {i === activeSimIndex ? renderSimForPanel(i) : null}
-                  </ShowcaseSlot>
-                  {!isDemoMode && i === activeSimIndex && (
-                    <ShowcaseProgress duration={getSimDuration(i)} loopKey={loopKey} />
-                  )}
-                </div>
-              ))}
+              {renderPanel(PROJECTS.length - 1, 'clone-left', true)}
+              {PROJECTS.map((_, i) => renderPanel(i, `real-${i}`, false))}
+              {renderPanel(0, 'clone-right', true)}
             </div>
           </div>
 
