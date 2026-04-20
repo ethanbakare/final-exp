@@ -31,6 +31,7 @@ const PreviewAIConfidence: React.FC = () => {
   const [displayState, setDisplayState] = useState<PreviewState>('idle');
   const [visible, setVisible] = useState(true);
   const [activeWord, setActiveWord] = useState<number | null>(null);
+  const [dotCount, setDotCount] = useState(1);
 
   // Auto-loop: each state schedules its own transition
   useEffect(() => {
@@ -47,6 +48,16 @@ const PreviewAIConfidence: React.FC = () => {
     }, 200);
     return () => clearTimeout(id);
   }, [state]);
+
+  // Animated dots for recording/processing, matching TranscriptTextStates
+  useEffect(() => {
+    if (displayState === 'recording' || displayState === 'processing') {
+      const id = setInterval(() => setDotCount(c => c >= 3 ? 1 : c + 1), 500);
+      return () => clearInterval(id);
+    }
+    setDotCount(1);
+    return undefined;
+  }, [displayState]);
 
   // Delay the focus-highlight in results so underline draws first.
   // Sequence: text intro 600ms → underline sweeps 2.8s → highlight fires
@@ -78,13 +89,13 @@ const PreviewAIConfidence: React.FC = () => {
               </p>
             )}
             {displayState === 'recording' && (
-              <p className={`state-text dimmed ${styles.OpenRundeMedium20}`}>
-                Recording in progress...
+              <p className={`state-text ${styles.OpenRundeMedium20}`}>
+                Recording in progress{'.'.repeat(dotCount)}
               </p>
             )}
             {displayState === 'processing' && (
-              <p className={`state-text dimmed ${styles.OpenRundeMedium20}`}>
-                Checking confidence...
+              <p className={`state-text ${styles.OpenRundeMedium20}`}>
+                Checking confidence{'.'.repeat(dotCount)}
               </p>
             )}
             {displayState === 'results' && (
@@ -160,12 +171,8 @@ const PreviewAIConfidence: React.FC = () => {
         .state-text {
           margin: 0;
           padding: 0;
-          color: var(--darkGrey);
+          color: var(--darkGrey40);
           letter-spacing: -0.01em;
-        }
-
-        .state-text.dimmed {
-          color: rgba(0, 0, 0, 0.35);
         }
 
         .ai-preview-text :global(.highlighted-text-container) {
