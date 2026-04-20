@@ -171,7 +171,7 @@ const PreviewAIConfidence: React.FC = () => {
         .state-text {
           margin: 0;
           padding: 0;
-          color: var(--darkGrey40);
+          color: rgba(94, 94, 94, 0.4);
           letter-spacing: -0.01em;
         }
 
