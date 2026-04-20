@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import styles from '@/projects/ai-confidence-tracker/styles/ai-tracker.module.css';
 import { HighlightedText } from '@/projects/ai-confidence-tracker/components/ui/deepUIcomponents';
 
 const PREVIEW_TEXT = 'The quick brown fox jumps over the lazy dog';
@@ -9,21 +10,58 @@ const PREVIEW_HIGHLIGHTS = [
 ];
 const ACTIVE_WORD_ID = 5;
 
+type PreviewState = 'idle' | 'recording' | 'processing' | 'results';
+
+const TIMINGS: Record<PreviewState, number> = {
+  idle: 3000,
+  recording: 2000,
+  processing: 1500,
+  results: 5000,
+};
+
+const NEXT: Record<PreviewState, PreviewState> = {
+  idle: 'recording',
+  recording: 'processing',
+  processing: 'results',
+  results: 'idle',
+};
+
 const PreviewAIConfidence: React.FC = () => {
+  const [state, setState] = useState<PreviewState>('idle');
+  const [displayState, setDisplayState] = useState<PreviewState>('idle');
+  const [visible, setVisible] = useState(true);
   const [activeWord, setActiveWord] = useState<number | null>(null);
 
-  // Delay the focus-highlight so it appears after the underline has
-  // started drawing. Sequence: text intro 600ms → buffer 30ms →
-  // underline sweeps 2.8s. We fire the highlight at ~2.2s so the
-  // underline is already mostly visible before the bg fill appears.
+  // Auto-loop: each state schedules its own transition
   useEffect(() => {
-    const id = setTimeout(() => setActiveWord(ACTIVE_WORD_ID), 2200);
+    const id = setTimeout(() => setState(s => NEXT[s]), TIMINGS[state]);
     return () => clearTimeout(id);
-  }, []);
+  }, [state]);
+
+  // Cross-fade: fade out → swap content → fade in
+  useEffect(() => {
+    setVisible(false);
+    const id = setTimeout(() => {
+      setDisplayState(state);
+      setVisible(true);
+    }, 200);
+    return () => clearTimeout(id);
+  }, [state]);
+
+  // Delay the focus-highlight in results so underline draws first.
+  // Sequence: text intro 600ms → underline sweeps 2.8s → highlight fires
+  // at ~2.2s when underline is mostly visible.
+  useEffect(() => {
+    setActiveWord(null);
+    if (displayState === 'results') {
+      const id = setTimeout(() => setActiveWord(ACTIVE_WORD_ID), 2200);
+      return () => clearTimeout(id);
+    }
+    return undefined;
+  }, [displayState]);
 
   return (
     <div className="preview-ai-confidence">
-      {/* Background watercolor image */}
       <img
         src="/images/voice-interface/wt1.webp"
         alt=""
@@ -31,15 +69,31 @@ const PreviewAIConfidence: React.FC = () => {
         draggable={false}
       />
 
-      {/* Transcript UI overlay — cropped at right edge */}
       <div className="transcript-box">
         <div className="transcript-content">
-          <div className="text-area ai-preview-text">
-            <HighlightedText
-              text={PREVIEW_TEXT}
-              highlights={PREVIEW_HIGHLIGHTS}
-              activeWordId={activeWord}
-            />
+          <div className={`text-area ai-preview-text ${visible ? 'is-visible' : ''}`}>
+            {displayState === 'idle' && (
+              <p className={`state-text ${styles.OpenRundeMedium20}`}>
+                Record something: AI flags every word it may have misheard.
+              </p>
+            )}
+            {displayState === 'recording' && (
+              <p className={`state-text dimmed ${styles.OpenRundeMedium20}`}>
+                Recording in progress...
+              </p>
+            )}
+            {displayState === 'processing' && (
+              <p className={`state-text dimmed ${styles.OpenRundeMedium20}`}>
+                Checking confidence...
+              </p>
+            )}
+            {displayState === 'results' && (
+              <HighlightedText
+                text={PREVIEW_TEXT}
+                highlights={PREVIEW_HIGHLIGHTS}
+                activeWordId={activeWord}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -70,8 +124,8 @@ const PreviewAIConfidence: React.FC = () => {
           width: 687px;
           height: 272px;
           border-radius: 20px;
-          border: 1.3px solid #F2F2F2;
-          background: #FAFAFA;
+          border: 1.3px solid #f2f2f2;
+          background: #fafafa;
           box-shadow: 0 5px 15px 0 rgba(0, 0, 0, 0.06);
           padding: 26px 19px;
           display: flex;
@@ -95,6 +149,23 @@ const PreviewAIConfidence: React.FC = () => {
           padding: 28px 27px 12px 27px;
           flex: 1;
           overflow: hidden;
+          opacity: 0;
+          transition: opacity 200ms ease;
+        }
+
+        .text-area.is-visible {
+          opacity: 1;
+        }
+
+        .state-text {
+          margin: 0;
+          padding: 0;
+          color: var(--darkGrey);
+          letter-spacing: -0.01em;
+        }
+
+        .state-text.dimmed {
+          color: rgba(0, 0, 0, 0.35);
         }
 
         .ai-preview-text :global(.highlighted-text-container) {
