@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { HighlightedText } from '@/projects/ai-confidence-tracker/components/ui/deepUIcomponents';
 
 const PREVIEW_TEXT = 'The quick brown fox jumps over the lazy dog';
@@ -10,6 +10,17 @@ const PREVIEW_HIGHLIGHTS = [
 const ACTIVE_WORD_ID = 5;
 
 const PreviewAIConfidence: React.FC = () => {
+  const [activeWord, setActiveWord] = useState<number | null>(null);
+
+  // Delay the focus-highlight so it appears after the underline has
+  // started drawing. Sequence: text intro 600ms → buffer 30ms →
+  // underline sweeps 2.8s. We fire the highlight at ~2.2s so the
+  // underline is already mostly visible before the bg fill appears.
+  useEffect(() => {
+    const id = setTimeout(() => setActiveWord(ACTIVE_WORD_ID), 2200);
+    return () => clearTimeout(id);
+  }, []);
+
   return (
     <div className="preview-ai-confidence">
       {/* Background watercolor image */}
@@ -27,7 +38,7 @@ const PreviewAIConfidence: React.FC = () => {
             <HighlightedText
               text={PREVIEW_TEXT}
               highlights={PREVIEW_HIGHLIGHTS}
-              activeWordId={ACTIVE_WORD_ID}
+              activeWordId={activeWord}
             />
           </div>
         </div>

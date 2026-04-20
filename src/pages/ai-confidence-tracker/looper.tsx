@@ -340,29 +340,51 @@ const HomepagePreviewCard: React.FC<{ replayKey: number }> = ({ replayKey }) => 
 );
 
 // ─── Standalone transcript card ──────────────────────────────
-// Renders the inner white card from PreviewAIConfidence in full —
-// no pink bg, no cropping, pointer-events on so you can hover/interact.
-const StandaloneTranscriptCard: React.FC = () => (
-  <div className="standalone-card">
-    <HighlightedText
-      text={PREVIEW_TEXT}
-      highlights={PREVIEW_HIGHLIGHTS}
-      activeWordId={PREVIEW_ACTIVE_WORD_ID}
-    />
-    <style jsx>{`
-      .standalone-card {
-        position: relative;
-        width: min(640px, 100%);
-        border-radius: 20px;
-        border: 1.3px solid #f2f2f2;
-        background: #fafafa;
-        box-shadow: 0 5px 15px 0 rgba(0, 0, 0, 0.06);
-        padding: 40px 46px 32px 46px;
-        box-sizing: border-box;
-      }
-    `}</style>
-  </div>
-);
+// Renders the inner white card from PreviewAIConfidence at its real
+// dimensions (687×272, same as .transcript-box), with matching padding.
+// activeWord is delayed to match PreviewAIConfidence: underline draws
+// first, background fill follows at ~2.2s. key remount replays everything.
+const StandaloneTranscriptCard: React.FC<{ replayKey: number }> = ({ replayKey }) => {
+  const [activeWord, setActiveWord] = useState<number | null>(null);
+
+  useEffect(() => {
+    setActiveWord(null);
+    const id = setTimeout(() => setActiveWord(PREVIEW_ACTIVE_WORD_ID), 2200);
+    return () => clearTimeout(id);
+  }, [replayKey]);
+
+  return (
+    <div className="standalone-card">
+      <div className="text-area">
+        <HighlightedText
+          key={replayKey}
+          text={PREVIEW_TEXT}
+          highlights={PREVIEW_HIGHLIGHTS}
+          activeWordId={activeWord}
+        />
+      </div>
+      <style jsx>{`
+        .standalone-card {
+          position: relative;
+          width: min(687px, 100%);
+          height: 272px;
+          border-radius: 20px;
+          border: 1.3px solid #f2f2f2;
+          background: #fafafa;
+          box-shadow: 0 5px 15px 0 rgba(0, 0, 0, 0.06);
+          padding: 26px 19px;
+          box-sizing: border-box;
+        }
+        .text-area {
+          padding: 28px 27px 12px 27px;
+          height: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+      `}</style>
+    </div>
+  );
+};
 
 // ─── Auto-loop driver ────────────────────────────────────────
 const AIConfidenceLooper: React.FC = () => {
@@ -445,7 +467,7 @@ const AIConfidenceLooper: React.FC = () => {
           <div className="block-header">
             <div className="block-title">Transcript card (standalone)</div>
           </div>
-          <StandaloneTranscriptCard />
+          <StandaloneTranscriptCard replayKey={replayKey} />
         </section>
 
         <section className="block">
