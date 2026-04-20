@@ -31,16 +31,8 @@ const TOTAL_LOOP = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RE
 
 type SimState = 'initial' | 'recording' | 'processing' | 'results' | 'pause';
 
-// Bar fill duration = every phase where something is visually moving.
-// After PHASE_PROCESSING ends, the results state triggers a chain:
-//   1. Text fade-in animation: 600ms (HighlightedText textAnimating)
-//   2. Buffer before underlines start: 30ms
-//   3. Underline draw animation: 2800ms (CSS transform 2.8s)
-// Total post-processing animation = 3430ms.
-// The bar should reach 100% when the underlines finish drawing —
-// that's the last visible motion. Everything after is static viewing.
-const POST_PROCESSING_ANIM = 600 + 30 + 2800; // text + buffer + underline draw
-export const SIM_DURATION = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + POST_PROCESSING_ANIM;
+// Bar fills over the full loop cycle, starting when the screen resets to original state
+export const SIM_DURATION = TOTAL_LOOP;
 
 interface AIConfidenceSimProps {
   onLoopRestart?: () => void;
@@ -90,6 +82,7 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onLoopRestart 
     at(T4, () => {
       setSimState('pause');
       setIsCollapsed(true);
+      onLoopRestart?.();
     });
     at(TOTAL_LOOP, () => {
       // Reset and start fresh
@@ -99,7 +92,6 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onLoopRestart 
       setBadgeStates(new Map());
       setModelCopyActiveWordId(null);
       elapsedBeforePauseRef.current = 0;
-      onLoopRestart?.();
       scheduleFrom(0);
     });
   }, [clearTimers]);

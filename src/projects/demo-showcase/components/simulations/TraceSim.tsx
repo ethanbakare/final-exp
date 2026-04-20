@@ -45,8 +45,8 @@ const PHASE_RESULTS    = 5000;
 const PHASE_PAUSE      = 2000;
 const TOTAL_LOOP = PHASE_IDLE + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS + PHASE_PAUSE;
 
-// Progress bar fills over active phases only
-export const TRACE_SIM_DURATION = PHASE_IDLE + PHASE_RECORDING + PHASE_PROCESSING;
+// Bar fills over the full loop cycle, starting when the screen resets to original state
+export const TRACE_SIM_DURATION = TOTAL_LOOP;
 
 type SimState = 'idle' | 'recording' | 'processing_audio' | 'results' | 'pause';
 
@@ -86,9 +86,9 @@ export const TraceSim: React.FC<TraceSimProps> = ({ onLoopRestart }) => {
       setSimState('pause');
       setDays([]);
       setGrandTotal('0.00');
+      onLoopRestart?.();
     });
     at(TOTAL_LOOP, () => {
-      onLoopRestart?.();
       startLoop();
     });
   }, [clearTimers, onLoopRestart]);
