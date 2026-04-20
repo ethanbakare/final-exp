@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { ShowcaseNavbar } from '@/projects/demo-showcase/components/ui/ShowcaseNavbar';
@@ -30,6 +30,9 @@ const TraceDemo = dynamic(
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
 import { TRACE_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/TraceSim';
 
+// Slide transition — keep in sync with CSS transition-duration on .slide-track
+const SLIDE_DURATION_MS = 420;
+
 // ─── Project Configuration ─────────────────────────────────
 const PROJECTS = [
   {
@@ -37,7 +40,7 @@ const PROJECTS = [
     description: 'A grammar checker, but for how confident AI is in what it heard',
     caseStudyUrl: '#',
     placeholderColor: '#FEF3C7',
-    slotHeight: 400,
+    slotHeight: 500,
   },
   {
     name: 'Trace',
@@ -51,14 +54,14 @@ const PROJECTS = [
     description: 'A voice-first conversational interface',
     caseStudyUrl: '#',
     placeholderColor: '#EDE9FE',
-    slotHeight: 400,
+    slotHeight: 500,
   },
   {
     name: 'ClipStream',
     description: 'Record, transcribe, and organise voice clips instantly',
     caseStudyUrl: '#',
     placeholderColor: '#DBEAFE',
-    slotHeight: 400,
+    slotHeight: 500,
   },
 ];
 
@@ -89,20 +92,42 @@ const PlaceholderSim: React.FC<{ color: string; name: string }> = ({ color, name
 // ─── Main Page ─────────────────────────────────────────────
 export default function DemoShowcasePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [activeSimIndex, setActiveSimIndex] = useState(0);
   const [loopKey, setLoopKey] = useState(0);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(0);
+  const showcaseRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(0);
 
   const project = PROJECTS[currentIndex];
 
+  // Measure panel height; keep in sync with viewport resizes
+  useEffect(() => {
+    const el = showcaseRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setPanelHeight(el.clientHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // After the slide lands, hand off the active sim and restart the loop.
+  // Keeps only one sim running at a time.
+  useEffect(() => {
+    if (currentIndex === activeSimIndex) return;
+    const t = setTimeout(() => {
+      setActiveSimIndex(currentIndex);
+      setLoopKey((k) => k + 1);
+    }, SLIDE_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [currentIndex, activeSimIndex]);
+
   const handleNext = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % PROJECTS.length);
-    setLoopKey((k) => k + 1);
-    setIsDemoMode(false); // always reset to simulation when switching projects
+    setIsDemoMode(false);
   }, []);
 
   const handlePrev = useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + PROJECTS.length) % PROJECTS.length);
-    setLoopKey((k) => k + 1);
     setIsDemoMode(false);
   }, []);
 
@@ -113,7 +138,6 @@ export default function DemoShowcasePage() {
   const handleToggleDemo = useCallback(() => {
     setIsDemoMode((prev) => !prev);
     if (!isDemoMode) {
-      // Switching TO demo mode — reset loop key so sim restarts fresh when they switch back
       setLoopKey((k) => k + 1);
     }
   }, [isDemoMode]);
@@ -122,25 +146,34 @@ export default function DemoShowcasePage() {
     window.location.href = project.caseStudyUrl;
   }, [project.caseStudyUrl]);
 
-  // ── Per-project progress bar duration ────────────────────
-  const getSimDuration = () => {
-    if (currentIndex === 0) return SIM_DURATION;
-    if (currentIndex === 1) return TRACE_SIM_DURATION;
-    return 5000; // placeholder default
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const delta = touchStartY.current - e.changedTouches[0].clientY;
+    if (Math.abs(delta) > 50) {
+      if (delta > 0) handleNext();
+      else handlePrev();
+    }
+  }, [handleNext, handlePrev]);
+
+  const getSimDuration = (idx: number) => {
+    if (idx === 0) return SIM_DURATION;
+    if (idx === 1) return TRACE_SIM_DURATION;
+    return 5000;
   };
 
-  // ── Render the right content in the slot ──────────────────
-  const renderSlotContent = () => {
+  // Render the sim for a specific panel. Only called for the active panel.
+  const renderSimForPanel = (idx: number) => {
+    const p = PROJECTS[idx];
     if (isDemoMode) {
-      if (currentIndex === 0) return <AIConfidenceDemo key={`demo-${currentIndex}`} />;
-      // Other projects: placeholder for now
-      return <PlaceholderSim key={`demo-${currentIndex}`} color={project.placeholderColor} name={`${project.name} demo`} />;
+      if (idx === 0) return <AIConfidenceDemo key={`demo-${idx}`} />;
+      return <PlaceholderSim key={`demo-${idx}`} color={p.placeholderColor} name={`${p.name} demo`} />;
     }
-
-    // Simulation mode
-    if (currentIndex === 0) return <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
-    if (currentIndex === 1) return <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
-    return <PlaceholderSim key={`sim-${currentIndex}`} color={project.placeholderColor} name={project.name} />;
+    if (idx === 0) return <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
+    if (idx === 1) return <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
+    return <PlaceholderSim key={`sim-${idx}`} color={p.placeholderColor} name={p.name} />;
   };
 
   return (
@@ -161,20 +194,32 @@ export default function DemoShowcasePage() {
             onPrev={handlePrev}
           />
 
-          <div className="demo-showcase">
-            {/* Description + progress bar only show in simulation mode */}
-            {!isDemoMode && <ShowcaseIntro description={project.description} />}
-
-            <ShowcaseSlot autoHeight={isDemoMode} height={project.slotHeight}>
-              {renderSlotContent()}
-            </ShowcaseSlot>
-
-            {!isDemoMode && (
-              <ShowcaseProgress
-                duration={getSimDuration()}
-                loopKey={loopKey}
-              />
-            )}
+          <div
+            className="demo-showcase"
+            ref={showcaseRef}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              className="slide-track"
+              style={{ transform: `translateY(-${currentIndex * panelHeight}px)` }}
+            >
+              {PROJECTS.map((p, i) => (
+                <div
+                  key={i}
+                  className="slide-panel"
+                  style={panelHeight > 0 ? { height: `${panelHeight}px` } : undefined}
+                >
+                  {!isDemoMode && <ShowcaseIntro description={p.description} />}
+                  <ShowcaseSlot autoHeight={isDemoMode} height={p.slotHeight}>
+                    {i === activeSimIndex ? renderSimForPanel(i) : null}
+                  </ShowcaseSlot>
+                  {!isDemoMode && i === activeSimIndex && (
+                    <ShowcaseProgress duration={getSimDuration(i)} loopKey={loopKey} />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="cta-section">
@@ -192,7 +237,7 @@ export default function DemoShowcasePage() {
       <style jsx>{`
         .demo-banner {
           display: flex;
-          min-height: 100vh;
+          height: 100vh;
           flex-direction: column;
           align-items: center;
           backdrop-filter: blur(45px);
@@ -203,6 +248,7 @@ export default function DemoShowcasePage() {
           justify-content: space-between;
           align-items: center;
           flex: 1;
+          min-height: 0;
           width: 100%;
           max-width: 1440px;
           background: #FFF;
@@ -222,21 +268,36 @@ export default function DemoShowcasePage() {
           z-index: 1;
         }
         .demo-showcase {
-          display: flex;
-          max-width: 1160px;
-          padding: 0 116px 15px;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          gap: 24px;
           flex: 1;
+          min-height: 0;
           align-self: stretch;
+          max-width: 1160px;
+          width: 100%;
           margin: 0 auto;
+          overflow: hidden;
+          position: relative;
+        }
+        .slide-track {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          transition: transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          will-change: transform;
+        }
+        .slide-panel {
+          width: 100%;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+          padding: 0 116px;
           box-sizing: border-box;
         }
         @media (max-width: 768px) {
-          .demo-showcase {
-            padding: 10px 16px 10px;
+          .slide-panel {
+            padding: 0 16px;
             gap: 16px;
           }
         }
@@ -253,11 +314,6 @@ export default function DemoShowcasePage() {
           justify-content: center;
           align-items: center;
           gap: 20px;
-        }
-        @media (max-width: 768px) {
-          .demo-showcase {
-            padding: 30px 20px 15px;
-          }
         }
       `}</style>
     </>
