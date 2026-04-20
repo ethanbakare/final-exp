@@ -22,17 +22,16 @@ const MOCK_HIGHLIGHTS = MOCK_WORDS
 
 // ─── Timing (ms) ────────────────────────────────────────────
 // Each phase duration is measured so progress bar fills accurately.
-const PHASE_INITIAL    = 1500;  // pause before "recording" starts
-const PHASE_RECORDING  = 2000;  // simulated recording
-const PHASE_PROCESSING = 1000;  // simulated processing
-const PHASE_RESULTS    = 5000;  // hold results (badges visible, hoverable)
-const PHASE_PAUSE      = 2000;  // pause after results before loop restarts
-const TOTAL_LOOP = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS + PHASE_PAUSE;
+const PHASE_INITIAL    = 1500;
+const PHASE_RECORDING  = 2000;
+const PHASE_PROCESSING = 1000;
+const PHASE_RESULTS    = 5000;
 
-type SimState = 'initial' | 'recording' | 'processing' | 'results' | 'pause';
+// Bar fills exactly over one loop cycle — no separate pause phase,
+// so the bar hits 100% exactly when the screen resets to initial.
+export const SIM_DURATION = PHASE_INITIAL + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS;
 
-// Bar fills over the full loop cycle, starting when the screen resets to original state
-export const SIM_DURATION = TOTAL_LOOP;
+type SimState = 'initial' | 'recording' | 'processing' | 'results';
 
 interface AIConfidenceSimProps {
   onLoopRestart?: () => void;
@@ -80,18 +79,13 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onLoopRestart 
       setTimeout(() => setIsCollapsed(false), 300);
     });
     at(T4, () => {
-      setSimState('pause');
-      setIsCollapsed(true);
-      onLoopRestart?.();
-    });
-    at(TOTAL_LOOP, () => {
-      // Reset and start fresh
       setSimState('initial');
       setIsCollapsed(true);
       setActiveWordId(null);
       setBadgeStates(new Map());
       setModelCopyActiveWordId(null);
       elapsedBeforePauseRef.current = 0;
+      onLoopRestart?.();
       scheduleFrom(0);
     });
   }, [clearTimers]);
@@ -134,8 +128,8 @@ export const AIConfidenceSim: React.FC<AIConfidenceSimProps> = ({ onLoopRestart 
 
   // ── Derived state ────────────────────────────────────────
   const showResults = simState === 'results';
-  const navState: NavState = simState === 'pause' ? 'results' : simState;
-  const textState: TextState = simState === 'pause' ? 'results' : simState;
+  const navState: NavState = simState;
+  const textState: TextState = simState;
   const transcriptText = showResults ? MOCK_TRANSCRIPT : '';
   const highlights = showResults ? MOCK_HIGHLIGHTS : [];
   const isHighConfidenceState = highlights.length === 0 && transcriptText.length > 0;
