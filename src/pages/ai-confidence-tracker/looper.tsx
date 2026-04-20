@@ -4,6 +4,15 @@ import { TranscriptBoxNav, NavState } from '@/projects/ai-confidence-tracker/com
 import { TranscriptTextStates, TextState } from '@/projects/ai-confidence-tracker/components/ui/transcript-text-states';
 import { LowConfidenceBadge, MediumConfidenceBadge, HighConfidenceBadge } from '@/projects/ai-confidence-tracker/components/ui/deepButtons';
 import PreviewAIConfidence from '@/projects/new-home/components/previews/PreviewAIConfidence';
+import { HighlightedText } from '@/projects/ai-confidence-tracker/components/ui/deepUIcomponents';
+
+const PREVIEW_TEXT = 'The quick brown fox jumps over the lazy dog';
+const PREVIEW_HIGHLIGHTS = [
+  { wordId: 2, confidenceLevel: 'medium' as const, percentage: '75%' },
+  { wordId: 5, confidenceLevel: 'low' as const, percentage: '95%' },
+  { wordId: 6, confidenceLevel: 'low' as const, percentage: '95%' },
+];
+const PREVIEW_ACTIVE_WORD_ID = 5;
 
 /**
  * AI Confidence Tracker — auto-loop lab page.
@@ -330,6 +339,31 @@ const HomepagePreviewCard: React.FC<{ replayKey: number }> = ({ replayKey }) => 
   </div>
 );
 
+// ─── Standalone transcript card ──────────────────────────────
+// Renders the inner white card from PreviewAIConfidence in full —
+// no pink bg, no cropping, pointer-events on so you can hover/interact.
+const StandaloneTranscriptCard: React.FC = () => (
+  <div className="standalone-card">
+    <HighlightedText
+      text={PREVIEW_TEXT}
+      highlights={PREVIEW_HIGHLIGHTS}
+      activeWordId={PREVIEW_ACTIVE_WORD_ID}
+    />
+    <style jsx>{`
+      .standalone-card {
+        position: relative;
+        width: min(640px, 100%);
+        border-radius: 20px;
+        border: 1.3px solid #f2f2f2;
+        background: #fafafa;
+        box-shadow: 0 5px 15px 0 rgba(0, 0, 0, 0.06);
+        padding: 40px 46px 32px 46px;
+        box-sizing: border-box;
+      }
+    `}</style>
+  </div>
+);
+
 // ─── Auto-loop driver ────────────────────────────────────────
 const AIConfidenceLooper: React.FC = () => {
   const [simState, setSimState] = useState<SimState>('initial');
@@ -405,6 +439,13 @@ const AIConfidenceLooper: React.FC = () => {
             </div>
           </div>
           <HomepagePreviewCard replayKey={replayKey} />
+        </section>
+
+        <section className="block">
+          <div className="block-header">
+            <div className="block-title">Transcript card (standalone)</div>
+          </div>
+          <StandaloneTranscriptCard />
         </section>
 
         <section className="block">
