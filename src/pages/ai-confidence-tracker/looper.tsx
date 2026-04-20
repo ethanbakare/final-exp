@@ -319,8 +319,8 @@ const HomepagePreviewCard: React.FC<{ replayKey: number }> = ({ replayKey }) => 
     <style jsx>{`
       .homepage-card {
         position: relative;
-        width: 393px;
-        height: 160px;
+        width: 574px;
+        height: 321px;
         border-radius: 10px;
         overflow: hidden;
         background: #fff;
