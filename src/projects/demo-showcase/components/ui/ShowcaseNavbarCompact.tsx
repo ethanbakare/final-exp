@@ -104,6 +104,8 @@ export const ShowcaseNavbarCompact: React.FC<ShowcaseNavbarCompactProps> = ({
         border-radius: 32px;
         background: rgba(50, 51, 51, 0.10);
         color: #5E5E5C;
+        font-variant-numeric: tabular-nums;
+        min-width: 3ch;
       }
       .nav-arrows {
         display: flex;
