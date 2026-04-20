@@ -6,13 +6,12 @@ import { LowConfidenceBadge, MediumConfidenceBadge, HighConfidenceBadge } from '
 import PreviewAIConfidence from '@/projects/new-home/components/previews/PreviewAIConfidence';
 import { HighlightedText } from '@/projects/ai-confidence-tracker/components/ui/deepUIcomponents';
 
-const PREVIEW_TEXT = 'The quick brown fox jumps over the lazy dog';
+const PREVIEW_TEXT = "Warchester's warden's whisper weird wishes";
 const PREVIEW_HIGHLIGHTS = [
-  { wordId: 2, confidenceLevel: 'medium' as const, percentage: '75%' },
-  { wordId: 5, confidenceLevel: 'low' as const, percentage: '95%' },
-  { wordId: 6, confidenceLevel: 'low' as const, percentage: '95%' },
+  { wordId: 0, confidenceLevel: 'low' as const,    percentage: '30%' },
+  { wordId: 1, confidenceLevel: 'medium' as const, percentage: '75%' },
 ];
-const PREVIEW_ACTIVE_WORD_ID = 5;
+const PREVIEW_ACTIVE_WORD_ID = 0;
 
 /**
  * AI Confidence Tracker — auto-loop lab page.
