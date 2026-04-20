@@ -118,7 +118,7 @@ export const TranscriptTextStates: React.FC<TranscriptTextStatesProps> = ({
                   color: 'var(--darkGrey40)',
                 }}
               >
-                {isMobile ? "Tap record, see your words transcribed with confidence highlights" : "Click record, see your words transcribed with confidence highlights"}
+                Record something: AI flags every word it may have misheard.
               </div>
             )}
             
