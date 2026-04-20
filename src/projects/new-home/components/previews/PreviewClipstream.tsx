@@ -24,6 +24,8 @@ const PreviewClipstream: React.FC = () => {
           display: flex;
           justify-content: center;
           align-items: center;
+          padding: 16px;
+          box-sizing: border-box;
         }
       `}</style>
     </div>

@@ -768,10 +768,30 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
         }
 
         /* Middle slot — fills the gap between left slot and right cluster.
-           LinearWaveform will slot in here in Phase 5. */
+           LinearWaveform will slot in here in Phase 5.
+
+           min-width: 0 is the flex escape hatch: without it the canvas's
+           measured (inline-styled) width acts as min-content and refuses
+           to shrink, so on narrow cards (homepage mobile) the canvas
+           overflows the nav-bar and pushes the right cluster (mic) past
+           the card's right edge where .card-inner { overflow: hidden }
+           clips it. min-width:0 lets the slot yield to the fixed-width
+           side slots so the card stays self-contained at any width. */
         .waveform-slot {
           flex: 1 1 auto;
+          min-width: 0;
           align-self: stretch;
+        }
+
+        /* Side slots must keep their intrinsic 34px width on narrow
+           cards. The morph containers have only position:absolute
+           children, so their flex min-content resolves to 0 and they'd
+           otherwise collapse when the waveform can't shrink. Pinning
+           flex-shrink: 0 via :global() reaches into the ClipLeftSlotMorph
+           and ClipRecordMorph wrappers that live one scope deeper. */
+        .txt-nav-bar :global(.clip-left-morph),
+        .txt-nav-bar :global(.clip-record-morph) {
+          flex-shrink: 0;
         }
 
         /* Right cluster — timer + record morph, 10px between them.
@@ -789,6 +809,7 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
           align-items: center;
           gap: 10px;
           padding-left: 4px;
+          flex-shrink: 0;
         }
       `}</style>
     </>
