@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { ShowcaseNavbar } from '@/projects/demo-showcase/components/ui/ShowcaseNavbar';
@@ -91,6 +91,17 @@ export default function DemoShowcasePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loopKey, setLoopKey] = useState(0);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(0);
+  const showcaseRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef(0);
+
+  useEffect(() => {
+    const el = showcaseRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setPanelHeight(el.clientHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const project = PROJECTS[currentIndex];
 
@@ -121,6 +132,18 @@ export default function DemoShowcasePage() {
   const handleViewCaseStudy = useCallback(() => {
     window.location.href = project.caseStudyUrl;
   }, [project.caseStudyUrl]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const delta = touchStartY.current - e.changedTouches[0].clientY;
+    if (Math.abs(delta) > 50) {
+      if (delta > 0) handleNext();
+      else handlePrev();
+    }
+  }, [handleNext, handlePrev]);
 
   // ── Per-project progress bar duration ────────────────────
   const getSimDuration = () => {
@@ -161,20 +184,36 @@ export default function DemoShowcasePage() {
             onPrev={handlePrev}
           />
 
-          <div className="demo-showcase">
-            {/* Description + progress bar only show in simulation mode */}
-            {!isDemoMode && <ShowcaseIntro description={project.description} />}
-
-            <ShowcaseSlot autoHeight={isDemoMode} height={project.slotHeight}>
-              {renderSlotContent()}
-            </ShowcaseSlot>
-
-            {!isDemoMode && (
-              <ShowcaseProgress
-                duration={getSimDuration()}
-                loopKey={loopKey}
-              />
-            )}
+          <div
+            className="demo-showcase"
+            ref={showcaseRef}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              className="slide-track"
+              style={{ transform: `translateY(-${currentIndex * panelHeight}px)` }}
+            >
+              {PROJECTS.map((p, i) => (
+                <div
+                  key={i}
+                  className="slide-panel"
+                  style={panelHeight > 0 ? { height: `${panelHeight}px` } : undefined}
+                >
+                  {i === currentIndex && (
+                    <>
+                      {!isDemoMode && <ShowcaseIntro description={p.description} />}
+                      <ShowcaseSlot autoHeight={isDemoMode} height={p.slotHeight}>
+                        {renderSlotContent()}
+                      </ShowcaseSlot>
+                      {!isDemoMode && (
+                        <ShowcaseProgress duration={getSimDuration()} loopKey={loopKey} />
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="cta-section">
@@ -222,20 +261,33 @@ export default function DemoShowcasePage() {
           z-index: 1;
         }
         .demo-showcase {
-          display: flex;
-          max-width: 1160px;
-          padding: 0 116px 15px;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          gap: 24px;
           flex: 1;
           align-self: stretch;
+          max-width: 1160px;
           margin: 0 auto;
+          overflow: hidden;
+          position: relative;
+        }
+        .slide-track {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          transition: transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          will-change: transform;
+        }
+        .slide-panel {
+          width: 100%;
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+          padding: 32px 116px 15px;
           box-sizing: border-box;
         }
         @media (max-width: 768px) {
-          .demo-showcase {
+          .slide-panel {
             padding: 10px 16px 10px;
             gap: 16px;
           }
@@ -253,11 +305,6 @@ export default function DemoShowcasePage() {
           justify-content: center;
           align-items: center;
           gap: 20px;
-        }
-        @media (max-width: 768px) {
-          .demo-showcase {
-            padding: 30px 20px 15px;
-          }
         }
       `}</style>
     </>
