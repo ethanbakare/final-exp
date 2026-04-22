@@ -17,7 +17,7 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
 
   return (
     <>
-      <div className="transcript-bar">
+      <div className={`transcript-bar ${navState === 'results' ? 'is-results' : ''}`}>
         <div className="transcript-microcopy">
           <span className={styles.OpenRundeRegular12}>
             {isMobile ? "Text transcribed by AI" : "Text transcribed by AI model"}
@@ -69,6 +69,10 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
           flex: none;
           order: 0;
           flex-grow: 0;
+          opacity: 1;
+          max-width: 200px;
+          overflow: hidden;
+          transition: opacity 0.3s ease, max-width 0.3s ease;
         }
         
         .transcript-microcopy span {
@@ -206,7 +210,7 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
             height: auto;
             align-items: flex-start;
           }
-          
+
           .legend {
             flex-direction: column;
             align-items: flex-end;
@@ -214,16 +218,31 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
             height: auto;
             gap: 8px;
             margin-left: auto;
+            transition: opacity 0.4s ease-in-out, gap 0.3s ease;
           }
-          
+
           .legend-key {
             width: auto;
             justify-content: flex-start;
           }
-          
+
           .legend-holder {
             width: auto;
             justify-content: flex-start;
+          }
+
+          /* Results state on mobile: hide the "Text transcribed by AI"
+             microcopy (DOM-removed via display:none — it's redundant
+             once colored underlines + tag badges make the context
+             self-evident). Legend reflows to a single horizontal row
+             using the freed space. */
+          .transcript-bar.is-results .transcript-microcopy {
+            display: none;
+          }
+          .transcript-bar.is-results .legend {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
           }
         }
         
