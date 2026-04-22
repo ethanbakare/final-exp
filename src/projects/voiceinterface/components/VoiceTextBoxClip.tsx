@@ -126,6 +126,42 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
     source.connect(dest); // only to MediaStream, never to speakers
     source.start(0, 8);   // start playback at 8s offset
 
+    // Lifecycle-aware audio context resume. iOS Safari / Brave iOS create
+    // AudioContext in 'suspended' state and will only resume after a user
+    // gesture or explicit resume(). Without this, the BufferSource runs
+    // but produces zero frames in the MediaStream, so the downstream
+    // analyser reads silence and the waveform bars render flat.
+    //   1. Attempt resume() immediately (works if user already interacted).
+    //   2. If still suspended, register a one-shot listener that resumes
+    //      on the next user gesture.
+    //   3. Also resume on visibilitychange when the tab returns, since
+    //      iOS suspends contexts in background tabs.
+    const ensureRunning = async () => {
+      if (ctx.state === 'suspended') {
+        try { await ctx.resume(); } catch { /* will retry on gesture */ }
+      }
+    };
+    await ensureRunning();
+    if (ctx.state !== 'running') {
+      const onGesture = () => {
+        ensureRunning();
+        window.removeEventListener('pointerdown', onGesture);
+        window.removeEventListener('touchstart', onGesture);
+      };
+      window.addEventListener('pointerdown', onGesture, { once: true, passive: true });
+      window.addEventListener('touchstart', onGesture, { once: true, passive: true });
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible' && ctx.state === 'suspended') {
+        ensureRunning();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    // Attach cleanup ref so the effect that closes ctx also removes listener.
+    (ctx as AudioContext & { __cleanupVisibility?: () => void }).__cleanupVisibility = () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+
     fakeCtxRef.current = ctx;
     return dest.stream;
   };
@@ -153,7 +189,11 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
     if (appState !== 'recording' && appState !== 'processing') {
       setMediaStream(null);
       if (fakeCtxRef.current) {
-        fakeCtxRef.current.close().catch(() => {});
+        const ctx = fakeCtxRef.current as AudioContext & {
+          __cleanupVisibility?: () => void;
+        };
+        ctx.__cleanupVisibility?.();
+        ctx.close().catch(() => {});
         fakeCtxRef.current = null;
       }
     }

@@ -62,6 +62,16 @@ export const ClipRecordMorph: React.FC<Props> = ({ state, onClick, isPressed, cl
         width: 34px;
         height: 34px;
         cursor: pointer;
+        /* Layer isolation: promote to its own compositing / paint surface
+           so neighbour repainting (e.g. the waveform canvas redrawing at
+           60fps in the adjacent flex slot) or reflow in the transcript
+           area above cannot nudge this element by a sub-pixel. Prevents
+           WebKit (Safari / Brave iOS) jitter. will-change is used
+           instead of transform: translateZ(0) because the press-feedback
+           rule below sets transform: scale(0.97), which would overwrite
+           an explicit translateZ. */
+        contain: paint;
+        will-change: transform;
         /* Press feedback — :active only fires on real mousedown/touchdown,
            so programmatic state changes (e.g. proc → idle on completion)
            don't trigger a scale, only real user presses do. */
@@ -76,24 +86,22 @@ export const ClipRecordMorph: React.FC<Props> = ({ state, onClick, isPressed, cl
         transform: scale(0.97);
       }
       /* Layers sit on top of each other; only the active one shows.
-         Blur during crossfade (per Emil) masks the "two distinct objects
-         overlapping" artifact you get from plain opacity fades — each
-         layer blurs out while fading, the incoming blurs in while fading,
-         so mid-transition you read a single blended element instead of
-         two swapping ones. */
+         Previously used a blur crossfade (per Emil) to mask the "two
+         distinct objects overlapping" artifact, but animating filter
+         blur on WebKit (Safari / Brave iOS) introduces sub-pixel
+         wobble when neighbour content repaints frequently (the waveform
+         canvas redraws every RAF, and the transcript reflows per word).
+         Switched to pure opacity crossfade - less decorative blend but
+         compositing-stable across platforms. */
       .layer {
         position: absolute;
         inset: 0;
         opacity: 0;
-        filter: blur(2px);
         pointer-events: none;
-        transition:
-          opacity 200ms cubic-bezier(0.77, 0, 0.175, 1),
-          filter 200ms cubic-bezier(0.77, 0, 0.175, 1);
+        transition: opacity 200ms cubic-bezier(0.77, 0, 0.175, 1);
       }
       .layer.active {
         opacity: 1;
-        filter: blur(0);
       }
       /* Inner buttons shouldn't receive their own clicks — the outer
          wrapper handles the whole tap. */
