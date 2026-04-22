@@ -32,7 +32,7 @@ interface VariationConfig {
 const VARIATIONS: VariationConfig[] = [
   {
     label: 'Warm brown',
-    headline: 'A grammar checker, but for how confident AI is in what it heard',
+    headline: 'A grammar checker, but for how confident AI is',
     canvasProps: {
       tint: '#2E201E',
       tintOpacity: 0.08,
@@ -208,6 +208,7 @@ export default function DemoCanvasLabMobile() {
           align-items: center;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           overflow: hidden;
+          position: relative;
         }
         @media (max-width: 768px) {
           .lab {
@@ -223,14 +224,21 @@ export default function DemoCanvasLabMobile() {
           position: relative;
           z-index: 1;
         }
-        /* Navbar + CTA sit above the sliding canvas via z-index only —
-           no solid bg, so the panel remains visible as it slides behind
-           them. Only the navbar pill and CTA buttons (their own bgs)
-           render on top of the travelling canvas. */
+        /* Navbar floats over the canvas so the canvas extends all the
+           way to the top of the viewport. CTA still occupies its flex
+           slot at the bottom; both sit above the canvas via z-index. */
         .lab :global(.top-navbar-compact) {
-          position: relative;
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
           z-index: 2;
           width: 100%;
+        }
+        /* Push canvas content below the floating navbar so the intro
+           card isn't hidden behind it. 91px = navbar height. */
+        .canvas-area :global(.canvas-content) {
+          padding-top: 107px !important;
         }
         .cta-section {
           position: relative;
