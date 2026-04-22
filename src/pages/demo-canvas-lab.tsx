@@ -220,8 +220,14 @@ export default function DemoCanvasLab() {
       </div>
 
       <style jsx>{`
+        /* App-shell layout: the lab pins to the visual viewport and is
+           not part of the document scroll. This disables mobile pull-
+           to-refresh and overscroll rubber-band at the root — neither
+           can trigger because the document itself is not a scroll
+           container from the browser's point of view. */
         .lab {
-          height: 100vh;
+          position: fixed;
+          inset: 0;
           background: #FFFFFF;
           padding: 0 20px;
           display: flex;
@@ -229,6 +235,7 @@ export default function DemoCanvasLab() {
           align-items: center;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           overflow: hidden;
+          overscroll-behavior: none;
         }
         /* Desktop shows ShowcaseNavbarCompact; mobile shows
            ShowcaseNavbarCompactSmall (baked-in 0.7x dimensions + edge-to-
@@ -275,7 +282,10 @@ export default function DemoCanvasLab() {
           inset: 0;
           display: flex;
           align-items: stretch;
-          touch-action: pan-x;
+          /* !important overrides Framer Motion's inline touch-action:pan-x
+             which it sets automatically for drag="y". We want the element
+             to claim ALL gestures (no browser native pan). */
+          touch-action: none !important;
           cursor: grab;
         }
         .canvas-area :global(.canvas-motion:active) {
