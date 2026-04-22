@@ -11,6 +11,7 @@ import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
 import { DemoCanvas } from '@/projects/demo-showcase/components/ui/DemoCanvas';
 import { DemoIntroCard } from '@/projects/demo-showcase/components/ui/DemoIntroCard';
 import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/DemoProgressSection';
+import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/components/ui/DemoProgressSectionTransparent';
 import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
@@ -179,8 +180,14 @@ export default function DemoCanvasLab() {
                   </>
                 )}
               </div>
-              <div className={`chrome ${isDemoMode ? 'chrome-hidden' : ''}`}>
+              <div className={`chrome chrome-desktop ${isDemoMode ? 'chrome-hidden' : ''}`}>
                 <DemoProgressSection
+                  duration={activeIdx === 0 ? SIM_DURATION : 8000}
+                  loopKey={loopKey}
+                />
+              </div>
+              <div className={`chrome chrome-mobile ${isDemoMode ? 'chrome-hidden' : ''}`}>
+                <DemoProgressSectionTransparent
                   duration={activeIdx === 0 ? SIM_DURATION : 8000}
                   loopKey={loopKey}
                 />
@@ -282,6 +289,17 @@ export default function DemoCanvasLab() {
         .chrome.chrome-hidden {
           opacity: 0;
           pointer-events: none;
+        }
+        /* Desktop uses DemoProgressSection; mobile uses the transparent
+           edge-to-edge variant. Swap is CSS-only (display:none) so we
+           don't need viewport detection in JS. */
+        .chrome.chrome-mobile { display: none; }
+        @media (max-width: 768px) {
+          .chrome.chrome-desktop { display: none; }
+          .chrome.chrome-mobile {
+            display: block;
+            align-self: stretch;
+          }
         }
         .cta-section {
           display: flex;
