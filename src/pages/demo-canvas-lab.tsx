@@ -69,6 +69,11 @@ export default function DemoCanvasLab() {
           gap: 32px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
+        @media (max-width: 768px) {
+          .lab {
+            padding: 40px 10px;
+          }
+        }
         h1 {
           margin: 0;
           font-size: 20px;
