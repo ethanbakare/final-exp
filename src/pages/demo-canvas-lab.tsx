@@ -4,6 +4,10 @@
  */
 import React from 'react';
 import { DemoCanvas } from '@/projects/demo-showcase/components/ui/DemoCanvas';
+import { ShowcaseProgress } from '@/projects/demo-showcase/components/ui/ShowcaseProgress';
+import styles from '@/projects/demo-showcase/styles/showcase.module.css';
+
+const HEADLINE = 'A grammar checker, but for how confident AI is in what it heard';
 
 export default function DemoCanvasLab() {
   return (
@@ -11,8 +15,15 @@ export default function DemoCanvasLab() {
       <h1>Demo Canvas Lab</h1>
 
       <section className="variation">
-        <span className="label">Variation 1 — Warm brown 10%</span>
-        <DemoCanvas tint="#2E201E" tintOpacity={0.1} textureOpacity={0.6} />
+        <span className="label">Variation 1 — Warm brown 10% (with features)</span>
+        <DemoCanvas tint="#2E201E" tintOpacity={0.1} textureOpacity={0.6}>
+          <div className="canvas-stack">
+            <div className="intro-card">
+              <span className={`${styles.OpenRunde600_16} intro-text`}>{HEADLINE}</span>
+            </div>
+            <ShowcaseProgress duration={8000} loopKey={0} />
+          </div>
+        </DemoCanvas>
       </section>
 
       <section className="variation">
@@ -46,6 +57,30 @@ export default function DemoCanvasLab() {
         .label {
           font-size: 13px;
           color: #777;
+        }
+        .canvas-stack {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 16px;
+          box-sizing: border-box;
+        }
+        .intro-card {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 15px 25px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.80);
+          max-width: 526px;
+        }
+        .intro-text {
+          color: rgba(94, 94, 92, 0.80);
+          text-align: center;
         }
       `}</style>
     </div>
