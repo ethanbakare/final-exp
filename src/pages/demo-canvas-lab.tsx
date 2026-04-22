@@ -93,9 +93,9 @@ export default function DemoCanvasLab() {
   const active = VARIATIONS[activeIdx];
 
   const variants = {
-    enter: (dir: number) => ({ y: dir > 0 ? 180 : -180, opacity: 0, scale: 0.92 }),
+    enter: (dir: number) => ({ y: dir > 0 ? 300 : -300, opacity: 0, scale: 0.92 }),
     center: { y: 0, opacity: 1, scale: 1 },
-    exit: (dir: number) => ({ y: dir > 0 ? -180 : 180, opacity: 0, scale: 0.92 }),
+    exit: (dir: number) => ({ y: dir > 0 ? -300 : 300, opacity: 0, scale: 0.92 }),
   };
 
   return (
@@ -170,7 +170,20 @@ export default function DemoCanvasLab() {
           display: flex;
           align-items: stretch;
           position: relative;
-          overflow: hidden;
+          z-index: 1;
+        }
+        /* Navbar + CTA sit above the sliding canvas so panels pass
+           under them rather than over. Solid bg occludes the travel. */
+        .lab :global(.top-navbar-compact) {
+          position: relative;
+          z-index: 2;
+          background: #FFFFFF;
+          width: 100%;
+        }
+        .cta-section {
+          position: relative;
+          z-index: 2;
+          background: #FFFFFF;
         }
         .canvas-area :global(.canvas-motion) {
           flex: 1;
