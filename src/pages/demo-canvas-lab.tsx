@@ -160,31 +160,31 @@ export default function DemoCanvasLab() {
             onDragEnd={handleDragEnd}
           >
             <DemoCanvas {...active.canvasProps}>
-              {!isDemoMode && <DemoIntroCard headline={active.headline} />}
-              <div className="sim-slot">
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={isDemoMode ? 'demo' : 'sim'}
-                    className="slot-fade"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                  >
-                    {activeIdx === 0 && isDemoMode ? (
-                      <AIConfidenceDemo key={`demo-${activeIdx}`} />
-                    ) : activeIdx === 0 ? (
-                      <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
-                    ) : null}
-                  </motion.div>
-                </AnimatePresence>
+              {/* Intro + progress always mounted; CSS opacity hides them in
+                  demo mode so the flex layout never shifts. */}
+              <div className={`chrome ${isDemoMode ? 'chrome-hidden' : ''}`}>
+                <DemoIntroCard headline={active.headline} />
               </div>
-              {!isDemoMode && (
+              <div className="sim-slot">
+                {/* Both sim and demo mount once and stay; only opacity
+                    toggles. No unmount = no re-mount jitter. */}
+                {activeIdx === 0 && (
+                  <>
+                    <div className={`layer ${isDemoMode ? 'layer-hidden' : ''}`}>
+                      <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                    </div>
+                    <div className={`layer ${!isDemoMode ? 'layer-hidden' : ''}`}>
+                      <AIConfidenceDemo />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className={`chrome ${isDemoMode ? 'chrome-hidden' : ''}`}>
                 <DemoProgressSection
                   duration={activeIdx === 0 ? SIM_DURATION : 8000}
                   loopKey={loopKey}
                 />
-              )}
+              </div>
             </DemoCanvas>
           </motion.div>
         </AnimatePresence>
@@ -256,11 +256,31 @@ export default function DemoCanvasLab() {
           justify-content: center;
           position: relative;
         }
-        .sim-slot :global(.slot-fade) {
-          width: 100%;
+        /* Sim and demo both live in the slot, stacked. Opacity toggles
+           which is visible; pointer-events disables the hidden one. */
+        .sim-slot :global(.layer) {
+          position: absolute;
+          inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
+          opacity: 1;
+          transition: opacity 0.25s ease;
+          pointer-events: auto;
+        }
+        .sim-slot :global(.layer.layer-hidden) {
+          opacity: 0;
+          pointer-events: none;
+        }
+        /* Intro + progress wrappers — opacity toggle only, so their
+           flex slots remain reserved in the layout in both modes. */
+        .chrome {
+          opacity: 1;
+          transition: opacity 0.25s ease;
+        }
+        .chrome.chrome-hidden {
+          opacity: 0;
+          pointer-events: none;
         }
         .cta-section {
           display: flex;
