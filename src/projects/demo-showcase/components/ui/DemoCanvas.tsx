@@ -9,6 +9,7 @@
  * white pixels read as the scribbles.
  */
 import React from 'react';
+import styles from '@/projects/demo-showcase/styles/showcase.module.css';
 
 interface DemoCanvasProps {
   /** Colour behind the tint (defaults to page white). */
@@ -41,7 +42,7 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
   children,
 }) => (
   <div
-    className="demo-canvas"
+    className={`demo-canvas ${styles.demoCanvasRoot}`}
     style={{
       background: baseColor,
       borderRadius: `${radius}px`,

@@ -27,3 +27,102 @@
   font-weight: 500;
   line-height: 143.75%;
 }
+
+/* ----------------------------------------
+   DEMO CANVAS — Colour tokens + component styles
+   Tokens live on .demoCanvasRoot and inherit to children.
+   ---------------------------------------- */
+
+.demoCanvasRoot {
+  /* Backgrounds */
+  --demo-card-bg: rgba(255, 255, 255, 0.80);
+  --demo-progress-bar-bg: #F5F5F4;
+  --demo-progress-track-bg: rgba(38, 37, 36, 0.10);
+  --demo-progress-thumb-bg: rgba(38, 37, 36, 0.50);
+
+  /* Text */
+  --demo-headline-color: rgba(94, 94, 92, 0.80);
+  --demo-caption-color: rgba(28, 25, 23, 0.50);
+}
+
+/* Intro card ---------------------------------------- */
+
+.demoIntroCard {
+  display: flex;
+  max-width: 1160px;
+  padding: 15px 25px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 34px;
+  border-radius: 8px;
+  background: var(--demo-card-bg);
+}
+
+.demoHeadline {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.demoHeadlineText {
+  color: var(--demo-headline-color);
+  text-align: center;
+}
+
+/* Progress section ---------------------------------------- */
+
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.progressCaption {
+  color: var(--demo-caption-color);
+  text-align: center;
+}
+
+.progressBar {
+  display: flex;
+  width: 181px;
+  height: 32px;
+  padding: 0 16px;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  border-radius: 23.158px;
+  background: var(--demo-progress-bar-bg);
+}
+
+.progressTrack {
+  display: flex;
+  height: 4px;
+  align-items: center;
+  flex: 1 0 0;
+  border-radius: 32px;
+  background: var(--demo-progress-track-bg);
+  overflow: hidden;
+}
+
+.progressThumb {
+  height: 100%;
+  width: 0%;
+  border-radius: 121.094px;
+  background: var(--demo-progress-thumb-bg);
+  animation: demo-progress-fill linear 1 forwards;
+  animation-play-state: running;
+}
+
+.progressThumbPaused {
+  animation-play-state: paused;
+}
+
+@keyframes demo-progress-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
