@@ -214,7 +214,6 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
             height: auto;
             gap: 8px;
             margin-left: auto;
-            transition: opacity 0.4s ease-in-out, gap 0.3s ease;
           }
 
           .legend-key {
@@ -228,17 +227,10 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
           }
 
           /* Results state on mobile: hide the "Text transcribed by AI"
-             microcopy (DOM-removed via display:none — it's redundant
-             once colored underlines + tag badges make the context
-             self-evident). Legend reflows to a single horizontal row
-             using the freed space. */
+             microcopy. Legend stays in its existing layout — same rules
+             desktop uses (which already works without any card shift). */
           .transcript-bar.is-results .transcript-microcopy {
             display: none;
-          }
-          .transcript-bar.is-results .legend {
-            flex-direction: row;
-            align-items: center;
-            gap: 8px;
           }
         }
         
