@@ -27,9 +27,9 @@ interface DemoCanvasProps {
 }
 
 const TEXTURE_URL = '/images/demo-showcase/canvas-scribble-texture.webp';
-// Figma source rect: 1302.22 × 732.5. Keep aspect for visual parity.
-const ASPECT_W = 1302;
-const ASPECT_H = 732;
+// Figma demo-showcase frame: 1160 × 762.43.
+const ASPECT_W = 1160;
+const ASPECT_H = 762;
 
 export const DemoCanvas: React.FC<DemoCanvasProps> = ({
   baseColor = '#FFFFFF',
@@ -75,6 +75,13 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
         z-index: 1;
         width: 100%;
         height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 34px;
+        padding: 50px 116px 15px;
+        box-sizing: border-box;
       }
     `}</style>
   </div>

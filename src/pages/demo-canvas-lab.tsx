@@ -17,12 +17,11 @@ export default function DemoCanvasLab() {
       <section className="variation">
         <span className="label">Variation 1 — Warm brown 10% (with features)</span>
         <DemoCanvas tint="#2E201E" tintOpacity={0.1} textureOpacity={0.6}>
-          <div className="canvas-stack">
-            <div className="intro-card">
-              <span className={`${styles.OpenRunde600_16} intro-text`}>{HEADLINE}</span>
-            </div>
-            <ShowcaseProgress duration={8000} loopKey={0} />
+          <div className="intro-card">
+            <span className={`${styles.OpenRunde600_16} intro-text`}>{HEADLINE}</span>
           </div>
+          <div className="slot-placeholder" />
+          <ShowcaseProgress duration={8000} loopKey={0} />
         </DemoCanvas>
       </section>
 
@@ -58,17 +57,6 @@ export default function DemoCanvasLab() {
           font-size: 13px;
           color: #777;
         }
-        .canvas-stack {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: space-between;
-          padding: 20px 16px;
-          box-sizing: border-box;
-        }
         .intro-card {
           display: flex;
           justify-content: center;
@@ -81,6 +69,10 @@ export default function DemoCanvasLab() {
         .intro-text {
           color: rgba(94, 94, 92, 0.80);
           text-align: center;
+        }
+        .slot-placeholder {
+          flex: 1;
+          width: 100%;
         }
       `}</style>
     </div>
