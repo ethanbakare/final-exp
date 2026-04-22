@@ -134,7 +134,7 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
           min-height: 720px;
         }
         .canvas-content {
-          padding: 16px;
+          padding: 16px 8px;
           gap: 24px;
         }
       }
