@@ -227,10 +227,16 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
           }
 
           /* Results state on mobile: hide the "Text transcribed by AI"
-             microcopy. Legend stays in its existing layout — same rules
-             desktop uses (which already works without any card shift). */
+             microcopy, and lay out the legend as a single horizontal
+             row (overrides the mobile default column stack). With
+             microcopy hidden there's enough horizontal room for the
+             row, so we get the desktop-like single-line legend. */
           .transcript-bar.is-results .transcript-microcopy {
             display: none;
+          }
+          .transcript-bar.is-results .legend {
+            flex-direction: row;
+            align-items: center;
           }
         }
         
