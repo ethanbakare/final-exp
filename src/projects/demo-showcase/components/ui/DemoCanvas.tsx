@@ -60,7 +60,10 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
       .demo-canvas {
         position: relative;
         aspect-ratio: ${ASPECT_W} / ${ASPECT_H};
+        min-height: 720px;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
       .canvas-tint,
       .canvas-texture {
@@ -74,8 +77,8 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
       .canvas-content {
         position: relative;
         z-index: 1;
+        flex: 1;
         width: 100%;
-        height: 100%;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -83,6 +86,16 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
         gap: 34px;
         padding: 50px 116px 15px;
         box-sizing: border-box;
+      }
+      @media (max-width: 768px) {
+        .demo-canvas {
+          aspect-ratio: auto;
+          min-height: 720px;
+        }
+        .canvas-content {
+          padding: 40px 20px 20px;
+          gap: 24px;
+        }
       }
     `}</style>
   </div>
