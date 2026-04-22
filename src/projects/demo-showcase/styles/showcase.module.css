@@ -71,6 +71,13 @@
   text-align: center;
 }
 
+/* Optional trailing text in the headline. Inline on desktop, hidden
+   on mobile — lets each variation provide a short+long form without
+   duplicating the card or splitting into two props. */
+.demoHeadlineSuffix {
+  display: inline;
+}
+
 @media (max-width: 768px) {
   .demoIntroCard {
     padding: 8px 12px;
@@ -78,6 +85,9 @@
   .demoHeadlineText {
     font-size: 12px;
     letter-spacing: -0.12px;
+  }
+  .demoHeadlineSuffix {
+    display: none;
   }
 }
 

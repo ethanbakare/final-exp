@@ -29,18 +29,20 @@ const AIConfidenceDemo = dynamic(
 
 interface VariationConfig {
   label: string;
+  /** Base headline — always shown on all viewports. */
   headline: string;
-  /** Optional shorter headline used on mobile viewports only.
-   *  If absent, `headline` is used everywhere. */
-  headlineMobile?: string;
+  /** Optional trailing text shown only on desktop. Split is purely
+   *  presentational; the full string remains in the DOM on mobile
+   *  (just hidden via CSS) so screen readers get the complete text. */
+  headlineSuffix?: string;
   canvasProps: React.ComponentProps<typeof DemoCanvas>;
 }
 
 const VARIATIONS: VariationConfig[] = [
   {
     label: 'Warm brown',
-    headline: 'A grammar checker, but for how confident AI is in what it heard',
-    headlineMobile: 'A grammar checker, but for how confident AI is',
+    headline: 'A grammar checker, but for how confident AI is',
+    headlineSuffix: ' in what it heard',
     canvasProps: {
       tint: '#2E201E',
       tintOpacity: 0.08,
@@ -208,12 +210,10 @@ export default function DemoCanvasLab() {
               {/* Intro + progress always mounted; CSS opacity hides them in
                   demo mode so the flex layout never shifts. */}
               <div className={`chrome ${isDemoMode ? 'chrome-hidden' : ''}`}>
-                <div className="intro-desktop">
-                  <DemoIntroCard headline={active.headline} />
-                </div>
-                <div className="intro-mobile">
-                  <DemoIntroCard headline={active.headlineMobile ?? active.headline} />
-                </div>
+                <DemoIntroCard
+                  headline={active.headline}
+                  headlineSuffix={active.headlineSuffix}
+                />
               </div>
               <div className="sim-slot">
                 {/* Both sim and demo mount once and stay; only opacity
@@ -361,13 +361,6 @@ export default function DemoCanvasLab() {
         .chrome.chrome-hidden {
           opacity: 0;
           pointer-events: none;
-        }
-        /* Mobile-only shorter headline swap. Both intro cards are
-           mounted; CSS display toggles which is visible. */
-        .intro-mobile { display: none; }
-        @media (max-width: 768px) {
-          .intro-desktop { display: none; }
-          .intro-mobile { display: block; }
         }
         /* Desktop uses DemoProgressSection; mobile uses the transparent
            edge-to-edge variant. Swap is CSS-only (display:none) so we
