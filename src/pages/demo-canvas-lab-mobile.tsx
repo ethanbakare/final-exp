@@ -233,11 +233,14 @@ export default function DemoCanvasLabMobile() {
           width: 100%;
         }
         /* Mobile: drop the navbar wrapper's 16px horizontal padding so
-           the pill fills edge-to-edge within the lab's inner content area. */
+           the pill fills edge-to-edge within the lab's inner content
+           area, and drop the 20px top padding — vertical space is
+           scarce on mobile. */
         @media (max-width: 768px) {
           .lab :global(.top-navbar-compact) {
             padding-left: 0;
             padding-right: 0;
+            padding-top: 0;
           }
         }
         .cta-section {
