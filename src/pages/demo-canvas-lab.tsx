@@ -13,6 +13,7 @@ import { DemoIntroCard } from '@/projects/demo-showcase/components/ui/DemoIntroC
 import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/DemoProgressSection';
 import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/components/ui/DemoProgressSectionTransparent';
 import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
+import { ShowcaseNavbarCompactSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompactSmall';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
 
@@ -136,13 +137,24 @@ export default function DemoCanvasLab() {
   return (
     <div className="lab">
       {/* Target layout: navbar + canvas + CTA */}
-      <ShowcaseNavbarCompact
-        projectName={active.label}
-        currentIndex={activeIdx}
-        totalCount={VARIATIONS.length}
-        onNext={() => go(1)}
-        onPrev={() => go(-1)}
-      />
+      <div className="nav-slot nav-desktop">
+        <ShowcaseNavbarCompact
+          projectName={active.label}
+          currentIndex={activeIdx}
+          totalCount={VARIATIONS.length}
+          onNext={() => go(1)}
+          onPrev={() => go(-1)}
+        />
+      </div>
+      <div className="nav-slot nav-mobile">
+        <ShowcaseNavbarCompactSmall
+          projectName={active.label}
+          currentIndex={activeIdx}
+          totalCount={VARIATIONS.length}
+          onNext={() => go(1)}
+          onPrev={() => go(-1)}
+        />
+      </div>
 
       <div className="canvas-area" ref={areaRef}>
         <AnimatePresence custom={direction} initial={false}>
@@ -218,16 +230,17 @@ export default function DemoCanvasLab() {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           overflow: hidden;
         }
+        /* Desktop shows ShowcaseNavbarCompact; mobile shows
+           ShowcaseNavbarCompactSmall (baked-in 0.7x dimensions + edge-to-
+           edge fill). CSS display toggle so no JS viewport detection. */
+        .nav-slot { width: 100%; }
+        .nav-mobile { display: none; }
         @media (max-width: 768px) {
           .lab {
             padding: 0 10px;
           }
-          /* Quick visual experiment: scale the whole navbar pill 30% smaller.
-             Layout box stays original size (transform is visual only). */
-          .lab :global(.selector-pill) {
-            transform: scale(0.7);
-            transform-origin: center;
-          }
+          .nav-desktop { display: none; }
+          .nav-mobile { display: block; }
         }
         .canvas-area {
           flex: 1;
