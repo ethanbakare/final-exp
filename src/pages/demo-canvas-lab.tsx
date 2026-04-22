@@ -210,7 +210,7 @@ export default function DemoCanvasLab() {
             <DemoCanvas {...active.canvasProps}>
               {/* Intro + progress always mounted; CSS opacity hides them in
                   demo mode so the flex layout never shifts. */}
-              <div className={`chrome ${isDemoMode ? 'chrome-hidden' : ''}`}>
+              <div className={`chrome chrome-top ${isDemoMode ? 'chrome-hidden' : ''}`}>
                 <DemoIntroCard
                   headline={active.headline}
                   headlineSuffix={active.headlineSuffix}
@@ -369,6 +369,14 @@ export default function DemoCanvasLab() {
         .chrome.chrome-hidden {
           opacity: 0;
           pointer-events: none;
+        }
+        /* Mobile: pull the intro card up 6px past the canvas-content
+           16px top padding so the gap reads tighter. Keeps the canvas
+           padding intact so the sim in the middle isn't disturbed. */
+        @media (max-width: 768px) {
+          .chrome.chrome-top {
+            margin-top: -6px;
+          }
         }
         /* Desktop uses DemoProgressSection; mobile uses the transparent
            edge-to-edge variant. Swap is CSS-only (display:none) so we
