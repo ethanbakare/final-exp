@@ -69,10 +69,6 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
           flex: none;
           order: 0;
           flex-grow: 0;
-          opacity: 1;
-          max-width: 200px;
-          overflow: hidden;
-          transition: opacity 0.3s ease, max-width 0.3s ease;
         }
         
         .transcript-microcopy span {
