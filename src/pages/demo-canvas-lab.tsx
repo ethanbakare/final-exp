@@ -5,8 +5,9 @@
  *
  * Not linked from anywhere — accessed directly via /demo-canvas-lab.
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
 import { DemoCanvas } from '@/projects/demo-showcase/components/ui/DemoCanvas';
 import { DemoIntroCard } from '@/projects/demo-showcase/components/ui/DemoIntroCard';
 import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/DemoProgressSection';
@@ -62,12 +63,40 @@ const VARIATIONS: VariationConfig[] = [
   },
 ];
 
+const SWIPE_OFFSET = 100;
+const SWIPE_VELOCITY = 500;
+
 export default function DemoCanvasLab() {
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [[activeIdx, direction], setActive] = useState<[number, number]>([0, 0]);
   const [loopKey, setLoopKey] = useState(0);
   const handleLoopRestart = useCallback(() => setLoopKey(k => k + 1), []);
+  const totalRef = useRef(VARIATIONS.length);
+
+  const go = useCallback((delta: number) => {
+    setActive(([i]) => {
+      const total = totalRef.current;
+      const next = (i + delta + total) % total;
+      return [next, delta];
+    });
+    setLoopKey(k => k + 1);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const { offset, velocity } = info;
+      if (offset.y < -SWIPE_OFFSET || velocity.y < -SWIPE_VELOCITY) go(1);
+      else if (offset.y > SWIPE_OFFSET || velocity.y > SWIPE_VELOCITY) go(-1);
+    },
+    [go],
+  );
 
   const active = VARIATIONS[activeIdx];
+
+  const variants = {
+    enter: (dir: number) => ({ y: dir > 0 ? 300 : -300, opacity: 0, scale: 0.9 }),
+    center: { y: 0, opacity: 1, scale: 1 },
+    exit: (dir: number) => ({ y: dir > 0 ? -300 : 300, opacity: 0, scale: 0.9 }),
+  };
 
   return (
     <div className="lab">
@@ -76,23 +105,40 @@ export default function DemoCanvasLab() {
         projectName={active.label}
         currentIndex={activeIdx}
         totalCount={VARIATIONS.length}
-        onNext={() => setActiveIdx(i => (i + 1) % VARIATIONS.length)}
-        onPrev={() => setActiveIdx(i => (i - 1 + VARIATIONS.length) % VARIATIONS.length)}
+        onNext={() => go(1)}
+        onPrev={() => go(-1)}
       />
 
       <div className="canvas-area">
-        <DemoCanvas {...active.canvasProps}>
-          <DemoIntroCard headline={active.headline} />
-          <div className="sim-slot">
-            {activeIdx === 0 ? (
-              <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
-            ) : null}
-          </div>
-          <DemoProgressSection
-            duration={activeIdx === 0 ? SIM_DURATION : 8000}
-            loopKey={loopKey}
-          />
-        </DemoCanvas>
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+          <motion.div
+            key={activeIdx}
+            className="canvas-motion"
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ type: 'spring', stiffness: 260, damping: 30, opacity: { duration: 0.25 } }}
+            drag="y"
+            dragElastic={0.2}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            onDragEnd={handleDragEnd}
+          >
+            <DemoCanvas {...active.canvasProps}>
+              <DemoIntroCard headline={active.headline} />
+              <div className="sim-slot">
+                {activeIdx === 0 ? (
+                  <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                ) : null}
+              </div>
+              <DemoProgressSection
+                duration={activeIdx === 0 ? SIM_DURATION : 8000}
+                loopKey={loopKey}
+              />
+            </DemoCanvas>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <div className="cta-section">
@@ -123,6 +169,18 @@ export default function DemoCanvasLab() {
           max-width: 1440px;
           display: flex;
           align-items: stretch;
+          position: relative;
+        }
+        .canvas-area :global(.canvas-motion) {
+          flex: 1;
+          width: 100%;
+          display: flex;
+          align-items: stretch;
+          touch-action: pan-x;
+          cursor: grab;
+        }
+        .canvas-area :global(.canvas-motion:active) {
+          cursor: grabbing;
         }
         .sim-slot {
           flex: 1;
