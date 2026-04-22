@@ -205,3 +205,65 @@
     margin: 0 -16px -16px;
   }
 }
+
+/* Small CTA buttons (mobile). Class names live here (not in the
+   component's <style jsx>) because the button element is rendered via
+   framer-motion's motion.button, which strips styled-jsx's injected
+   scope class — so a `<style jsx>` block would target nothing on the
+   root. CSS module classes are unaffected. */
+
+.tryDemoBtnSmall {
+  display: flex;
+  height: 35px;
+  padding: 0 13px;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  border-radius: 18.5px;
+  background: #1C1917;
+  color: #FFF;
+  cursor: pointer;
+  white-space: nowrap;
+  /* Explicit properties only (per Emil) — never transition: all.
+     Width is animated by framer-motion (layout prop). */
+  transition:
+    opacity 0.2s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tryDemoBtnSmall:hover {
+  opacity: 0.85;
+}
+
+.tryDemoBtnSmall:active {
+  transform: scale(0.97);
+  opacity: 0.7;
+}
+
+.viewCaseStudyBtnSmall {
+  display: flex;
+  height: 35px;
+  padding: 0 13px;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  border-radius: 18.5px;
+  background: #F5F5F4;
+  color: #1C1917;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    opacity 0.2s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.viewCaseStudyBtnSmall:hover {
+  opacity: 0.85;
+}
+
+.viewCaseStudyBtnSmall:active {
+  transform: scale(0.97);
+  opacity: 0.7;
+}

@@ -13,6 +13,11 @@
  * that interpolates between the two label widths (layout animation).
  * Per the Emil design-eng skill: nothing appears from nothing, and
  * width changes should be animated rather than snapped.
+ *
+ * Styles live in showcase.module.css (CSS module), not styled-jsx.
+ * Reason: motion.button strips the styled-jsx scope class on the
+ * root element, so a <style jsx> selector on the root matches
+ * nothing. CSS module classes are unaffected by that.
  */
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -34,7 +39,7 @@ export const TryDemoButtonSmall: React.FC<ButtonProps> = ({ onClick, label = 'Tr
   <motion.button
     layout
     transition={LABEL_TRANSITION}
-    className={`try-demo-btn-small ${styles.OpenRunde500_12}`}
+    className={`${styles.tryDemoBtnSmall} ${styles.OpenRunde500_12}`}
     onClick={onClick}
   >
     <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
@@ -47,76 +52,15 @@ export const TryDemoButtonSmall: React.FC<ButtonProps> = ({ onClick, label = 'Tr
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -3 }}
         transition={LABEL_TRANSITION}
-        className="label"
       >
         {label}
       </motion.span>
     </AnimatePresence>
-
-    <style jsx>{`
-      .try-demo-btn-small {
-        display: flex;
-        height: 35px;
-        padding: 0 13px;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-        border: none;
-        border-radius: 18.5px;
-        background: #1C1917;
-        color: #FFF;
-        cursor: pointer;
-        /* Only opacity + transform — not 'all' — per Emil.
-           Width is animated by framer-motion (layout prop). */
-        transition:
-          opacity 0.2s ease,
-          transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
-        /* Prevent text wrapping during the width interpolation. */
-        white-space: nowrap;
-      }
-      .try-demo-btn-small:hover {
-        opacity: 0.85;
-      }
-      /* Responsive press feedback — real mousedown/touchdown only. */
-      .try-demo-btn-small:active {
-        transform: scale(0.97);
-        opacity: 0.7;
-      }
-      .try-demo-btn-small :global(.label) {
-        display: inline-block;
-      }
-    `}</style>
   </motion.button>
 );
 
 export const ViewCaseStudyButtonSmall: React.FC<ButtonProps> = ({ onClick }) => (
-  <button className={`view-case-study-btn-small ${styles.OpenRunde500_12}`} onClick={onClick}>
+  <button className={`${styles.viewCaseStudyBtnSmall} ${styles.OpenRunde500_12}`} onClick={onClick}>
     View Case Study
-
-    <style jsx>{`
-      .view-case-study-btn-small {
-        display: flex;
-        height: 35px;
-        padding: 0 13px;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-        border: none;
-        border-radius: 18.5px;
-        background: #F5F5F4;
-        color: #1C1917;
-        cursor: pointer;
-        transition:
-          opacity 0.2s ease,
-          transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
-      }
-      .view-case-study-btn-small:hover {
-        opacity: 0.85;
-      }
-      .view-case-study-btn-small:active {
-        transform: scale(0.97);
-        opacity: 0.7;
-      }
-    `}</style>
   </button>
 );
