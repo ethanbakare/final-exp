@@ -11,10 +11,13 @@ export default function DemoCanvasLab() {
       <h1>Demo Canvas Lab</h1>
 
       <section className="variation">
-        <span className="label">Variation 1 — Lavender</span>
-        <DemoCanvas tint="#E8D2E9">
-          <div className="placeholder">content area</div>
-        </DemoCanvas>
+        <span className="label">Variation 1 — Warm brown 10%</span>
+        <DemoCanvas tint="#2E201E" tintOpacity={0.1} textureOpacity={0.6} />
+      </section>
+
+      <section className="variation">
+        <span className="label">Variation 2 — Lavender 20%</span>
+        <DemoCanvas tint="#D992F0" tintOpacity={0.2} textureOpacity={0.6} />
       </section>
 
       <style jsx>{`
@@ -43,11 +46,6 @@ export default function DemoCanvasLab() {
         .label {
           font-size: 13px;
           color: #777;
-        }
-        .placeholder {
-          text-align: center;
-          color: rgba(0, 0, 0, 0.35);
-          font-size: 14px;
         }
       `}</style>
     </div>

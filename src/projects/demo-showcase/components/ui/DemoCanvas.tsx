@@ -1,62 +1,80 @@
 /**
  * DemoCanvas — the tinted, scribble-textured container that wraps
- * a project demo (intro + slot + progress). Colour is supplied by
- * the caller so each project can have its own flavour.
+ * a project demo (intro + slot + progress).
  *
- * Compositing: the scribble texture is white-on-black. We lay it
- * over a solid tint and use mix-blend-mode: lighten to keep the
- * white scribbles and drop the black back to the tint colour.
+ * Compositing mirrors the Figma source: a white base, a solid tint
+ * layer at `tintOpacity`, and the scribble image at `textureOpacity`
+ * — straight alpha, no blend modes. Image is white-on-black, so the
+ * black pixels blend toward the tint (creating the backdrop) and the
+ * white pixels read as the scribbles.
  */
 import React from 'react';
 
 interface DemoCanvasProps {
-  /** Background tint colour (CSS). */
-  tint?: string;
-  /** How visible the scribble texture is, 0–1. */
+  /** Colour behind the tint (defaults to page white). */
+  baseColor?: string;
+  /** Tint colour overlaid on the base (hex). */
+  tint: string;
+  /** Tint opacity, 0–1. Matches Figma fill opacity. */
+  tintOpacity?: number;
+  /** Scribble image opacity, 0–1. Figma default is 0.6. */
   textureOpacity?: number;
   /** Corner radius in px. */
   radius?: number;
-  /** Min height of the canvas in px. */
-  minHeight?: number;
+  /** Width in px (optional — defaults to 100% of parent). */
+  width?: number;
   children?: React.ReactNode;
 }
 
 const TEXTURE_URL = '/images/demo-showcase/canvas-scribble-texture.webp';
+// Figma source rect: 1302.22 × 732.5. Keep aspect for visual parity.
+const ASPECT_W = 1302;
+const ASPECT_H = 732;
 
 export const DemoCanvas: React.FC<DemoCanvasProps> = ({
-  tint = '#E8D2E9',
-  textureOpacity = 1,
+  baseColor = '#FFFFFF',
+  tint,
+  tintOpacity = 0.1,
+  textureOpacity = 0.6,
   radius = 24,
-  minHeight = 500,
+  width,
   children,
 }) => (
   <div
     className="demo-canvas"
-    style={{ background: tint, borderRadius: `${radius}px`, minHeight: `${minHeight}px` }}
+    style={{
+      background: baseColor,
+      borderRadius: `${radius}px`,
+      width: width ? `${width}px` : '100%',
+    }}
   >
+    <div
+      className="canvas-tint"
+      style={{ background: tint, opacity: tintOpacity }}
+    />
     <div className="canvas-texture" style={{ opacity: textureOpacity }} />
     <div className="canvas-content">{children}</div>
 
     <style jsx>{`
       .demo-canvas {
         position: relative;
-        width: 100%;
+        aspect-ratio: ${ASPECT_W} / ${ASPECT_H};
         overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       }
+      .canvas-tint,
       .canvas-texture {
         position: absolute;
         inset: 0;
-        background: url('${TEXTURE_URL}') center / cover no-repeat;
-        mix-blend-mode: lighten;
         pointer-events: none;
+      }
+      .canvas-texture {
+        background: url('${TEXTURE_URL}') center / cover no-repeat;
       }
       .canvas-content {
         position: relative;
         z-index: 1;
         width: 100%;
+        height: 100%;
       }
     `}</style>
   </div>
