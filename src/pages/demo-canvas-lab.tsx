@@ -5,7 +5,7 @@
  *
  * Not linked from anywhere — accessed directly via /demo-canvas-lab.
  */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
 import { DemoCanvas } from '@/projects/demo-showcase/components/ui/DemoCanvas';
@@ -92,10 +92,28 @@ export default function DemoCanvasLab() {
 
   const active = VARIATIONS[activeIdx];
 
+  // Measure canvas-area height so neighbours enter/exit exactly one
+  // "card height + gap" away, mimicking a stacked strip.
+  const PANEL_GAP = 30;
+  const areaRef = useRef<HTMLDivElement>(null);
+  const [areaH, setAreaH] = useState(720);
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    setAreaH(el.getBoundingClientRect().height);
+    const ro = new ResizeObserver(entries => {
+      setAreaH(entries[0].contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const offset = areaH + PANEL_GAP;
+
   const variants = {
-    enter: (dir: number) => ({ y: dir > 0 ? 300 : -300, opacity: 0, scale: 0.92 }),
+    enter: (dir: number) => ({ y: dir > 0 ? offset : -offset, opacity: 0, scale: 0.6 }),
     center: { y: 0, opacity: 1, scale: 1 },
-    exit: (dir: number) => ({ y: dir > 0 ? -300 : 300, opacity: 0, scale: 0.92 }),
+    exit: (dir: number) => ({ y: dir > 0 ? -offset : offset, opacity: 0, scale: 0.6 }),
   };
 
   return (
@@ -109,8 +127,8 @@ export default function DemoCanvasLab() {
         onPrev={() => go(-1)}
       />
 
-      <div className="canvas-area">
-        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+      <div className="canvas-area" ref={areaRef}>
+        <AnimatePresence custom={direction} initial={false}>
           <motion.div
             key={activeIdx}
             className="canvas-motion"
@@ -186,8 +204,8 @@ export default function DemoCanvasLab() {
           z-index: 2;
         }
         .canvas-area :global(.canvas-motion) {
-          flex: 1;
-          width: 100%;
+          position: absolute;
+          inset: 0;
           display: flex;
           align-items: stretch;
           touch-action: pan-x;
