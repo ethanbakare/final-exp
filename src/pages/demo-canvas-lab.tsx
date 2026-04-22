@@ -233,7 +233,7 @@ export default function DemoCanvasLab() {
                     <div className={`layer ${isDemoMode ? 'layer-hidden' : ''}`}>
                       <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
                     </div>
-                    <div className={`layer ${!isDemoMode ? 'layer-hidden' : ''}`}>
+                    <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
                       <AIConfidenceDemo />
                     </div>
                   </>
@@ -405,6 +405,15 @@ export default function DemoCanvasLab() {
         .sim-slot :global(.layer.layer-hidden) {
           opacity: 0;
           pointer-events: none;
+        }
+        /* Mobile-only experiment: shrink AIConfidenceDemo to 0.8 scale
+           inside the warm-brown demo mode. Scale is visual only —
+           layout box stays full size, so the demo remains centred in
+           the sim-slot. */
+        @media (max-width: 768px) {
+          .sim-slot :global(.layer.layer-demo) {
+            transform: scale(0.8);
+          }
         }
         /* Intro + progress wrappers — opacity toggle only, so their
            flex slots remain reserved in the layout in both modes. */
