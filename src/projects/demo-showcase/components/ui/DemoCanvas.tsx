@@ -84,7 +84,7 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
         align-items: center;
         justify-content: center;
         gap: 34px;
-        padding: 16px 116px;
+        padding: 16px;
         box-sizing: border-box;
       }
       @media (max-width: 768px) {
@@ -93,7 +93,7 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
           min-height: 720px;
         }
         .canvas-content {
-          padding: 16px 20px;
+          padding: 16px;
           gap: 24px;
         }
       }
