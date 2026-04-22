@@ -70,7 +70,7 @@ export const ShowcaseNavbarCompactSmall: React.FC<ShowcaseNavbarCompactSmallProp
     <style jsx>{`
       .top-navbar-compact-small {
         display: flex;
-        padding: 14px 0;
+        padding: 0 0 14px;
         justify-content: center;
         align-items: center;
         align-self: stretch;
