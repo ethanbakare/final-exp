@@ -2,26 +2,38 @@
  * Lab page for iterating on the DemoCanvas background variations.
  * Not linked from anywhere — accessed directly via /demo-canvas-lab.
  */
-import React from 'react';
+import React, { useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { DemoCanvas } from '@/projects/demo-showcase/components/ui/DemoCanvas';
 import { DemoIntroCard } from '@/projects/demo-showcase/components/ui/DemoIntroCard';
 import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/DemoProgressSection';
+import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
+
+const AIConfidenceSim = dynamic(
+  () => import('@/projects/demo-showcase/components/simulations/AIConfidenceSim').then(m => m.AIConfidenceSim),
+  { ssr: false },
+);
 
 const HEADLINE_BROWN = 'A grammar checker, but for how confident AI is in what it heard';
 const HEADLINE_LAVENDER = 'Speak about what you spent. It extracts every item';
 const HEADLINE_PINK = 'A warm pink variation placeholder headline';
 
 export default function DemoCanvasLab() {
+  const [loopKey, setLoopKey] = useState(0);
+  const handleLoopRestart = useCallback(() => setLoopKey(k => k + 1), []);
+
   return (
     <div className="lab">
       <h1>Demo Canvas Lab</h1>
 
       <section className="variation">
-        <span className="label">Variation 1 — Warm brown 10%</span>
+        <span className="label">Variation 1 — Warm brown 10% (AI Confidence Tracker)</span>
         <DemoCanvas tint="#2E201E" tintOpacity={0.1} textureOpacity={0.6}>
           <DemoIntroCard headline={HEADLINE_BROWN} />
-          <div className="slot-placeholder" />
-          <DemoProgressSection duration={8000} loopKey={0} />
+          <div className="sim-slot">
+            <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
+          </div>
+          <DemoProgressSection duration={SIM_DURATION} loopKey={loopKey} />
         </DemoCanvas>
       </section>
 
@@ -90,9 +102,13 @@ export default function DemoCanvasLab() {
           font-size: 13px;
           color: #777;
         }
-        .slot-placeholder {
+        .slot-placeholder,
+        .sim-slot {
           flex: 1;
           width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
       `}</style>
     </div>
