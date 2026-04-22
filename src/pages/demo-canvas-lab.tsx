@@ -96,6 +96,34 @@ export default function DemoCanvasLab() {
     setIsDemoMode(m => !m);
   }, []);
 
+  // App-shell body lock: while this page is mounted, disable the document's
+  // scroll + overscroll so iOS Safari does not trigger pull-to-refresh on
+  // downward drags at slide 1. Other pages in this app need scroll, so we
+  // restore the prior body state on unmount instead of using global CSS.
+  useEffect(() => {
+    const body = document.body;
+    const html = document.documentElement;
+    const prev = {
+      bodyOverflow: body.style.overflow,
+      bodyOverscroll: body.style.overscrollBehavior,
+      bodyTouchAction: body.style.touchAction,
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+    };
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    body.style.touchAction = 'none';
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    return () => {
+      body.style.overflow = prev.bodyOverflow;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
+      body.style.touchAction = prev.bodyTouchAction;
+      html.style.overflow = prev.htmlOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+    };
+  }, []);
+
   const handleDragEnd = useCallback(
     (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       const { offset, velocity } = info;
