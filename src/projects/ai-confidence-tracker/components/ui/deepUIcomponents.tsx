@@ -444,10 +444,19 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
       }> = [];
       
       highlightedSpans.forEach(span => {
-        const rect = span.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
+        // Use offset* (layout pixels relative to offsetParent, which is
+        // .text-content because it's position: relative) instead of
+        // getBoundingClientRect (screen pixels, post-transform).
+        //
+        // With GBCR, any ancestor CSS transform (scale, rotate, etc.)
+        // scales the returned values; when those scaled values are then
+        // applied as CSS inside the same transformed ancestor, the
+        // browser scales them AGAIN at paint time — so the underline
+        // lands at the wrong position (e.g. inside the text rather than
+        // below it on a scaled parent). offset* stays in layout space,
+        // so the round-trip through CSS is lossless under any transform.
         const index = parseInt(span.dataset.index || '0', 10);
-        
+
         // Find the wordId for this span by looking at which word position it represents
         let wordId = -1;
         let wordCounter = 0;
@@ -459,12 +468,12 @@ export const HighlightedText: React.FC<HighlightedTextProps> = ({
             wordCounter++;
           }
         });
-        
+
         wordHighlights.push({
-          left: rect.left - containerRect.left,
-          width: rect.width,
-          top: rect.bottom - containerRect.top,
-          height: rect.height,
+          left: span.offsetLeft,
+          width: span.offsetWidth,
+          top: span.offsetTop + span.offsetHeight,
+          height: span.offsetHeight,
           confidenceLevel: (span.dataset.confidenceLevel as ConfidenceLevel) || defaultConfidenceLevel,
           index: index,
           wordId: wordId
