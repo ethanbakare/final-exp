@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
 import { DemoCanvas } from '@/projects/demo-showcase/components/ui/DemoCanvas';
 import { DemoIntroCard } from '@/projects/demo-showcase/components/ui/DemoIntroCard';
-import { DemoProgressFull } from '@/projects/demo-showcase/components/ui/DemoProgressFull';
+import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/DemoProgressSection';
 import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
@@ -28,10 +28,6 @@ const AIConfidenceDemo = dynamic(
 interface VariationConfig {
   label: string;
   headline: string;
-  /** HSB hue (0–360) for the progress-full fade wash. Derived from
-   *  the variation's tint colour so the bottom gradient carries the
-   *  same undertone. Saturation + brightness stay constant in CSS. */
-  hue: number;
   canvasProps: React.ComponentProps<typeof DemoCanvas>;
 }
 
@@ -39,7 +35,6 @@ const VARIATIONS: VariationConfig[] = [
   {
     label: 'Warm brown',
     headline: 'A grammar checker, but for how confident AI is in what it heard',
-    hue: 8,
     canvasProps: {
       tint: '#2E201E',
       tintOpacity: 0.08,
@@ -49,21 +44,16 @@ const VARIATIONS: VariationConfig[] = [
   {
     label: 'Lavender',
     headline: 'Speak about what you spent. It extracts every item',
-    hue: 285,
     canvasProps: {
       tint: '#D992F0',
       tintOpacity: 0.2,
       textureOpacity: 0.6,
       cardBg: 'rgba(253, 247, 255, 0.80)',
-      captionColor: 'rgba(23, 7, 28, 0.50)',
-      progressTrackBg: 'rgba(31, 10, 38, 0.10)',
-      progressThumbBg: 'rgba(40, 12, 50, 0.50)',
     },
   },
   {
     label: 'Warm pink',
     headline: 'A warm pink variation placeholder headline',
-    hue: 359,
     canvasProps: {
       tint: '#F09294',
       tintOpacity: 0.2,
@@ -189,11 +179,10 @@ export default function DemoCanvasLab() {
                   </>
                 )}
               </div>
-              <div className={`chrome chrome-bottom ${isDemoMode ? 'chrome-hidden' : ''}`}>
-                <DemoProgressFull
+              <div className={`chrome ${isDemoMode ? 'chrome-hidden' : ''}`}>
+                <DemoProgressSection
                   duration={activeIdx === 0 ? SIM_DURATION : 8000}
                   loopKey={loopKey}
-                  hue={active.hue}
                 />
               </div>
             </DemoCanvas>
@@ -284,7 +273,8 @@ export default function DemoCanvasLab() {
           opacity: 0;
           pointer-events: none;
         }
-        /* Intro stays in flex flow with opacity toggle. */
+        /* Intro + progress wrappers — opacity toggle only, so their
+           flex slots remain reserved in the layout in both modes. */
         .chrome {
           opacity: 1;
           transition: opacity 0.25s ease;
@@ -292,17 +282,6 @@ export default function DemoCanvasLab() {
         .chrome.chrome-hidden {
           opacity: 0;
           pointer-events: none;
-        }
-        /* The bottom progress needs to go edge-to-edge and sit flush
-           against the canvas bottom, outside canvas-content's padding.
-           Absolute position takes it out of flex flow; negative insets
-           bleed past the 16px canvas-content padding so the gradient
-           + bar span the full canvas width. */
-        .chrome.chrome-bottom {
-          position: absolute;
-          left: -16px;
-          right: -16px;
-          bottom: -16px;
         }
         .cta-section {
           display: flex;
