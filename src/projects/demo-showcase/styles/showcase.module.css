@@ -135,3 +135,62 @@
   from { width: 0%; }
   to { width: 100%; }
 }
+
+/* Progress section — transparent variant. Identical to .progressSection
+   on desktop; on mobile, negative margins bleed past canvas-content's
+   16px padding so the bar hits the canvas edge. Kept separate from
+   .progressSection so desktop rules stay untouched. */
+
+.progressTransparent {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.progressTransparentCaption {
+  color: var(--demo-caption-color);
+  text-align: center;
+}
+
+.progressTransparentBar {
+  display: flex;
+  width: 181px;
+  height: 32px;
+  padding: 0 16px;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  border-radius: 23.158px;
+  background: var(--demo-progress-bar-bg);
+}
+
+.progressTransparentTrack {
+  display: flex;
+  height: 4px;
+  align-items: center;
+  flex: 1 0 0;
+  border-radius: 32px;
+  background: var(--demo-progress-track-bg);
+  overflow: hidden;
+}
+
+.progressTransparentThumb {
+  height: 100%;
+  width: 0%;
+  border-radius: 121.094px;
+  background: var(--demo-progress-thumb-bg);
+  animation: demo-progress-fill linear 1 forwards;
+  animation-play-state: running;
+}
+
+.progressTransparentThumbPaused {
+  animation-play-state: paused;
+}
+
+@media (max-width: 768px) {
+  .progressTransparent {
+    margin: 0 -16px -16px;
+  }
+}
