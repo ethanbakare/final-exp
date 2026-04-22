@@ -71,22 +71,6 @@ export default function DemoCanvasLab() {
 
   return (
     <div className="lab">
-      {/* Variation picker (lab-only) */}
-      <div className="picker">
-        {VARIATIONS.map((v, i) => (
-          <button
-            key={v.label}
-            className={`picker-btn${i === activeIdx ? ' active' : ''}`}
-            onClick={() => {
-              setActiveIdx(i);
-              setLoopKey(k => k + 1);
-            }}
-          >
-            {v.label}
-          </button>
-        ))}
-      </div>
-
       {/* Target layout: navbar + canvas + CTA */}
       <ShowcaseNavbarCompact
         projectName={active.label}
@@ -121,7 +105,7 @@ export default function DemoCanvasLab() {
       <style jsx>{`
         .lab {
           min-height: 100vh;
-          background: #F7F6F2;
+          background: #FFFFFF;
           padding: 0 20px;
           display: flex;
           flex-direction: column;
@@ -132,25 +116,6 @@ export default function DemoCanvasLab() {
           .lab {
             padding: 0 10px;
           }
-        }
-        .picker {
-          display: flex;
-          gap: 8px;
-          padding: 12px 0;
-          align-self: flex-end;
-        }
-        .picker-btn {
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          background: transparent;
-          border-radius: 999px;
-          padding: 4px 12px;
-          font-size: 12px;
-          cursor: pointer;
-        }
-        .picker-btn.active {
-          background: #1C1917;
-          color: #FFF;
-          border-color: #1C1917;
         }
         .canvas-area {
           flex: 1;
