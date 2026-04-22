@@ -94,7 +94,10 @@ export default function DemoCanvasLab() {
 
   // Measure canvas-area height so neighbours enter/exit exactly one
   // "card height + gap" away, mimicking a stacked strip.
-  const PANEL_GAP = 30;
+  // Target visual edge-to-edge gap between outgoing and incoming panels.
+  // Since panels are at ~scale 0.8 combined mid-transit, edge gap =
+  // offset − 0.8 × H, so offset = 0.8H + PANEL_GAP.
+  const PANEL_GAP = 100;
   const areaRef = useRef<HTMLDivElement>(null);
   const [areaH, setAreaH] = useState(720);
   useEffect(() => {
@@ -108,7 +111,7 @@ export default function DemoCanvasLab() {
     return () => ro.disconnect();
   }, []);
 
-  const offset = areaH + PANEL_GAP;
+  const offset = areaH * 0.8 + PANEL_GAP;
 
   const variants = {
     enter: (dir: number) => ({ y: dir > 0 ? offset : -offset, opacity: 0, scale: 0.6 }),
