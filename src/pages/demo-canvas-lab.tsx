@@ -160,11 +160,9 @@ export default function DemoCanvasLab() {
             onDragEnd={handleDragEnd}
           >
             <DemoCanvas {...active.canvasProps}>
-              {/* Intro + progress are absolutely positioned inside the
-                  canvas — they never affect flex flow, so the sim-slot
-                  always has the full canvas height. Only opacity flips
-                  between sim and demo modes. */}
-              <div className={`chrome chrome-top ${isDemoMode ? 'chrome-hidden' : ''}`}>
+              {/* Intro + progress always mounted; CSS opacity hides them in
+                  demo mode so the flex layout never shifts. */}
+              <div className={`chrome ${isDemoMode ? 'chrome-hidden' : ''}`}>
                 <DemoIntroCard headline={active.headline} />
               </div>
               <div className="sim-slot">
@@ -181,7 +179,7 @@ export default function DemoCanvasLab() {
                   </>
                 )}
               </div>
-              <div className={`chrome chrome-bottom ${isDemoMode ? 'chrome-hidden' : ''}`}>
+              <div className={`chrome ${isDemoMode ? 'chrome-hidden' : ''}`}>
                 <DemoProgressSection
                   duration={activeIdx === 0 ? SIM_DURATION : 8000}
                   loopKey={loopKey}
@@ -275,23 +273,11 @@ export default function DemoCanvasLab() {
           opacity: 0;
           pointer-events: none;
         }
-        /* Intro + progress float over the canvas, anchored to top and
-           bottom. Out of flex flow so the sim-slot gets the full
-           canvas height — demo centres correctly. Opacity toggles
-           visibility with no layout reflow. */
+        /* Intro + progress wrappers — opacity toggle only, so their
+           flex slots remain reserved in the layout in both modes. */
         .chrome {
-          position: absolute;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 2;
           opacity: 1;
           transition: opacity 0.25s ease;
-        }
-        .chrome.chrome-top {
-          top: 16px;
-        }
-        .chrome.chrome-bottom {
-          bottom: 16px;
         }
         .chrome.chrome-hidden {
           opacity: 0;
