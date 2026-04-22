@@ -119,7 +119,7 @@ export default function DemoCanvasLab() {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ type: 'spring', stiffness: 260, damping: 30, opacity: { duration: 0.18 } }}
+            transition={{ type: 'spring', stiffness: 260, damping: 30, opacity: { duration: 0.35, ease: 'easeIn' } }}
             drag="y"
             dragElastic={0.2}
             dragConstraints={{ top: 0, bottom: 0 }}
@@ -172,18 +172,18 @@ export default function DemoCanvasLab() {
           position: relative;
           z-index: 1;
         }
-        /* Navbar + CTA sit above the sliding canvas so panels pass
-           under them rather than over. Solid bg occludes the travel. */
+        /* Navbar + CTA sit above the sliding canvas via z-index only —
+           no solid bg, so the panel remains visible as it slides behind
+           them. Only the navbar pill and CTA buttons (their own bgs)
+           render on top of the travelling canvas. */
         .lab :global(.top-navbar-compact) {
           position: relative;
           z-index: 2;
-          background: #FFFFFF;
           width: 100%;
         }
         .cta-section {
           position: relative;
           z-index: 2;
-          background: #FFFFFF;
         }
         .canvas-area :global(.canvas-motion) {
           flex: 1;
