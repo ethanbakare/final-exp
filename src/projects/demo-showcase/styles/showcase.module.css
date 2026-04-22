@@ -35,7 +35,7 @@
 
 .demoCanvasRoot {
   /* Backgrounds */
-  --demo-card-bg: rgba(255, 255, 255, 0.70);
+  --demo-card-bg: rgba(255, 255, 255, 0.60);
   --demo-progress-bar-bg: #F5F5F4;
   --demo-progress-track-bg: rgba(38, 37, 36, 0.10);
   --demo-progress-thumb-bg: rgba(38, 37, 36, 0.50);
