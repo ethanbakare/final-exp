@@ -245,6 +245,10 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
           .transcript-bar.is-results .legend {
             flex-direction: row;
             align-items: center;
+            /* Pin to the bottom of the reserved slot — same vertical
+               position microcopy occupies in non-results (its own
+               align-self: flex-end). */
+            align-self: flex-end;
           }
         }
         
