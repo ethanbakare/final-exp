@@ -82,10 +82,19 @@ const PROJECTS: ProjectConfig[] = [
     headline: 'Record and transcribe voice clips',
     caseStudyUrl: '#',
     simDuration: 8000,
+    // Warm pink variation from the lab — same colour family we proved
+    // out there (#F09294 tint, flipped texture for pattern variety,
+    // light pink card + muted dark-plum progress tokens).
     canvasProps: {
-      tint: '#7BA8D9',
-      tintOpacity: 0.15,
+      tint: '#F09294',
+      tintOpacity: 0.2,
       textureOpacity: 0.6,
+      flipTexture: true,
+      cardBg: 'rgba(255, 247, 247, 0.80)',
+      captionColor: 'rgba(23, 7, 28, 0.50)',
+      progressBarBg: '#F5F0F0',
+      progressTrackBg: 'rgba(38, 10, 10, 0.10)',
+      progressThumbBg: 'rgba(50, 12, 13, 0.50)',
     },
   },
 ];
