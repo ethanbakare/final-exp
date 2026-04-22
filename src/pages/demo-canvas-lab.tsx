@@ -15,6 +15,7 @@ import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/compone
 import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
 import { ShowcaseNavbarCompactSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompactSmall';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
+import { TryDemoButtonSmall, ViewCaseStudyButtonSmall } from '@/projects/demo-showcase/components/ui/ShowcaseButtonsSmall';
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
 
 const AIConfidenceSim = dynamic(
@@ -247,12 +248,19 @@ export default function DemoCanvasLab() {
       </div>
 
       <div className="cta-section">
-        <div className="cta-buttons">
+        <div className="cta-buttons cta-desktop">
           <TryDemoButton
             onClick={handleToggleDemo}
             label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
           />
           <ViewCaseStudyButton onClick={() => {}} />
+        </div>
+        <div className="cta-buttons cta-mobile">
+          <TryDemoButtonSmall
+            onClick={handleToggleDemo}
+            label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
+          />
+          <ViewCaseStudyButtonSmall onClick={() => {}} />
         </div>
       </div>
 
@@ -386,6 +394,17 @@ export default function DemoCanvasLab() {
           justify-content: center;
           align-items: center;
           gap: 20px;
+        }
+        /* Desktop uses TryDemoButton + ViewCaseStudyButton at full size;
+           mobile uses the Small variants (baked-in 0.8x dimensions).
+           Swap via CSS display toggle — same pattern as nav + progress. */
+        .cta-buttons.cta-mobile { display: none; }
+        @media (max-width: 768px) {
+          .cta-buttons.cta-desktop { display: none; }
+          .cta-buttons.cta-mobile {
+            display: flex;
+            gap: 16px;
+          }
         }
       `}</style>
     </div>
