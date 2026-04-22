@@ -230,7 +230,7 @@ export default function DemoCanvasLab() {
                     toggles. No unmount = no re-mount jitter. */}
                 {activeIdx === 0 && (
                   <>
-                    <div className={`layer ${isDemoMode ? 'layer-hidden' : ''}`}>
+                    <div className={`layer layer-sim ${isDemoMode ? 'layer-hidden' : ''}`}>
                       <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
                     </div>
                     <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
@@ -413,6 +413,9 @@ export default function DemoCanvasLab() {
         @media (max-width: 768px) {
           .sim-slot :global(.layer.layer-demo) {
             transform: scale(0.8);
+          }
+          .sim-slot :global(.layer.layer-sim) {
+            transform: scale(0.9);
           }
         }
         /* Intro + progress wrappers — opacity toggle only, so their
