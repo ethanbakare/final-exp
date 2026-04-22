@@ -31,7 +31,7 @@ const VARIATIONS: VariationConfig[] = [
     headline: 'A grammar checker, but for how confident AI is in what it heard',
     canvasProps: {
       tint: '#2E201E',
-      tintOpacity: 0.1,
+      tintOpacity: 0.08,
       textureOpacity: 0.6,
     },
   },
