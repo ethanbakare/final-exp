@@ -1,220 +1,188 @@
+/**
+ * Demo showcase — production page. Ports the layout and mobile polish
+ * proven in /demo-canvas-lab to real projects. Three projects right
+ * now: AI Confidence Tracker, Trace, ClipStream. Voice Interface is
+ * deferred (not yet "inline demo"-ready).
+ *
+ * Only AI Confidence has a full sim + demo wired in. Trace renders
+ * its sim; its inline demo is not yet built. ClipStream is a
+ * placeholder on both axes. Adding more demos is additive: wire a
+ * new activeIdx branch in the sim-slot + pass a canvasProps entry.
+ *
+ * The kill-switch architecture (AbortSignal contract) is tracked
+ * separately at docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md and
+ * will be added after this port is verified.
+ */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
-import { ShowcaseNavbar } from '@/projects/demo-showcase/components/ui/ShowcaseNavbar';
+import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
+import { DemoCanvas } from '@/projects/demo-showcase/components/ui/DemoCanvas';
+import { DemoIntroCard } from '@/projects/demo-showcase/components/ui/DemoIntroCard';
+import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/DemoProgressSection';
+import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/components/ui/DemoProgressSectionTransparent';
 import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
+import { ShowcaseNavbarCompactSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompactSmall';
+import { ShowcaseCloseBtnSmall } from '@/projects/demo-showcase/components/ui/ShowcaseCloseBtnSmall';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
-import { ShowcaseProgress } from '@/projects/demo-showcase/components/ui/ShowcaseProgress';
-import { ShowcaseIntro } from '@/projects/demo-showcase/components/ui/ShowcaseIntro';
-import { ShowcaseSlot } from '@/projects/demo-showcase/components/ui/ShowcaseSlot';
-
-// Dynamic imports (SSR-unsafe components)
-const AIConfidenceSim = dynamic(
-  () => import('@/projects/demo-showcase/components/simulations/AIConfidenceSim').then(m => m.AIConfidenceSim),
-  { ssr: false }
-);
-const AIConfidenceDemo = dynamic(
-  () => import('@/projects/demo-showcase/components/demos/AIConfidenceDemo').then(m => m.AIConfidenceDemo),
-  { ssr: false }
-);
-const TraceSim = dynamic(
-  () => import('@/projects/demo-showcase/components/simulations/TraceSim').then(m => m.TraceSim),
-  { ssr: false }
-);
-const TraceDemo = dynamic(
-  () => import('@/pages/trace/index').then(m => m.default),
-  { ssr: false }
-);
-
-// Timing constants
+import { TryDemoButtonSmall, ViewCaseStudyButtonSmall } from '@/projects/demo-showcase/components/ui/ShowcaseButtonsSmall';
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
 import { TRACE_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/TraceSim';
 
-// Slide transition — keep in sync with CSS transition-duration on .slide-track
-const SLIDE_DURATION_MS = 420;
+// Dynamic imports — SSR-unsafe sims/demos.
+const AIConfidenceSim = dynamic(
+  () => import('@/projects/demo-showcase/components/simulations/AIConfidenceSim').then(m => m.AIConfidenceSim),
+  { ssr: false },
+);
+const AIConfidenceDemo = dynamic(
+  () => import('@/projects/demo-showcase/components/demos/AIConfidenceDemo').then(m => m.AIConfidenceDemo),
+  { ssr: false },
+);
+const TraceSim = dynamic(
+  () => import('@/projects/demo-showcase/components/simulations/TraceSim').then(m => m.TraceSim),
+  { ssr: false },
+);
 
-// ─── Project Configuration ─────────────────────────────────
-const PROJECTS = [
+interface ProjectConfig {
+  label: string;
+  headline: string;
+  headlineSuffix?: string;
+  caseStudyUrl: string;
+  simDuration: number;
+  canvasProps: React.ComponentProps<typeof DemoCanvas>;
+}
+
+const PROJECTS: ProjectConfig[] = [
   {
-    name: 'AI Confidence tracker',
-    description: 'A grammar checker, but for how confident AI is in what it heard',
+    label: 'AI Confidence tracker',
+    headline: 'A grammar checker, but for how confident AI is',
+    headlineSuffix: ' in what it heard',
     caseStudyUrl: '#',
-    placeholderColor: '#FEF3C7',
-    slotHeight: 500,
+    simDuration: SIM_DURATION,
+    canvasProps: {
+      tint: '#2E201E',
+      tintOpacity: 0.08,
+      textureOpacity: 0.6,
+    },
   },
   {
-    name: 'Trace',
-    description: 'Voice-powered finance journal. Know exactly what you spend.',
+    label: 'Trace',
+    headline: 'Voice-powered finance journal',
     caseStudyUrl: '#',
-    placeholderColor: '#1C1917',
-    slotHeight: 500,
+    simDuration: TRACE_SIM_DURATION,
+    canvasProps: {
+      tint: '#1C1917',
+      tintOpacity: 0.06,
+      textureOpacity: 0.6,
+    },
   },
   {
-    name: 'Voice Interface',
-    description: 'A voice-first conversational interface',
+    label: 'ClipStream',
+    // Placeholder headline — keep under one mobile line; tune later.
+    headline: 'Record and transcribe voice clips',
     caseStudyUrl: '#',
-    placeholderColor: '#EDE9FE',
-    slotHeight: 500,
-  },
-  {
-    name: 'ClipStream',
-    description: 'Record, transcribe, and organise voice clips instantly',
-    caseStudyUrl: '#',
-    placeholderColor: '#DBEAFE',
-    slotHeight: 500,
+    simDuration: 8000,
+    canvasProps: {
+      tint: '#7BA8D9',
+      tintOpacity: 0.15,
+      textureOpacity: 0.6,
+    },
   },
 ];
 
-// Virtual track layout: [clone-of-last, ...PROJECTS, clone-of-first].
-// Sliding past the last real panel lands on the right clone (which looks like
-// the first real panel); once the slide settles, we snap back to the real
-// first panel with transitions disabled so the loop feels continuous.
-const LEFT_CLONE = 0;
-const FIRST_REAL = 1;
-const LAST_REAL = PROJECTS.length;
-const RIGHT_CLONE = PROJECTS.length + 1;
+const SWIPE_OFFSET = 100;
+const SWIPE_VELOCITY = 500;
 
-const virtualToReal = (v: number): number => {
-  if (v === LEFT_CLONE) return PROJECTS.length - 1;
-  if (v === RIGHT_CLONE) return 0;
-  return v - 1;
-};
-
-// ─── Placeholder Simulation ────────────────────────────────
-const PlaceholderSim: React.FC<{ color: string; name: string }> = ({ color, name }) => (
-  <div className="placeholder-sim">
-    <span className="placeholder-label">{name} simulation</span>
-    <style jsx>{`
-      .placeholder-sim {
-        width: 100%;
-        height: 333px;
-        border-radius: 16px;
-        background: ${color};
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      .placeholder-label {
-        font-family: 'Open Runde', 'Inter', sans-serif;
-        font-size: 14px;
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.3);
-      }
-    `}</style>
-  </div>
-);
-
-// ─── Main Page ─────────────────────────────────────────────
 export default function DemoShowcasePage() {
-  const [virtualIndex, setVirtualIndex] = useState(FIRST_REAL);
-  const [activeSimIndex, setActiveSimIndex] = useState(0);
+  const [[activeIdx, direction], setActive] = useState<[number, number]>([0, 0]);
   const [loopKey, setLoopKey] = useState(0);
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [panelHeight, setPanelHeight] = useState(0);
-  const [noTransition, setNoTransition] = useState(true);
-  const showcaseRef = useRef<HTMLDivElement>(null);
-  const touchStartY = useRef(0);
+  const handleLoopRestart = useCallback(() => setLoopKey(k => k + 1), []);
+  const totalRef = useRef(PROJECTS.length);
 
-  const realIndex = virtualToReal(virtualIndex);
-  const project = PROJECTS[realIndex];
+  const go = useCallback((delta: number) => {
+    setActive(([i]) => {
+      const total = totalRef.current;
+      const next = (i + delta + total) % total;
+      return [next, delta];
+    });
+    setLoopKey(k => k + 1);
+    // Navigation always resets to simulation — user must click Try Demo
+    // each time to enter demo mode for the current project.
+    setIsDemoMode(false);
+  }, []);
 
-  // Measure panel height; keep in sync with viewport resizes
+  const handleToggleDemo = useCallback(() => {
+    setIsDemoMode(m => !m);
+  }, []);
+
+  const handleViewCaseStudy = useCallback(() => {
+    const url = PROJECTS[activeIdx].caseStudyUrl;
+    if (url && url !== '#') window.location.href = url;
+  }, [activeIdx]);
+
+  // App-shell body lock: while this page is mounted, disable document
+  // scroll + overscroll so iOS Safari does not trigger pull-to-refresh
+  // on downward drags. Other pages in this app need scroll, so we
+  // restore body state on unmount instead of using global CSS.
   useEffect(() => {
-    const el = showcaseRef.current;
+    const body = document.body;
+    const html = document.documentElement;
+    const prev = {
+      bodyOverflow: body.style.overflow,
+      bodyOverscroll: body.style.overscrollBehavior,
+      bodyTouchAction: body.style.touchAction,
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+    };
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    body.style.touchAction = 'none';
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    return () => {
+      body.style.overflow = prev.bodyOverflow;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
+      body.style.touchAction = prev.bodyTouchAction;
+      html.style.overflow = prev.htmlOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+    };
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const { offset, velocity } = info;
+      if (offset.y < -SWIPE_OFFSET || velocity.y < -SWIPE_VELOCITY) go(1);
+      else if (offset.y > SWIPE_OFFSET || velocity.y > SWIPE_VELOCITY) go(-1);
+    },
+    [go],
+  );
+
+  const active = PROJECTS[activeIdx];
+
+  // Measure canvas-area height so neighbours enter/exit exactly one
+  // "card height + gap" away — mimics a stacked film strip.
+  const PANEL_GAP = 100;
+  const areaRef = useRef<HTMLDivElement>(null);
+  const [areaH, setAreaH] = useState(720);
+  useEffect(() => {
+    const el = areaRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => setPanelHeight(el.clientHeight));
+    setAreaH(el.getBoundingClientRect().height);
+    const ro = new ResizeObserver(entries => {
+      setAreaH(entries[0].contentRect.height);
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  // Enable transitions once the track has a real size, and after any snap
-  useEffect(() => {
-    if (panelHeight > 0 && noTransition) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setNoTransition(false));
-      });
-    }
-  }, [panelHeight, noTransition]);
+  const offset = areaH * 0.8 + PANEL_GAP;
 
-  // After the slide lands: swap the active sim, and if we're on a clone
-  // panel, snap back to the matching real panel with transitions off.
-  useEffect(() => {
-    if (realIndex === activeSimIndex) return;
-    const t = setTimeout(() => {
-      setActiveSimIndex(realIndex);
-      setLoopKey((k) => k + 1);
-      if (virtualIndex === LEFT_CLONE) {
-        setNoTransition(true);
-        setVirtualIndex(LAST_REAL);
-      } else if (virtualIndex === RIGHT_CLONE) {
-        setNoTransition(true);
-        setVirtualIndex(FIRST_REAL);
-      }
-    }, SLIDE_DURATION_MS);
-    return () => clearTimeout(t);
-  }, [virtualIndex, activeSimIndex, realIndex]);
-
-  const handleNext = useCallback(() => {
-    setVirtualIndex((v) => Math.min(v + 1, RIGHT_CLONE));
-    setIsDemoMode(false);
-  }, []);
-
-  const handlePrev = useCallback(() => {
-    setVirtualIndex((v) => Math.max(v - 1, LEFT_CLONE));
-    setIsDemoMode(false);
-  }, []);
-
-  const handleLoopRestart = useCallback(() => {
-    setLoopKey((k) => k + 1);
-  }, []);
-
-  const handleToggleDemo = useCallback(() => {
-    setIsDemoMode((prev) => !prev);
-    if (!isDemoMode) {
-      setLoopKey((k) => k + 1);
-    }
-  }, [isDemoMode]);
-
-  const handleViewCaseStudy = useCallback(() => {
-    window.location.href = project.caseStudyUrl;
-  }, [project.caseStudyUrl]);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  }, []);
-
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    const delta = touchStartY.current - e.changedTouches[0].clientY;
-    if (Math.abs(delta) > 50) {
-      if (delta > 0) handleNext();
-      else handlePrev();
-    }
-  }, [handleNext, handlePrev]);
-
-  const getSimDuration = (idx: number) => {
-    if (idx === 0) return SIM_DURATION;
-    if (idx === 1) return TRACE_SIM_DURATION;
-    return 5000;
+  const variants = {
+    enter: (dir: number) => ({ y: dir > 0 ? offset : -offset, opacity: 0, scale: 0.6 }),
+    center: { y: 0, opacity: 1, scale: 1 },
+    exit: (dir: number) => ({ y: dir > 0 ? -offset : offset, opacity: 0, scale: 0.6 }),
   };
-
-  const renderSimForPanel = (idx: number) => {
-    const p = PROJECTS[idx];
-    if (isDemoMode) {
-      if (idx === 0) return <AIConfidenceDemo key={`demo-${idx}`} />;
-      return <PlaceholderSim key={`demo-${idx}`} color={p.placeholderColor} name={`${p.name} demo`} />;
-    }
-    if (idx === 0) return <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
-    if (idx === 1) return <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />;
-    return <PlaceholderSim key={`sim-${idx}`} color={p.placeholderColor} name={p.name} />;
-  };
-
-  // Clones render the same intro and slot frame but never mount the sim
-  // or progress bar — they only exist to give the slide somewhere to land.
-  const panelSpecs: { realIdx: number; keyName: string; isClone: boolean }[] = [
-    { realIdx: PROJECTS.length - 1, keyName: 'clone-left', isClone: true },
-    ...PROJECTS.map((_, i) => ({ realIdx: i, keyName: `real-${i}`, isClone: false })),
-    { realIdx: 0, keyName: 'clone-right', isClone: true },
-  ];
 
   return (
     <>
@@ -223,145 +191,289 @@ export default function DemoShowcasePage() {
         <meta name="description" content="Interactive demos of our projects" />
       </Head>
 
-      <div className="demo-banner">
-        <div className="demo-project">
-          <div className="bg-pattern" aria-hidden="true" />
+      <div className={`showcase ${isDemoMode ? 'is-demo' : ''}`}>
+        <div className="nav-slot nav-desktop">
           <ShowcaseNavbarCompact
-            projectName={project.name}
-            currentIndex={realIndex}
+            projectName={active.label}
+            currentIndex={activeIdx}
             totalCount={PROJECTS.length}
-            onNext={handleNext}
-            onPrev={handlePrev}
+            onNext={() => go(1)}
+            onPrev={() => go(-1)}
           />
-
-          <div
-            className="demo-showcase"
-            ref={showcaseRef}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
-            <div
-              className="slide-track"
-              style={{
-                transform: `translateY(-${virtualIndex * panelHeight}px)`,
-                transition: noTransition ? 'none' : undefined,
-              }}
-            >
-              {panelSpecs.map(({ realIdx, keyName, isClone }) => {
-                const p = PROJECTS[realIdx];
-                return (
-                  <div
-                    key={keyName}
-                    className="slide-panel"
-                    style={panelHeight > 0 ? { height: `${panelHeight}px` } : undefined}
-                  >
-                    {!isDemoMode && <ShowcaseIntro description={p.description} />}
-                    <ShowcaseSlot autoHeight={isDemoMode} height={p.slotHeight}>
-                      {!isClone && realIdx === activeSimIndex ? renderSimForPanel(realIdx) : null}
-                    </ShowcaseSlot>
-                    {!isDemoMode && !isClone && realIdx === activeSimIndex && (
-                      <ShowcaseProgress duration={getSimDuration(realIdx)} loopKey={loopKey} />
-                    )}
-                  </div>
-                );
-              })}
+        </div>
+        <div className="nav-slot nav-mobile">
+          <div className="mobile-nav-row">
+            <div className="close-slot" aria-hidden={!isDemoMode}>
+              <ShowcaseCloseBtnSmall onClick={handleToggleDemo} />
             </div>
-          </div>
-
-          <div className="cta-section">
-            <div className="cta-buttons">
-              <TryDemoButton
-                onClick={handleToggleDemo}
-                label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
-              />
-              <ViewCaseStudyButton onClick={handleViewCaseStudy} />
-            </div>
+            <ShowcaseNavbarCompactSmall
+              projectName={active.label}
+              currentIndex={activeIdx}
+              totalCount={PROJECTS.length}
+              onNext={() => go(1)}
+              onPrev={() => go(-1)}
+            />
           </div>
         </div>
-      </div>
 
-      <style jsx>{`
-        .demo-banner {
-          display: flex;
-          height: 100vh;
-          flex-direction: column;
-          align-items: center;
-          backdrop-filter: blur(45px);
-        }
-        .demo-project {
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          align-items: center;
-          flex: 1;
-          min-height: 0;
-          width: 100%;
-          max-width: 1440px;
-          background: #FFF;
-          overflow: hidden;
-          position: relative;
-        }
-        .bg-pattern {
-          position: absolute;
-          inset: 0;
-          background: url('/images/demo-showcase/demo-bg-pattern.webp') center / cover no-repeat;
-          opacity: 0.03;
-          pointer-events: none;
-          z-index: 0;
-        }
-        .demo-project > :global(*:not(.bg-pattern)) {
-          position: relative;
-          z-index: 1;
-        }
-        .demo-showcase {
-          flex: 1;
-          min-height: 0;
-          align-self: stretch;
-          max-width: 1160px;
-          width: 100%;
-          margin: 0 auto;
-          overflow: hidden;
-          position: relative;
-        }
-        .slide-track {
-          display: flex;
-          flex-direction: column;
-          width: 100%;
-          transition: transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          will-change: transform;
-        }
-        .slide-panel {
-          width: 100%;
-          flex-shrink: 0;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 24px;
-          padding: 0 116px;
-          box-sizing: border-box;
-        }
-        @media (max-width: 768px) {
-          .slide-panel {
-            padding: 0 16px;
-            gap: 16px;
+        <div className="canvas-area" ref={areaRef}>
+          <AnimatePresence custom={direction} initial={false}>
+            <motion.div
+              key={activeIdx}
+              className="canvas-motion"
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ type: 'spring', stiffness: 260, damping: 30, opacity: { duration: 0.35, ease: 'easeIn' } }}
+              drag="y"
+              dragElastic={0.2}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              onDragEnd={handleDragEnd}
+            >
+              <DemoCanvas {...active.canvasProps}>
+                <div className={`chrome chrome-top ${isDemoMode ? 'chrome-hidden' : ''}`}>
+                  <DemoIntroCard
+                    headline={active.headline}
+                    headlineSuffix={active.headlineSuffix}
+                  />
+                </div>
+                <div className="sim-slot">
+                  {/* AI Confidence tracker — sim + demo both mounted,
+                      opacity toggles which is visible. */}
+                  {activeIdx === 0 && (
+                    <>
+                      <div className={`layer layer-sim ${isDemoMode ? 'layer-hidden' : ''}`}>
+                        <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                      </div>
+                      <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
+                        <AIConfidenceDemo />
+                      </div>
+                    </>
+                  )}
+                  {/* Trace — sim wired, demo not yet built inline. */}
+                  {activeIdx === 1 && (
+                    <div className="layer layer-sim">
+                      <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                    </div>
+                  )}
+                  {/* ClipStream — placeholder for both sim and demo. */}
+                  {activeIdx === 2 && null}
+                </div>
+                <div className={`chrome chrome-desktop ${isDemoMode ? 'chrome-hidden' : ''}`}>
+                  <DemoProgressSection
+                    duration={active.simDuration}
+                    loopKey={loopKey}
+                  />
+                </div>
+                <div className={`chrome chrome-mobile ${isDemoMode ? 'chrome-hidden' : ''}`}>
+                  <DemoProgressSectionTransparent
+                    duration={active.simDuration}
+                    loopKey={loopKey}
+                  />
+                </div>
+              </DemoCanvas>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="cta-section">
+          <div className="cta-buttons cta-desktop">
+            <TryDemoButton
+              onClick={handleToggleDemo}
+              label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
+            />
+            <ViewCaseStudyButton onClick={handleViewCaseStudy} />
+          </div>
+          <div className="cta-buttons cta-mobile">
+            <TryDemoButtonSmall
+              onClick={handleToggleDemo}
+              label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
+            />
+            <ViewCaseStudyButtonSmall onClick={handleViewCaseStudy} />
+          </div>
+        </div>
+
+        <style jsx>{`
+          /* App-shell layout: pin to the visual viewport and stay out
+             of document scroll. Disables iOS pull-to-refresh and
+             overscroll rubber-band because there is no scroll
+             container for the browser to act on. */
+          .showcase {
+            position: fixed;
+            inset: 0;
+            background: #FFFFFF;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
+            overscroll-behavior: none;
           }
-        }
-        .cta-section {
-          display: flex;
-          padding: 20px 0;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          align-self: stretch;
-        }
-        .cta-buttons {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 20px;
-        }
-      `}</style>
+          .nav-slot {
+            width: 100%;
+            position: relative;
+            z-index: 2;
+          }
+          .nav-mobile { display: none; }
+          @media (max-width: 768px) {
+            .showcase {
+              padding: 0 10px;
+            }
+            .nav-desktop { display: none; }
+            .nav-mobile { display: block; }
+            .mobile-nav-row {
+              display: flex;
+              align-items: flex-start;
+              width: 100%;
+            }
+            .mobile-nav-row :global(.top-navbar-compact-small) {
+              flex: 1 1 0;
+              min-width: 0;
+            }
+            .close-slot {
+              width: 0;
+              margin-right: 0;
+              overflow: hidden;
+              flex-shrink: 0;
+              opacity: 0;
+              transition:
+                width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+                margin-right 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .showcase.is-demo .close-slot {
+              width: 56px;
+              margin-right: 10px;
+              opacity: 1;
+            }
+          }
+          .canvas-area {
+            flex: 1;
+            width: 100%;
+            max-width: 1440px;
+            display: flex;
+            align-items: stretch;
+            position: relative;
+            z-index: 1;
+          }
+          .showcase :global(.top-navbar-compact) {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+          }
+          .cta-section {
+            position: relative;
+            z-index: 2;
+          }
+          .canvas-area :global(.canvas-motion) {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: stretch;
+            /* !important beats Framer Motion's inline touch-action:pan-x
+               for drag="y". JS owns all gestures on this element. */
+            touch-action: none !important;
+            cursor: grab;
+          }
+          .canvas-area :global(.canvas-motion:active) {
+            cursor: grabbing;
+          }
+          .sim-slot {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+          }
+          .sim-slot :global(.layer) {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.25s ease;
+            pointer-events: auto;
+          }
+          .sim-slot :global(.layer.layer-hidden) {
+            opacity: 0;
+            pointer-events: none;
+          }
+          @media (max-width: 768px) {
+            .sim-slot :global(.layer.layer-demo) {
+              transform: scale(0.8);
+            }
+            .sim-slot :global(.layer.layer-sim) {
+              transform: scale(0.9);
+            }
+          }
+          .chrome {
+            opacity: 1;
+            transition: opacity 0.25s ease;
+          }
+          .chrome.chrome-hidden {
+            opacity: 0;
+            pointer-events: none;
+          }
+          @media (max-width: 768px) {
+            .chrome.chrome-top {
+              margin-top: -6px;
+            }
+          }
+          .chrome.chrome-mobile { display: none; }
+          @media (max-width: 768px) {
+            .chrome.chrome-desktop { display: none; }
+            .chrome.chrome-mobile {
+              display: block;
+              align-self: stretch;
+            }
+          }
+          .cta-section {
+            display: flex;
+            padding: 20px 0;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            align-self: stretch;
+            max-height: 200px;
+            opacity: 1;
+            overflow: hidden;
+            transition:
+              max-height 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.18s ease,
+              padding-top 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              padding-bottom 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+          }
+          .cta-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+          }
+          .cta-buttons.cta-mobile { display: none; }
+          @media (max-width: 768px) {
+            .cta-buttons.cta-desktop { display: none; }
+            .cta-buttons.cta-mobile {
+              display: flex;
+              gap: 16px;
+            }
+            .cta-section {
+              padding-top: 14px;
+            }
+            .showcase.is-demo .cta-section {
+              max-height: 0;
+              opacity: 0;
+              padding-top: 0;
+              padding-bottom: 0;
+              pointer-events: none;
+            }
+          }
+        `}</style>
+      </div>
     </>
   );
 }
