@@ -93,9 +93,9 @@ export default function DemoCanvasLab() {
   const active = VARIATIONS[activeIdx];
 
   const variants = {
-    enter: (dir: number) => ({ y: dir > 0 ? 300 : -300, opacity: 0, scale: 0.9 }),
+    enter: (dir: number) => ({ y: dir > 0 ? 180 : -180, opacity: 0, scale: 0.92 }),
     center: { y: 0, opacity: 1, scale: 1 },
-    exit: (dir: number) => ({ y: dir > 0 ? -300 : 300, opacity: 0, scale: 0.9 }),
+    exit: (dir: number) => ({ y: dir > 0 ? -180 : 180, opacity: 0, scale: 0.92 }),
   };
 
   return (
@@ -119,7 +119,7 @@ export default function DemoCanvasLab() {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ type: 'spring', stiffness: 260, damping: 30, opacity: { duration: 0.25 } }}
+            transition={{ type: 'spring', stiffness: 260, damping: 30, opacity: { duration: 0.18 } }}
             drag="y"
             dragElastic={0.2}
             dragConstraints={{ top: 0, bottom: 0 }}
@@ -170,6 +170,7 @@ export default function DemoCanvasLab() {
           display: flex;
           align-items: stretch;
           position: relative;
+          overflow: hidden;
         }
         .canvas-area :global(.canvas-motion) {
           flex: 1;
