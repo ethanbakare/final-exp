@@ -296,3 +296,32 @@
   transform: scale(0.97);
   opacity: 0.7;
 }
+
+/* Close button (mobile demo-mode): 35h x 56w, dark bg matching the
+   Try Demo button, centred white X. */
+.closeBtnSmall {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 56px;
+  height: 35px;
+  padding: 0;
+  border: none;
+  border-radius: 18.5px;
+  background: #1C1917;
+  color: #FFF;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    opacity 0.2s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.closeBtnSmall:hover {
+  opacity: 0.85;
+}
+
+.closeBtnSmall:active {
+  transform: scale(0.97);
+  opacity: 0.7;
+}

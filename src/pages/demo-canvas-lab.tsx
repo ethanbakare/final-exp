@@ -14,6 +14,7 @@ import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/Demo
 import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/components/ui/DemoProgressSectionTransparent';
 import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
 import { ShowcaseNavbarCompactSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompactSmall';
+import { ShowcaseCloseBtnSmall } from '@/projects/demo-showcase/components/ui/ShowcaseCloseBtnSmall';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
 import { TryDemoButtonSmall, ViewCaseStudyButtonSmall } from '@/projects/demo-showcase/components/ui/ShowcaseButtonsSmall';
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
@@ -170,7 +171,7 @@ export default function DemoCanvasLab() {
   };
 
   return (
-    <div className="lab">
+    <div className={`lab ${isDemoMode ? 'is-demo' : ''}`}>
       {/* Target layout: navbar + canvas + CTA */}
       <div className="nav-slot nav-desktop">
         <ShowcaseNavbarCompact
@@ -182,13 +183,21 @@ export default function DemoCanvasLab() {
         />
       </div>
       <div className="nav-slot nav-mobile">
-        <ShowcaseNavbarCompactSmall
-          projectName={active.label}
-          currentIndex={activeIdx}
-          totalCount={VARIATIONS.length}
-          onNext={() => go(1)}
-          onPrev={() => go(-1)}
-        />
+        {/* Flex row: close button slot (width animates 0 <-> 56 via CSS
+            transition) + pill. When the slot grows, flex recompute
+            shrinks the pill automatically — no calc needed. */}
+        <div className="mobile-nav-row">
+          <div className="close-slot" aria-hidden={!isDemoMode}>
+            <ShowcaseCloseBtnSmall onClick={handleToggleDemo} />
+          </div>
+          <ShowcaseNavbarCompactSmall
+            projectName={active.label}
+            currentIndex={activeIdx}
+            totalCount={VARIATIONS.length}
+            onNext={() => go(1)}
+            onPrev={() => go(-1)}
+          />
+        </div>
       </div>
 
       <div className="canvas-area" ref={areaRef}>
@@ -299,6 +308,43 @@ export default function DemoCanvasLab() {
           }
           .nav-desktop { display: none; }
           .nav-mobile { display: block; }
+          /* Mobile nav row: close slot (width animates 0 <-> 56)
+             + pill. Flex recompute each frame during the width
+             transition makes the pill shrink/grow smoothly. */
+          .mobile-nav-row {
+            display: flex;
+            /* flex-start (not center): the navbar wrapper has
+               padding-bottom: 14px, so its pill sits at y=0 of its
+               wrapper. Centering the row would center the shorter
+               X button (35px) inside the taller navbar (35 + 14),
+               pushing it ~7px below the pill. flex-start keeps the
+               tops aligned; the 14px hangs below the row content. */
+            align-items: flex-start;
+            width: 100%;
+          }
+          /* Navbar root fills the remaining row space; min-width: 0
+             lets flex shrink it past its content's intrinsic width
+             when the close slot grows in. */
+          .mobile-nav-row :global(.top-navbar-compact-small) {
+            flex: 1 1 0;
+            min-width: 0;
+          }
+          .close-slot {
+            width: 0;
+            margin-right: 0;
+            overflow: hidden;
+            flex-shrink: 0;
+            opacity: 0;
+            transition:
+              width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              margin-right 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+          }
+          .lab.is-demo .close-slot {
+            width: 56px;
+            margin-right: 10px;
+            opacity: 1;
+          }
         }
         .canvas-area {
           flex: 1;
@@ -396,6 +442,14 @@ export default function DemoCanvasLab() {
           justify-content: center;
           align-items: center;
           align-self: stretch;
+          max-height: 200px;
+          opacity: 1;
+          overflow: hidden;
+          transition:
+            max-height 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+            opacity 0.18s ease,
+            padding-top 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+            padding-bottom 0.22s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .cta-buttons {
           display: flex;
@@ -417,6 +471,18 @@ export default function DemoCanvasLab() {
              symmetric rhythm. Bottom stays at 20 for viewport breathing. */
           .cta-section {
             padding-top: 14px;
+          }
+          /* Demo mode (mobile only): collapse the CTA section to free
+             vertical space; canvas-area (flex: 1) absorbs it smoothly
+             because the browser recomputes flex on each transition
+             frame. Coordinates with the close-slot entrance above for
+             a choreographed layout shift. */
+          .lab.is-demo .cta-section {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            pointer-events: none;
           }
         }
       `}</style>
