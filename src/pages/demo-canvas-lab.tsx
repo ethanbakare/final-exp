@@ -20,6 +20,11 @@ const AIConfidenceSim = dynamic(
   { ssr: false },
 );
 
+const AIConfidenceDemo = dynamic(
+  () => import('@/projects/demo-showcase/components/demos/AIConfidenceDemo').then(m => m.AIConfidenceDemo),
+  { ssr: false },
+);
+
 interface VariationConfig {
   label: string;
   headline: string;
@@ -69,6 +74,7 @@ const SWIPE_VELOCITY = 500;
 export default function DemoCanvasLab() {
   const [[activeIdx, direction], setActive] = useState<[number, number]>([0, 0]);
   const [loopKey, setLoopKey] = useState(0);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const handleLoopRestart = useCallback(() => setLoopKey(k => k + 1), []);
   const totalRef = useRef(VARIATIONS.length);
 
@@ -79,6 +85,13 @@ export default function DemoCanvasLab() {
       return [next, delta];
     });
     setLoopKey(k => k + 1);
+    // Navigation always resets to simulation — user has to click Try Demo
+    // each time to enter demo mode for the current variation.
+    setIsDemoMode(false);
+  }, []);
+
+  const handleToggleDemo = useCallback(() => {
+    setIsDemoMode(m => !m);
   }, []);
 
   const handleDragEnd = useCallback(
@@ -147,16 +160,31 @@ export default function DemoCanvasLab() {
             onDragEnd={handleDragEnd}
           >
             <DemoCanvas {...active.canvasProps}>
-              <DemoIntroCard headline={active.headline} />
+              {!isDemoMode && <DemoIntroCard headline={active.headline} />}
               <div className="sim-slot">
-                {activeIdx === 0 ? (
-                  <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
-                ) : null}
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={isDemoMode ? 'demo' : 'sim'}
+                    className="slot-fade"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    {activeIdx === 0 && isDemoMode ? (
+                      <AIConfidenceDemo key={`demo-${activeIdx}`} />
+                    ) : activeIdx === 0 ? (
+                      <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                    ) : null}
+                  </motion.div>
+                </AnimatePresence>
               </div>
-              <DemoProgressSection
-                duration={activeIdx === 0 ? SIM_DURATION : 8000}
-                loopKey={loopKey}
-              />
+              {!isDemoMode && (
+                <DemoProgressSection
+                  duration={activeIdx === 0 ? SIM_DURATION : 8000}
+                  loopKey={loopKey}
+                />
+              )}
             </DemoCanvas>
           </motion.div>
         </AnimatePresence>
@@ -164,7 +192,10 @@ export default function DemoCanvasLab() {
 
       <div className="cta-section">
         <div className="cta-buttons">
-          <TryDemoButton onClick={() => {}} label="Try Demo" />
+          <TryDemoButton
+            onClick={handleToggleDemo}
+            label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
+          />
           <ViewCaseStudyButton onClick={() => {}} />
         </div>
       </div>
@@ -219,6 +250,13 @@ export default function DemoCanvasLab() {
         }
         .sim-slot {
           flex: 1;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        }
+        .sim-slot :global(.slot-fade) {
           width: 100%;
           display: flex;
           align-items: center;
