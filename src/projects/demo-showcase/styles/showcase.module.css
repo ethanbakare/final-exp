@@ -72,6 +72,9 @@
 }
 
 @media (max-width: 768px) {
+  .demoIntroCard {
+    padding: 8px 12px;
+  }
   .demoHeadlineText {
     font-size: 12px;
     letter-spacing: -0.12px;
