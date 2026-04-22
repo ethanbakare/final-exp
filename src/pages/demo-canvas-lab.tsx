@@ -55,6 +55,9 @@ const VARIATIONS: VariationConfig[] = [
       tintOpacity: 0.2,
       textureOpacity: 0.6,
       cardBg: 'rgba(253, 247, 255, 0.80)',
+      captionColor: 'rgba(23, 7, 28, 0.50)',
+      progressTrackBg: 'rgba(31, 10, 38, 0.10)',
+      progressThumbBg: 'rgba(40, 12, 50, 0.50)',
     },
   },
   {
