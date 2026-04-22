@@ -26,10 +26,29 @@ interface DemoCanvasProps {
   width?: number;
   /** Override the --demo-card-bg CSS variable (used by DemoIntroCard). */
   cardBg?: string;
+  /** Override the --demo-headline-color variable. */
+  headlineColor?: string;
+  /** Override the --demo-caption-color variable. */
+  captionColor?: string;
+  /** Override the --demo-progress-bar-bg variable. */
+  progressBarBg?: string;
+  /** Override the --demo-progress-track-bg variable. */
+  progressTrackBg?: string;
+  /** Override the --demo-progress-thumb-bg variable. */
+  progressThumbBg?: string;
+  /** Rotate the scribble texture 180° for pattern variety. */
+  flipTexture?: boolean;
   children?: React.ReactNode;
 }
 
-type DemoCanvasStyle = React.CSSProperties & { ['--demo-card-bg']?: string };
+type DemoCanvasStyle = React.CSSProperties & {
+  ['--demo-card-bg']?: string;
+  ['--demo-headline-color']?: string;
+  ['--demo-caption-color']?: string;
+  ['--demo-progress-bar-bg']?: string;
+  ['--demo-progress-track-bg']?: string;
+  ['--demo-progress-thumb-bg']?: string;
+};
 
 const TEXTURE_URL = '/images/demo-showcase/canvas-scribble-texture.webp';
 // Figma demo-showcase frame: 1160 × 762.43.
@@ -44,6 +63,12 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
   radius = 24,
   width,
   cardBg,
+  headlineColor,
+  captionColor,
+  progressBarBg,
+  progressTrackBg,
+  progressThumbBg,
+  flipTexture = false,
   children,
 }) => {
   const rootStyle: DemoCanvasStyle = {
@@ -52,6 +77,16 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
     width: width ? `${width}px` : '100%',
   };
   if (cardBg) rootStyle['--demo-card-bg'] = cardBg;
+  if (headlineColor) rootStyle['--demo-headline-color'] = headlineColor;
+  if (captionColor) rootStyle['--demo-caption-color'] = captionColor;
+  if (progressBarBg) rootStyle['--demo-progress-bar-bg'] = progressBarBg;
+  if (progressTrackBg) rootStyle['--demo-progress-track-bg'] = progressTrackBg;
+  if (progressThumbBg) rootStyle['--demo-progress-thumb-bg'] = progressThumbBg;
+
+  const textureStyle: React.CSSProperties = {
+    opacity: textureOpacity,
+    ...(flipTexture ? { transform: 'rotate(180deg)' } : null),
+  };
 
   return (
   <div className={`demo-canvas ${styles.demoCanvasRoot}`} style={rootStyle}>
@@ -59,7 +94,7 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
       className="canvas-tint"
       style={{ background: tint, opacity: tintOpacity }}
     />
-    <div className="canvas-texture" style={{ opacity: textureOpacity }} />
+    <div className="canvas-texture" style={textureStyle} />
     <div className="canvas-content">{children}</div>
 
     <style jsx>{`

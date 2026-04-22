@@ -9,6 +9,7 @@ import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/Demo
 
 const HEADLINE_BROWN = 'A grammar checker, but for how confident AI is in what it heard';
 const HEADLINE_LAVENDER = 'Speak about what you spent. It extracts every item';
+const HEADLINE_PINK = 'A warm pink variation placeholder headline';
 
 export default function DemoCanvasLab() {
   return (
@@ -33,6 +34,25 @@ export default function DemoCanvasLab() {
           cardBg="rgba(253, 247, 255, 0.80)"
         >
           <DemoIntroCard headline={HEADLINE_LAVENDER} />
+          <div className="slot-placeholder" />
+          <DemoProgressSection duration={8000} loopKey={0} />
+        </DemoCanvas>
+      </section>
+
+      <section className="variation">
+        <span className="label">Variation 3 — Warm pink 20% (texture flipped)</span>
+        <DemoCanvas
+          tint="#F09294"
+          tintOpacity={0.2}
+          textureOpacity={0.6}
+          flipTexture
+          cardBg="rgba(255, 247, 247, 0.80)"
+          captionColor="rgba(23, 7, 28, 0.50)"
+          progressBarBg="#F5F0F0"
+          progressTrackBg="rgba(38, 10, 10, 0.10)"
+          progressThumbBg="rgba(50, 12, 13, 0.50)"
+        >
+          <DemoIntroCard headline={HEADLINE_PINK} />
           <div className="slot-placeholder" />
           <DemoProgressSection duration={8000} loopKey={0} />
         </DemoCanvas>
