@@ -24,8 +24,12 @@ interface DemoCanvasProps {
   radius?: number;
   /** Width in px (optional — defaults to 100% of parent). */
   width?: number;
+  /** Override the --demo-card-bg CSS variable (used by DemoIntroCard). */
+  cardBg?: string;
   children?: React.ReactNode;
 }
+
+type DemoCanvasStyle = React.CSSProperties & { ['--demo-card-bg']?: string };
 
 const TEXTURE_URL = '/images/demo-showcase/canvas-scribble-texture.webp';
 // Figma demo-showcase frame: 1160 × 762.43.
@@ -39,16 +43,18 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
   textureOpacity = 0.6,
   radius = 24,
   width,
+  cardBg,
   children,
-}) => (
-  <div
-    className={`demo-canvas ${styles.demoCanvasRoot}`}
-    style={{
-      background: baseColor,
-      borderRadius: `${radius}px`,
-      width: width ? `${width}px` : '100%',
-    }}
-  >
+}) => {
+  const rootStyle: DemoCanvasStyle = {
+    background: baseColor,
+    borderRadius: `${radius}px`,
+    width: width ? `${width}px` : '100%',
+  };
+  if (cardBg) rootStyle['--demo-card-bg'] = cardBg;
+
+  return (
+  <div className={`demo-canvas ${styles.demoCanvasRoot}`} style={rootStyle}>
     <div
       className="canvas-tint"
       style={{ background: tint, opacity: tintOpacity }}
@@ -99,4 +105,5 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
       }
     `}</style>
   </div>
-);
+  );
+};

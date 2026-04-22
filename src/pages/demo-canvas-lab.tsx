@@ -7,7 +7,8 @@ import { DemoCanvas } from '@/projects/demo-showcase/components/ui/DemoCanvas';
 import { DemoIntroCard } from '@/projects/demo-showcase/components/ui/DemoIntroCard';
 import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/DemoProgressSection';
 
-const HEADLINE = 'A grammar checker, but for how confident AI is in what it heard';
+const HEADLINE_BROWN = 'A grammar checker, but for how confident AI is in what it heard';
+const HEADLINE_LAVENDER = 'Speak about what you spent. It extracts every item';
 
 export default function DemoCanvasLab() {
   return (
@@ -15,9 +16,9 @@ export default function DemoCanvasLab() {
       <h1>Demo Canvas Lab</h1>
 
       <section className="variation">
-        <span className="label">Variation 1 — Warm brown 10% (with features)</span>
+        <span className="label">Variation 1 — Warm brown 10%</span>
         <DemoCanvas tint="#2E201E" tintOpacity={0.1} textureOpacity={0.6}>
-          <DemoIntroCard headline={HEADLINE} />
+          <DemoIntroCard headline={HEADLINE_BROWN} />
           <div className="slot-placeholder" />
           <DemoProgressSection duration={8000} loopKey={0} />
         </DemoCanvas>
@@ -25,7 +26,16 @@ export default function DemoCanvasLab() {
 
       <section className="variation">
         <span className="label">Variation 2 — Lavender 20%</span>
-        <DemoCanvas tint="#D992F0" tintOpacity={0.2} textureOpacity={0.6} />
+        <DemoCanvas
+          tint="#D992F0"
+          tintOpacity={0.2}
+          textureOpacity={0.6}
+          cardBg="rgba(253, 247, 255, 0.80)"
+        >
+          <DemoIntroCard headline={HEADLINE_LAVENDER} />
+          <div className="slot-placeholder" />
+          <DemoProgressSection duration={8000} loopKey={0} />
+        </DemoCanvas>
       </section>
 
       <style jsx>{`
