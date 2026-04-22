@@ -158,9 +158,37 @@ export const ClipLinearWaveform: React.FC<ClipLinearWaveformProps> = ({
     sourceRef.current = source;
     dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount);
 
+    // Lifecycle-aware resume (same pattern as createFakeStream). iOS
+    // Safari / Brave iOS create every AudioContext in 'suspended' state.
+    // If this context stays suspended, the AnalyserNode never processes
+    // incoming audio frames and getByteFrequencyData() returns zeros,
+    // so the waveform bars render flat even when the upstream
+    // MediaStream is producing real audio. Fire-and-forget — never
+    // await (WebKit's resume() can hang indefinitely before a gesture).
+    const tryResume = () => {
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => { /* retry on gesture / visibility */ });
+      }
+    };
+    tryResume();
+    const onGesture = () => {
+      tryResume();
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('touchstart', onGesture);
+    };
+    window.addEventListener('pointerdown', onGesture, { once: true, passive: true });
+    window.addEventListener('touchstart', onGesture, { once: true, passive: true });
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') tryResume();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('touchstart', onGesture);
+      document.removeEventListener('visibilitychange', onVisibility);
       source.disconnect();
       analyser.disconnect();
       if (ctx.state !== 'closed') ctx.close();
