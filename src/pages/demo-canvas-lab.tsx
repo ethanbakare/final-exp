@@ -30,6 +30,9 @@ const AIConfidenceDemo = dynamic(
 interface VariationConfig {
   label: string;
   headline: string;
+  /** Optional shorter headline used on mobile viewports only.
+   *  If absent, `headline` is used everywhere. */
+  headlineMobile?: string;
   canvasProps: React.ComponentProps<typeof DemoCanvas>;
 }
 
@@ -37,6 +40,7 @@ const VARIATIONS: VariationConfig[] = [
   {
     label: 'Warm brown',
     headline: 'A grammar checker, but for how confident AI is in what it heard',
+    headlineMobile: 'A grammar checker, but for how confident AI is',
     canvasProps: {
       tint: '#2E201E',
       tintOpacity: 0.08,
@@ -204,7 +208,12 @@ export default function DemoCanvasLab() {
               {/* Intro + progress always mounted; CSS opacity hides them in
                   demo mode so the flex layout never shifts. */}
               <div className={`chrome ${isDemoMode ? 'chrome-hidden' : ''}`}>
-                <DemoIntroCard headline={active.headline} />
+                <div className="intro-desktop">
+                  <DemoIntroCard headline={active.headline} />
+                </div>
+                <div className="intro-mobile">
+                  <DemoIntroCard headline={active.headlineMobile ?? active.headline} />
+                </div>
               </div>
               <div className="sim-slot">
                 {/* Both sim and demo mount once and stay; only opacity
@@ -352,6 +361,13 @@ export default function DemoCanvasLab() {
         .chrome.chrome-hidden {
           opacity: 0;
           pointer-events: none;
+        }
+        /* Mobile-only shorter headline swap. Both intro cards are
+           mounted; CSS display toggles which is visible. */
+        .intro-mobile { display: none; }
+        @media (max-width: 768px) {
+          .intro-desktop { display: none; }
+          .intro-mobile { display: block; }
         }
         /* Desktop uses DemoProgressSection; mobile uses the transparent
            edge-to-edge variant. Swap is CSS-only (display:none) so we
