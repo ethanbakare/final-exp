@@ -203,6 +203,14 @@ export const TranscriptBar: React.FC<TranscriptBarProps> = ({
           .transcript-bar {
             flex-direction: row;
             gap: 8px;
+            /* Reserve the non-results slot height (38px) so swapping
+               microcopy -> legend-row doesn't shrink the bar and pull
+               the transcript card up. Desktop doesn't need this because
+               its legend stays in row layout across states — same
+               height whether visible or opacity-0. Mobile uses column
+               for the legend, so its results-state height is much
+               shorter and the bar would collapse without this floor. */
+            min-height: 38px;
             height: auto;
             align-items: flex-start;
           }
