@@ -222,6 +222,12 @@ export default function DemoCanvasLab() {
           .lab {
             padding: 0 10px;
           }
+          /* Quick visual experiment: scale the whole navbar pill 30% smaller.
+             Layout box stays original size (transform is visual only). */
+          .lab :global(.selector-pill) {
+            transform: scale(0.7);
+            transform-origin: center;
+          }
         }
         .canvas-area {
           flex: 1;
