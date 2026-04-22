@@ -241,6 +241,35 @@
   opacity: 0.7;
 }
 
+/* Label stack: a relative wrapper whose width is driven by the ghost
+   span (current label). The floating labels (one real animating span
+   at a time) are positioned absolutely on top of the ghost so they
+   crossfade in-place rather than competing for flex space. */
+
+.labelStack {
+  position: relative;
+  display: inline-block;
+}
+
+/* Ghost: invisible but takes up the exact width of the current label,
+   so the button's layout animation has the correct target width. */
+.labelGhost {
+  visibility: hidden;
+  display: inline-block;
+}
+
+/* Floating label: real text the user sees, stacked over the ghost. */
+.labelFloat {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Keep the blur-filter animation on its own layer so neighbour
+     repaints can't couple into sub-pixel wobble. */
+  will-change: opacity, transform, filter;
+}
+
 .viewCaseStudyBtnSmall {
   display: flex;
   height: 35px;
