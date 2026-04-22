@@ -135,3 +135,60 @@
   from { width: 0%; }
   to { width: 100%; }
 }
+
+/* Progress section — "full" variant. Structure mirrors Figma
+   progress-section (3077:672). The gradient (Figma's Rectangle
+   13454) is THIS component's background — hue is per-variation,
+   saturation + brightness are constants (2% / 96%). */
+
+.progressFull {
+  display: flex;
+  width: 100%;
+  padding: 5px 0;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  background: linear-gradient(
+    to bottom,
+    hsla(var(--fade-hue, 285), 2%, 96%, 0) 0%,
+    hsla(var(--fade-hue, 285), 2%, 96%, 0.5) 100%
+  );
+}
+
+.progressFullBar {
+  display: flex;
+  width: 100%;
+  height: 21px;
+  padding: 0 30px;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+}
+
+.progressFullTrack {
+  display: flex;
+  height: 4px;
+  align-items: center;
+  flex: 1 0 0;
+  padding-right: 40px;
+  border-radius: 32px;
+  background: var(--demo-progress-track-bg);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.progressFullThumb {
+  height: 100%;
+  width: 0%;
+  border-radius: 121.094px 0 0 121.094px;
+  background: var(--demo-progress-thumb-bg);
+  animation: demo-progress-fill linear 1 forwards;
+  animation-play-state: running;
+}
+
+.progressFullThumbPaused {
+  animation-play-state: paused;
+}
+
