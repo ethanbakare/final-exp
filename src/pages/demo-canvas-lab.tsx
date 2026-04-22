@@ -202,13 +202,14 @@ export default function DemoCanvasLab() {
 
       <style jsx>{`
         .lab {
-          min-height: 100vh;
+          height: 100vh;
           background: #FFFFFF;
           padding: 0 20px;
           display: flex;
           flex-direction: column;
           align-items: center;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          overflow: hidden;
         }
         @media (max-width: 768px) {
           .lab {
