@@ -405,6 +405,11 @@ export default function DemoCanvasLab() {
             display: flex;
             gap: 16px;
           }
+          /* Top padding mirrors the navbar's 14px bottom padding for a
+             symmetric rhythm. Bottom stays at 20 for viewport breathing. */
+          .cta-section {
+            padding-top: 14px;
+          }
         }
       `}</style>
     </div>
