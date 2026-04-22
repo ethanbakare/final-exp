@@ -110,7 +110,7 @@ export default function DemoCanvasLab() {
       />
 
       <div className="canvas-area">
-        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <AnimatePresence custom={direction} initial={false}>
           <motion.div
             key={activeIdx}
             className="canvas-motion"
@@ -186,8 +186,8 @@ export default function DemoCanvasLab() {
           z-index: 2;
         }
         .canvas-area :global(.canvas-motion) {
-          flex: 1;
-          width: 100%;
+          position: absolute;
+          inset: 0;
           display: flex;
           align-items: stretch;
           touch-action: pan-x;
