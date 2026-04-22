@@ -126,39 +126,41 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
     source.connect(dest); // only to MediaStream, never to speakers
     source.start(0, 8);   // start playback at 8s offset
 
-    // Lifecycle-aware audio context resume. iOS Safari / Brave iOS create
-    // AudioContext in 'suspended' state and will only resume after a user
-    // gesture or explicit resume(). Without this, the BufferSource runs
-    // but produces zero frames in the MediaStream, so the downstream
-    // analyser reads silence and the waveform bars render flat.
-    //   1. Attempt resume() immediately (works if user already interacted).
-    //   2. If still suspended, register a one-shot listener that resumes
-    //      on the next user gesture.
-    //   3. Also resume on visibilitychange when the tab returns, since
-    //      iOS suspends contexts in background tabs.
-    const ensureRunning = async () => {
+    // Lifecycle-aware audio context resume (fire-and-forget — never await).
+    // iOS Safari / Brave iOS create AudioContext in 'suspended' state and
+    // will only resume after a user gesture. Without this, the analyser
+    // reads silence and the waveform bars render flat.
+    //
+    // IMPORTANT: resume() must NOT be awaited. On WebKit it can hang
+    // indefinitely before the first user gesture (rather than rejecting),
+    // which would block createFakeStream and freeze the simulation loop.
+    // The MediaStream connection works regardless of context state — it
+    // just produces silent frames until the context becomes running.
+    //
+    //   1. Kick off resume() (works if user already interacted).
+    //   2. Register a one-shot gesture listener that resumes on next tap.
+    //   3. Resume on visibilitychange when the tab returns.
+    const tryResume = () => {
       if (ctx.state === 'suspended') {
-        try { await ctx.resume(); } catch { /* will retry on gesture */ }
+        ctx.resume().catch(() => { /* will retry on gesture */ });
       }
     };
-    await ensureRunning();
-    if (ctx.state !== 'running') {
-      const onGesture = () => {
-        ensureRunning();
-        window.removeEventListener('pointerdown', onGesture);
-        window.removeEventListener('touchstart', onGesture);
-      };
-      window.addEventListener('pointerdown', onGesture, { once: true, passive: true });
-      window.addEventListener('touchstart', onGesture, { once: true, passive: true });
-    }
+    tryResume();
+    const onGesture = () => {
+      tryResume();
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('touchstart', onGesture);
+    };
+    window.addEventListener('pointerdown', onGesture, { once: true, passive: true });
+    window.addEventListener('touchstart', onGesture, { once: true, passive: true });
     const onVisibility = () => {
-      if (document.visibilityState === 'visible' && ctx.state === 'suspended') {
-        ensureRunning();
-      }
+      if (document.visibilityState === 'visible') tryResume();
     };
     document.addEventListener('visibilitychange', onVisibility);
-    // Attach cleanup ref so the effect that closes ctx also removes listener.
-    (ctx as AudioContext & { __cleanupVisibility?: () => void }).__cleanupVisibility = () => {
+    // Attach cleanup ref so the effect that closes ctx also removes listeners.
+    (ctx as AudioContext & { __cleanupListeners?: () => void }).__cleanupListeners = () => {
+      window.removeEventListener('pointerdown', onGesture);
+      window.removeEventListener('touchstart', onGesture);
       document.removeEventListener('visibilitychange', onVisibility);
     };
 
@@ -190,9 +192,9 @@ export const VoiceTextBoxClip: React.FC<VoiceTextBoxClipProps> = ({
       setMediaStream(null);
       if (fakeCtxRef.current) {
         const ctx = fakeCtxRef.current as AudioContext & {
-          __cleanupVisibility?: () => void;
+          __cleanupListeners?: () => void;
         };
-        ctx.__cleanupVisibility?.();
+        ctx.__cleanupListeners?.();
         ctx.close().catch(() => {});
         fakeCtxRef.current = null;
       }
