@@ -233,7 +233,13 @@ export default function DemoCanvasLab() {
         /* Desktop shows ShowcaseNavbarCompact; mobile shows
            ShowcaseNavbarCompactSmall (baked-in 0.7x dimensions + edge-to-
            edge fill). CSS display toggle so no JS viewport detection. */
-        .nav-slot { width: 100%; }
+        /* Both nav variants sit above the canvas-area (z:1) so the
+           sliding canvas passes behind them during transitions. */
+        .nav-slot {
+          width: 100%;
+          position: relative;
+          z-index: 2;
+        }
         .nav-mobile { display: none; }
         @media (max-width: 768px) {
           .lab {
