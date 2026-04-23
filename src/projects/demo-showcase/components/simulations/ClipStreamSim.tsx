@@ -89,6 +89,14 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = () => {
           min-height: 652px;
           max-height: 652px;
         }
+        /* Whole-frame scale — visual experiment on both desktop and
+           mobile. Scales the entire ClipMasterScreen uniformly
+           (header + list + record bar together). Layout box stays
+           at the original size; only the paint is shrunk. */
+        .clipstream-sim-frame {
+          transform: scale(0.8);
+          transform-origin: center center;
+        }
       `}</style>
     </div>
   );
