@@ -42,6 +42,12 @@ const TraceSim = dynamic(
   () => import('@/projects/demo-showcase/components/simulations/TraceSim').then(m => m.TraceSim),
   { ssr: false },
 );
+// ClipStream: the same ClipMasterScreen the /clipperstream page
+// renders. Full app surface — record, transcribe, clip list.
+const ClipMasterScreen = dynamic(
+  () => import('@/projects/clipperstream/components/ui/ClipMasterScreen').then(m => m.ClipMasterScreen),
+  { ssr: false },
+);
 
 interface ProjectConfig {
   label: string;
@@ -267,8 +273,14 @@ export default function DemoShowcasePage() {
                       <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />
                     </div>
                   )}
-                  {/* ClipStream — placeholder for both sim and demo. */}
-                  {activeIdx === 2 && null}
+                  {/* ClipStream — ClipMasterScreen, the same full app
+                      surface used on /clipperstream. Inline demo not
+                      yet split out separately. */}
+                  {activeIdx === 2 && (
+                    <div className="layer layer-sim">
+                      <ClipMasterScreen />
+                    </div>
+                  )}
                 </div>
                 <div className={`chrome chrome-desktop ${isDemoMode ? 'chrome-hidden' : ''}`}>
                   <DemoProgressSection
