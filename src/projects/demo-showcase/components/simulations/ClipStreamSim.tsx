@@ -88,6 +88,9 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = () => {
           height: 552px;
           min-height: 552px;
           max-height: 552px;
+          /* 8 -> 16 all corners (desktop); matches the record-bar's
+             16px top radius for a consistent rounded feel. */
+          border-radius: 16px;
         }
         /* Record bar shrunk 15% (160 -> 136). Padding scales with it
            (24/12 -> 20/10) so the RECORD button doesn't touch the
