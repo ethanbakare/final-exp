@@ -68,9 +68,28 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = () => {
 
   // onLoopRestart is accepted but unused until the scripted loop
   // logic is added — keeps the signature uniform with sister sims.
+  //
+  // Height override: ClipMasterScreen locks itself to 852px on
+  // desktop (see .master-screen in that file). That height exceeds
+  // the showcase sim-slot, so the phone frame was being cropped top
+  // and bottom. We reduce the desktop height by 200 (652px) via a
+  // scoped :global() override on a wrapper — keeps /clipperstream
+  // untouched. The record bar (160px, flex:none) and header sit at
+  // their natural sizes; the flex:1 .screen-container in the middle
+  // absorbs the 200px reduction, so it's the clip list / empty
+  // state region that shrinks.
   return (
-    <SimErrorBoundary>
-      {mounted ? <ClipMasterScreen /> : null}
-    </SimErrorBoundary>
+    <div className="clipstream-sim-frame">
+      <SimErrorBoundary>
+        {mounted ? <ClipMasterScreen /> : null}
+      </SimErrorBoundary>
+      <style jsx>{`
+        .clipstream-sim-frame :global(.master-screen) {
+          height: 652px;
+          min-height: 652px;
+          max-height: 652px;
+        }
+      `}</style>
+    </div>
   );
 };
