@@ -85,16 +85,9 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = () => {
       </SimErrorBoundary>
       <style jsx>{`
         .clipstream-sim-frame :global(.master-screen) {
-          height: 552px;
-          min-height: 552px;
-          max-height: 552px;
-        }
-        /* Record bar shrunk 15% (160 -> 136). Padding scales with it
-           (24/12 -> 20/10) so the RECORD button doesn't touch the
-           edges. Scoped override — /clipperstream stays at 160. */
-        .clipstream-sim-frame :global(.master-screen .record-bar) {
-          height: 136px;
-          padding: 20px 10px 0px;
+          height: 652px;
+          min-height: 652px;
+          max-height: 652px;
         }
       `}</style>
     </div>
