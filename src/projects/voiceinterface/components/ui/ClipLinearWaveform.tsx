@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import LinearWaveform from '../../linear-waveform/LinearWaveform';
+import type { LinearWaveformProps } from '../../linear-waveform/types';
 
 interface ClipLinearWaveformProps {
   // Live MediaStream from the card's MediaRecorder. When non-null, we
@@ -27,7 +28,29 @@ interface ClipLinearWaveformProps {
 // (bg / padding / radius / containerWidth / containerHeight) are
 // intentionally absent — the nav-pill IS the container, and width/
 // height are forced to "100%" via the LinearWaveform props.
-const LURE_FALLBACK = {
+type WaveformProps = Pick<
+  LinearWaveformProps,
+  | 'barWidth'
+  | 'barHeight'
+  | 'barGap'
+  | 'barRadius'
+  | 'barColor'
+  | 'mode'
+  | 'sensitivity'
+  | 'updateRate'
+  | 'ambientWave'
+  | 'waveMode'
+  | 'waveSpeed'
+  | 'waveAmplitude'
+  | 'waveHeight'
+  | 'ghostBarOpacity'
+  | 'fadeEdges'
+  | 'fadeWidth'
+  | 'smoothing'
+  | 'intensityOpacity'
+>;
+
+const LURE_FALLBACK: WaveformProps = {
   barWidth: 3.5,
   barHeight: 6,
   barGap: 5,
@@ -52,7 +75,6 @@ const LURE_FALLBACK = {
 // settings blob. The profile schema also stores container styling /
 // preview bg / outline — none of which apply here because the nav-pill
 // owns the container.
-type WaveformProps = typeof LURE_FALLBACK;
 const profileToWaveformProps = (
   s: Record<string, unknown>
 ): WaveformProps => ({
@@ -82,12 +104,12 @@ export const ClipLinearWaveform: React.FC<ClipLinearWaveformProps> = ({
   visible,
   profileName = 'Clip',
 }) => {
-  const [freqData, setFreqData] = useState<Uint8Array | null>(null);
+  const [freqData, setFreqData] = useState<Uint8Array<ArrayBuffer> | null>(null);
   const [waveformProps, setWaveformProps] = useState<WaveformProps>(LURE_FALLBACK);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const rafRef = useRef<number | null>(null);
 
   // Load + watch the named profile from the studio-profiles API.
