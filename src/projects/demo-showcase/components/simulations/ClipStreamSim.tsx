@@ -85,7 +85,6 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = () => {
       </SimErrorBoundary>
       <style jsx>{`
         .clipstream-sim-frame :global(.master-screen) {
-          width: 314px;
           height: 552px;
           min-height: 552px;
           max-height: 552px;
