@@ -28,6 +28,7 @@ import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/com
 import { TryDemoButtonSmall, ViewCaseStudyButtonSmall } from '@/projects/demo-showcase/components/ui/ShowcaseButtonsSmall';
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
 import { TRACE_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/TraceSim';
+import { CLIPSTREAM_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/ClipStreamSim';
 
 // Dynamic imports — SSR-unsafe sims/demos.
 const AIConfidenceSim = dynamic(
@@ -42,10 +43,11 @@ const TraceSim = dynamic(
   () => import('@/projects/demo-showcase/components/simulations/TraceSim').then(m => m.TraceSim),
   { ssr: false },
 );
-// ClipStream: the same ClipMasterScreen the /clipperstream page
-// renders. Full app surface — record, transcribe, clip list.
-const ClipMasterScreen = dynamic(
-  () => import('@/projects/clipperstream/components/ui/ClipMasterScreen').then(m => m.ClipMasterScreen),
+// ClipStream sim — dedicated wrapper so future edits to the
+// carousel's ClipStream appearance / behaviour don't leak into the
+// real /clipperstream page.
+const ClipStreamSim = dynamic(
+  () => import('@/projects/demo-showcase/components/simulations/ClipStreamSim').then(m => m.ClipStreamSim),
   { ssr: false },
 );
 
@@ -87,7 +89,7 @@ const PROJECTS: ProjectConfig[] = [
     // Placeholder headline — keep under one mobile line; tune later.
     headline: 'Record and transcribe voice clips',
     caseStudyUrl: '#',
-    simDuration: 8000,
+    simDuration: CLIPSTREAM_SIM_DURATION,
     // Warm pink variation from the lab — same colour family we proved
     // out there (#F09294 tint, flipped texture for pattern variety,
     // light pink card + muted dark-plum progress tokens).
@@ -273,12 +275,10 @@ export default function DemoShowcasePage() {
                       <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />
                     </div>
                   )}
-                  {/* ClipStream — ClipMasterScreen, the same full app
-                      surface used on /clipperstream. Inline demo not
-                      yet split out separately. */}
+                  {/* ClipStream sim. Inline demo not yet split out. */}
                   {activeIdx === 2 && (
                     <div className="layer layer-sim">
-                      <ClipMasterScreen />
+                      <ClipStreamSim key={loopKey} onLoopRestart={handleLoopRestart} />
                     </div>
                   )}
                 </div>
