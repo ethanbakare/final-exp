@@ -97,6 +97,15 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = () => {
           transform: scale(0.8);
           transform-origin: center center;
         }
+        /* Mobile override: /clipperstream sets border-radius: 0 on
+           mobile because it occupies the full viewport. In the
+           showcase the frame floats inside a canvas, so it should
+           look like a rounded phone card on mobile too. */
+        @media (max-width: 768px) {
+          .clipstream-sim-frame :global(.master-screen) {
+            border-radius: 16px;
+          }
+        }
       `}</style>
     </div>
   );
