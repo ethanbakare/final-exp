@@ -1,3 +1,27 @@
+/**
+ * ─────────────────────────────────────────────────────────────────────
+ * [DEMO-SHOWCASE] PORTING NOTE
+ * ─────────────────────────────────────────────────────────────────────
+ * This hook contains kill-switch wiring for the demo-showcase carousel
+ * (the optional `externalSignal` parameter and its inline composition
+ * with the per-call timeout AbortController). When porting clipperstream
+ * to a standalone app, every block tagged `[DEMO-SHOWCASE]` is dead
+ * weight. To strip cleanly:
+ *
+ *     grep -n '\[DEMO-SHOWCASE\]' src/projects/clipperstream/hooks/useClipRecording.ts
+ *
+ * Removal checklist:
+ *   1. Drop the `externalSignal` parameter from useClipRecording
+ *   2. Drop the externalSignalRef + sync useEffect
+ *   3. Drop the inline external-signal composition block inside
+ *      transcribeRecording (the `externalSignal` const + listener
+ *      attach/cleanup around the fetch call)
+ *   4. Drop the isExternalCancellation branch in the catch block
+ *
+ * Architecture rationale: docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.3
+ * ─────────────────────────────────────────────────────────────────────
+ */
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { storeAudio } from '../services/audioStorage';
 import { logger } from '../utils/logger';
@@ -50,12 +74,18 @@ export interface UseClipRecordingReturn {
    HOOK
    ============================================ */
 
-export function useClipRecording(externalSignal?: AbortSignal): UseClipRecordingReturn {
-  // Kill-switch (Phase 1c, step 1): compose this signal into the per-call
-  // timeout controller used by transcribeRecording. See
-  // docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.3. Optional —
-  // standalone /clipperstream callers omit it; inline AbortSignal.any-style
-  // composition below is a no-op when undefined.
+export function useClipRecording(
+  // [DEMO-SHOWCASE] Optional showcase cancel signal. Composed inline with
+  // the per-call timeout AbortController inside transcribeRecording, so
+  // when the showcase aborts (swipe-away) the in-flight transcribe fetch
+  // cancels at the network layer alongside the existing 30s timeout.
+  // Standalone /clipperstream callers omit this — inline composition is a
+  // no-op when undefined.
+  externalSignal?: AbortSignal
+): UseClipRecordingReturn {
+  // [DEMO-SHOWCASE] Ref-cache the external signal so transcribeRecording
+  // (which is a useCallback with stable deps) reads the current value at
+  // call time without forcing the callback to re-create.
   const externalSignalRef = useRef(externalSignal);
   useEffect(() => { externalSignalRef.current = externalSignal; }, [externalSignal]);
 
@@ -355,10 +385,14 @@ export function useClipRecording(externalSignal?: AbortSignal): UseClipRecording
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
+      // [DEMO-SHOWCASE] BLOCK START — external signal composition.
       // Compose the external (showcase) signal into our local controller:
       // when external aborts, our controller aborts too, which cancels the
       // fetch. Inline rather than importing a helper to keep clipperstream
       // standalone-portable (no cross-project dependency).
+      // To delete on port: collapse the try/finally below and drop the
+      // externalSignal const + listener attach/cleanup. The clearTimeout
+      // can move back to its original position after the fetch.
       const externalSignal = externalSignalRef.current;
       const handleExternalAbort = () => controller.abort();
       if (externalSignal) {
@@ -377,6 +411,7 @@ export function useClipRecording(externalSignal?: AbortSignal): UseClipRecording
         clearTimeout(timeoutId);
         if (externalSignal) externalSignal.removeEventListener('abort', handleExternalAbort);
       }
+      // [DEMO-SHOWCASE] BLOCK END
 
       // Server error - definitive failure
       if (!response.ok) {
@@ -412,9 +447,13 @@ export function useClipRecording(externalSignal?: AbortSignal): UseClipRecording
 
       // Classify error type
       const isAbort = error instanceof Error && error.name === 'AbortError';
-      // Kill-switch (Phase 1c): differentiate external cancellation from
-      // timeout. If the external signal was aborted, this was an intentional
-      // user-cancel (showcase swipe / X button) — bail silently, don't retry.
+      // [DEMO-SHOWCASE] BLOCK START — differentiate external cancellation
+      // from timeout. If the external signal was aborted, this was an
+      // intentional user-cancel (showcase swipe / X button) — bail silently,
+      // don't retry. Without this branch, the existing timeout-retry
+      // pipeline below would retry a cancelled request, which is wrong.
+      // To delete on port: drop this entire if-block AND the
+      // `&& !isExternalCancellation` clause from the isTimeout assignment.
       const isExternalCancellation = isAbort && externalSignalRef.current?.aborted === true;
       if (isExternalCancellation) {
         log.info('Transcription cancelled (external signal)');
@@ -422,7 +461,8 @@ export function useClipRecording(externalSignal?: AbortSignal): UseClipRecording
         setIsTranscribing(false);
         return { text: '', error: 'network' };
       }
-      const isTimeout = isAbort && !isExternalCancellation;
+      // [DEMO-SHOWCASE] BLOCK END
+      const isTimeout = isAbort && !isExternalCancellation; // [DEMO-SHOWCASE] strip `&& !isExternalCancellation` on port
       const isNetworkError = error instanceof TypeError;
       const isServerError = error instanceof Error && error.message.includes('Server error');
 

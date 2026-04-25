@@ -1,18 +1,20 @@
 /**
- * Embeddable Trace demo — the real working product, mounted inside
- * the showcase. Wraps TraceApp with the kill-switch contract; strips
- * the full-page chrome so it fits inside ShowcaseSlot.
+ * TraceDemo — embeddable Trace demo for the showcase carousel.
  *
- * See docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.2.
+ * Mounts the same TraceCore component the standalone /trace page renders,
+ * so the showcase's "Try Demo" surfaces the real interactive product
+ * (AnimatedTextBox + TRNavbarV2 + Speak/Upload flows), not a stripped-down
+ * fork. Strips full-page chrome (centred page background, padding) so the
+ * core flows naturally inside ShowcaseSlot.
  *
- * Trace's localStorage entries (`trace-expense-entries`) are durable —
- * they survive showcase swipes by design. This wrapper does NOT clear
- * them on cancellation. Cancellation only releases active resources
- * (mic stream, in-flight fetch) via TraceApp's existing
- * handleCancelRecording path.
+ * Kill-switch wiring:
+ *   - cancelSignal + runIdRef are forwarded straight into TraceCore.
+ *   - On abort (swipe-away / demo↔sim toggle), TraceCore's own internal
+ *     listener invokes its existing handleCancelRecording path. localStorage
+ *     entries persist by design — see KILL-SWITCH-ARCHITECTURE.md §2.2.
  */
 import React from 'react';
-import { TraceApp } from '@/projects/trace/components/TraceApp';
+import { TraceCore } from '@/projects/trace/components/TraceCore';
 
 interface TraceDemoProps {
   cancelSignal?: AbortSignal;
@@ -21,7 +23,7 @@ interface TraceDemoProps {
 
 export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef }) => (
   <div className="trace-demo-wrapper">
-    <TraceApp cancelSignal={cancelSignal} runIdRef={runIdRef} />
+    <TraceCore cancelSignal={cancelSignal} runIdRef={runIdRef} />
 
     <style jsx>{`
       .trace-demo-wrapper {
@@ -29,24 +31,8 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef }) 
         max-width: 620px;
         display: flex;
         flex-direction: column;
-        align-items: stretch;
-        position: relative;
-      }
-
-      /* TraceApp's own .trace-app uses min-height: 100vh and a fixed bottom
-         nav, both of which assume a full-page mount. Inside the showcase
-         slot we need it to flow as a card, not own the viewport. Scoped
-         :global() overrides keep /trace-ai's own page untouched. */
-      .trace-demo-wrapper :global(.trace-app) {
-        min-height: auto;
-        padding-bottom: 100px;
-      }
-
-      .trace-demo-wrapper :global(.trace-nav) {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
+        align-items: center;
+        gap: 16px;
       }
     `}</style>
   </div>

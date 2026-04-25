@@ -47,13 +47,46 @@ interface ClipMasterScreenProps {
   pendingClips?: PendingClip[];
   initialScreen?: ActiveScreen;
   className?: string;
-  /** Optional showcase-side cancel signal (kill-switch architecture).
-   *  When it aborts, ClipMasterScreen invokes its existing handleCloseClick
-   *  cancel path and aborts any in-flight transcribe/format-text request.
-   *  Standalone /clipperstream callers omit this — the cancel path is
-   *  unchanged. See docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.3. */
+  // [DEMO-SHOWCASE] Optional showcase-side cancel signal (kill-switch
+  // architecture). When it aborts, ClipMasterScreen invokes its existing
+  // handleCloseClick cancel path and aborts any in-flight transcribe /
+  // format-text request. Standalone /clipperstream callers omit this —
+  // the cancel path is unchanged.
+  // See docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.3.
   cancelSignal?: AbortSignal;
 }
+
+/* ────────────────────────────────────────────────────────────────────
+ * [DEMO-SHOWCASE] PORTING NOTE
+ * ────────────────────────────────────────────────────────────────────
+ * This component contains kill-switch wiring for the demo-showcase
+ * carousel. To extract clipperstream as a standalone app, every block
+ * tagged `[DEMO-SHOWCASE]` is dead weight. Strip cleanly:
+ *
+ *     grep -n '\[DEMO-SHOWCASE\]' src/projects/clipperstream/components/ui/ClipMasterScreen.tsx
+ *
+ * Removal checklist:
+ *   1. Drop the `cancelSignal?` prop from ClipMasterScreenProps and the
+ *      destructure in the component signature
+ *   2. Restore abortControllerRef to its original `useRef<AbortController
+ *      | null>(null)` form WITHOUT the lazy-init render-time guard. Move
+ *      its declaration back below the useClipRecording destructure where
+ *      it originally lived.
+ *   3. Drop the `signal: abortControllerRef.current?.signal` arguments
+ *      from BOTH /api/clipperstream/format-text fetch calls (the original
+ *      code passed no signal — the abortControllerRef was unwired).
+ *   4. Drop the externalSignal argument from useClipRecording(...) — call
+ *      it as useClipRecording() with no args.
+ *   5. Drop the cancelSignal abort-listener block (handleCloseClickRef +
+ *      the abort useEffect).
+ *
+ * Note: handleCloseClick's existing `abortControllerRef.current?.abort()`
+ * call was, in the unmodified original, effectively a no-op because the
+ * controller was never threaded into any fetch. Leaving it on port is
+ * harmless — it'll just abort an unused controller as before. The
+ * clipperstream code shipped this way already. The kill-switch's job was
+ * to make that call mean something WITHIN the showcase context only.
+ * ──────────────────────────────────────────────────────────────────── */
 
 /* ============================================
    CLIP MASTER SCREEN COMPONENT
@@ -63,7 +96,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   pendingClips = [],
   initialScreen = 'home',
   className = '',
-  cancelSignal
+  cancelSignal // [DEMO-SHOWCASE] drop on port
 }) => {
   // ============================================
   // STATE
@@ -234,20 +267,24 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   const hasShownTranscriptionToast = useRef(false);
 
   // Recording hook - handles audio recording and transcription
-  // Abort controller for cancelling HTTP requests.
+  // [DEMO-SHOWCASE] BLOCK START — abort controller lifecycle.
   // Lazy-init render-time so it's never null at fetch sites. Replaced
   // automatically after each abort so subsequent operations get a fresh
   // signal — handleCloseClick can abort, user can start a new recording,
   // and the new format/transcribe fetches use a non-aborted controller.
-  // (Phase 1c step 3: previously this ref was allocated as null and never
-  // populated — the abort() call in handleCloseClick was effectively a
-  // no-op against an uninitialised controller.)
+  // (Pre-kill-switch: this ref was allocated as null and never populated;
+  // the abort() call in handleCloseClick was effectively a no-op against
+  // an uninitialised controller. Leaving the call there is harmless on
+  // port — see file-top porting note.)
   // Declared BEFORE useClipRecording so its signal can be threaded into
   // transcribeRecording via the externalSignal parameter.
+  // To delete on port: restore to `useRef<AbortController | null>(null)`
+  // and move the declaration back below the destructure.
   const abortControllerRef = useRef<AbortController | null>(null);
   if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
     abortControllerRef.current = new AbortController();
   }
+  // [DEMO-SHOWCASE] BLOCK END
 
   const {
     isRecording,
@@ -263,6 +300,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     transcribeRecording,
     forceRetry,       // Allows tap-to-skip wait
     reset: resetRecording,
+    // [DEMO-SHOWCASE] Drop argument on port — useClipRecording() with no args.
   } = useClipRecording(abortControllerRef.current.signal);
 
   // Processing timer (for UI transition delay)
@@ -450,10 +488,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           rawText,
           existingFormattedContext: existingContext
         }),
-        // Kill-switch (Phase 1c step 2): thread the cancel signal so abort()
-        // calls in handleCloseClick / external signal listener actually
-        // cancel this in-flight format request. Previously this fetch ran
-        // with no signal at all.
+        // [DEMO-SHOWCASE] Kill-switch wiring — drop this `signal:` line
+        // on port. Originally this fetch ran with no signal at all.
         signal: abortControllerRef.current?.signal
       });
 
@@ -847,14 +883,19 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     setCurrentClipId(null);
   }, [recordNavState, currentClipId, selectedClip, isAppendMode, stopRecordingHook, resetRecording, getClipById, updateClip]);
 
-  // Kill-switch (Phase 1c step 3): when an external cancelSignal aborts —
-  // i.e., the showcase has detected this slot is no longer active — invoke
-  // the product's existing cancel path. handleCloseClick already encodes
-  // the right state-machine behaviour for each screen (recording → discard
-  // partial; processing → mark pending-retry; complete → navigate). We
-  // also abort the internal controller as belt-and-braces in case state
-  // doesn't go through one of those branches. After this fires the next
-  // render's lazy init replaces the controller with a fresh one.
+  // [DEMO-SHOWCASE] BLOCK START — kill-switch abort listener.
+  // When an external cancelSignal aborts — i.e., the showcase has detected
+  // this slot is no longer active — invoke the product's existing cancel
+  // path. handleCloseClick already encodes the right state-machine
+  // behaviour for each screen (recording → discard partial; processing →
+  // mark pending-retry; complete → navigate). We also abort the internal
+  // controller as belt-and-braces in case state doesn't go through one of
+  // those branches. After this fires the next render's lazy init replaces
+  // the controller with a fresh one.
+  // To delete on port: remove from `[DEMO-SHOWCASE] BLOCK START` to the
+  // matching `[DEMO-SHOWCASE] BLOCK END` marker below (handleCloseClickRef
+  // + sync useEffect + abort useEffect — three blocks, all dead weight on
+  // port).
   // See docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.3.
   const handleCloseClickRef = useRef(handleCloseClick);
   useEffect(() => { handleCloseClickRef.current = handleCloseClick; }, [handleCloseClick]);
@@ -881,6 +922,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     cancelSignal.addEventListener('abort', handleAbort, { once: true });
     return () => cancelSignal.removeEventListener('abort', handleAbort);
   }, [cancelSignal]);
+  // [DEMO-SHOWCASE] BLOCK END
 
   const handleDoneClick = async () => {
     setRecordNavState('processing');
@@ -1319,9 +1361,8 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
           rawText,
           existingFormattedContext: context
         }),
-        // Kill-switch (Phase 1c step 2): thread the cancel signal so abort()
-        // calls in handleCloseClick / external signal listener actually
-        // cancel this in-flight format request.
+        // [DEMO-SHOWCASE] Kill-switch wiring — drop this `signal:` line
+        // on port. Originally this fetch ran with no signal at all.
         signal: abortControllerRef.current?.signal
       });
 
