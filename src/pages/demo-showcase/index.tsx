@@ -362,7 +362,11 @@ export default function DemoShowcasePage() {
                         <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />
                       </div>
                       <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
-                        <TraceDemo cancelSignal={traceCancelSignal} runIdRef={traceRunIdRef} />
+                        <TraceDemo
+                          cancelSignal={traceCancelSignal}
+                          runIdRef={traceRunIdRef}
+                          isVisible={isDemoMode}
+                        />
                       </div>
                     </>
                   )}

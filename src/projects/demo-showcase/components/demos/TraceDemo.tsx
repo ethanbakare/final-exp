@@ -21,9 +21,10 @@ import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
 interface TraceDemoProps {
   cancelSignal?: AbortSignal;
   runIdRef?: React.MutableRefObject<number>;
+  isVisible?: boolean;
 }
 
-export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef }) => {
+export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, isVisible = false }) => {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [canvasContentEl, setCanvasContentEl] = useState<Element | null>(null);
   const [clearButtonEl, setClearButtonEl] = useState<HTMLButtonElement | null>(null);
@@ -48,7 +49,7 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef }) 
           hideMicBanner={true}
         />
       </div>
-      {canvasContentEl ? createPortal(
+      {isVisible && canvasContentEl ? createPortal(
         <div className="showcase-clear-button">
           <ClearButton onClick={() => clearButtonEl?.click()} />
         </div>,
