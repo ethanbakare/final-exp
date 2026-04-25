@@ -34,7 +34,7 @@ Ground truth on what we're cancelling, walked from the actual code:
 | Project | State pattern | Active resources | Durable / product-defined state (DO NOT touch) |
 |---|---|---|---|
 | **AI Confidence** | React Context provider (`SpeechConfidenceProvider`) wrapping a hook tree | `getUserMedia` + `MediaRecorder` (1000ms timeslice) + one `fetch` to `/api/ai-confidence-tracker/transcribe` | (none — no persistence layer) |
-| **Trace** | Single mega-component [TraceApp.tsx](../../src/projects/trace/components/TraceApp.tsx); second mic via [TraceLiveWaveform.tsx](../../src/projects/trace/components/ui/TraceLiveWaveform.tsx) | `getUserMedia` (twice) + `MediaRecorder` + two fetches (`/api/trace/parse-voice`, `/api/trace/parse-receipt`) | (none — no persistence layer) |
+| **Trace** | Single mega-component [TraceApp.tsx](../../src/projects/trace/components/TraceApp.tsx); second mic via [TraceLiveWaveform.tsx](../../src/projects/trace/components/ui/TraceLiveWaveform.tsx). Persists entries to **localStorage** under key `trace-expense-entries` ([TraceApp.tsx:19](../../src/projects/trace/components/TraceApp.tsx)). | `getUserMedia` (twice) + `MediaRecorder` + two fetches (`/api/trace/parse-voice`, `/api/trace/parse-receipt`) + transient modal/toast state | **`entries[]` in localStorage** — committed expense entries persist across sessions and must NOT be cleared by cancellation |
 | **ClipStream** | **Zustand global store** ([clipStore.ts](../../src/projects/clipperstream/store/clipStore.ts)) + cooperating hooks (`useClipRecording`, `useOfflineRecording`, `useAutoRetry`) + **IndexedDB-backed audio storage**. Mounted in showcase already via [ClipStreamSim.tsx](../../src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx). | Live mic stream, in-progress `MediaRecorder`, in-flight `/api/clipperstream/transcribe` request, in-flight `/api/clipperstream/format-text` request | **Pending clips queue, IndexedDB audio blobs, zustand store contents (clips list, current state machine), offline retry pipeline** ([useAutoRetry.ts](../../src/projects/clipperstream/hooks/useAutoRetry.ts) lives globally in `_app.tsx:14`) |
 | **Voice Interface** | Sibling component variants. Realtime variant uses an OpenAI Realtime WebRTC peer connection ([VoiceRealtimeOpenAI.tsx](../../src/projects/voiceinterface/components/VoiceRealtimeOpenAI.tsx)). | `RTCPeerConnection`, data channel, persistent streaming session, ephemeral token fetch, audio interval, `getUserMedia` | (none — session is the artifact) |
 
@@ -121,16 +121,31 @@ Every state-mutating callback must verify it still belongs to the currently-acti
 ```ts
 // src/projects/demo-showcase/hooks/useRunId.ts
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 
 /** Returns a ref whose .current is a monotonic id that bumps on every
- *  activation. Capture .current at the START of an async operation; check
- *  before any state write that follows an await. */
+ *  false→true activation. Capture .current at the START of an async operation;
+ *  check before any state write that follows an await or fires from a late
+ *  callback (MediaRecorder.onstop, IndexedDB onsuccess, etc.).
+ *
+ *  IMPORTANT: bumps SYNCHRONOUSLY during render on the activation transition,
+ *  not in an effect. Otherwise there is a window between activation render
+ *  and the effect commit where a late callback from the previous run reads
+ *  the still-stale runIdRef.current and a new run capturing the same id at
+ *  start collides — both would pass the guard and the stale write would
+ *  commit. Same race the abort-signal hook avoids by render-time swap. */
 export function useRunId(isActive: boolean) {
   const runIdRef = useRef(0);
-  useEffect(() => {
-    if (isActive) runIdRef.current += 1;
-  }, [isActive]);
+  const prevActiveRef = useRef(isActive);
+
+  // Synchronous bump on false→true transition. Mutating refs during render is
+  // safe here: the bump is idempotent within a single render (transition guard)
+  // and no consumer observes runIdRef before this line.
+  if (isActive && !prevActiveRef.current) {
+    runIdRef.current += 1;
+  }
+  prevActiveRef.current = isActive;
+
   return runIdRef;
 }
 ```
@@ -279,7 +294,17 @@ AbortError must be swallowed silently in the catch block (it's deliberate cancel
 
 Mega-component. Adapter sits at the top of `TraceApp` and wires both fetches plus the mic teardown.
 
-State classification: **all session-ephemeral**. Cancel = stop mic, abort fetches, return to idle.
+State classification:
+
+| Resource | Class | Cancel behaviour |
+|---|---|---|
+| Live mic `MediaStream` (×2 — main + waveform) | Active | Release tracks |
+| Active `MediaRecorder` | Active | Stop |
+| In-flight `parse-voice` / `parse-receipt` fetch | Active | Abort via signal |
+| Modal / toast / current parse result | Active | Reset to idle |
+| **`entries[]` in localStorage** (`trace-expense-entries`) | **Durable** | Do NOT clear |
+
+The localStorage entries are committed expense records that persist across sessions and survive page reload. Cancelling a swipe-during-record must NOT remove past entries from the list. The adapter aborts the in-progress fetch and stops the recorder — nothing more.
 
 ```tsx
 // inside TraceApp.tsx
@@ -319,27 +344,36 @@ State classification:
 | `useAutoRetry` global pipeline ([_app.tsx:14](../../src/pages/_app.tsx)) | **Durable / global** | Do NOT touch |
 | `processAllPendingClips` registration | **Durable** | Do NOT unregister beyond what ClipMasterScreen's existing unmount cleanup does |
 
-Existing cancel path: [`handleCloseClick` at ClipMasterScreen.tsx:739](../../src/projects/clipperstream/components/ui/ClipMasterScreen.tsx). It already encodes the right semantics for each state:
+Existing cancel path: [`handleCloseClick` at ClipMasterScreen.tsx:739](../../src/projects/clipperstream/components/ui/ClipMasterScreen.tsx). It encodes the right state-machine semantics:
 
 - Recording → `stopRecordingHook()` + `resetRecording()` (discard partial blob — confirmed product policy)
-- Processing → `abortControllerRef.current.abort()` + mark clip `pending-retry`
+- Processing → `abortControllerRef.current?.abort()` + mark clip `pending-retry`
 - Complete → navigate
 
-The adapter routes the kill-switch abort into `handleCloseClick`. Concretely, ClipMasterScreen accepts an optional `cancelSignal?: AbortSignal` prop and wires its own cancel handler internally:
+**Important caveat: the existing cancel path is not yet fully wired to actual HTTP request abortion.** Today, `handleCloseClick` calls `abort()` on `abortControllerRef` ([ClipMasterScreen.tsx:763](../../src/projects/clipperstream/components/ui/ClipMasterScreen.tsx)), but that controller's signal is **never threaded into any fetch**. Meanwhile the real transcribe request inside [`useClipRecording.ts:347-352`](../../src/projects/clipperstream/hooks/useClipRecording.ts) creates its own local `AbortController` for a 30-second timeout, isolated from the rest of the app. The format-text fetch in ClipMasterScreen ([line ~1256](../../src/projects/clipperstream/components/ui/ClipMasterScreen.tsx)) does not currently take a signal at all.
 
-```tsx
-// inside ClipMasterScreen.tsx (additive change to product source)
-useEffect(() => onAbort(cancelSignal, () => {
-  handleCloseClick();   // existing X-button logic — invokes correct path per state
-}), [cancelSignal, handleCloseClick]);
-```
+So the kill-switch implementation cannot be "just wire `cancelSignal` into `handleCloseClick`." It requires concrete plumbing changes, all of them additive and beneficial to the standalone product as well:
 
-In the showcase wrapper:
+**Required plumbing (Phase 1, ClipStream):**
 
-```tsx
-// ClipStreamSim wraps ClipMasterScreen — pass signal through.
-<ClipMasterScreen cancelSignal={cancelSignal} />
-```
+1. **`useClipRecording`'s transcribe fetch** must compose its existing 30s-timeout controller with an external signal. Either:
+   - Add an optional `externalSignal?: AbortSignal` parameter to the function, and use `composeAbortSignals(timeoutController.signal, externalSignal)` for the fetch call, OR
+   - Have `useClipRecording` accept an optional `cancelSignal` at the hook level and store it for use across all its internal fetches.
+2. **The format-text fetch in ClipMasterScreen** ([~line 1256](../../src/projects/clipperstream/components/ui/ClipMasterScreen.tsx)) must add `signal: abortControllerRef.current?.signal` to its fetch options.
+3. **`ClipMasterScreen` accepts `cancelSignal?: AbortSignal` prop.** Compose it with the existing `abortControllerRef`:
+   ```tsx
+   // synchronise external cancel into the existing controller
+   useEffect(() => onAbort(cancelSignal, () => {
+     handleCloseClick();   // existing X-button logic
+   }), [cancelSignal, handleCloseClick]);
+   ```
+   With (1) and (2) in place, `handleCloseClick`'s `abort()` now actually cancels the live HTTP requests as the comment at line 764 already claims.
+4. **Showcase wrapper** ([ClipStreamSim.tsx](../../src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx)) passes the signal through:
+   ```tsx
+   <ClipMasterScreen cancelSignal={cancelSignal} />
+   ```
+
+The work is mostly mechanical signal-threading, but it must be done — the doc previously implied this was already complete, and it isn't.
 
 Two important non-actions for ClipStream:
 
@@ -389,7 +423,7 @@ When the user swipes from warm brown → lavender:
 4. `isDemoMode` resets to false (carousel always lands on sim).
 5. If user later presses Try Demo on lavender, a fresh Trace signal is created.
 
-ClipStream's offline retry pipeline continues running globally throughout — it's not tied to slot activation.
+ClipStream's offline retry pipeline (`useAutoRetry` in `_app.tsx`) stays mounted globally across all swipes — but per the earlier "ClipStream's offline queue" section, meaningful processing only happens while `ClipMasterScreen` is mounted (i.e. while the ClipStream slot is active). Pending clips wait when the user swipes away and resume processing on swipe-back. The kill switch must not interfere with either side of that cycle.
 
 ## AbortError handling
 
