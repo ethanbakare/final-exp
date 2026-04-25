@@ -1,85 +1,141 @@
-# Handoff — 2026-04-25
+# Handoff — 2026-04-26
 
-Picking up where this session left off. Two big workstreams shipped: **the demo-canvas-lab → demo-showcase port** (lab patterns now live on the real `/demo-showcase` page) and **a dedicated ClipStreamSim** for the ClipStream slot. Plus a documented but **not-yet-implemented** AbortSignal kill-switch architecture for cancellation across demos.
+Long session. Three major workstreams landed: **the kill-switch architecture (planned, reviewed twice, implemented across AI Confidence + ClipStream + Trace)**, **a navbar-slot mic permission UI for the showcase chrome (desktop + mobile)**, and **a brand-new `/demo-showcase/showcase/democomponents` page** for reviewing every showcase UI component in isolation.
 
----
-
-## What shipped this session
-
-### 1. Lab → Production port (demo-canvas-lab → /demo-showcase)
-The entire layout + mobile polish proven in the lab now runs on `/demo-showcase`. Lab page kept untouched at `/demo-canvas-lab`.
-
-Three projects wired:
-- **AI Confidence tracker** (idx 0) — full sim + demo (`AIConfidenceSim` + `AIConfidenceDemo`), warm-brown tint, headline with desktop-only suffix " in what it heard"
-- **Trace** (idx 1) — `TraceSim` only; inline demo not yet built
-- **ClipStream** (idx 2) — `ClipStreamSim` (new, see below); inline demo not yet built
-
-Voice Interface is **deferred entirely** — not yet "inline-demo-ready".
-
-Mobile polish ported: app-shell body lock (no iOS PTR), close-btn slide-in + CTA collapse on demo mode (`.is-demo`), `scale(0.9)` sim / `scale(0.8)` demo on mobile, edge-to-edge transparent progress + full-width nav pill, small CTA variants with animated label swap + blur crossfade, intro card `headlineSuffix` (desktop-only tail), transcript-bar single-line legend in results state, `touch-action: none !important` on canvas-motion, Framer Motion spring carousel.
-
-### 2. ClipStreamSim — dedicated wrapper
-New file: [ClipStreamSim.tsx](src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx). Sister to `AIConfidenceSim` / `TraceSim` — same interface (`onLoopRestart?` prop + exported `CLIPSTREAM_SIM_DURATION`). Renders `ClipMasterScreen` with:
-- **Hydration gate** (useEffect + mounted flag) — mirrors what `/clipperstream` does for SSR-unsafe internals (zustand rehydration, mic, audio storage)
-- **`SimErrorBoundary`** — local crash surface so a `ClipMasterScreen` error doesn't blank the whole showcase
-
-All ClipStream-specific size/shape adjustments live as **scoped `:global()` CSS overrides** on the wrapper. Critical: `/clipperstream` source is **untouched**. Three live overrides:
-
-| Override | Value | Scope |
-|---|---|---|
-| `.master-screen` height | **852 → 652** | desktop |
-| `transform: scale(0.8)` | wrapper-level | both breakpoints |
-| `.master-screen` border-radius | **0 → 16px** | mobile |
-
-Reverted/abandoned along the way: width reduction (393→314), record-bar 15% shrink, desktop radius 8→16. Settled on `scale(0.8)` instead which shrinks everything uniformly.
-
-### 3. Kill-switch architecture plan (NOT IMPLEMENTED)
-Reference doc at [docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md](docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md). Detailed plan for an `AbortSignal`-based cancellation contract across demos, so swiping during an in-flight async op (recording, transcribe fetch, mic stream) cleanly aborts without leaking results into the now-inactive demo.
-
-Proposed primitive (in plan, not built):
-```ts
-function useActiveAbortSignal(isActive: boolean): AbortSignal {
-  // returns a signal that aborts when isActive flips false,
-  // fresh AbortController on next isActive=true
-}
-```
-
-Demos opt in via optional `cancelSignal?: AbortSignal` prop. Standalone demos work as before; in showcase they get the signal and abort cleanly. Phases laid out in the doc — recommend starting with `AIConfidenceDemo` since it has the most async surface.
-
-### 4. Smaller fixes worth knowing
-- **`offset*` instead of `getBoundingClientRect()`** in [deepUIcomponents.tsx](src/projects/ai-confidence-tracker/components/ui/deepUIcomponents.tsx:446) for underline measurement — fixes underline positioning under transformed ancestors (was breaking at scale(0.9) on mobile).
-- **DRY headline** — `DemoIntroCard` accepts optional `headlineSuffix` (CSS-hidden on mobile) instead of duplicating cards. Single DOM element, full text in DOM for screen readers.
-- **Record-button jitter on Brave iOS** — `.clip-record-morph` got `contain: paint` + `will-change: transform`; removed `filter: blur` from layer crossfade (replaced with opacity-only). Layer isolation prevents canvas-neighbour repaints from coupling.
-- **iOS audio context** — both `createFakeStream` (in `VoiceTextBoxClip`) and `ClipLinearWaveform` now use a fire-and-forget resume() pattern (NOT awaited — WebKit can hang). Gesture + visibilitychange listeners resume on next interaction / tab return.
-- **Transcript-bar on mobile in results state** — microcopy `display: none`, legend reflows row + `align-self: flex-end` to anchor at the same baseline as the microcopy was. No card jump between states.
+The Trace `Try Demo` rendering bug (wrong component) was fixed mid-session via a `TraceCore` extraction. The TraceSim mid-viewport width bug was also fixed.
 
 ---
 
-## Architectural patterns established this session
+## 1. Kill-switch architecture — planned, reviewed, implemented
 
-These are now the conventions for any future work:
+### Document
+[docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md](docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md) went through three rounds of reviewer feedback. Final shape:
 
-1. **Mobile variants are sibling components, not media-query overrides.** `ShowcaseNavbarCompactSmall`, `ShowcaseButtonsSmall`, `DemoProgressSectionTransparent`, `ShowcaseCloseBtnSmall` all sit alongside their desktop versions; the lab/showcase swaps via CSS `display: none` on wrapper class (not JS viewport detection). Real layout savings, not transform: scale.
+- **Three rules**: showcase owns activation/deactivation; project owns release of active resources + rejection of stale completions; durable product state stays untouched.
+- **Two-layer architecture**:
+  - **Layer 1 (universal)**: `useActiveAbortSignal`, `useRunId`, `abortUtils`, `cancelSignal?: AbortSignal` prop contract, abort-listener composition rule, "invoke product's existing cancel path" operational rule.
+  - **Layer 2 (per-project adapter)**: each demo wires its own teardown — bodies differ, shape identical (one effect, one abort listener, one cleanup return).
+- **Per-project state-classification table** — explicit durable vs session-ephemeral classification per project. ClipStream's pending clips / IndexedDB / zustand contents called out as durable.
+- **Capture-at-start runId discipline** — covers late callbacks (`MediaRecorder.onstop`, IndexedDB `onsuccess`, queued promise residue) that AbortSignal can't reach. Three rounds of review caught a bug where I wrote `myRun = runIdRef.current` *inside* the late callback (tautology); the fix is to capture at attach-time so the closure carries the run-id.
+- **Render-time-swap fix** in both `useActiveAbortSignal` and `useRunId` — previous draft did the swap in an effect, leaving a one-render window where consumers saw a stale aborted signal / unbumped runId on reactivation.
 
-2. **App-shell layout** for full-bleed pages: `.lab` / `.showcase` use `position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none` PLUS a mounted-time body/html lock via useEffect. Restores prior body state on unmount so other scrollable pages still work. This is what kills iOS pull-to-refresh + rubber-band properly.
+### What's implemented
 
-3. **Project showcase isolation: never edit project source for showcase customization.** Use scoped `:global()` overrides via styled-jsx wrapper class. ClipStreamSim demonstrates this — three CSS overrides, zero edits to `src/projects/clipperstream/**`.
+**Phase 1a — Layer 1 primitives** ([commit `fbdaa5d`](#))
+- [src/projects/demo-showcase/hooks/useActiveAbortSignal.ts](src/projects/demo-showcase/hooks/useActiveAbortSignal.ts)
+- [src/projects/demo-showcase/hooks/useRunId.ts](src/projects/demo-showcase/hooks/useRunId.ts)
+- [src/projects/demo-showcase/hooks/abortUtils.ts](src/projects/demo-showcase/hooks/abortUtils.ts) (`onAbort`, `composeAbortSignals`)
 
-4. **Use `offset*` properties for measurement-driven layout, not `getBoundingClientRect()`.** GBCR returns post-transform screen pixels; if you then apply those values as CSS inside a transformed ancestor, the value gets scaled twice. `offsetLeft/offsetTop/offsetWidth` are layout-space and round-trip cleanly through transforms.
+**Phase 1b — AI Confidence wiring** ([commit `9fb5e80`](#))
+- `useAudioRecording(runIdRef?)` — captures runId at startRecording, guards `mediaRecorder.onstop` closure
+- `useDeepgramProcessing(cancelSignal?, runIdRef?)` — `signal: cancelSignal` into transcribe fetch; AbortError swallowed; runId guards every post-await write
+- `useSpeechConfidenceState({cancelSignal?, runIdRef?})` — abort-listener invokes `stopRecording()` + `resetState()`
+- `SpeechConfidenceProvider` accepts both props
+- `AIConfidenceDemo` forwards them
+- Showcase: `useActiveAbortSignal(activeIdx === 0 && isDemoMode)` + `useRunId(...)` passed in
 
-5. **Don't bake `transform: scale()` into layout decisions.** Use it for micro-interactions (`:active`, `:hover`). For "smaller on mobile," resize via real dimensions (sibling component or CSS values) so getBoundingClientRect, hit-testing, and sub-component math all work correctly. Exception: ClipStreamSim uses `scale(0.8)` deliberately as a visual experiment because we don't want to fork ClipMasterScreen.
+**Phase 1c — ClipStream plumbing (4 steps, all in `65fd7cb`)**
+1. `useClipRecording(externalSignal?)` — composes external signal with the per-call 30s timeout `AbortController` inside `transcribeRecording`. AbortError differentiation: external-cancel bails silently (no retry); timeout still triggers existing retry pipeline.
+2. ClipMasterScreen's two `/api/clipperstream/format-text` fetches — added `signal:` arg (originally took none).
+3. ClipMasterScreen accepts `cancelSignal?` prop. `abortControllerRef` lazy-inits at render-time so it's never null at fetch sites and self-replaces after each abort. Effect listens for external abort and invokes the existing `handleCloseClick` cancel path. **Does NOT touch zustand store, IndexedDB, or `useAutoRetry`** — see KILL-SWITCH-ARCHITECTURE.md §2.3.
+4. ClipStreamSim forwards `cancelSignal` to ClipMasterScreen.
+- Showcase: `useActiveAbortSignal(activeIdx === 2)` — no `isDemoMode` gate (sim slot mounts the real product directly).
 
-6. **CSS module classes (not styled-jsx) for components wrapped in framer-motion.** `motion.button` strips styled-jsx's scope class on the root, so `<style jsx>` selectors miss. CSS modules are unaffected. (Hit this on `ShowcaseButtonsSmall` — bug discovered, fixed by moving to CSS module.)
+**Phase 2 — Trace** ([commit `6c78533`](#) is the right one; `90a91b9` was the wrong-component first attempt)
+- Trace's interactive surface lives in [src/projects/trace/components/TraceCore.tsx](src/projects/trace/components/TraceCore.tsx) (extracted from `/trace/index.tsx`).
+- Both standalone `/trace` and `TraceDemo` render `<TraceCore />`. Same UI everywhere.
+- Kill-switch wired in TraceCore: `signal: cancelSignal` on both `/api/trace/parse-voice` and `/api/trace/parse-receipt` fetches; runId guards on every post-await; abort listener invokes the existing `handleCancelRecording` X-button path. localStorage `trace-expense-entries` is durable — explicitly not touched.
+
+### `[DEMO-SHOWCASE]` markers
+Every kill-switch addition inside product source files has `[DEMO-SHOWCASE]` tags so a future porter can `grep -rn '\[DEMO-SHOWCASE\]' src/projects/` and delete cleanly. File-top porting notes with checklists in:
+- TraceCore.tsx
+- SpeechConfidenceHooks.ts
+- useClipRecording.ts
+- ClipMasterScreen.tsx
+
+The new mic-banner files (`ShowcaseNavbarMicBanner.tsx`, `ShowcaseNavbarMicBannerSmall.tsx`) and the showcase `index.tsx` mic-banner wiring still need a marker pass — that's Stage 4, not done yet.
+
+### What's NOT implemented (kill-switch)
+- **Manual mic-required acceptance scenarios** — listed in KILL-SWITCH-ARCHITECTURE.md "Testing strategy". Browser automation can't grant mic permission; user needs to manually walk through swipe-during-record / swipe-during-fetch / offline-reconnect. These are gating tests but pending.
+- **Voice Interface** — entirely deferred from showcase project list; kill-switch will be wired when Voice ships.
+
+---
+
+## 2. Mic permission navbar swap — Stages 1, 2, 3 done
+
+The `MicPermissionBanner` uses `position: fixed; top: 24px` of the viewport. On `/trace` standalone that's fine (no chrome to overlap). On `/demo-showcase` the showcase navbar pill ALSO sits at top of viewport — the banner overlaps and becomes a barely-visible "black ball under the navbar" at desktop widths. The fix is to suppress the floating banner inside the showcase context and replace the project pill with a navbar-slot mic-permission UI.
+
+### Stage 1 ([commit `21e0837`](#))
+- TraceCore accepts `hideMicBanner?: boolean` prop. When true, suppresses `<MicPermissionBanner />`.
+- TraceDemo passes `hideMicBanner={true}`.
+- `/trace` standalone unchanged (banner still floats).
+
+### Stage 2 — Desktop navbar mic banner ([commits `15d81e0`, `5ecb5cb`, `1d54baa`, `57d2821`, `9729ee8`](#))
+- New: [src/projects/demo-showcase/components/ui/ShowcaseNavbarMicBanner.tsx](src/projects/demo-showcase/components/ui/ShowcaseNavbarMicBanner.tsx)
+- **Crucial design decision after multiple rebuilds**: the OUTER pill chrome (light tan, max-width 668, padding 8, border-radius 20, inset shadow) stays IDENTICAL to `ShowcaseNavbarCompact`. Only the INNER content swaps per state. The pill geometry is constant across all four states (granted, unknown, dismissed, blocked) so the navbar visually "stays the same shape" and only its contents change.
+- `unknown` state: title "Demo requires microphone access" left + Enable (white) / Not now (dark) buttons right. Buttons sized like `arrow-btn` (35px, content-fit width).
+- `dismissed` state: small orange "Enable Mic" centred inside the same tan outer pill (sized like the project counter / arrow buttons — NOT a full-pill takeover, that was the wrong attempt).
+- `blocked` state: title + X dismiss.
+- Inset shadow on the outer pill across all three states (matches the granted pill).
+- Project config gained `needsMic?: boolean`. AI Confidence and Trace true; ClipStream omits.
+- Showcase: `showMicInNavbar = isDemoMode && active.needsMic && (micState === 'unknown' || 'dismissed' || 'blocked')`. Lifted `useMicPermission` to the showcase component so navbar swap and any future consumer share one hook instance.
+
+### Stage 3 — Mobile compact variant ([commit `e48e634`](#))
+- New: [src/projects/demo-showcase/components/ui/ShowcaseNavbarMicBannerSmall.tsx](src/projects/demo-showcase/components/ui/ShowcaseNavbarMicBannerSmall.tsx)
+- Sister to `ShowcaseNavbarCompactSmall` — same outer dimensions (padding 6, border-radius 14, F7F6F2 bg, inset shadow), OpenRunde 500 / 12px font, ~25px button heights.
+- Shortened copy so it fits alongside the X close button: "Mic access needed", "Enable", "Not now", "Mic access denied".
+- Wired into the showcase's `nav-mobile` slot via the same `showMicInNavbar` predicate.
+
+### What's NOT done (mic banner)
+- **Stage 4** — `[DEMO-SHOWCASE]` marker pass on the new mobile mic banner files + showcase mobile-slot wiring. The desktop variant's wiring already has markers; the mobile equivalents don't yet.
+- The existing `MicPermissionBanner` from new-home still floats unchanged on `/trace` standalone — that's intentional (banner works correctly there).
+
+---
+
+## 3. Components review page — `/demo-showcase/showcase/democomponents`
+
+Brand new route: [src/pages/demo-showcase/showcase/democomponents.tsx](src/pages/demo-showcase/showcase/democomponents.tsx). Mirrors the convention from `/pages/voiceinterface/showcase/voicecomponent.tsx` — white page bg, subtle dark cell borders, faded uppercase labels at the bottom of each cell.
+
+Renders 14 cells across 6 sections:
+- Top Navbar — Desktop: granted (project pill) + 3 mic banner states
+- Top Navbar — Mobile: small project pill + close button + 3 small mic banner states
+- CTA Buttons — Desktop: Try Demo, Play Simulation, View Case Study
+- CTA Buttons — Mobile: corresponding *Small variants
+- Demo Intro Card: headline only + headline-with-suffix (canvas backdrop)
+- Demo Progress: default + transparent (canvas backdrop)
+
+### GridBox — orthogonal `width` × `stretch` props ([commit `d1d4211`](#))
+The GridBox has two independent layout knobs:
+- **`width`** — fixed cell width in px, OR omit for fluid (100% of grid). Fluid is what makes the navbar cells respond to viewport width like production. Fixed is for atomic components shown at a specific size.
+- **`stretch`** — when true, content area is column-flex with `align-items: stretch` so children fill cell width. Used for navbar variants and the mobile project pill (which has `width: 100%` in its own CSS but needs a parent that gives it room). Default false = flex-centred (atomic components stay at natural size).
+
+The previous attempts with `:global(.top-navbar-compact)` overrides were patches and got removed — these props are the structural fix.
+
+`canvasBackdrop` prop also exists for components designed to layer over the showcase canvas (DemoIntroCard, DemoProgressSection) — provides the tan canvas-tinted bg + `.demoCanvasRoot` className so the `--demo-*` CSS variables resolve.
+
+### Key dimensions
+- Desktop navbar cells: fluid (claim full row), height 100, content stretches to fill. At viewport 990 → cell 908, wrap 875, pill 668 (capped). Same proportions as live `/demo-showcase`.
+- Mobile pill cell: fixed 360px, stretch=true. Wrap and pill both fill at 327 (after the new 16px cell padding). Matches mobile production proportions.
+- 16px horizontal padding inside the cell content area so children don't touch the cell border ([commit `1195822`](#)).
+
+---
+
+## 4. Smaller fixes worth knowing
+
+- **TraceSim mid-viewport width fix** ([commit `cc9a0d4`](#)) — at viewports between 640 and 768 the TraceSim's text-box was filling its slot via `width: 100% !important`, making the sim card ~2× wider than the demo card. Added `max-width: 320px !important` (calculated as 288 / 0.9 to match the demo's visual width post-scale-factor difference between `.layer-sim` 0.9 and `.layer-demo` 0.8).
+- **Trace clear button portal** ([commit `7c8268c`](#)) — the trash button portals out of `trace-demo-wrapper` into the parent `.canvas-content` and is absolute-positioned bottom-right via `createPortal`. Original `.clear-button-below` is hidden via `display: none`. Click forwards to the hidden original via ref. Standalone `/trace` page unaffected.
 
 ---
 
 ## ⚠ Known stubs / open work
 
-1. **Trace inline demo** — only sim wired in showcase; demo not built. When it lands, slot in like AIConfidence: `<TraceDemo />` next to `<TraceSim />` inside `activeIdx === 1` block.
-2. **ClipStream inline demo** — not built either. Same plug-in pattern when ready.
-3. **Voice Interface** — entirely deferred; not in showcase project list yet.
-4. **AbortSignal kill-switch** — see plan doc; pick when ready. Recommend starting with `AIConfidenceDemo` since its `transcribeAudio` stub is the most likely leak point.
-5. **`transcribeAudio` stub** still returning 400 (carried over from prior session). When fixed, swap the `setTimeout`/SAMPLE_LINES branch in `VoiceTextBoxClip.tsx` back for the original `fetch`. Original code in commit `6a4d228`.
+1. **Stage 4 — `[DEMO-SHOWCASE]` markers** on the new mic banner files:
+   - `ShowcaseNavbarMicBannerSmall.tsx` (new — has no markers yet)
+   - The mobile-slot wiring inside `/pages/demo-showcase/index.tsx` (also recent — has no markers yet)
+   - Sanity-check that all stage-2/3 additions in `/pages/demo-showcase/index.tsx` (PROJECTS array `needsMic`, `useMicPermission` lift, `showMicInNavbar`, the conditional render) all have `[DEMO-SHOWCASE]` tags
+2. **Manual mic-required acceptance tests** for kill-switch — listed in KILL-SWITCH-ARCHITECTURE.md "Testing strategy". Pending user walkthrough.
+3. **Voice Interface kill-switch** — entirely deferred, pending Voice landing in the showcase.
+4. **`transcribeAudio` stub** still 400ing in `VoiceTextBoxClip.tsx` (carried over from earlier sessions).
 
 ---
 
@@ -87,49 +143,45 @@ These are now the conventions for any future work:
 
 | File | Why you'd open it |
 |---|---|
-| [/pages/demo-showcase/index.tsx](src/pages/demo-showcase/index.tsx) | The production showcase page — 3 projects, full mobile polish |
-| [/pages/demo-canvas-lab.tsx](src/pages/demo-canvas-lab.tsx) | Scratchpad/lab — kept around for future iterations |
-| [ClipStreamSim.tsx](src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx) | ClipStream-specific overrides; pattern for future per-project sims |
-| [ShowcaseNavbarCompactSmall.tsx](src/projects/demo-showcase/components/ui/ShowcaseNavbarCompactSmall.tsx) | Mobile navbar — 0.7× baked-in dimensions |
-| [ShowcaseButtonsSmall.tsx](src/projects/demo-showcase/components/ui/ShowcaseButtonsSmall.tsx) | Mobile CTAs — animated label swap with blur crossfade |
-| [ShowcaseCloseBtnSmall.tsx](src/projects/demo-showcase/components/ui/ShowcaseCloseBtnSmall.tsx) | X button shown in mobile demo mode |
-| [DemoProgressSectionTransparent.tsx](src/projects/demo-showcase/components/ui/DemoProgressSectionTransparent.tsx) | Mobile edge-to-edge progress |
-| [DemoIntroCard.tsx](src/projects/demo-showcase/components/ui/DemoIntroCard.tsx) | Headline pill — accepts `headlineSuffix` (desktop-only tail) |
-| [transcript-bar.tsx](src/projects/ai-confidence-tracker/components/ui/transcript-bar.tsx) | Single-line legend in results state on mobile |
-| [docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md](docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md) | The pending AbortSignal plan |
+| [docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md](docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md) | The architecture document |
+| [/pages/demo-showcase/index.tsx](src/pages/demo-showcase/index.tsx) | Showcase carousel — kill-switch wiring + mic banner conditional |
+| [/pages/demo-showcase/showcase/democomponents.tsx](src/pages/demo-showcase/showcase/democomponents.tsx) | Components-in-isolation review page |
+| [TraceCore.tsx](src/projects/trace/components/TraceCore.tsx) | The actual Trace interactive surface (used by both `/trace` and `TraceDemo`) |
+| [TraceDemo.tsx](src/projects/demo-showcase/components/demos/TraceDemo.tsx) | Showcase wrapper for Trace; portals trash button |
+| [ShowcaseNavbarMicBanner.tsx](src/projects/demo-showcase/components/ui/ShowcaseNavbarMicBanner.tsx) | Desktop navbar mic banner (3 states) |
+| [ShowcaseNavbarMicBannerSmall.tsx](src/projects/demo-showcase/components/ui/ShowcaseNavbarMicBannerSmall.tsx) | Mobile navbar mic banner (3 states) |
+| [useActiveAbortSignal.ts](src/projects/demo-showcase/hooks/useActiveAbortSignal.ts) / [useRunId.ts](src/projects/demo-showcase/hooks/useRunId.ts) / [abortUtils.ts](src/projects/demo-showcase/hooks/abortUtils.ts) | Kill-switch Layer 1 primitives |
 
-## Recent commits (this session)
+## Recent commits (this session, newest first)
 
 ```
-2fabddb style(ClipStreamSim): round master-screen corners on mobile too
-8c4e828 style(ClipStreamSim): transform scale(0.8) on the whole frame (experiment)
-c4f1749 style(ClipStreamSim): shrink master-screen 852 -> 652 on desktop
-2020064 feat(demo-showcase): dedicated ClipStreamSim component
-8d7f050 feat(demo-showcase): port ClipMasterScreen into ClipStream slot
-491728d style(demo-showcase): ClipStream uses warm pink variation (from lab)
-3dce800 feat(demo-showcase): port lab layout + mobile polish to production page
-c7b9dc2 docs(demo-showcase): kill-switch architecture plan (AbortSignal pattern)
-da32816 style(ai-confidence): pin legend to bottom of reserved bar slot on mobile
-f3c9f3d fix(ai-confidence): add min-height 38px to transcript-bar on mobile
-b383978 style(ai-confidence): legend renders as single row on mobile in results state
-d1c418b refactor(ai-confidence): simplify mobile results state to just microcopy hide
-9a89d82 feat(ai-confidence): hide microcopy in results state on mobile
-a1d0935 fix(ai-confidence): use offset* instead of GBCR for underline position math
-34a0413 feat(demo-canvas-lab): demo-mode adds X close btn + collapses CTA (mobile)
-2e1d77a style(ShowcaseButtonsSmall): stacked-absolute label crossfade with blur
-a7c4525 fix(ShowcaseButtonsSmall): move styles to CSS module — styled-jsx broke motion.button
-17f94b0 feat(demo-canvas-lab): wire ShowcaseNavbarCompactSmall on mobile
-93af6fc feat(demo-showcase): ShowcaseNavbarCompactSmall component
-06f6669 feat(demo-canvas-lab): wire DemoProgressSectionTransparent on mobile
-587168c fix(clip): architectural fixes for WebKit jitter + iOS audio suspension
-a4e1c2d fix(demo-canvas-lab): lock body + html on mount to kill iOS pull-to-refresh
-7f9a752 fix(demo-canvas-lab): app-shell layout to disable mobile PTR + overscroll
+1195822 fix(democomponents): inner cell padding so content doesn't touch edges
+e48e634 feat(demo-showcase): mobile compact variant of navbar mic banner (Stage 3)
+d1d4211 refactor(democomponents): orthogonal width/stretch props, fix mobile pill hug
+7fe098a fix(showcase/democomponents): match navbar widths to live /demo-showcase exactly
+e468947 Revert "fix(showcase/components): cell widths match production navbar wrapper"
+b503bdd fix(showcase/components): cell widths match production navbar wrapper
+522fe44 fix(showcase/components): white bg + proper cell dimensions + mobile pill at native width
+0f61bab refactor(showcase/components): rebuild against trace/new-home pattern
+3cda313 feat(demo-showcase): components page at /demo-showcase/showcase/components
+9729ee8 fix(ShowcaseNavbarMicBanner): apply inset shadow to all states
+57d2821 fix(ShowcaseNavbarMicBanner): restore inset shadow on outer pill in dismissed state
+1d54baa fix(ShowcaseNavbarMicBanner): dismissed state — orange pill INSIDE the tan chrome
+5ecb5cb refactor(ShowcaseNavbarMicBanner): rebuild against navbar pill chrome (Stage 2)
+15d81e0 feat(demo-showcase): navbar-slot mic banner — desktop only (Stage 2)
+21e0837 feat(TraceCore): suppress in-card MicPermissionBanner in showcase (Stage 1)
+7c8268c feat(TraceDemo): portal clear button to canvas bottom-right
+cc9a0d4 fix(TraceSim): cap text-box max-width so it doesn't fill mid-range viewports
+6c78533 fix(demo-showcase): Trace 'Try Demo' renders the real product + DEMO-SHOWCASE markers
+65fd7cb feat(kill-switch): wire ClipStream into kill-switch contract
+9fb5e80 feat(kill-switch): wire AI Confidence demo into kill-switch contract
+fbdaa5d feat(kill-switch): add Layer 1 primitives — useActiveAbortSignal, useRunId, abortUtils
 ```
 
 ---
 
 ## Suggested next moves
 
-1. **Implement the AbortSignal kill-switch** (see plan doc). Start with `AIConfidenceDemo` — add `cancelSignal?` prop, wire into transcribe fetch + mic teardown. Validate with a fast swipe-during-recording test.
-2. **Build inline demos** for Trace and ClipStream when ready. Same pattern: a `TraceDemo` / `ClipStreamDemo` component sibling to the sim, wired in the `activeIdx === N` block.
-3. **Tune ClipStream visuals** — the warm pink variation + 0.8 scale + 16px corners is a starting point. May want sim-specific phone bezel, status bar, etc. once the inline demo lands.
+1. **Stage 4 marker pass** (~15 min) — `grep -L '\[DEMO-SHOWCASE\]' src/projects/demo-showcase/components/ui/ShowcaseNavbarMicBannerSmall.tsx src/pages/demo-showcase/index.tsx`, add file-top porting notes + inline tags on the kill-switch / mic-banner code in those two files.
+2. **Manual mic-required acceptance tests** — walk through the scenarios in KILL-SWITCH-ARCHITECTURE.md "Testing strategy" with a real microphone. The critical ones: AI Confidence swipe-during-record, ClipStream offline-reconnect (record offline → swipe to AI Confidence → reconnect → swipe back → pending clip processes).
+3. When **Voice Interface** lands in the showcase: build a `VoiceDemo` wrapper, wire kill-switch using the `composeAbortSignals` pattern (Voice already has its own internal `AbortController`s), set `needsMic: true` on the project config.
