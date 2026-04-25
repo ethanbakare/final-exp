@@ -152,26 +152,42 @@ export function useRunId(isActive: boolean) {
 
 Adapter usage:
 
+**The capture point matters.** `myRun` must be captured at the point where the operation *starts* or the handler is *attached* — never inside the late callback itself, where reading `runIdRef.current` and comparing it to a value just read in the same statement is a tautology that always passes.
+
 ```ts
 const runIdRef = useRunId(isActive);
 
+// Pattern 1 — async function with awaits.
+// Capture at function entry (before any await); check after each await.
 const transcribe = async (blob: Blob) => {
-  const myRun = runIdRef.current;       // capture at start
+  const myRun = runIdRef.current;          // capture at START
   const res = await fetch(url, { signal: cancelSignal, body: blob });
-  if (myRun !== runIdRef.current) return; // run was abandoned
+  if (myRun !== runIdRef.current) return;  // ref may have bumped during await
   const data = await res.json();
   if (myRun !== runIdRef.current) return;
-  setTranscript(data);                   // safe to commit
+  setTranscript(data);                     // safe to commit
 };
 
-mediaRecorder.onstop = () => {
-  const myRun = runIdRef.current;
-  if (myRun !== runIdRef.current) return; // late onstop after a new run started
-  // ... commit blob to state
+// Pattern 2 — late event handler attached to a long-lived resource.
+// Capture at the moment of attachment (the start of the run that owns this
+// handler); the closure carries the captured value into the handler.
+const startRecording = () => {
+  const myRun = runIdRef.current;          // capture at ATTACH (handler closes over this)
+  mediaRecorder.onstop = () => {
+    if (myRun !== runIdRef.current) return;  // late onstop after a new run started
+    setAudioData(blob);                    // safe to commit
+  };
+  mediaRecorder.start(1000);
 };
+
+// WRONG — captures inside the handler. Tautological compare; never guards.
+// mediaRecorder.onstop = () => {
+//   const myRun = runIdRef.current;
+//   if (myRun !== runIdRef.current) return; // <-- always false; useless
+// };
 ```
 
-`AbortSignal` covers cancellable I/O. `runId` covers everything else: late event-fired callbacks, IndexedDB completions, Promise chain residue. Together they catch the entire late-write class.
+`AbortSignal` covers cancellable I/O. `runId` covers everything else: late event-fired callbacks, IndexedDB completions, Promise chain residue. The capture-at-start / compare-on-fire discipline is what makes the guard work.
 
 ### 1.3 The prop contract
 
@@ -280,11 +296,19 @@ useEffect(() => onAbort(cancelSignal, () => {
   resetState();      // existing function — returns AppState to INITIAL
 }), [cancelSignal, stopRecording, resetState]);
 
-// MediaRecorder.onstop — runId guard for late commit
-mediaRecorder.onstop = () => {
-  const myRun = runIdRef.current;
-  if (myRun !== runIdRef.current) return;
-  setAudioData(blob);
+// MediaRecorder.onstop — runId guard for late commit.
+// Capture at attach time (inside startRecording) so the closure carries the
+// id of the run that owns this handler. Compare INSIDE onstop against the
+// current ref to detect "this handler belongs to an abandoned run."
+const startRecording = async () => {
+  // ... existing setup, getUserMedia, MediaRecorder construction ...
+  const myRun = runIdRef.current;          // captured here, NOT inside onstop
+  mediaRecorder.onstop = () => {
+    if (myRun !== runIdRef.current) return; // late onstop after re-activation
+    const blob = new Blob(audioChunksRef.current, { type: mimeType });
+    setAudioData(blob);
+  };
+  mediaRecorder.start(1000);
 };
 ```
 
@@ -482,7 +506,15 @@ Missing items are leaks; touching durable state is product-behaviour bugs. Use t
 
 ## Rollout plan
 
-1. **Phase 1 — Layer 1 + AI Confidence + ClipStream.** Build `useActiveAbortSignal`, `useRunId`, `abortUtils`. Wire AI Confidence end-to-end (prop → provider → hooks). Wire ClipStream by adding the optional `cancelSignal?: AbortSignal` prop to `ClipMasterScreen`, routing into `handleCloseClick`. Validate both with the test scenarios below before declaring Phase 1 done.
+1. **Phase 1 — Layer 1 + AI Confidence + ClipStream.**
+   - Build `useActiveAbortSignal`, `useRunId`, `abortUtils`.
+   - Wire AI Confidence end-to-end (prop → provider → hooks; `cancelSignal` into the transcribe fetch; `runId` capture-at-start in `useDeepgramProcessing.processAudio` and capture-at-attach for `MediaRecorder.onstop` in `useAudioRecording`).
+   - Wire ClipStream — **all four plumbing steps** from §2.3, not just step 3:
+     1. Compose external signal into `useClipRecording`'s transcribe fetch (currently uses an isolated 30s timeout controller).
+     2. Add `signal` parameter to the format-text fetch in `ClipMasterScreen` (currently takes no signal).
+     3. Add `cancelSignal?: AbortSignal` prop to `ClipMasterScreen`; compose it into `abortControllerRef` so `handleCloseClick`'s existing `abort()` call now actually cancels the live HTTP requests.
+     4. Pass the signal through from `ClipStreamSim`.
+   - Validate both with the acceptance criteria below — including the offline-reconnect scenario for ClipStream — before declaring Phase 1 done.
 
 2. **Phase 2 — Trace adapter.** When `TraceDemo` is built (currently only sim is wired). Same pattern: wrapper accepts prop, threads into the mega-component.
 
