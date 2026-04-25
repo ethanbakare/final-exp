@@ -2,10 +2,10 @@
  * Demo Showcase — Components page
  *
  * Renders every UI component used by the /demo-showcase carousel in
- * isolation, in a fixed-size seamless grid. Mirrors the convention used
- * by /pages/new-home/showcase/components.tsx and /pages/trace/showcase/
- * tracecomponent.tsx — dark page bg, GridBox cells with thin borders
- * that touch, tiny uppercase labels, component-library-feel.
+ * isolation. Mirrors the convention from /pages/voiceinterface/showcase/
+ * voicecomponent.tsx — WHITE page bg (the demo-showcase components are
+ * mostly designed for light surfaces), thin subtle dark cell borders,
+ * tiny dark-faded labels at the bottom of each cell.
  *
  * Route: /demo-showcase/showcase/components
  *
@@ -27,9 +27,15 @@ import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/compone
 
 const noop = () => {};
 
+/* Typical mobile viewport width — used to constrain the cells holding
+   *Small (mobile) components so they render at their actual mobile
+   width instead of stretching across a wider desktop cell. Matches
+   how they appear on /demo-showcase at viewport ≤ 768. */
+const MOBILE_PILL_WIDTH = 343;
+
 /* ─────────────────────────────────────────────────────────────────────
    GridBox — fixed-size cell with thin border + bottom label.
-   Mirrors trace's ButtonGrid + new-home's GridBox idiom.
+   Voice-components pattern: subtle dark border on white, dark faded label.
    ──────────────────────────────────────────────────────────────────── */
 function GridBox({
   children,
@@ -38,16 +44,21 @@ function GridBox({
   height,
   // canvasBackdrop: tan canvas-coloured cell bg for components designed to
   // layer over the showcase canvas (DemoIntroCard, DemoProgressSection).
-  // Without this they render as semi-transparent ghosts on the dark page.
+  // Without it those translucent pills become invisible on the white page.
   // Also injects the .demoCanvasRoot class so the demo-* CSS variables
   // resolve correctly inside the cell.
   canvasBackdrop = false,
+  // contentMaxWidth: caps the inner content area so a component that uses
+  // width: 100% can't stretch beyond the cap. Used for mobile components
+  // that should render at their actual mobile width inside a wider cell.
+  contentMaxWidth,
 }: {
   children: React.ReactNode;
   label: string;
   width: number;
   height: number;
   canvasBackdrop?: boolean;
+  contentMaxWidth?: number;
 }) {
   return (
     <div
@@ -56,6 +67,7 @@ function GridBox({
     >
       <div
         className={`grid-box-content ${canvasBackdrop ? showcaseStyles.demoCanvasRoot : ''}`}
+        style={contentMaxWidth ? { maxWidth: contentMaxWidth } : undefined}
       >
         {children}
       </div>
@@ -66,13 +78,13 @@ function GridBox({
           display: flex;
           align-items: center;
           justify-content: center;
-          border: 0.8px solid rgba(255, 255, 255, 0.08);
+          border: 0.8px solid rgba(38, 36, 36, 0.05);
           flex-shrink: 0;
           box-sizing: border-box;
           background: transparent;
         }
         /* Canvas-backdrop cells: tan bg matching the showcase canvas
-           tint, so translucent components (intro card pill, progress
+           tint so translucent components (intro card pill, progress
            track) render as they do in production. */
         .grid-box-canvas {
           background: #F2EFE9;
@@ -94,13 +106,8 @@ function GridBox({
           font-weight: 400;
           letter-spacing: 0.04em;
           text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.25);
+          color: rgba(94, 94, 94, 0.5);
           white-space: nowrap;
-        }
-        /* Bottom label flips colour on canvas-backdrop cells (the dark
-           page label colour is invisible on tan). */
-        .grid-box-canvas .grid-box-label {
-          color: rgba(0, 0, 0, 0.35);
         }
       `}</style>
     </div>
@@ -108,7 +115,7 @@ function GridBox({
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   SectionTitle — orange accent bar + uppercase label, new-home style.
+   SectionTitle — orange accent bar + uppercase label, dark text on white.
    ──────────────────────────────────────────────────────────────────── */
 function SectionTitle({ children }: { children: string }) {
   return (
@@ -125,7 +132,7 @@ function SectionTitle({ children }: { children: string }) {
           font-weight: 600;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.45);
+          color: rgba(28, 28, 28, 0.65);
           margin: 0 0 28px;
         }
         .section-accent {
@@ -153,12 +160,13 @@ export default function ShowcaseComponentsPage() {
         <p className="page-subtitle">All components displayed in isolation</p>
 
         {/* ═══════════════════════════════════════════════════════════
-            TOP NAVBAR — DESKTOP (4 STATES)
+            TOP NAVBAR — DESKTOP (4 STATES, all share .top-navbar-compact
+            outer chrome ≈ 700×91 with full-width pill capped at 668px)
             ═══════════════════════════════════════════════════════════ */}
         <div className="section">
           <SectionTitle>Top Navbar — Desktop</SectionTitle>
           <div className="seamless-grid">
-            <GridBox label="granted (project pill) — 668 × 51" width={720} height={120}>
+            <GridBox label="granted (project pill)" width={720} height={100}>
               <ShowcaseNavbarCompact
                 projectName="Trace"
                 currentIndex={1}
@@ -167,7 +175,7 @@ export default function ShowcaseComponentsPage() {
                 onPrev={noop}
               />
             </GridBox>
-            <GridBox label="mic state · unknown" width={720} height={120}>
+            <GridBox label="mic state · unknown" width={720} height={100}>
               <ShowcaseNavbarMicBanner
                 micState="unknown"
                 onEnable={noop}
@@ -176,7 +184,7 @@ export default function ShowcaseComponentsPage() {
                 onDismissBlocked={noop}
               />
             </GridBox>
-            <GridBox label="mic state · dismissed" width={720} height={120}>
+            <GridBox label="mic state · dismissed" width={720} height={100}>
               <ShowcaseNavbarMicBanner
                 micState="dismissed"
                 onEnable={noop}
@@ -185,7 +193,7 @@ export default function ShowcaseComponentsPage() {
                 onDismissBlocked={noop}
               />
             </GridBox>
-            <GridBox label="mic state · blocked" width={720} height={120}>
+            <GridBox label="mic state · blocked" width={720} height={100}>
               <ShowcaseNavbarMicBanner
                 micState="blocked"
                 onEnable={noop}
@@ -199,11 +207,19 @@ export default function ShowcaseComponentsPage() {
 
         {/* ═══════════════════════════════════════════════════════════
             TOP NAVBAR — MOBILE
+            Cell width is constrained via contentMaxWidth so the mobile
+            pill renders at its actual mobile-viewport width (343px),
+            not stretched to the desktop cell width.
             ═══════════════════════════════════════════════════════════ */}
         <div className="section">
           <SectionTitle>Top Navbar — Mobile</SectionTitle>
           <div className="seamless-grid">
-            <GridBox label="project pill (granted) · 0.7×" width={400} height={120}>
+            <GridBox
+              label="project pill (granted) · 0.7×"
+              width={400}
+              height={100}
+              contentMaxWidth={MOBILE_PILL_WIDTH}
+            >
               <ShowcaseNavbarCompactSmall
                 projectName="Trace"
                 currentIndex={1}
@@ -212,7 +228,7 @@ export default function ShowcaseComponentsPage() {
                 onPrev={noop}
               />
             </GridBox>
-            <GridBox label="close button (demo mode)" width={120} height={120}>
+            <GridBox label="close button (demo mode)" width={120} height={100}>
               <ShowcaseCloseBtnSmall onClick={noop} />
             </GridBox>
           </div>
@@ -224,13 +240,13 @@ export default function ShowcaseComponentsPage() {
         <div className="section">
           <SectionTitle>CTA Buttons — Desktop</SectionTitle>
           <div className="seamless-grid">
-            <GridBox label="try demo (sim mode)" width={240} height={120}>
+            <GridBox label="try demo (sim mode)" width={240} height={100}>
               <TryDemoButton onClick={noop} label="Try Demo" />
             </GridBox>
-            <GridBox label="play simulation (demo mode)" width={240} height={120}>
+            <GridBox label="play simulation (demo mode)" width={240} height={100}>
               <TryDemoButton onClick={noop} label="Play Simulation" />
             </GridBox>
-            <GridBox label="view case study" width={240} height={120}>
+            <GridBox label="view case study" width={240} height={100}>
               <ViewCaseStudyButton onClick={noop} />
             </GridBox>
           </div>
@@ -294,7 +310,7 @@ export default function ShowcaseComponentsPage() {
       </div>
 
       <style jsx global>{`
-        body, html { margin: 0; padding: 0; background-color: #0A0A09; }
+        body, html { margin: 0; padding: 0; background-color: #FFFFFF; }
       `}</style>
 
       <style jsx>{`
@@ -310,21 +326,21 @@ export default function ShowcaseComponentsPage() {
           font-family: 'Inter', sans-serif;
           font-size: 24px;
           font-weight: 600;
-          color: white;
+          color: #1C1C1C;
           margin: 0 0 6px;
         }
 
         .page-subtitle {
           font-family: 'Inter', sans-serif;
           font-size: 13px;
-          color: rgba(255, 255, 255, 0.3);
+          color: rgba(28, 28, 28, 0.45);
           margin: 0 0 64px;
         }
 
         .section {
           margin-bottom: 0;
           padding: 48px 0;
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
         }
 
         .section:first-of-type {
@@ -332,7 +348,7 @@ export default function ShowcaseComponentsPage() {
           padding-top: 0;
         }
 
-        /* Seamless grid — Trace / new-home pattern. Cell borders touch. */
+        /* Seamless grid — Trace / new-home / voice pattern. Cell borders touch. */
         .seamless-grid {
           display: inline-flex;
           flex-wrap: wrap;
