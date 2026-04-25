@@ -3,6 +3,8 @@
  * Following atomic design pattern
  */
 
+import type React from 'react';
+
 /* ==================== NAVBAR STATES ==================== */
 
 export type TRNavbarState =
@@ -206,6 +208,15 @@ export interface TraceAppProps {
   initialEntries?: ExpenseEntry[];
   apiKey?: string;
   onError?: (error: string) => void;
+  /** Optional kill-switch cancel signal (showcase use). On abort, invokes
+   *  handleCancelRecording (existing X-button cancel path) and aborts any
+   *  in-flight parse-voice / parse-receipt fetch. Standalone /trace use:
+   *  omit this prop — TraceApp behaves exactly as before. */
+  cancelSignal?: AbortSignal;
+  /** Optional run-id ref (showcase use). Guards late callbacks
+   *  (MediaRecorder.onstop awaiter, post-await setState) against
+   *  committing to an abandoned run. Omit for standalone use. */
+  runIdRef?: React.MutableRefObject<number>;
 }
 
 

@@ -45,6 +45,10 @@ const TraceSim = dynamic(
   () => import('@/projects/demo-showcase/components/simulations/TraceSim').then(m => m.TraceSim),
   { ssr: false },
 );
+const TraceDemo = dynamic(
+  () => import('@/projects/demo-showcase/components/demos/TraceDemo').then(m => m.TraceDemo),
+  { ssr: false },
+);
 // ClipStream sim — dedicated wrapper so future edits to the
 // carousel's ClipStream appearance / behaviour don't leak into the
 // real /clipperstream page.
@@ -127,6 +131,12 @@ export default function DemoShowcasePage() {
   const aiConfidenceActive = activeIdx === 0 && isDemoMode;
   const aiConfidenceCancelSignal = useActiveAbortSignal(aiConfidenceActive);
   const aiConfidenceRunIdRef = useRunId(aiConfidenceActive);
+  // - Trace (idx 1): demo-mode-gated like AI Confidence — sim and demo
+  //   are mounted simultaneously; toggling demo→sim must abort even
+  //   though the demo isn't unmounting.
+  const traceActive = activeIdx === 1 && isDemoMode;
+  const traceCancelSignal = useActiveAbortSignal(traceActive);
+  const traceRunIdRef = useRunId(traceActive);
   // - ClipStream (idx 2): NOT demo-mode-gated — the sim slot mounts the
   //   real ClipMasterScreen; there is no separate demo. Cancellation fires
   //   when the user swipes away from ClipStream entirely. ClipStream's
@@ -288,11 +298,19 @@ export default function DemoShowcasePage() {
                       </div>
                     </>
                   )}
-                  {/* Trace — sim wired, demo not yet built inline. */}
+                  {/* Trace — sim + demo. Same opacity-toggle pattern as
+                      AI Confidence. Both layers mount when activeIdx === 1
+                      so the demo→sim toggle is a visibility flip, not a
+                      mount cycle. */}
                   {activeIdx === 1 && (
-                    <div className="layer layer-sim">
-                      <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />
-                    </div>
+                    <>
+                      <div className={`layer layer-sim ${isDemoMode ? 'layer-hidden' : ''}`}>
+                        <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                      </div>
+                      <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
+                        <TraceDemo cancelSignal={traceCancelSignal} runIdRef={traceRunIdRef} />
+                      </div>
+                    </>
                   )}
                   {/* ClipStream sim. Inline demo not yet split out. */}
                   {activeIdx === 2 && (

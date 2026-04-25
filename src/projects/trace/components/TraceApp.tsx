@@ -22,6 +22,8 @@ export const TraceApp: React.FC<TraceAppProps> = ({
   initialEntries = [],
   apiKey,
   onError,
+  cancelSignal,
+  runIdRef,
 }) => {
   // ==================== STATE MANAGEMENT ====================
   const [appState, setAppState] = useState<TraceAppState>('idle');
@@ -31,6 +33,10 @@ export const TraceApp: React.FC<TraceAppProps> = ({
   // MediaRecorder state
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Kill-switch helper — read runId at call sites; undefined runIdRef means
+  // standalone use, where guards become no-ops.
+  const isStillCurrentRun = (myRun: number) => !runIdRef || myRun === runIdRef.current;
 
   // ==================== LOCALSTORAGE PERSISTENCE ====================
 
@@ -88,6 +94,10 @@ export const TraceApp: React.FC<TraceAppProps> = ({
   const handleSendAudio = async () => {
     if (!mediaRecorderRef.current) return;
 
+    // Capture runId at the start of this async operation. The guards below
+    // bail out cleanly if the demo was deactivated while we were awaiting.
+    const myRun = runIdRef?.current ?? 0;
+
     // Stop recording
     const mediaRecorder = mediaRecorderRef.current;
     mediaRecorder.stop();
@@ -96,6 +106,7 @@ export const TraceApp: React.FC<TraceAppProps> = ({
     await new Promise<void>((resolve) => {
       mediaRecorder.onstop = () => resolve();
     });
+    if (!isStillCurrentRun(myRun)) return;
 
     // Stop all tracks
     mediaRecorder.stream.getTracks().forEach((track) => track.stop());
@@ -109,6 +120,7 @@ export const TraceApp: React.FC<TraceAppProps> = ({
     try {
       console.log('[TRACE APP] Converting audio blob to base64...');
       const base64Audio = await blobToBase64(audioBlob);
+      if (!isStillCurrentRun(myRun)) return;
       console.log('[TRACE APP] Audio converted', {
         blobSize: audioBlob.size,
         base64Length: base64Audio.length
@@ -122,7 +134,9 @@ export const TraceApp: React.FC<TraceAppProps> = ({
           base64Audio,
           mimeType: 'audio/webm',
         }),
+        signal: cancelSignal,
       });
+      if (!isStillCurrentRun(myRun)) return;
 
       console.log('[TRACE APP] Response received', {
         status: response.status,
@@ -144,6 +158,7 @@ export const TraceApp: React.FC<TraceAppProps> = ({
       }
 
       const responseText = await response.text();
+      if (!isStillCurrentRun(myRun)) return;
       console.log('[TRACE APP] Response body:', responseText);
       // parse-voice now returns an array of ExpenseEntry — one per unique
       // (merchant, date) pair Gemini detected in the recording. A single
@@ -164,6 +179,10 @@ export const TraceApp: React.FC<TraceAppProps> = ({
       setAppState('idle');
       setError(null);
     } catch (err) {
+      // Deliberate cancellation — not a user-facing error.
+      if (err instanceof Error && err.name === 'AbortError') return;
+      if (cancelSignal?.aborted) return;
+      if (!isStillCurrentRun(myRun)) return;
       console.error('[TRACE APP] Error processing audio:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to process audio';
       setError(errorMessage);
@@ -183,9 +202,38 @@ export const TraceApp: React.FC<TraceAppProps> = ({
     setAppState('idle');
   };
 
+  // Kill-switch: when external cancelSignal aborts (showcase swipe / toggle),
+  // invoke the product's existing cancel path. handleCancelRecording stops
+  // the recorder, releases tracks, clears chunks, returns to idle. The
+  // cancelSignal is also threaded into the parse-voice / parse-receipt
+  // fetches above, which cancels them at the network layer.
+  // Refs avoid re-binding the listener on every render.
+  // localStorage `entries[]` is durable — explicitly NOT touched here.
+  // See docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.2.
+  const cancelRecordingRef = useRef(handleCancelRecording);
+  useEffect(() => { cancelRecordingRef.current = handleCancelRecording; });
+
+  useEffect(() => {
+    if (!cancelSignal) return;
+
+    const handleAbort = () => {
+      cancelRecordingRef.current();
+      setError(null);
+    };
+
+    if (cancelSignal.aborted) {
+      handleAbort();
+      return;
+    }
+
+    cancelSignal.addEventListener('abort', handleAbort, { once: true });
+    return () => cancelSignal.removeEventListener('abort', handleAbort);
+  }, [cancelSignal]);
+
   // ==================== IMAGE UPLOAD HANDLERS ====================
 
   const handleUploadImage = async (file: File) => {
+    const myRun = runIdRef?.current ?? 0;
     setAppState('processing_image');
 
     try {
@@ -195,6 +243,7 @@ export const TraceApp: React.FC<TraceAppProps> = ({
         mimeType: file.type
       });
       const base64Image = await fileToBase64(file);
+      if (!isStillCurrentRun(myRun)) return;
       console.log('[TRACE APP] Image converted', {
         fileSize: file.size,
         base64Length: base64Image.length
@@ -208,7 +257,9 @@ export const TraceApp: React.FC<TraceAppProps> = ({
           base64Image,
           mimeType: file.type,
         }),
+        signal: cancelSignal,
       });
+      if (!isStillCurrentRun(myRun)) return;
 
       console.log('[TRACE APP] Response received', {
         status: response.status,
@@ -230,6 +281,7 @@ export const TraceApp: React.FC<TraceAppProps> = ({
       }
 
       const responseText = await response.text();
+      if (!isStillCurrentRun(myRun)) return;
       console.log('[TRACE APP] Response body:', responseText);
       const entry: ExpenseEntry = JSON.parse(responseText);
       console.log('[TRACE APP] Successfully parsed entry:', entry.id);
@@ -238,6 +290,10 @@ export const TraceApp: React.FC<TraceAppProps> = ({
       setAppState('idle');
       setError(null);
     } catch (err) {
+      // Deliberate cancellation — not a user-facing error.
+      if (err instanceof Error && err.name === 'AbortError') return;
+      if (cancelSignal?.aborted) return;
+      if (!isStillCurrentRun(myRun)) return;
       console.error('[TRACE APP] Error processing image:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to process image';
       setError(errorMessage);
