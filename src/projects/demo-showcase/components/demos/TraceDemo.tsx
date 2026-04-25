@@ -31,7 +31,7 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef }) 
   useEffect(() => {
     setCanvasContentEl(wrapperRef.current?.closest('.canvas-content') ?? null);
     setClearButtonEl(
-      wrapperRef.current?.querySelector('.clear-button-below .clear-button') ?? null,
+      wrapperRef.current?.querySelector<HTMLButtonElement>('.clear-button-below .clear-button') ?? null,
     );
   }, []);
 
@@ -41,6 +41,11 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef }) 
         <TraceCore
           cancelSignal={cancelSignal}
           runIdRef={runIdRef}
+          // Suppress TraceCore's internal MicPermissionBanner — the
+          // showcase renders its own navbar-slot variant (Stage 2+) so
+          // the fixed-position floater doesn't collide with the showcase
+          // top chrome. Standalone /trace is unaffected.
+          hideMicBanner={true}
         />
       </div>
       {canvasContentEl ? createPortal(

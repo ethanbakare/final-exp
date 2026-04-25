@@ -28,11 +28,13 @@
  *     grep -n '\[DEMO-SHOWCASE\]' src/projects/trace/components/TraceCore.tsx
  *
  * Removal checklist:
- *   1. Drop `cancelSignal` and `runIdRef` from the props interface
+ *   1. Drop `cancelSignal`, `runIdRef`, and `hideMicBanner` from the props interface
  *   2. Drop the `myRun = …` lines and the `if (!isStillCurrentRun…) return;` guards
  *   3. Drop the `signal: cancelSignal` from both fetch options
  *   4. Drop the AbortError swallow lines from both catch blocks
  *   5. Drop the cancelRecordingRef + the abort-listener useEffect
+ *   6. Drop the `{!hideMicBanner && …}` wrapper around <MicPermissionBanner />
+ *      so it renders unconditionally
  *
  * Architecture rationale: docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.2
  * ─────────────────────────────────────────────────────────────────────
@@ -65,9 +67,22 @@ export interface TraceCoreProps {
   // top of this file.
   cancelSignal?: AbortSignal;
   runIdRef?: React.MutableRefObject<number>;
+  // [DEMO-SHOWCASE] Suppress the in-card MicPermissionBanner. The banner
+  // is `position: fixed; top: 24px` of the viewport, which collides with
+  // the showcase's own top chrome (the project pill / arrows / X close).
+  // The showcase renders its own navbar-slot mic-permission UI instead
+  // (see ShowcaseNavbarMicBanner — Stage 2). Standalone /trace omits this
+  // prop, so the floating banner renders normally.
+  hideMicBanner?: boolean;
 }
 
-export const TraceCore: React.FC<TraceCoreProps> = ({ cancelSignal, runIdRef }) => {
+export const TraceCore: React.FC<TraceCoreProps> = ({
+  cancelSignal,
+  runIdRef,
+  // [DEMO-SHOWCASE] Drop on port — also drop the conditional render of
+  // <MicPermissionBanner /> below.
+  hideMicBanner = false,
+}) => {
   // State management
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
   const [entries, setEntries] = useState<ExpenseEntry[]>([]);
@@ -325,7 +340,14 @@ export const TraceCore: React.FC<TraceCoreProps> = ({ cancelSignal, runIdRef }) 
 
   return (
     <>
-      <MicPermissionBanner />
+      {/* [DEMO-SHOWCASE] Conditional render. Standalone /trace passes no
+          hideMicBanner prop → false → banner renders as before. The
+          showcase wrapper (TraceDemo) passes hideMicBanner={true} so the
+          fixed-position banner doesn't collide with the showcase top
+          chrome; the showcase shows its own navbar-slot variant instead.
+          To delete on port: drop the `{!hideMicBanner && ...}` wrapper
+          and render <MicPermissionBanner /> unconditionally. */}
+      {!hideMicBanner && <MicPermissionBanner />}
 
       <div className="trace-container">
         <TraceToastNotification
