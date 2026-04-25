@@ -74,6 +74,17 @@ export interface TraceCoreProps {
   // (see ShowcaseNavbarMicBanner — Stage 2). Standalone /trace omits this
   // prop, so the floating banner renders normally.
   hideMicBanner?: boolean;
+  // [DEMO-SHOWCASE] Optional hook for showcase-owned modal systems.
+  // When present, TraceCore delegates the "clear expenses" confirmation
+  // to the caller instead of rendering its own TraceModalOverlay.
+  onRequestClearAll?: (controls: {
+    confirmClear: () => void;
+    cancelClear: () => void;
+  }) => void;
+  // [DEMO-SHOWCASE] Optional clear-button render slot. Lets the showcase
+  // place the destructive action outside TraceCore's default layout
+  // without changing standalone /trace behavior.
+  renderClearButton?: (requestClearAll: () => void) => React.ReactNode;
 }
 
 export const TraceCore: React.FC<TraceCoreProps> = ({
@@ -82,6 +93,8 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
   // [DEMO-SHOWCASE] Drop on port — also drop the conditional render of
   // <MicPermissionBanner /> below.
   hideMicBanner = false,
+  onRequestClearAll,
+  renderClearButton,
 }) => {
   // State management
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
@@ -281,7 +294,15 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
   };
 
   // Clear all entries handler
-  const handleClearAll = () => {
+  const requestClearAll = () => {
+    if (onRequestClearAll) {
+      onRequestClearAll({
+        confirmClear: handleConfirmClear,
+        cancelClear: handleCancelClear,
+      });
+      return;
+    }
+
     setShowClearModal(true);
   };
 
@@ -372,9 +393,13 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
         />
       </div>
 
-      <div className="clear-button-below">
-        <ClearButton onClick={handleClearAll} />
-      </div>
+      {renderClearButton ? (
+        renderClearButton(requestClearAll)
+      ) : (
+        <div className="clear-button-below">
+          <ClearButton onClick={requestClearAll} />
+        </div>
+      )}
 
       <TraceModalOverlay
         isVisible={showClearModal}

@@ -13,10 +13,12 @@
  *     listener invokes its existing handleCancelRecording path. localStorage
  *     entries persist by design — see KILL-SWITCH-ARCHITECTURE.md §2.2.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TraceCore } from '@/projects/trace/components/TraceCore';
+import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
 import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
+import { useShowcaseModal } from '@/projects/demo-showcase/context/ShowcaseModalContext';
 
 interface TraceDemoProps {
   cancelSignal?: AbortSignal;
@@ -27,42 +29,37 @@ interface TraceDemoProps {
 export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, isVisible = false }) => {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [canvasContentEl, setCanvasContentEl] = useState<Element | null>(null);
-  const [clearButtonEl, setClearButtonEl] = useState<HTMLButtonElement | null>(null);
-  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const { openModal, closeModal } = useShowcaseModal();
 
   useEffect(() => {
     setCanvasContentEl(wrapperRef.current?.closest('.canvas-content') ?? null);
-    setClearButtonEl(
-      wrapperRef.current?.querySelector<HTMLButtonElement>('.clear-button-below .clear-button') ?? null,
-    );
   }, []);
 
-  useEffect(() => {
-    const root = wrapperRef.current;
-    if (!root) return;
-
-    const syncModalState = () => {
-      setIsClearModalOpen(Boolean(root.querySelector('.modal-overlay')));
+  const handleShowcaseClearRequest = useCallback((controls: {
+    confirmClear: () => void;
+    cancelClear: () => void;
+  }) => {
+    const handleCancel = () => {
+      controls.cancelClear();
+      closeModal();
     };
 
-    syncModalState();
-
-    const observer = new MutationObserver(syncModalState);
-    observer.observe(root, { childList: true, subtree: true });
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const layerDemo = wrapperRef.current?.closest('.layer-demo');
-    if (!layerDemo) return;
-
-    layerDemo.classList.toggle('trace-demo-modal-open', isClearModalOpen);
-
-    return () => {
-      layerDemo.classList.remove('trace-demo-modal-open');
+    const handleDelete = () => {
+      controls.confirmClear();
+      closeModal();
     };
-  }, [isClearModalOpen]);
+
+    openModal({
+      closeOnBackdropClick: true,
+      onRequestClose: handleCancel,
+      content: (
+        <TraceClearExpensesModal
+          onCancel={handleCancel}
+          onDelete={handleDelete}
+        />
+      ),
+    });
+  }, [closeModal, openModal]);
 
   return (
     <div className="trace-demo-wrapper" ref={wrapperRef}>
@@ -75,14 +72,17 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
           // the fixed-position floater doesn't collide with the showcase
           // top chrome. Standalone /trace is unaffected.
           hideMicBanner={true}
+          onRequestClearAll={handleShowcaseClearRequest}
+          renderClearButton={(requestClearAll) => (
+            isVisible && canvasContentEl ? createPortal(
+              <div className="showcase-clear-button">
+                <ClearButton onClick={requestClearAll} />
+              </div>,
+              canvasContentEl,
+            ) : null
+          )}
         />
       </div>
-      {isVisible && canvasContentEl ? createPortal(
-        <div className="showcase-clear-button">
-          <ClearButton onClick={() => clearButtonEl?.click()} />
-        </div>,
-        canvasContentEl,
-      ) : null}
 
       <style jsx>{`
         .trace-demo-wrapper {
@@ -99,19 +99,11 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
           flex-direction: column;
           align-items: center;
         }
-        .trace-demo-wrapper :global(.clear-button-below) {
-          display: none;
-        }
         .showcase-clear-button {
           position: absolute;
           right: 20px;
           bottom: 20px;
           z-index: 20;
-        }
-        @media (max-width: 768px) {
-          :global(.layer.layer-demo.trace-demo-modal-open) {
-            transform: none !important;
-          }
         }
       `}</style>
     </div>

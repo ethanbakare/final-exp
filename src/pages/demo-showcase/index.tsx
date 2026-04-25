@@ -33,6 +33,7 @@ import { useActiveAbortSignal } from '@/projects/demo-showcase/hooks/useActiveAb
 import { useRunId } from '@/projects/demo-showcase/hooks/useRunId';
 import { ShowcaseNavbarMicBanner } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarMicBanner';
 import { ShowcaseNavbarMicBannerSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarMicBannerSmall';
+import { ShowcaseModalProvider } from '@/projects/demo-showcase/context/ShowcaseModalContext';
 import { useMicPermission } from '@/projects/new-home/hooks/useMicPermission';
 
 // Dynamic imports — SSR-unsafe sims/demos.
@@ -269,8 +270,9 @@ export default function DemoShowcasePage() {
         <meta name="description" content="Interactive demos of our projects" />
       </Head>
 
-      <div className={`showcase ${isDemoMode ? 'is-demo' : ''}`}>
-        <div className="nav-slot nav-desktop">
+      <ShowcaseModalProvider>
+        <div className={`showcase ${isDemoMode ? 'is-demo' : ''}`}>
+          <div className="nav-slot nav-desktop">
           {showMicInNavbar ? (
             <ShowcaseNavbarMicBanner
               // showMicInNavbar already narrows micState to the three
@@ -290,128 +292,128 @@ export default function DemoShowcasePage() {
               onPrev={() => go(-1)}
             />
           )}
-        </div>
-        <div className="nav-slot nav-mobile">
-          <div className="mobile-nav-row">
-            <div className="close-slot" aria-hidden={!isDemoMode}>
-              <ShowcaseCloseBtnSmall onClick={handleToggleDemo} />
+          </div>
+          <div className="nav-slot nav-mobile">
+            <div className="mobile-nav-row">
+              <div className="close-slot" aria-hidden={!isDemoMode}>
+                <ShowcaseCloseBtnSmall onClick={handleToggleDemo} />
+              </div>
+              {showMicInNavbar ? (
+                <ShowcaseNavbarMicBannerSmall
+                  micState={micState as 'unknown' | 'dismissed' | 'blocked'}
+                  onEnable={handleEnable}
+                  onDismiss={handleDismiss}
+                  onReshow={handleReshow}
+                  onDismissBlocked={handleDismissBlocked}
+                />
+              ) : (
+                <ShowcaseNavbarCompactSmall
+                  projectName={active.label}
+                  currentIndex={activeIdx}
+                  totalCount={PROJECTS.length}
+                  onNext={() => go(1)}
+                  onPrev={() => go(-1)}
+                />
+              )}
             </div>
-            {showMicInNavbar ? (
-              <ShowcaseNavbarMicBannerSmall
-                micState={micState as 'unknown' | 'dismissed' | 'blocked'}
-                onEnable={handleEnable}
-                onDismiss={handleDismiss}
-                onReshow={handleReshow}
-                onDismissBlocked={handleDismissBlocked}
+          </div>
+  
+          <div className="canvas-area" ref={areaRef}>
+            <AnimatePresence custom={direction} initial={false}>
+              <motion.div
+                key={activeIdx}
+                className="canvas-motion"
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ type: 'spring', stiffness: 260, damping: 30, opacity: { duration: 0.35, ease: 'easeIn' } }}
+                drag="y"
+                dragElastic={0.2}
+                dragConstraints={{ top: 0, bottom: 0 }}
+                onDragEnd={handleDragEnd}
+              >
+                <DemoCanvas {...active.canvasProps}>
+                  <div className={`chrome chrome-top ${isDemoMode ? 'chrome-hidden' : ''}`}>
+                    <DemoIntroCard
+                      headline={active.headline}
+                      headlineSuffix={active.headlineSuffix}
+                    />
+                  </div>
+                  <div className="sim-slot">
+                    {/* AI Confidence tracker — sim + demo both mounted,
+                        opacity toggles which is visible. */}
+                    {activeIdx === 0 && (
+                      <>
+                        <div className={`layer layer-sim ${isDemoMode ? 'layer-hidden' : ''}`}>
+                          <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                        </div>
+                        <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
+                          <AIConfidenceDemo cancelSignal={aiConfidenceCancelSignal} runIdRef={aiConfidenceRunIdRef} />
+                        </div>
+                      </>
+                    )}
+                    {/* Trace — sim + demo. Same opacity-toggle pattern as
+                        AI Confidence. Both layers mount when activeIdx === 1
+                        so the demo→sim toggle is a visibility flip, not a
+                        mount cycle. */}
+                    {activeIdx === 1 && (
+                      <>
+                        <div className={`layer layer-sim ${isDemoMode ? 'layer-hidden' : ''}`}>
+                          <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                        </div>
+                        <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
+                          <TraceDemo
+                            cancelSignal={traceCancelSignal}
+                            runIdRef={traceRunIdRef}
+                            isVisible={isDemoMode}
+                          />
+                        </div>
+                      </>
+                    )}
+                    {/* ClipStream sim. Inline demo not yet split out. */}
+                    {activeIdx === 2 && (
+                      <div className="layer layer-sim">
+                        <ClipStreamSim key={loopKey} onLoopRestart={handleLoopRestart} cancelSignal={clipStreamCancelSignal} />
+                      </div>
+                    )}
+                  </div>
+                  <div className={`chrome chrome-desktop ${isDemoMode ? 'chrome-hidden' : ''}`}>
+                    <DemoProgressSection
+                      duration={active.simDuration}
+                      loopKey={loopKey}
+                    />
+                  </div>
+                  <div className={`chrome chrome-mobile ${isDemoMode ? 'chrome-hidden' : ''}`}>
+                    <DemoProgressSectionTransparent
+                      duration={active.simDuration}
+                      loopKey={loopKey}
+                    />
+                  </div>
+                </DemoCanvas>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+  
+          <div className="cta-section">
+            <div className="cta-buttons cta-desktop">
+              <TryDemoButton
+                onClick={handleToggleDemo}
+                label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
               />
-            ) : (
-              <ShowcaseNavbarCompactSmall
-                projectName={active.label}
-                currentIndex={activeIdx}
-                totalCount={PROJECTS.length}
-                onNext={() => go(1)}
-                onPrev={() => go(-1)}
+              <ViewCaseStudyButton onClick={handleViewCaseStudy} />
+            </div>
+            <div className="cta-buttons cta-mobile">
+              <TryDemoButtonSmall
+                onClick={handleToggleDemo}
+                label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
               />
-            )}
+              <ViewCaseStudyButtonSmall onClick={handleViewCaseStudy} />
+            </div>
           </div>
-        </div>
-
-        <div className="canvas-area" ref={areaRef}>
-          <AnimatePresence custom={direction} initial={false}>
-            <motion.div
-              key={activeIdx}
-              className="canvas-motion"
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ type: 'spring', stiffness: 260, damping: 30, opacity: { duration: 0.35, ease: 'easeIn' } }}
-              drag="y"
-              dragElastic={0.2}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              onDragEnd={handleDragEnd}
-            >
-              <DemoCanvas {...active.canvasProps}>
-                <div className={`chrome chrome-top ${isDemoMode ? 'chrome-hidden' : ''}`}>
-                  <DemoIntroCard
-                    headline={active.headline}
-                    headlineSuffix={active.headlineSuffix}
-                  />
-                </div>
-                <div className="sim-slot">
-                  {/* AI Confidence tracker — sim + demo both mounted,
-                      opacity toggles which is visible. */}
-                  {activeIdx === 0 && (
-                    <>
-                      <div className={`layer layer-sim ${isDemoMode ? 'layer-hidden' : ''}`}>
-                        <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
-                      </div>
-                      <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
-                        <AIConfidenceDemo cancelSignal={aiConfidenceCancelSignal} runIdRef={aiConfidenceRunIdRef} />
-                      </div>
-                    </>
-                  )}
-                  {/* Trace — sim + demo. Same opacity-toggle pattern as
-                      AI Confidence. Both layers mount when activeIdx === 1
-                      so the demo→sim toggle is a visibility flip, not a
-                      mount cycle. */}
-                  {activeIdx === 1 && (
-                    <>
-                      <div className={`layer layer-sim ${isDemoMode ? 'layer-hidden' : ''}`}>
-                        <TraceSim key={loopKey} onLoopRestart={handleLoopRestart} />
-                      </div>
-                      <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
-                        <TraceDemo
-                          cancelSignal={traceCancelSignal}
-                          runIdRef={traceRunIdRef}
-                          isVisible={isDemoMode}
-                        />
-                      </div>
-                    </>
-                  )}
-                  {/* ClipStream sim. Inline demo not yet split out. */}
-                  {activeIdx === 2 && (
-                    <div className="layer layer-sim">
-                      <ClipStreamSim key={loopKey} onLoopRestart={handleLoopRestart} cancelSignal={clipStreamCancelSignal} />
-                    </div>
-                  )}
-                </div>
-                <div className={`chrome chrome-desktop ${isDemoMode ? 'chrome-hidden' : ''}`}>
-                  <DemoProgressSection
-                    duration={active.simDuration}
-                    loopKey={loopKey}
-                  />
-                </div>
-                <div className={`chrome chrome-mobile ${isDemoMode ? 'chrome-hidden' : ''}`}>
-                  <DemoProgressSectionTransparent
-                    duration={active.simDuration}
-                    loopKey={loopKey}
-                  />
-                </div>
-              </DemoCanvas>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <div className="cta-section">
-          <div className="cta-buttons cta-desktop">
-            <TryDemoButton
-              onClick={handleToggleDemo}
-              label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
-            />
-            <ViewCaseStudyButton onClick={handleViewCaseStudy} />
-          </div>
-          <div className="cta-buttons cta-mobile">
-            <TryDemoButtonSmall
-              onClick={handleToggleDemo}
-              label={isDemoMode ? 'Play Simulation' : 'Try Demo'}
-            />
-            <ViewCaseStudyButtonSmall onClick={handleViewCaseStudy} />
-          </div>
-        </div>
-
-        <style jsx>{`
+  
+          <style jsx>{`
           /* App-shell layout: pin to the visual viewport and stay out
              of document scroll. Disables iOS pull-to-refresh and
              overscroll rubber-band because there is no scroll
@@ -588,8 +590,9 @@ export default function DemoShowcasePage() {
               pointer-events: none;
             }
           }
-        `}</style>
-      </div>
+          `}</style>
+        </div>
+      </ShowcaseModalProvider>
     </>
   );
 }
