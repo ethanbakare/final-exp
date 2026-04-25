@@ -1,10 +1,31 @@
 # Figma Bridge — Singleton Daemon Refactor
 
-**Status:** DRAFT — review-only. Do NOT implement until plan is signed off.
+**Status:** DRAFT (Revision 2) — review-only. Do NOT implement until plan is signed off.
 
 **Target repo:** `/Users/ethan/Documents/projects/figma-mcp/` (the active bridge: stdio MCP + WebSocket on port 3055).
 
 **Related entry:** [BACKLOG.md → "Figma Bridge — refactor to singleton daemon architecture"](../../BACKLOG.md)
+
+---
+
+## Revision history
+
+### Revision 2 — addressing review feedback
+
+Reviewer flagged four substantive issues with R1. All confirmed against code; all addressed below.
+
+| # | Issue | Where addressed |
+|---|---|---|
+| H1 | R1 kept relay-style "cache only on connect/reconnect" status, which preserves the exact stale `connected: false` failure mode the refactor is supposed to eliminate. ([mcp-server.ts:33](../../../figma-mcp/src/server/mcp-server.ts:33), [relay-client.ts:99,146](../../../figma-mcp/src/server/relay-client.ts:99)) | New §2.5 *Status freshness — design contract*. Updated §7 (added invariant I6). Rewrote §10 to require push-driven status. Updated §8 to flag `websocket-server.ts` as MODIFY. |
+| H2 | R1 said `websocket-server.ts`, `mcp-server.ts`, and `types.ts` are unchanged, but real `joinChannel` requires changes in all three. The current `FigmaBridge.joinChannel` is synchronous; making it remote forces async, which ripples through. ([types.ts:45](../../../figma-mcp/src/server/types.ts:45), [mcp-server.ts:64](../../../figma-mcp/src/server/mcp-server.ts:64), [types.ts:2](../../../figma-mcp/src/server/types.ts:2)) | Updated §8 to MODIFY those files. New protocol detail in §10. Added §10.4 on the interface async-ification. |
+| H3 | R1's "daemon owns 3055" invariant doesn't survive the plugin's 3055–3060 port-cycling logic ([ui.ts:4](../../../figma-mcp/src/plugin/ui.ts:4), [manifest.json:9](../../../figma-mcp/manifest.json:9)). | New §10b *Plugin port narrowing*. Updated §8. Updated §7 invariants. |
+| M1 | R1 conflated machine-boot with user-login behaviour for LaunchAgents and used legacy `launchctl load`/`unload`. | Updated §13 (login vs boot phrasing). Updated §12 to use `bootstrap`/`bootout`/`kickstart`. |
+| S1 | No `README.md` exists — "modify README" is really "create docs". | §16 retitled. |
+| S2 | R1 introduced `FIGMA_MCP_PORT` while existing code uses `FIGMA_MCP_PORT`. Drift, not intentional. | All `FIGMA_MCP_PORT` corrected to `FIGMA_MCP_PORT` throughout. |
+
+### Revision 1
+
+Initial draft. See git history for full content.
 
 ---
 
@@ -24,6 +45,7 @@ Today, every Claude Code session spawns its own `figma-mcp` stdio process. Each 
 
 1. [Background](#1-background)
 2. [Problem statement](#2-problem-statement)
+   - [2.5 Status freshness — the design contract (R2)](#25-status-freshness--the-design-contract-r2)
 3. [Why the current host-or-relay model can't be patched](#3-why-the-current-host-or-relay-model-cant-be-patched)
 4. [Goals and non-goals](#4-goals-and-non-goals)
 5. [Design alternatives considered](#5-design-alternatives-considered)
@@ -31,13 +53,14 @@ Today, every Claude Code session spawns its own `figma-mcp` stdio process. Each 
 7. [Architectural invariants](#7-architectural-invariants)
 8. [File-by-file implementation plan](#8-file-by-file-implementation-plan)
 9. [Daemon entrypoint — code shape](#9-daemon-entrypoint--code-shape)
-10. [daemon-client.ts — what stays, what goes](#10-daemon-clientts--what-stays-what-goes)
+10. [daemon-client.ts — what stays, what goes](#10-daemon-clientts--what-stays-what-goes-revised-in-r2)
+   - [10b. Plugin port narrowing (R2)](#10b-plugin-port-narrowing-r2)
 11. [server/index.ts — simplification](#11-serverindexts--simplification)
 12. [Install and uninstall scripts](#12-install-and-uninstall-scripts)
 13. [launchd plist](#13-launchd-plist)
 14. [Build pipeline](#14-build-pipeline)
 15. [package.json changes](#15-packagejson-changes)
-16. [README updates](#16-readme-updates)
+16. [README — CREATE (R2 correction)](#16-readme--create-r2-correction)
 17. [Multi-file UX (separate workstream)](#17-multi-file-ux-separate-workstream)
 18. [Test plan](#18-test-plan)
 19. [Edge cases and failure modes](#19-edge-cases-and-failure-modes)
@@ -46,7 +69,7 @@ Today, every Claude Code session spawns its own `figma-mcp` stdio process. Each 
 22. [Risks and mitigations](#22-risks-and-mitigations)
 23. [Open questions for review](#23-open-questions-for-review)
 24. [Out of scope](#24-out-of-scope)
-25. [Estimate breakdown](#25-estimate-breakdown)
+25. [Estimate breakdown](#25-estimate-breakdown-revised-in-r2)
 
 ---
 
@@ -124,6 +147,66 @@ joinChannel(channelId: string): boolean {
 **Relay clients can't `joinChannel`.** They return `false` unconditionally unless they've been promoted to host. So if your stdio MCP is a relay, even if the host has plugins connected, your session can't switch between them. Multi-file Figma usage is effectively single-host-only.
 
 Similar story for [`relay-client.ts:243-262`](../../../figma-mcp/src/server/relay-client.ts) (`isPluginConnected`, `getConnectedFileInfo`) — relays return `cachedStatus` which is populated via the `relay_status_response` message. There's a 5-second timeout on the cache refresh ([line 209](../../../figma-mcp/src/server/relay-client.ts:209)) and no guarantee the host actually broadcasts state changes to relays. **State drift is structural, not a bug.**
+
+---
+
+### 2.5 Status freshness — the design contract (R2)
+
+**This is the central failure mode the daemon refactor must eliminate, and R1 didn't.** Documenting it explicitly so the implementation can be evaluated against this bar.
+
+#### The failure shape
+
+In R1, I planned to keep the relay client's caching behaviour. That cache (`relay-client.ts:22-27,196-212`) is populated only by `refreshStatus`, which is called only from `connect` ([line 104](../../../figma-mcp/src/server/relay-client.ts:104)) and from the post-promotion reconnect ([line 146](../../../figma-mcp/src/server/relay-client.ts:146)). There is no periodic poll. There is no daemon-side push.
+
+[`mcp-server.ts:33-34`](../../../figma-mcp/src/server/mcp-server.ts:33) gates every command on `wsServer.isPluginConnected`, which on the relay client returns `cachedStatus.connected` ([line 248](../../../figma-mcp/src/server/relay-client.ts:248)).
+
+Concretely, the broken scenario:
+
+1. Daemon is running. No plugin connected yet.
+2. Claude Code session starts → MCP spawns → connects to daemon → `cachedStatus = { connected: false, pluginCount: 0 }`.
+3. User opens Figma + plugin → daemon now has the plugin → daemon's own `getConnectedFileInfo` returns `connected: true`.
+4. **MCP's cachedStatus is still `{ connected: false }`.** Nothing tells it to refresh.
+5. User runs an MCP tool → command preflight checks `isPluginConnected` → false → returns `NOT_CONNECTED`.
+6. From the user's view: plugin shows "Connected" in Figma, MCP says "Figma plugin not connected." **Indistinguishable from today's failure mode.**
+
+The same happens after a plugin disconnect/reconnect during an MCP session: the cache stays stale until the WebSocket between MCP and daemon drops, which it doesn't.
+
+#### Required contract for the daemon
+
+**C1.** Plugin state visible to an MCP client must be eventually consistent with the daemon's view, with bounded staleness measured in seconds, not "until next reconnect."
+
+**C2.** `isPluginConnected` must never return false when the daemon has a plugin connected on the active channel for longer than the staleness window.
+
+**C3.** `get_connection_status` must reflect ground truth at the moment it's called. (Not a cache.)
+
+**C4.** Command preflight (the gate inside the MCP tool helper) must not reject a command on the basis of stale status. If the cache says "not connected" but ground truth says "connected," the command should proceed (or the cache should be refreshed before the gate).
+
+#### Implementation strategy
+
+**Two complementary mechanisms** — push for general state, fresh-pull for safety on the user-facing query.
+
+**Push (primary):** the daemon broadcasts a `client_status_update` message to every connected MCP client whenever its plugin state changes. Triggers:
+- A plugin sends `join` (a new plugin connects).
+- A plugin's WebSocket closes (a plugin disconnects).
+- Active channel changes (e.g. a client called `client_join_channel`).
+
+Message body: the same shape `getConnectedFileInfo` returns.
+
+Client handler: replace `cachedStatus` with the pushed snapshot.
+
+**Fresh-pull (defence-in-depth):** `get_connection_status` always sends a `client_status` request to the daemon and awaits the response. Caching is fine for the gating check inside the MCP tool helper — provided pushes are reliable, the cache will be fresh. The user-facing query must be ground truth.
+
+For the gating check ([mcp-server.ts:33](../../../figma-mcp/src/server/mcp-server.ts:33)), use the cached status. If a request fails because the cached status is wrong, the error will be an explicit "Plugin not connected" from `sendCommand` rather than a silent skip; the next push (driven by the disconnect or arrival) will correct the cache.
+
+**Worst-case staleness:** bounded by network round-trip from daemon to MCP client over the local socket — single-digit milliseconds in normal operation. If the local socket is saturated, push falls back to a queued send and recovers when the buffer drains.
+
+#### What this changes about the file-by-file plan
+
+`websocket-server.ts` is no longer "UNCHANGED" — it must broadcast `client_status_update` on plugin connect, plugin disconnect, and active-channel change. See updated §8.
+
+`daemon-client.ts` adds a handler for `client_status_update` and stops trying to maintain the cache by polling. See updated §10.
+
+A new wire message type `client_status_update` is added to `types.ts`. See updated §8.
 
 ---
 
@@ -231,29 +314,33 @@ These should hold no matter how the implementation evolves:
 - **I3.** A stdio MCP terminating does not affect plugin connection. (Daemon owns the plugin socket.)
 - **I4.** The daemon terminating means: plugin will reconnect once the daemon is up again (launchd-managed). MCP clients reconnect transparently with their existing reconnect timer.
 - **I5.** The daemon has no per-session state. All session-affinity (which channel a given MCP is using) lives in the daemon's in-memory map keyed by the WebSocket connection itself, not by any persistent ID. When an MCP disconnects, its channel selection is forgotten — that's fine because a new MCP will call `join_channel` again.
+- **I6.** *(R2)* Plugin state visible to an MCP client is push-mirrored from the daemon, not pulled-on-connect. After any change in the daemon's plugin set or active channel, every connected MCP client receives a `client_status_update` within the staleness window (single-digit ms in normal operation). See §2.5.
+- **I7.** *(R2)* Plugin port narrowing: in the daemon model, the Figma plugin connects to exactly one port (3055). The 3055–3060 fallback range from the host-or-relay era is removed. See §10b.
 
 ---
 
 ## 8. File-by-file implementation plan
 
-All paths relative to `/Users/ethan/Documents/projects/figma-mcp/`.
+All paths relative to `/Users/ethan/Documents/projects/figma-mcp/`. **Revised in R2** to reflect the actual scope of the protocol changes.
 
 | Path | Action | Effort |
 |---|---|---|
 | `src/daemon/index.ts` | **CREATE** | 30 min |
-| `src/server/index.ts` | **MODIFY** (delete host-or-relay fork) | 10 min |
-| `src/server/relay-client.ts` | **MODIFY + RENAME** to `daemon-client.ts` (delete promotion logic) | 30 min |
-| `src/server/websocket-server.ts` | **UNCHANGED** | 0 |
-| `src/server/mcp-server.ts` | **UNCHANGED** | 0 |
-| `src/server/types.ts` | **UNCHANGED** (or trivial: rename `relay_*` message types to `client_*` for clarity, optional) | 0–10 min |
-| `src/plugin/code.ts` and `ui.ts` | **UNCHANGED** | 0 |
-| `scripts/install-daemon.sh` | **CREATE** | 20 min |
+| `src/server/index.ts` | **MODIFY** (delete host-or-relay fork; depend on daemon-client; keep `FIGMA_MCP_PORT` env var name) | 10 min |
+| `src/server/relay-client.ts` | **MODIFY + RENAME** to `daemon-client.ts` (delete promotion logic; add `client_status_update` push handler; add async `joinChannel` over the wire; ground-truth pull for `get_connection_status`) | 60 min |
+| `src/server/websocket-server.ts` | **MODIFY (R2)** — broadcast `client_status_update` on plugin join/leave/active-channel-change; add `client_join_channel` / `client_status` request handlers; preserve existing `relay_*` handlers during transition (or rename — see §23 Q4) | 45 min |
+| `src/server/mcp-server.ts` | **MODIFY (R2)** — `joinChannel` becomes async, await it; cache-refresh hint after channel change | 10 min |
+| `src/server/types.ts` | **MODIFY (R2)** — add new wire message types (`client_status_update`, `client_join_channel`, `client_join_channel_response`, `client_status`); update `FigmaBridge.joinChannel` signature to `Promise<boolean>`; update consumers (`websocket-server.ts` `joinChannel` becomes `async` returning `Promise<boolean>` — trivial wrap) | 15 min |
+| `src/plugin/ui.ts` | **MODIFY (R2)** — narrow `WS_PORTS` to `[3055]`. Remove cycling logic. See §10b. | 10 min |
+| `src/plugin/manifest.json` | **MODIFY (R2)** — narrow `allowedDomains` and `devAllowedDomains` to `ws://localhost:3055`. See §10b. | 5 min |
+| `src/plugin/code.ts` | **UNCHANGED** | 0 |
+| `scripts/install-daemon.sh` | **CREATE** | 25 min |
 | `scripts/uninstall-daemon.sh` | **CREATE** | 5 min |
-| `package.json` | **MODIFY** (add daemon build script + install/uninstall) | 5 min |
-| `README.md` | **MODIFY** (one-time install instructions) | 15 min |
+| `package.json` | **MODIFY** (add `build:daemon`, `install-daemon`, `uninstall-daemon` scripts) | 5 min |
+| `README.md` | **CREATE (R2)** — does not currently exist; new file documenting one-time install + update + uninstall + multi-file note | 25 min |
 | `~/Library/LaunchAgents/com.ethan.figma-bridge-daemon.plist` | **CREATE** (via install script) | (covered above) |
 
-**Total active code change:** ~1.5 hours focused. README and testing add ~30–45 minutes.
+**Total active code change:** ~3 hours focused. Docs + scripts + testing add another ~1.5 hours. See §25 for revised total.
 
 ---
 
@@ -268,7 +355,7 @@ All paths relative to `/Users/ethan/Documents/projects/figma-mcp/`.
 
 import { FigmaBridgeWebSocketServer } from "../server/websocket-server.js";
 
-const PORT = parseInt(process.env.FIGMA_BRIDGE_PORT ?? "3055", 10);
+const PORT = parseInt(process.env.FIGMA_MCP_PORT ?? "3055", 10);
 
 async function main() {
   const wsServer = new FigmaBridgeWebSocketServer(PORT);
@@ -336,71 +423,268 @@ main().catch((err) => {
 
 ---
 
-## 10. daemon-client.ts — what stays, what goes
+## 10. daemon-client.ts — what stays, what goes (Revised in R2)
 
 `src/server/relay-client.ts` → `src/server/daemon-client.ts`. Renamed for accuracy.
 
-### Stays (unchanged)
+### 10.1 Stays (largely unchanged)
 
 - WebSocket connection + reconnect + heartbeat ([lines 37-91, 93-114](../../../figma-mcp/src/server/relay-client.ts:37))
 - `pendingRequests` map + timeout handling ([lines 17, 188-194, 222-241](../../../figma-mcp/src/server/relay-client.ts:17))
-- Status caching with 5s refresh ([lines 196-212](../../../figma-mcp/src/server/relay-client.ts:196))
-- Message handlers for `relay_response` and `relay_status_response`
-- `sendCommand`, `isPluginConnected`, `getConnectedFileInfo`
+- `sendCommand` (the sendCommand path is correct as-is, modulo deleting the "if promoted" branch)
 
-### Goes (deleted)
+### 10.2 Goes (deleted)
 
 - `promoted: boolean` field ([line 20](../../../figma-mcp/src/server/relay-client.ts:20))
 - `promotedServer: FigmaBridgeWebSocketServer | null` field ([line 21](../../../figma-mcp/src/server/relay-client.ts:21))
 - The promotion attempt block in `scheduleReconnect` ([lines 122-134](../../../figma-mcp/src/server/relay-client.ts:122))
 - The "if promoted, delegate to promotedServer" branches in `sendCommand` / `isPluginConnected` / `getConnectedFileInfo` / `joinChannel` / `stop` ([lines 215-217, 244-246, 253-255, 266-268, 278-281](../../../figma-mcp/src/server/relay-client.ts:215))
+- **The `refreshStatus` polling pattern ([lines 196-212](../../../figma-mcp/src/server/relay-client.ts:196))** — replaced by push-based status updates from the daemon (§10.3).
 
-### Changes
+### 10.3 Changes — push-based status (R2)
 
-- **`joinChannel`** ([line 265-270](../../../figma-mcp/src/server/relay-client.ts:265)): currently returns `false` for non-promoted clients. Must be reimplemented to actually send a `join_channel` message to the daemon and await a response. The daemon-side handler already exists (every host implementation in `websocket-server.ts` supports it), we just need to thread the protocol through. **Open question:** does this require a new message type (`client_join_channel` / `client_join_channel_response`), or can we piggyback on `relay_command`? See §23, Q3.
-- **Connection failure messaging**: when initial `connect()` fails because the daemon isn't running, throw a clear error that the MCP server can surface upward — see §11.
+**This is the key behavioural change vs R1.**
 
-### Suggested final shape (sketch)
+The cache field stays (`cachedStatus`) but is no longer populated by `refreshStatus`. Instead:
+
+- On `connect`, the client sends ONE `client_status` request and awaits the response, populating `cachedStatus` with the daemon's current snapshot. (Bootstrap.)
+- The client adds a handler for the new `client_status_update` wire message. Whenever the daemon sends one, the client replaces `cachedStatus` with the pushed payload.
+- `isPluginConnected` reads the cache (used by the per-command gate in `mcp-server.ts`).
+- **`getConnectedFileInfo` does NOT read the cache.** It always sends a `client_status` request and awaits the response. This is the user-facing `get_connection_status` query — must be ground truth (contract C3 in §2.5).
+
+**Why split the two reads:** the per-command gate runs hot (every tool call), so the cache is the right shape there — provided the cache stays fresh, which it does via push. The `get_connection_status` query is run by the user/Claude when they want to verify; it's not hot, and it has the strongest user expectation of correctness.
+
+### 10.4 Changes — async `joinChannel` over the wire (R2)
+
+Today's `joinChannel` is synchronous everywhere ([types.ts:45](../../../figma-mcp/src/server/types.ts:45), [websocket-server.ts:302](../../../figma-mcp/src/server/websocket-server.ts:302), [mcp-server.ts:64](../../../figma-mcp/src/server/mcp-server.ts:64)) and on the relay client returns `false` unconditionally ([relay-client.ts:265](../../../figma-mcp/src/server/relay-client.ts:265)) unless promoted.
+
+**For the daemon model, `joinChannel` must round-trip to the daemon and the interface must become async.** This forces:
+
+1. New wire message types in `types.ts`:
+   ```ts
+   type:
+     | "join" | "message" | "response"            // existing plugin-side
+     | "client_command"                            // was relay_command — see §23 Q4
+     | "client_response"                           // was relay_response
+     | "client_status"                             // request: client → daemon, "what's the state right now?"
+     | "client_status_response"                    // response: daemon → client, snapshot
+     | "client_status_update"                      // push: daemon → client, broadcast on state change
+     | "client_join_channel"                       // request: client → daemon, "set my active channel"
+     | "client_join_channel_response"              // response: daemon → client, success/failure
+   ```
+
+2. `FigmaBridge` interface:
+   ```ts
+   export interface FigmaBridge {
+     // ...
+     joinChannel(channelId: string): Promise<boolean>;   // was: boolean
+   }
+   ```
+
+3. `FigmaBridgeWebSocketServer.joinChannel` becomes trivially async (just wrap the existing sync impl in `Promise.resolve`):
+   ```ts
+   async joinChannel(channelId: string): Promise<boolean> {
+     if (this.channelToClient.has(channelId)) {
+       const previous = this.activeChannel;
+       this.activeChannel = channelId;
+       if (previous !== channelId) this.broadcastStatusUpdate();   // §2.5 push trigger
+       return true;
+     }
+     return false;
+   }
+   ```
+
+4. `FigmaBridgeDaemonClient.joinChannel` becomes a real wire RPC:
+   ```ts
+   async joinChannel(channelId: string): Promise<boolean> {
+     const id = uuidv4();
+     return new Promise((resolve, reject) => {
+       const timeout = setTimeout(() => {
+         this.pendingRequests.delete(id);
+         reject(new Error("client_join_channel timed out"));
+       }, REQUEST_TIMEOUT_MS);
+       this.pendingRequests.set(id, { resolve, reject, timeout });
+       this.ws!.send(JSON.stringify({
+         type: "client_join_channel",
+         channel: "",
+         id,
+         data: { channelId },
+       }));
+     });
+   }
+   ```
+   With a corresponding `client_join_channel_response` handler in `handleMessage` that resolves the pending request with the boolean from `data.success`.
+
+5. `mcp-server.ts:64` updates to `await` the call:
+   ```ts
+   const success = await wsServer.joinChannel(channelId);
+   ```
+
+### 10.5 Connection failure messaging
+
+When initial `connect` fails because the daemon isn't running, throw a clear error that the MCP server can surface upward — see §11.
+
+### 10.6 Suggested final shape (sketch)
 
 ```ts
 // src/server/daemon-client.ts
 export class FigmaBridgeDaemonClient implements FigmaBridge {
-  // ... ws, pendingRequests, cachedStatus, reconnect/heartbeat fields ...
-  // (unchanged from current relay-client)
-
+  // ws, pendingRequests, reconnect/heartbeat fields kept from relay-client.
   // NO promoted, promotedServer fields.
+  // cachedStatus kept but populated only by push.
 
-  connect(): Promise<void> { /* unchanged */ }
-
-  private scheduleReconnect(): void {
-    // Simplified — no promotion attempt block.
-    if (this.reconnectTimer) return;
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      // ... straight reconnect attempt ...
-    }, this.reconnectDelay);
+  connect(): Promise<void> {
+    // 1. Open ws to daemon.
+    // 2. On open: send a single "client_status" request, await response,
+    //    set cachedStatus from it. (Bootstrap.)
+    // 3. Subscribe to "client_status_update" in handleMessage.
   }
 
-  async sendCommand(command, channel?) {
-    // No "if promoted" branch. Just send to ws.
-  }
-
+  // Cache-driven (hot path, per-command gate)
   isPluginConnected(): boolean {
-    // No "if promoted" branch. Cached status only.
+    return this.cachedStatus?.connected ?? false;
   }
 
-  getConnectedFileInfo() {
-    // No "if promoted" branch.
+  // Ground-truth pull (cold path, user-facing query)
+  async getConnectedFileInfo(): Promise<{ ... }> {
+    // Always round-trip to daemon for client_status. Returns pushed-snapshot shape.
   }
 
-  joinChannel(channelId: string): Promise<boolean> {
-    // NEW: actually sends a message to the daemon. Returns boolean.
-    // (Currently returns false unconditionally for non-promoted.)
+  async joinChannel(channelId: string): Promise<boolean> {
+    // wire RPC via client_join_channel / client_join_channel_response
   }
 
-  stop(): void { /* unchanged, minus the promoted branch */ }
+  async sendCommand(command, channel?): Promise<any> {
+    // unchanged from relay-client minus the "if promoted" branch
+    // (uses client_command / client_response wire messages)
+  }
+
+  private handleMessage(msg) {
+    switch (msg.type) {
+      case "client_response":           /* existing relay_response logic */ break;
+      case "client_status_response":    /* resolve pending status request */ break;
+      case "client_join_channel_response": /* resolve pending join request */ break;
+      case "client_status_update":      /* PUSH — replace cachedStatus */
+        this.cachedStatus = msg.data;
+        break;
+    }
+  }
+
+  stop(): void { /* unchanged from relay-client minus the promoted branch */ }
 }
 ```
+
+### 10.7 What this means for `getConnectedFileInfo` becoming async
+
+`FigmaBridge.getConnectedFileInfo` is currently synchronous. In R2's design, the daemon-client implementation must round-trip to the daemon. That makes it async, which propagates to `mcp-server.ts:54` where the `get_connection_status` tool reads it.
+
+```ts
+// mcp-server.ts (R2)
+mcp.tool(
+  "get_connection_status",
+  "...",
+  {},
+  async () => {
+    const info = await wsServer.getConnectedFileInfo();   // was: not awaited
+    return formatResult({ ok: true, data: info });
+  }
+);
+```
+
+`FigmaBridgeWebSocketServer.getConnectedFileInfo` becomes trivially async by wrapping the existing impl in `Promise.resolve`. Same pattern as `joinChannel`.
+
+This is one more place R1 was wrong about "websocket-server.ts: UNCHANGED."
+
+---
+
+## 10b. Plugin port narrowing (R2)
+
+**Reviewer finding H3:** the daemon's "owns 3055" invariant is weaker than it sounds because [`ui.ts:4`](../../../figma-mcp/src/plugin/ui.ts:4) defines:
+
+```ts
+const WS_PORTS = [3055, 3056, 3057, 3058, 3059, 3060];
+```
+
+…and the plugin cycles through these in `scheduleReconnect` ([ui.ts:122-133](../../../figma-mcp/src/plugin/ui.ts:122)). [`manifest.json:9-13`](../../../figma-mcp/manifest.json:9) lists all six in `allowedDomains` and `devAllowedDomains`. The manifest's own `reasoning` field says these exist "to support FIGMA_MCP_PORT env var overrides."
+
+In the daemon model, the port is fixed (one daemon, one port). The fallback range creates a hazard: if a stale `node dist/server/index.js` from before install is bound to 3056 (or 3057, etc.), the plugin can connect to it instead of the daemon. The user sees "Connected" in Figma but the daemon doesn't see the plugin and any new MCP client can't reach it.
+
+### Fix: narrow to one port
+
+```diff
+// src/plugin/ui.ts
+- const WS_PORTS = [3055, 3056, 3057, 3058, 3059, 3060];
+- let currentPortIndex = 0;
++ const WS_PORT = 3055;
+```
+
+```diff
+// src/plugin/ui.ts — connect()
+- const port = WS_PORTS[currentPortIndex];
+- const url = "ws://localhost:" + port;
++ const url = "ws://localhost:" + WS_PORT;
+```
+
+```diff
+// src/plugin/ui.ts — scheduleReconnect()
+- // Cycle through ports on reconnect attempts
+- currentPortIndex = (currentPortIndex + 1) % WS_PORTS.length;
+- console.log("[ui] Reconnecting on port " + WS_PORTS[currentPortIndex] + " (delay: " + reconnectDelay + "ms)...");
++ console.log("[ui] Reconnecting (delay: " + reconnectDelay + "ms)...");
+  connect();
+- // Only increase delay after a full cycle through all ports
+- if (currentPortIndex === 0) {
+-   reconnectDelay = Math.min(reconnectDelay * 1.5, RECONNECT_MAX_MS);
+- }
++ reconnectDelay = Math.min(reconnectDelay * 1.5, RECONNECT_MAX_MS);
+```
+
+```diff
+// src/plugin/manifest.json
+  "networkAccess": {
+    "allowedDomains": [
+-     "ws://localhost:3055", "ws://localhost:3056", "ws://localhost:3057",
+-     "ws://localhost:3058", "ws://localhost:3059", "ws://localhost:3060"
++     "ws://localhost:3055"
+    ],
+-   "reasoning": "Connects to a local MCP server over WebSocket for Claude Code integration. Multiple ports listed to support FIGMA_MCP_PORT env var overrides.",
++   "reasoning": "Connects to a local MCP server over WebSocket for Claude Code integration.",
+    "devAllowedDomains": [
+-     "ws://localhost:3055", "ws://localhost:3056", "ws://localhost:3057",
+-     "ws://localhost:3058", "ws://localhost:3059", "ws://localhost:3060"
++     "ws://localhost:3055"
+    ]
+  }
+```
+
+### Trade-off: losing the FIGMA_MCP_PORT override
+
+The narrowing eliminates the ability to run on a non-default port via `FIGMA_MCP_PORT`. R1 (and the current code) has this as a configurable knob; R2 collapses it.
+
+**Argument for collapsing:** nobody uses it in practice (it's not documented in the README that doesn't exist; no setup notes mention it). The cost of keeping it is the singleton-violation hazard the reviewer flagged.
+
+**Argument for keeping it:** future-proofing against port conflicts with other software.
+
+**My lean:** collapse. If port conflict becomes a problem, expand the manifest's `allowedDomains` plus update the daemon and plugin port constants in lockstep. That's a deliberate, atomic change rather than a runtime fallback that creates ambiguity.
+
+**Open question (Q9, R2):** see §23.
+
+### Sweep check in install script
+
+The install script should also sweep the entire 3055–3060 range at install time and refuse to install if anything else is listening:
+
+```bash
+# scripts/install-daemon.sh — preflight
+for port in 3055 3056 3057 3058 3059 3060; do
+  if lsof -i :"$port" -P -sTCP:LISTEN > /dev/null 2>&1; then
+    echo "ERROR: port $port is in use. Identify and kill the offender first:"
+    echo "  lsof -i :$port -P"
+    exit 1
+  fi
+done
+```
+
+After install, only port 3055 needs to be sweep-checked (the daemon owns it). 3056–3060 can be revalidated occasionally if someone is debugging "why isn't this connecting" — a stale process on 3056 with the OLD plugin (pre-narrowing) would still connect there.
 
 ---
 
@@ -413,7 +697,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { FigmaBridgeDaemonClient } from "./daemon-client.js";
 import { createMcpServer } from "./mcp-server.js";
 
-const PORT = parseInt(process.env.FIGMA_BRIDGE_PORT ?? "3055", 10);
+const PORT = parseInt(process.env.FIGMA_MCP_PORT ?? "3055", 10);
 
 async function main() {
   const client = new FigmaBridgeDaemonClient(PORT);
@@ -530,19 +814,28 @@ cat > "$PLIST_PATH" <<EOF
 </plist>
 EOF
 
-# 5. Unload any old version (idempotent — fine if not loaded)
-launchctl unload "$PLIST_PATH" 2>/dev/null || true
+# 5. Bootout any old version (idempotent — fine if not loaded)
+#    R2: switched from legacy `load`/`unload` to modern `bootstrap`/`bootout`/`kickstart`.
+#    The legacy commands still work but Apple has been deprecating them since macOS 10.11.
+#    The modern API requires a service target (gui/<uid>/<label>).
+USER_TARGET="gui/$(id -u)"
+LABEL="com.ethan.figma-bridge-daemon"
 
-# 6. Load new version
-echo "Loading via launchctl..."
-launchctl load "$PLIST_PATH"
+launchctl bootout "$USER_TARGET/$LABEL" 2>/dev/null || true
 
-# 7. Verify
+# 6. Bootstrap new version
+echo "Bootstrapping via launchctl..."
+launchctl bootstrap "$USER_TARGET" "$PLIST_PATH"
+
+# 7. Kickstart so it runs immediately (don't wait for next login)
+launchctl kickstart "$USER_TARGET/$LABEL"
+
+# 8. Verify
 sleep 1
-if launchctl list | grep -q "com.ethan.figma-bridge-daemon"; then
+if launchctl print "$USER_TARGET/$LABEL" > /dev/null 2>&1; then
   echo "✓ Daemon registered with launchd"
 else
-  echo "WARNING: daemon not visible in launchctl list. Check $LOG_DIR/figma-bridge-daemon.err.log" >&2
+  echo "WARNING: daemon not visible. Check $LOG_DIR/figma-bridge-daemon.err.log" >&2
   exit 1
 fi
 
@@ -565,14 +858,17 @@ echo "  stderr: $LOG_DIR/figma-bridge-daemon.err.log"
 set -euo pipefail
 
 PLIST_PATH="$HOME/Library/LaunchAgents/com.ethan.figma-bridge-daemon.plist"
+USER_TARGET="gui/$(id -u)"
+LABEL="com.ethan.figma-bridge-daemon"
+
+# R2: modern bootout (fail-silent if not bootstrapped) instead of legacy unload
+launchctl bootout "$USER_TARGET/$LABEL" 2>/dev/null || true
 
 if [[ -f "$PLIST_PATH" ]]; then
-  echo "Unloading daemon..."
-  launchctl unload "$PLIST_PATH" 2>/dev/null || true
   rm -f "$PLIST_PATH"
   echo "✓ Removed $PLIST_PATH"
 else
-  echo "Daemon not installed (no plist at $PLIST_PATH)"
+  echo "No plist at $PLIST_PATH (daemon was not installed via this script)"
 fi
 
 # Sanity-check the port is now free.
@@ -630,12 +926,12 @@ The install script writes this dynamically with the resolved Node path. Final fo
 
 ### Key choices and why
 
-- **`KeepAlive` is a dict, not a bare `<true/>`.** The dict form lets us be selective: restart on crash (`Crashed: true`) and on non-clean exit (`SuccessfulExit: false`), but **don't** restart if we ourselves call `exit(0)` after SIGTERM. That makes `launchctl unload` work correctly — it sends SIGTERM, the daemon exits 0, launchd does not respawn.
-- **`ThrottleInterval: 10`** stops launchd from respawning faster than every 10 seconds if we get into a crash loop. Without this, a misconfigured daemon could hammer the system.
-- **`RunAtLoad: true`** means it starts immediately when `launchctl load` runs and on every login afterward.
-- **No `LaunchOnlyOnce` or other one-shot keys** — we want it persistent.
+- **`KeepAlive` is a dict, not a bare `<true/>`.** The dict form lets us be selective: restart on crash (`Crashed: true`) and on non-clean exit (`SuccessfulExit: false`), but **don't** restart if we ourselves call `exit(0)` after SIGTERM. That makes uninstall work correctly — `bootout` sends SIGTERM, the daemon exits 0, launchd does not respawn.
+- **`ThrottleInterval: 10`** stops launchd from respawning faster than every 10 seconds if we get into a crash loop.
+- **`RunAtLoad: true`** means it starts immediately when the LaunchAgent is bootstrapped, and again at the next login. **(R2 clarification:** a LaunchAgent at `~/Library/LaunchAgents/` runs at **user login**, not at machine boot. The user's session doesn't exist before login, so neither does the LaunchAgent. After a cold reboot, the daemon comes back as soon as the user signs in. If you want the daemon running before login, you'd need a LaunchDaemon at `/Library/LaunchDaemons/` — strictly more complex (requires root install, drops to a `UserName`, no access to user keychain, etc.) and not needed here. Our use case is "I open Claude Code, the daemon is already running" — login-scoped is correct.)
+- **No `LaunchOnlyOnce` or other one-shot keys** — we want it persistent across the session.
 - **`PATH` includes both `/usr/local/bin` (Intel Homebrew) and `/opt/homebrew/bin` (Apple Silicon Homebrew)** so any subprocess we ever spawn (we don't currently, but defensive) can find binaries.
-- **No `WorkingDirectory`** — the daemon doesn't care about CWD. If we ever do, add `<key>WorkingDirectory</key><string>/path</string>`.
+- **No `WorkingDirectory`** — the daemon doesn't care about CWD.
 - **No `UserName`** — LaunchAgents (in `~/Library/LaunchAgents/`) inherently run as the current user. Don't confuse with LaunchDaemons (`/Library/LaunchDaemons/`) which run as root and need `UserName` to drop privileges.
 
 ---
@@ -686,9 +982,11 @@ Sanity-check: the daemon imports `FigmaBridgeWebSocketServer` from `../server/we
 
 ---
 
-## 16. README updates
+## 16. README — CREATE (R2 correction)
 
-The README needs a one-time install section roughly like:
+There is no `README.md` in the figma-mcp repo today. R1 said "modify README"; the actual action is **create**. This is a small thing to flag for the estimate (creating a doc-from-zero takes longer than a dot edit) but worth getting right.
+
+The new README covers a one-time install section roughly like:
 
 > ## Install (one-time)
 >
@@ -717,11 +1015,10 @@ The README needs a one-time install section roughly like:
 >
 > ```bash
 > npm run build:daemon
-> launchctl unload ~/Library/LaunchAgents/com.ethan.figma-bridge-daemon.plist
-> launchctl load ~/Library/LaunchAgents/com.ethan.figma-bridge-daemon.plist
+> launchctl kickstart -k "gui/$(id -u)/com.ethan.figma-bridge-daemon"
 > ```
 >
-> Or just rerun `npm run install-daemon` — it's idempotent.
+> The `-k` flag kills the running instance first, then starts a fresh one with the newly built binary. Or just rerun `npm run install-daemon` — it's idempotent (it `bootout`s the old instance, rewrites the plist, and `bootstrap`s the new one).
 
 ---
 
@@ -828,6 +1125,32 @@ npm run uninstall-daemon
 
 After T8, `npm run install-daemon` should succeed and the daemon should be back up.
 
+### T10. (R2) Status freshness — late plugin connect
+
+The acceptance test for the §2.5 contract.
+
+1. Daemon running, no plugin connected.
+2. Open Claude Code → MCP spawns → run `get_connection_status` → expect `connected: false, pluginCount: 0`.
+3. Open Figma + plugin (plugin connects to daemon).
+4. **Within 1 second**, run `get_connection_status` again → **expect `connected: true, pluginCount: 1`** without restarting Claude Code.
+5. Run a real tool call (e.g. `get_selection`) → must succeed; the cache must have updated via push.
+
+**Failure mode this catches:** the exact bug R1 would have shipped. If T10 fails, the push mechanism is broken or the cache isn't being updated.
+
+### T11. (R2) Status freshness — plugin disconnect mid-session
+
+1. Daemon running, plugin connected. MCP active. Confirm `connected: true`.
+2. Quit Figma (or close the plugin) → daemon's plugin set drops to empty.
+3. **Within 1 second**, run `get_connection_status` → expect `connected: false`.
+4. Run a tool call → expect `NOT_CONNECTED` error (preflight gate works because cache updated via push).
+
+### T12. (R2) Plugin port narrowing — stale process on 3056
+
+1. Manually start a stale `node dist/server/index.js` listening on 3056 (simulate the reviewer's H3 hazard).
+2. Run install-daemon — preflight should detect 3056 is in use and refuse to install.
+3. Kill the stale process. Reinstall succeeds.
+4. Open Figma + plugin (post-narrowing build) → plugin connects ONLY to 3055. Verify by reading plugin console: should see "WebSocket connected on port 3055" and never attempt 3056.
+
 ---
 
 ## 19. Edge cases and failure modes
@@ -919,17 +1242,9 @@ Now that the stdio MCP is a pure client (doesn't bind a port), is the heartbeat 
 
 **Your call?**
 
-### Q3. New message types for `joinChannel` or piggyback on `relay_command`?
+### Q3. (Resolved in R2) New message types for `joinChannel`
 
-Today's protocol has `relay_command` / `relay_response` and `relay_status` / `relay_status_response`. `joinChannel` from a non-promoted relay returns `false` without sending anything.
-
-The cleanest way to implement actual `joinChannel` is to add a new message pair: `client_join_channel` / `client_join_channel_response`. The daemon side already knows how to join channels (`websocket-server.ts` exposes the method internally), we just need to thread it.
-
-**Alternative:** treat `joinChannel` as a special `relay_command` with a synthetic command name. **Hacky.**
-
-**My lean:** new message pair. Cleaner. Costs ~30 minutes more.
-
-**Your call?**
+Resolved: new dedicated message pair (`client_join_channel` / `client_join_channel_response`) per §10.4. The reviewer's H2 finding made clear that this is required, not optional, and that piggybacking on `client_command` would be hacky.
 
 ### Q4. Rename `relay_*` message types to `client_*`?
 
@@ -986,6 +1301,53 @@ The repo already uses `tsx scripts/build-plugin.ts` for build scripts. Could wri
 
 **Your call?**
 
+### Q9. (R2) Plugin port narrowing — collapse the 3055–3060 fallback?
+
+Per §10b, R2 narrows the plugin to a single port (3055). This eliminates the `FIGMA_MCP_PORT` runtime override knob in the plugin's manifest.
+
+**Option A (R2 default):** narrow to 3055. Anyone needing a different port edits both the plugin and the daemon.
+
+**Option B:** keep the 3055–3060 fallback in the plugin manifest, but have the plugin only attempt 3055 by default; expose `FIGMA_MCP_PORT` in the daemon plist's `EnvironmentVariables` and document a way to switch the plugin too.
+
+**My lean:** A. The override is effectively unused, and the fallback is the source of the H3 hazard. Edit lockstep if needed.
+
+**Your call?**
+
+### Q10. (R2) `client_status` request semantics — single-shot or subscribe?
+
+§10.3 says: on connect, the client sends one `client_status` request (bootstrap), then receives `client_status_update` pushes thereafter.
+
+Should the client also be able to send subsequent `client_status` requests for ground-truth pulls in `getConnectedFileInfo`? My current sketch does this — push for the cache, request/response for the user-facing query.
+
+**Alternative:** the client never re-requests; trusts the push entirely. `getConnectedFileInfo` reads the cache.
+
+**Pro of pull-on-query:** strongest correctness guarantee; survives any push-loss bug.
+**Pro of trust-the-push:** simpler, no two paths.
+
+**My lean:** pull-on-query. Belt and braces — the cost is one round-trip per user-initiated status check.
+
+**Your call?**
+
+### Q11. (R2) `client_status_update` push fan-out — broadcast to all clients vs targeted?
+
+Today's daemon doesn't track which clients exist (the WebSocket server's `clients` map is for plugins, not for MCP clients). To broadcast `client_status_update`, the daemon needs to track MCP clients too — likely a new `Set<WebSocket>` keyed by the WS connection.
+
+**Option A:** track all incoming WS connections in `mcpClients: Set<WebSocket>`. Add to the set when a non-plugin client first sends `client_status` or `client_command`. Remove on close. Broadcast iterates this set.
+
+**Option B:** broadcast to all `wss.clients` and let each peer decide whether to handle the message. Simpler but plugins would receive `client_status_update` they don't care about.
+
+**My lean:** A. Cleaner separation, plugins don't see daemon-internal messages.
+
+**Your call?**
+
+### Q12. (R2) Wire-message renames — `relay_*` → `client_*` (touched in Q4)
+
+Q4 originally asked whether to rename. With R2's actual scope (we're touching `types.ts` and `websocket-server.ts` regardless), the cost of renaming during this work is ~5 minutes vs leaving "relay" terminology in a daemon-model codebase forever.
+
+**My lean (firmer in R2):** rename. The system has no relays anymore. Calling them relays will mislead readers.
+
+**Your call?**
+
 ---
 
 ## 24. Out of scope
@@ -1001,27 +1363,34 @@ The repo already uses `tsx scripts/build-plugin.ts` for build scripts. Could wri
 
 ---
 
-## 25. Estimate breakdown
+## 25. Estimate breakdown (revised in R2)
 
-Cumulative time, assuming focused work:
+Cumulative time, assuming focused work. R1 estimate was ~3.5 hours; R2 raises it because the protocol changes flagged by the reviewer (status push, async `joinChannel`, async `getConnectedFileInfo`, port narrowing) are real work.
 
 | Step | Time |
 |---|---|
-| Read existing relay-client.ts and websocket-server.ts to confirm shape | 15 min |
+| Confirm existing shapes by re-reading websocket-server.ts, types.ts, mcp-server.ts | 15 min |
 | Write `src/daemon/index.ts` | 30 min |
-| Modify `src/server/index.ts` (delete host-or-relay fork) | 10 min |
-| Rename + simplify `relay-client.ts` → `daemon-client.ts` (delete promotion logic) | 30 min |
-| Implement actual `joinChannel` over the wire (Q3) | 30 min |
-| Write `scripts/install-daemon.sh` | 25 min |
+| Update `types.ts`: new wire messages + async `FigmaBridge.joinChannel` + async `FigmaBridge.getConnectedFileInfo` (R2) | 15 min |
+| Update `websocket-server.ts`: broadcast `client_status_update` on plugin join/leave/active-channel-change; add `client_join_channel` and `client_status` handlers; track `mcpClients` set; wrap `joinChannel` and `getConnectedFileInfo` async (R2) | 60 min |
+| Rename + simplify `relay-client.ts` → `daemon-client.ts`: delete promotion logic; replace polling with `client_status_update` push handler; ground-truth pull for `getConnectedFileInfo`; real wire-RPC `joinChannel` (R2) | 75 min |
+| Update `mcp-server.ts`: await `joinChannel`; await `getConnectedFileInfo` in `get_connection_status` (R2) | 10 min |
+| Modify `src/server/index.ts` (delete host-or-relay fork; depend on daemon-client) | 10 min |
+| Plugin narrowing: `ui.ts` constants + reconnect logic, `manifest.json` allowedDomains (R2) | 15 min |
+| Rebuild plugin and verify it still loads in Figma after manifest change | 10 min |
+| Write `scripts/install-daemon.sh` (with bootstrap/bootout/kickstart, port-sweep preflight) | 30 min |
 | Write `scripts/uninstall-daemon.sh` | 5 min |
-| `package.json` + `README.md` updates | 15 min |
-| Run T1–T9 manually | 30 min |
-| Buffer for edge-case fixes encountered during testing | 30 min |
-| **Total** | **~3.5 hours** |
+| `package.json` updates | 5 min |
+| **Create** `README.md` (R2 — does not exist today) | 25 min |
+| Run T1–T9 manually + new T10–T12 (R2 — see §18) | 45 min |
+| Buffer for edge-case fixes during testing | 45 min |
+| **Total** | **~6 hours** |
 
-The original BACKLOG estimate was 1.5–2 hours. That estimate was for the refactor *only*, not testing. Including thorough testing (which I'd insist on for an infra change like this), 3–4 hours is more realistic.
+The R1 estimate of 3.5 hours was based on the now-disproven assumption that `websocket-server.ts`, `mcp-server.ts`, and `types.ts` were unchanged. Once the reviewer surfaced that assumption, the protocol work and the async-ification cascade roughly double the code-change time.
 
-Multi-file disambiguation skill (§17): separate ~30–60 min.
+Multi-file disambiguation skill (§17): still separate, ~30–60 min.
+
+**Recommendation:** budget half a day, not 2 hours. If the user wants to break this up, the natural seam is "land §8–§11 + §10b first (the daemon and the protocol changes), live with it for a few days, then land the install scripts and README as a follow-up." But install must happen for the daemon to actually be useful, so that seam mostly just adds a context switch.
 
 ---
 
