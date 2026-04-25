@@ -44,7 +44,7 @@ export function useReferenceSentences(initialSentences?: ReferenceSentence[]) {
 // AUDIO RECORDING HOOK
 // ========================
 
-export function useAudioRecording() {
+export function useAudioRecording(runIdRef?: React.MutableRefObject<number>) {
   const [isRecording, setIsRecording] = useState(false);
   const [audioData, setAudioData] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +52,11 @@ export function useAudioRecording() {
   const audioChunksRef = useRef<Blob[]>([]);
 
   const startRecording = useCallback(async () => {
+    // Capture runId at attach time. The onstop closure below carries this
+    // value so a late onstop firing after re-activation (new run started)
+    // bails out instead of committing the abandoned run's blob.
+    const myRun = runIdRef?.current ?? 0;
+
     try {
       setAudioData(null);
       setError(null);
@@ -97,18 +102,23 @@ export function useAudioRecording() {
       };
 
       mediaRecorder.onstop = () => {
+        // Late-callback guard: if a new run started after this recorder was
+        // attached, drop the captured audio rather than committing it to the
+        // new run's state.
+        if (runIdRef && myRun !== runIdRef.current) return;
+
         if (audioChunksRef.current.length === 0) {
           setError('No audio data was captured. Please check your microphone and try again.');
           return;
         }
-        
+
         const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
-        
+
         if (audioBlob.size === 0) {
           setError('Recorded audio is empty. Please check your microphone and try again.');
           return;
         }
-        
+
         setAudioData(audioBlob);
       };
 
@@ -170,7 +180,10 @@ export function useAudioRecording() {
 // DEEPGRAM PROCESSING HOOK
 // ========================
 
-export function useDeepgramProcessing() {
+export function useDeepgramProcessing(
+  cancelSignal?: AbortSignal,
+  runIdRef?: React.MutableRefObject<number>
+) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<TranscriptionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -180,14 +193,19 @@ export function useDeepgramProcessing() {
       setError('The recorded audio is empty. Please check your microphone and try again.');
       return;
     }
-    
+
+    // Capture runId at the start of the operation. Compare on every
+    // post-await boundary; if a new run has started, bail without writing.
+    const myRun = runIdRef?.current ?? 0;
+    const isStillCurrentRun = () => !runIdRef || myRun === runIdRef.current;
+
     setIsProcessing(true);
     setError(null);
-    
+
     try {
       const formData = new FormData();
       const fileName = `recording-${Date.now()}.${audioBlob.type.split('/')[1] || 'webm'}`;
-      
+
       let audioFile;
       try {
         audioFile = new File([audioBlob], fileName, { type: audioBlob.type });
@@ -195,41 +213,51 @@ export function useDeepgramProcessing() {
       } catch (_) {
         audioFile = audioBlob;
       }
-      
+
       formData.append('audio', audioFile, fileName);
-      
+
       const response = await fetch('/api/ai-confidence-tracker/transcribe', {
         method: 'POST',
-        body: formData
+        body: formData,
+        signal: cancelSignal,
       });
-      
+      if (!isStillCurrentRun()) return;
+
       const data = await response.json();
-      
+      if (!isStillCurrentRun()) return;
+
       if (!response.ok) {
         const errorMessage = data.details || data.error || 'Unknown error occurred';
         throw new Error(errorMessage);
       }
-      
+
       if (!data || typeof data !== 'object') {
         throw new Error('The server returned an invalid response format');
       }
-      
+
       if (!data.hasOwnProperty('transcript') || !data.hasOwnProperty('words') || !Array.isArray(data.words)) {
         throw new Error('The server returned an invalid response format');
       }
-      
+
       if (data.transcript === '' && data.words.length === 0) {
         throw new Error('No speech detected in recording. Please try again.');
       }
-      
+
       setResult(data);
     } catch (err) {
+      // Deliberate cancellation — not a user-facing error.
+      if (err instanceof Error && err.name === 'AbortError') return;
+      if (cancelSignal?.aborted) return;
+      if (!isStillCurrentRun()) return;
       const errorMessage = err instanceof Error ? err.message : 'Error processing audio';
       setError(errorMessage);
     } finally {
-      setIsProcessing(false);
+      // Don't override state set by a newer run.
+      if (isStillCurrentRun()) {
+        setIsProcessing(false);
+      }
     }
-  }, []);
+  }, [cancelSignal, runIdRef]);
 
   const resetProcessing = useCallback(() => {
     setResult(null);
@@ -249,26 +277,32 @@ export function useDeepgramProcessing() {
 // SPEECH CONFIDENCE STATE HOOK
 // ========================
 
-export function useSpeechConfidenceState() {
+export interface SpeechConfidenceStateOptions {
+  cancelSignal?: AbortSignal;
+  runIdRef?: React.MutableRefObject<number>;
+}
+
+export function useSpeechConfidenceState(options: SpeechConfidenceStateOptions = {}) {
+  const { cancelSignal, runIdRef } = options;
   const [appState, setAppState] = useState<AppState>(AppState.INITIAL);
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
-  
-  const { 
-    isRecording, 
-    audioData, 
-    error: recordingError, 
-    startRecording, 
+
+  const {
+    isRecording,
+    audioData,
+    error: recordingError,
+    startRecording,
     stopRecording,
     resetRecording
-  } = useAudioRecording();
-  
-  const { 
-    isProcessing, 
-    result, 
-    error: processingError, 
-    processAudio, 
+  } = useAudioRecording(runIdRef);
+
+  const {
+    isProcessing,
+    result,
+    error: processingError,
+    processAudio,
     resetProcessing
-  } = useDeepgramProcessing();
+  } = useDeepgramProcessing(cancelSignal, runIdRef);
   
   useEffect(() => {
     if (recordingError) {
@@ -306,7 +340,39 @@ export function useSpeechConfidenceState() {
     setErrorState(null);
     resetRecording();
   }, [resetProcessing, resetRecording]);
-  
+
+  // Kill-switch: when cancelSignal aborts, invoke the product's existing
+  // teardown — stop recording (releases mic tracks) and reset state to
+  // INITIAL. AbortSignal handles the in-flight fetch separately via the
+  // `signal:` option in useDeepgramProcessing; runIdRef handles late
+  // MediaRecorder.onstop. This effect handles the imperative "stop the mic
+  // and clear UI state" piece the other primitives can't reach.
+  // Refs avoid re-binding the listener whenever stopRecording / resetState
+  // identities change (they depend on isRecording, etc.) — re-binding
+  // creates a window where an abort fired between cleanup and re-attach is
+  // missed.
+  const stopRecordingRef = useRef(stopRecording);
+  const resetStateRef = useRef(resetState);
+  useEffect(() => { stopRecordingRef.current = stopRecording; }, [stopRecording]);
+  useEffect(() => { resetStateRef.current = resetState; }, [resetState]);
+
+  useEffect(() => {
+    if (!cancelSignal) return;
+
+    const handleAbort = () => {
+      stopRecordingRef.current();
+      resetStateRef.current();
+    };
+
+    if (cancelSignal.aborted) {
+      handleAbort();
+      return;
+    }
+
+    cancelSignal.addEventListener('abort', handleAbort, { once: true });
+    return () => cancelSignal.removeEventListener('abort', handleAbort);
+  }, [cancelSignal]);
+
   return {
     appState,
     errorState,
@@ -330,10 +396,18 @@ const SpeechConfidenceContext = createContext<SpeechConfidenceContextType | unde
 
 interface SpeechConfidenceProviderProps {
   children: ReactNode;
+  /** Optional showcase-side cancel signal. When it aborts, the provider
+   *  invokes stopRecording() + resetState() and aborts any in-flight
+   *  transcribe fetch. Standalone usage (omit) preserves prior behaviour. */
+  cancelSignal?: AbortSignal;
+  /** Optional run-id ref from useRunId(). Used to reject late callbacks
+   *  (MediaRecorder.onstop, post-await setState) that belong to an
+   *  abandoned run. Omit for standalone use — guards become no-ops. */
+  runIdRef?: React.MutableRefObject<number>;
 }
 
-export const SpeechConfidenceProvider = ({ children }: SpeechConfidenceProviderProps) => {
-  const speechState = useSpeechConfidenceState();
+export const SpeechConfidenceProvider = ({ children, cancelSignal, runIdRef }: SpeechConfidenceProviderProps) => {
+  const speechState = useSpeechConfidenceState({ cancelSignal, runIdRef });
   const referenceSentences = useReferenceSentences();
   
   const value = {

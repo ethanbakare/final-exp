@@ -29,6 +29,8 @@ import { TryDemoButtonSmall, ViewCaseStudyButtonSmall } from '@/projects/demo-sh
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
 import { TRACE_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/TraceSim';
 import { CLIPSTREAM_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/ClipStreamSim';
+import { useActiveAbortSignal } from '@/projects/demo-showcase/hooks/useActiveAbortSignal';
+import { useRunId } from '@/projects/demo-showcase/hooks/useRunId';
 
 // Dynamic imports — SSR-unsafe sims/demos.
 const AIConfidenceSim = dynamic(
@@ -116,6 +118,15 @@ export default function DemoShowcasePage() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const handleLoopRestart = useCallback(() => setLoopKey(k => k + 1), []);
   const totalRef = useRef(PROJECTS.length);
+
+  // Kill-switch: one cancel signal + run-id ref per active demo slot.
+  // See docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md.
+  // - AI Confidence (idx 0): demo-mode-gated — sim and demo are mounted
+  //   simultaneously when activeIdx === 0; toggling demo→sim must abort
+  //   even though the demo isn't unmounting, hence the && isDemoMode.
+  const aiConfidenceActive = activeIdx === 0 && isDemoMode;
+  const aiConfidenceCancelSignal = useActiveAbortSignal(aiConfidenceActive);
+  const aiConfidenceRunIdRef = useRunId(aiConfidenceActive);
 
   const go = useCallback((delta: number) => {
     setActive(([i]) => {
@@ -265,7 +276,7 @@ export default function DemoShowcasePage() {
                         <AIConfidenceSim key={loopKey} onLoopRestart={handleLoopRestart} />
                       </div>
                       <div className={`layer layer-demo ${!isDemoMode ? 'layer-hidden' : ''}`}>
-                        <AIConfidenceDemo />
+                        <AIConfidenceDemo cancelSignal={aiConfidenceCancelSignal} runIdRef={aiConfidenceRunIdRef} />
                       </div>
                     </>
                   )}
