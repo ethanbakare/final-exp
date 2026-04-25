@@ -1,79 +1,85 @@
-# Handoff — 2026-04-20
+# Handoff — 2026-04-25
 
-Picking up where this session left off. Two major workstreams completed: Clipstream layout fix and AI Confidence Tracker preview loop. Both are live on the homepage.
+Picking up where this session left off. Two big workstreams shipped: **the demo-canvas-lab → demo-showcase port** (lab patterns now live on the real `/demo-showcase` page) and **a dedicated ClipStreamSim** for the ClipStream slot. Plus a documented but **not-yet-implemented** AbortSignal kill-switch architecture for cancellation across demos.
 
 ---
 
 ## What shipped this session
 
-### Clipstream layout fix
-`PreviewClipstream` was rendering incorrectly on the homepage — red record button missing, waveform not adapting, no padding. Root cause: absolute-positioned children gave the morph container `min-content = 0`, causing the wrong flex slot to collapse.
+### 1. Lab → Production port (demo-canvas-lab → /demo-showcase)
+The entire layout + mobile polish proven in the lab now runs on `/demo-showcase`. Lab page kept untouched at `/demo-canvas-lab`.
 
-Fix in [VoiceTextBoxClip.tsx](src/projects/voiceinterface/components/VoiceTextBoxClip.tsx):
-- `flex-shrink: 0` on `.clip-left-morph` and `.clip-record-morph`
-- `min-width: 0` on `.waveform-slot`
-- `flex-shrink: 0` on `.right-cluster`
-- 16px padding added to [PreviewClipstream.tsx](src/projects/new-home/components/previews/PreviewClipstream.tsx)
+Three projects wired:
+- **AI Confidence tracker** (idx 0) — full sim + demo (`AIConfidenceSim` + `AIConfidenceDemo`), warm-brown tint, headline with desktop-only suffix " in what it heard"
+- **Trace** (idx 1) — `TraceSim` only; inline demo not yet built
+- **ClipStream** (idx 2) — `ClipStreamSim` (new, see below); inline demo not yet built
 
----
+Voice Interface is **deferred entirely** — not yet "inline-demo-ready".
 
-### AI Confidence Tracker — looper lab page
-New page at [looper.tsx](src/pages/ai-confidence-tracker/looper.tsx). Three sections:
+Mobile polish ported: app-shell body lock (no iOS PTR), close-btn slide-in + CTA collapse on demo mode (`.is-demo`), `scale(0.9)` sim / `scale(0.8)` demo on mobile, edge-to-edge transparent progress + full-width nav pill, small CTA variants with animated label swap + blur crossfade, intro card `headlineSuffix` (desktop-only tail), transcript-bar single-line legend in results state, `touch-action: none !important` on canvas-motion, Framer Motion spring carousel.
 
-1. **Homepage animation** — exact `PreviewAIConfidence` at real card dimensions (574×321 desktop, fluid mobile). Replay button + auto every 5s checkbox. Both tied to same `replayKey`.
-2. **Transcript card (standalone)** — inner white card (687×272) fully exposed, no pink bg, no cropping. Same animation sequence (delayed `activeWord`). Interactive hover on highlights.
-3. **Full looper (auto)** — `SimulatedCard` cycling initial → recording → processing → results. Phase + timing readout. Uses Worcestershire sentence.
+### 2. ClipStreamSim — dedicated wrapper
+New file: [ClipStreamSim.tsx](src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx). Sister to `AIConfidenceSim` / `TraceSim` — same interface (`onLoopRestart?` prop + exported `CLIPSTREAM_SIM_DURATION`). Renders `ClipMasterScreen` with:
+- **Hydration gate** (useEffect + mounted flag) — mirrors what `/clipperstream` does for SSR-unsafe internals (zustand rehydration, mic, audio storage)
+- **`SimErrorBoundary`** — local crash surface so a `ClipMasterScreen` error doesn't blank the whole showcase
 
----
+All ClipStream-specific size/shape adjustments live as **scoped `:global()` CSS overrides** on the wrapper. Critical: `/clipperstream` source is **untouched**. Three live overrides:
 
-### `PreviewAIConfidence` — full auto-loop
-[PreviewAIConfidence.tsx](src/projects/new-home/components/previews/PreviewAIConfidence.tsx) is now fully animated on the homepage.
-
-**State machine** (auto-driver `useEffect` on `[state]`):
-
-| Phase | Duration | What shows |
+| Override | Value | Scope |
 |---|---|---|
-| `idle` | 3s | *"Record something: AI flags every word it may have misheard."* |
-| `recording` | 2s | *"Recording in progress..."* with animated dots |
-| `processing` | 1.5s | *"Checking confidence..."* with animated dots |
-| `results` | 5s | Transcript with underlines animating in, tooltip fires at 2.2s |
+| `.master-screen` height | **852 → 652** | desktop |
+| `transform: scale(0.8)` | wrapper-level | both breakpoints |
+| `.master-screen` border-radius | **0 → 16px** | mobile |
 
-**Cross-fade**: 200ms fade-out → content swap → 200ms fade-in between states.
+Reverted/abandoned along the way: width reduction (393→314), record-bar 15% shrink, desktop radius 8→16. Settled on `scale(0.8)` instead which shrinks everything uniformly.
 
-**Animation order fix**: `activeWordId` starts `null` on mount; set to `ACTIVE_WORD_ID` after 2200ms so underline draws before background fill appears.
+### 3. Kill-switch architecture plan (NOT IMPLEMENTED)
+Reference doc at [docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md](docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md). Detailed plan for an `AbortSignal`-based cancellation contract across demos, so swiping during an in-flight async op (recording, transcribe fetch, mic stream) cleanly aborts without leaking results into the now-inactive demo.
 
-**Preview text**: `"Warchester's warden's whisper weird wishes"`
-- wordId 0 = low confidence, 30% (Warchester's — intentionally wrong spelling)
-- wordId 1 = medium confidence, 75% (warden's)
-- `ACTIVE_WORD_ID = 0`
+Proposed primitive (in plan, not built):
+```ts
+function useActiveAbortSignal(isActive: boolean): AbortSignal {
+  // returns a signal that aborts when isActive flips false,
+  // fresh AbortController on next isActive=true
+}
+```
 
-**Color fix**: `--darkGrey40` is scoped to `.container` in `ai-tracker.module.css` — not global. Hardcoded `rgba(94, 94, 94, 0.4)` directly in styled-jsx to match `TranscriptTextStates`.
+Demos opt in via optional `cancelSignal?: AbortSignal` prop. Standalone demos work as before; in showcase they get the signal and abort cleanly. Phases laid out in the doc — recommend starting with `AIConfidenceDemo` since it has the most async surface.
 
----
-
-### UX copy — agreed and shipped
-All idle/initial states across the component family now read:
-> *"Record something: AI flags every word it may have misheard."*
-
-Updated in both:
-- `PreviewAIConfidence` (homepage)
-- [transcript-text-states.tsx](src/projects/ai-confidence-tracker/components/ui/transcript-text-states.tsx) (full app)
-
-Copy rationale: "Record something" = instruction. "AI flags every word it may have misheard" = outcome. "Misheard" is precise — AI transcribed *something*, just possibly the wrong word. Not "missed" (omission) and not "confidence" (technical jargon).
+### 4. Smaller fixes worth knowing
+- **`offset*` instead of `getBoundingClientRect()`** in [deepUIcomponents.tsx](src/projects/ai-confidence-tracker/components/ui/deepUIcomponents.tsx:446) for underline measurement — fixes underline positioning under transformed ancestors (was breaking at scale(0.9) on mobile).
+- **DRY headline** — `DemoIntroCard` accepts optional `headlineSuffix` (CSS-hidden on mobile) instead of duplicating cards. Single DOM element, full text in DOM for screen readers.
+- **Record-button jitter on Brave iOS** — `.clip-record-morph` got `contain: paint` + `will-change: transform`; removed `filter: blur` from layer crossfade (replaced with opacity-only). Layer isolation prevents canvas-neighbour repaints from coupling.
+- **iOS audio context** — both `createFakeStream` (in `VoiceTextBoxClip`) and `ClipLinearWaveform` now use a fire-and-forget resume() pattern (NOT awaited — WebKit can hang). Gesture + visibilitychange listeners resume on next interaction / tab return.
+- **Transcript-bar on mobile in results state** — microcopy `display: none`, legend reflows row + `align-self: flex-end` to anchor at the same baseline as the microcopy was. No card jump between states.
 
 ---
 
-## ⚠ Known stub — `transcribeAudio`
-Still stubbed. `/api/voice-interface/transcribe` was returning 400. When fixed, swap the `setTimeout`/SAMPLE_LINES branch in `VoiceTextBoxClip.tsx` back for the original `fetch`. Original code in `git log` commit `6a4d228`.
+## Architectural patterns established this session
+
+These are now the conventions for any future work:
+
+1. **Mobile variants are sibling components, not media-query overrides.** `ShowcaseNavbarCompactSmall`, `ShowcaseButtonsSmall`, `DemoProgressSectionTransparent`, `ShowcaseCloseBtnSmall` all sit alongside their desktop versions; the lab/showcase swaps via CSS `display: none` on wrapper class (not JS viewport detection). Real layout savings, not transform: scale.
+
+2. **App-shell layout** for full-bleed pages: `.lab` / `.showcase` use `position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none` PLUS a mounted-time body/html lock via useEffect. Restores prior body state on unmount so other scrollable pages still work. This is what kills iOS pull-to-refresh + rubber-band properly.
+
+3. **Project showcase isolation: never edit project source for showcase customization.** Use scoped `:global()` overrides via styled-jsx wrapper class. ClipStreamSim demonstrates this — three CSS overrides, zero edits to `src/projects/clipperstream/**`.
+
+4. **Use `offset*` properties for measurement-driven layout, not `getBoundingClientRect()`.** GBCR returns post-transform screen pixels; if you then apply those values as CSS inside a transformed ancestor, the value gets scaled twice. `offsetLeft/offsetTop/offsetWidth` are layout-space and round-trip cleanly through transforms.
+
+5. **Don't bake `transform: scale()` into layout decisions.** Use it for micro-interactions (`:active`, `:hover`). For "smaller on mobile," resize via real dimensions (sibling component or CSS values) so getBoundingClientRect, hit-testing, and sub-component math all work correctly. Exception: ClipStreamSim uses `scale(0.8)` deliberately as a visual experiment because we don't want to fork ClipMasterScreen.
+
+6. **CSS module classes (not styled-jsx) for components wrapped in framer-motion.** `motion.button` strips styled-jsx's scope class on the root, so `<style jsx>` selectors miss. CSS modules are unaffected. (Hit this on `ShowcaseButtonsSmall` — bug discovered, fixed by moving to CSS module.)
 
 ---
 
-## Lessons logged this session
+## ⚠ Known stubs / open work
 
-- **`--darkGrey40` and other CSS vars in `ai-tracker.module.css` are scoped to `.container`** — not globally available. Components that don't apply `styles.container` must hardcode the literal value.
-- **`right: -Xpx` positioning**: `right: -186px` means the right edge of the element is 186px PAST the right edge of the container — not 186px from the right. Box left = `container_width + 186 - box_width`.
-- **Homepage card dimensions**: `card-ai-confidence` = `grid-column: 1 / span 2` in `repeat(4, 282px)` with 10px gap = **574px wide × 321px tall**. Visible slice of the transcript box = top-left ~501×196px.
-- **`min-content: 0` trap**: absolutely positioned children contribute 0 to intrinsic width. Any flex child whose children are all `position: absolute` will collapse to 0 without `flex-shrink: 0`.
+1. **Trace inline demo** — only sim wired in showcase; demo not built. When it lands, slot in like AIConfidence: `<TraceDemo />` next to `<TraceSim />` inside `activeIdx === 1` block.
+2. **ClipStream inline demo** — not built either. Same plug-in pattern when ready.
+3. **Voice Interface** — entirely deferred; not in showcase project list yet.
+4. **AbortSignal kill-switch** — see plan doc; pick when ready. Recommend starting with `AIConfidenceDemo` since its `transcribeAudio` stub is the most likely leak point.
+5. **`transcribeAudio` stub** still returning 400 (carried over from prior session). When fixed, swap the `setTimeout`/SAMPLE_LINES branch in `VoiceTextBoxClip.tsx` back for the original `fetch`. Original code in commit `6a4d228`.
 
 ---
 
@@ -81,22 +87,49 @@ Still stubbed. `/api/voice-interface/transcribe` was returning 400. When fixed, 
 
 | File | Why you'd open it |
 |---|---|
-| [PreviewAIConfidence.tsx](src/projects/new-home/components/previews/PreviewAIConfidence.tsx) | The homepage loop. State machine, copy, timing, color, highlights. |
-| [looper.tsx](src/pages/ai-confidence-tracker/looper.tsx) | Lab page. Three sections: homepage preview, standalone card, full looper. |
-| [transcript-text-states.tsx](src/projects/ai-confidence-tracker/components/ui/transcript-text-states.tsx) | App idle copy updated here too. |
-| [VoiceTextBoxClip.tsx](src/projects/voiceinterface/components/VoiceTextBoxClip.tsx) | Clip voice card. Flex layout fix here. `transcribeAudio` stub here. |
-| [PreviewClipstream.tsx](src/projects/new-home/components/previews/PreviewClipstream.tsx) | Tiny wrapper — padding fix here. |
+| [/pages/demo-showcase/index.tsx](src/pages/demo-showcase/index.tsx) | The production showcase page — 3 projects, full mobile polish |
+| [/pages/demo-canvas-lab.tsx](src/pages/demo-canvas-lab.tsx) | Scratchpad/lab — kept around for future iterations |
+| [ClipStreamSim.tsx](src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx) | ClipStream-specific overrides; pattern for future per-project sims |
+| [ShowcaseNavbarCompactSmall.tsx](src/projects/demo-showcase/components/ui/ShowcaseNavbarCompactSmall.tsx) | Mobile navbar — 0.7× baked-in dimensions |
+| [ShowcaseButtonsSmall.tsx](src/projects/demo-showcase/components/ui/ShowcaseButtonsSmall.tsx) | Mobile CTAs — animated label swap with blur crossfade |
+| [ShowcaseCloseBtnSmall.tsx](src/projects/demo-showcase/components/ui/ShowcaseCloseBtnSmall.tsx) | X button shown in mobile demo mode |
+| [DemoProgressSectionTransparent.tsx](src/projects/demo-showcase/components/ui/DemoProgressSectionTransparent.tsx) | Mobile edge-to-edge progress |
+| [DemoIntroCard.tsx](src/projects/demo-showcase/components/ui/DemoIntroCard.tsx) | Headline pill — accepts `headlineSuffix` (desktop-only tail) |
+| [transcript-bar.tsx](src/projects/ai-confidence-tracker/components/ui/transcript-bar.tsx) | Single-line legend in results state on mobile |
+| [docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md](docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md) | The pending AbortSignal plan |
 
-Recent commits:
+## Recent commits (this session)
+
 ```
-c86c01e fix(PreviewAIConfidence): hardcode rgba(94,94,94,0.4) — darkGrey40 scoped to .container
-863060d fix(TranscriptTextStates): update initial copy to match agreed UX copy
-3f4b72d fix(PreviewAIConfidence): match color and animated dots to TranscriptTextStates
-845b435 feat(PreviewAIConfidence): add auto-loop state machine with UX copy per phase
-3afb2c0 fix(ai-confidence): delay focus-highlight after underline, fix standalone card sizing and loop
-fb967af feat(looper): add standalone transcript card section for direct interaction
-64485bc fix(looper): make homepage preview card responsive with min(574px, 100%)
-ac47261 fix(looper): correct homepage card dimensions to 574x321
-aa3d9bd feat(ai-confidence-tracker): add homepage PreviewAIConfidence to looper lab
-84dbd52 docs: refresh HANDOFF.md for previous session
+2fabddb style(ClipStreamSim): round master-screen corners on mobile too
+8c4e828 style(ClipStreamSim): transform scale(0.8) on the whole frame (experiment)
+c4f1749 style(ClipStreamSim): shrink master-screen 852 -> 652 on desktop
+2020064 feat(demo-showcase): dedicated ClipStreamSim component
+8d7f050 feat(demo-showcase): port ClipMasterScreen into ClipStream slot
+491728d style(demo-showcase): ClipStream uses warm pink variation (from lab)
+3dce800 feat(demo-showcase): port lab layout + mobile polish to production page
+c7b9dc2 docs(demo-showcase): kill-switch architecture plan (AbortSignal pattern)
+da32816 style(ai-confidence): pin legend to bottom of reserved bar slot on mobile
+f3c9f3d fix(ai-confidence): add min-height 38px to transcript-bar on mobile
+b383978 style(ai-confidence): legend renders as single row on mobile in results state
+d1c418b refactor(ai-confidence): simplify mobile results state to just microcopy hide
+9a89d82 feat(ai-confidence): hide microcopy in results state on mobile
+a1d0935 fix(ai-confidence): use offset* instead of GBCR for underline position math
+34a0413 feat(demo-canvas-lab): demo-mode adds X close btn + collapses CTA (mobile)
+2e1d77a style(ShowcaseButtonsSmall): stacked-absolute label crossfade with blur
+a7c4525 fix(ShowcaseButtonsSmall): move styles to CSS module — styled-jsx broke motion.button
+17f94b0 feat(demo-canvas-lab): wire ShowcaseNavbarCompactSmall on mobile
+93af6fc feat(demo-showcase): ShowcaseNavbarCompactSmall component
+06f6669 feat(demo-canvas-lab): wire DemoProgressSectionTransparent on mobile
+587168c fix(clip): architectural fixes for WebKit jitter + iOS audio suspension
+a4e1c2d fix(demo-canvas-lab): lock body + html on mount to kill iOS pull-to-refresh
+7f9a752 fix(demo-canvas-lab): app-shell layout to disable mobile PTR + overscroll
 ```
+
+---
+
+## Suggested next moves
+
+1. **Implement the AbortSignal kill-switch** (see plan doc). Start with `AIConfidenceDemo` — add `cancelSignal?` prop, wire into transcribe fetch + mic teardown. Validate with a fast swipe-during-recording test.
+2. **Build inline demos** for Trace and ClipStream when ready. Same pattern: a `TraceDemo` / `ClipStreamDemo` component sibling to the sim, wired in the `activeIdx === N` block.
+3. **Tune ClipStream visuals** — the warm pink variation + 0.8 scale + 16px corners is a starting point. May want sim-specific phone bezel, status bar, etc. once the inline demo lands.
