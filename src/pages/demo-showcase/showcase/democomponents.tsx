@@ -1,5 +1,5 @@
 /**
- * Demo Showcase — Components page
+ * Demo Showcase — Demo Components
  *
  * Renders every UI component used by the /demo-showcase carousel in
  * isolation. Mirrors the convention from /pages/voiceinterface/showcase/
@@ -7,7 +7,7 @@
  * mostly designed for light surfaces), thin subtle dark cell borders,
  * tiny dark-faded labels at the bottom of each cell.
  *
- * Route: /demo-showcase/showcase/components
+ * Route: /demo-showcase/showcase/democomponents
  *
  * Add a new GridBox here whenever a new showcase component ships.
  */
@@ -27,11 +27,17 @@ import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/compone
 
 const noop = () => {};
 
-/* Typical mobile viewport width — used to constrain the cells holding
-   *Small (mobile) components so they render at their actual mobile
-   width instead of stretching across a wider desktop cell. Matches
-   how they appear on /demo-showcase at viewport ≤ 768. */
-const MOBILE_PILL_WIDTH = 343;
+/* Cell widths chosen to match the navbar's PRODUCTION rendering width
+   on /demo-showcase at standard viewports. Measured directly:
+   - Desktop at viewport 1280 → .top-navbar-compact wrapper renders at
+     1240px (full width minus body padding). The .selector-pill caps
+     at 668px internally and sits centered with ~286px breathing room
+     each side. Cell 1240 reproduces that proportion exactly.
+   - Mobile at viewport 375 → wrapper + pill both render at 355px
+     (pill fills the mobile wrapper). Cell 360 gives a hair of cell-
+     border breathing room without changing the pill's apparent width. */
+const NAVBAR_DESKTOP_CELL_WIDTH = 1240;
+const NAVBAR_MOBILE_CELL_WIDTH = 360;
 
 /* ─────────────────────────────────────────────────────────────────────
    GridBox — fixed-size cell with thin border + bottom label.
@@ -96,6 +102,19 @@ function GridBox({
           width: 100%;
           height: 100%;
         }
+        /* Force the navbar wrappers to full cell width. Without this
+           they're flex children inside grid-box-content (which is
+           display:flex) and hug content, causing the inner .selector-
+           pill / .pill-shell to size to its CONTENT instead of its
+           own width:100%; max-width:668px declaration. With this,
+           the pill caps at 668 and centres the same way it does on
+           the live /demo-showcase page (where the parent .nav-slot
+           gives the navbar full width). */
+        .grid-box-content :global(.top-navbar-compact),
+        .grid-box-content :global(.top-navbar-mic),
+        .grid-box-content :global(.top-navbar-compact-small) {
+          width: 100%;
+        }
         .grid-box-label {
           position: absolute;
           bottom: 8px;
@@ -147,16 +166,16 @@ function SectionTitle({ children }: { children: string }) {
   );
 }
 
-export default function ShowcaseComponentsPage() {
+export default function DemoShowcaseComponentsPage() {
   return (
     <>
       <Head>
-        <title>Demo Showcase — Components</title>
+        <title>Demo Showcase — Demo Components</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
       <div className="showcase-page">
-        <h1 className="page-title">Demo Showcase — Component Library</h1>
+        <h1 className="page-title">Demo Showcase — Demo Components</h1>
         <p className="page-subtitle">All components displayed in isolation</p>
 
         {/* ═══════════════════════════════════════════════════════════
@@ -166,7 +185,7 @@ export default function ShowcaseComponentsPage() {
         <div className="section">
           <SectionTitle>Top Navbar — Desktop</SectionTitle>
           <div className="seamless-grid">
-            <GridBox label="granted (project pill)" width={720} height={100}>
+            <GridBox label="granted (project pill)" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
               <ShowcaseNavbarCompact
                 projectName="Trace"
                 currentIndex={1}
@@ -175,7 +194,7 @@ export default function ShowcaseComponentsPage() {
                 onPrev={noop}
               />
             </GridBox>
-            <GridBox label="mic state · unknown" width={720} height={100}>
+            <GridBox label="mic state · unknown" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
               <ShowcaseNavbarMicBanner
                 micState="unknown"
                 onEnable={noop}
@@ -184,7 +203,7 @@ export default function ShowcaseComponentsPage() {
                 onDismissBlocked={noop}
               />
             </GridBox>
-            <GridBox label="mic state · dismissed" width={720} height={100}>
+            <GridBox label="mic state · dismissed" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
               <ShowcaseNavbarMicBanner
                 micState="dismissed"
                 onEnable={noop}
@@ -193,7 +212,7 @@ export default function ShowcaseComponentsPage() {
                 onDismissBlocked={noop}
               />
             </GridBox>
-            <GridBox label="mic state · blocked" width={720} height={100}>
+            <GridBox label="mic state · blocked" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
               <ShowcaseNavbarMicBanner
                 micState="blocked"
                 onEnable={noop}
@@ -216,9 +235,8 @@ export default function ShowcaseComponentsPage() {
           <div className="seamless-grid">
             <GridBox
               label="project pill (granted) · 0.7×"
-              width={400}
+              width={NAVBAR_MOBILE_CELL_WIDTH}
               height={100}
-              contentMaxWidth={MOBILE_PILL_WIDTH}
             >
               <ShowcaseNavbarCompactSmall
                 projectName="Trace"
@@ -315,7 +333,10 @@ export default function ShowcaseComponentsPage() {
 
       <style jsx>{`
         .showcase-page {
-          max-width: 1200px;
+          /* Page max-width sized to comfortably hold the 1240-wide
+             navbar cells (which mirror /demo-showcase's wrapper width
+             at viewport 1280) plus 24px of side padding. */
+          max-width: 1296px;
           width: 100%;
           margin: 0 auto;
           padding: 80px 24px 120px;
