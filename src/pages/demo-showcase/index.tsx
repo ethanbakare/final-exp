@@ -31,6 +31,8 @@ import { TRACE_SIM_DURATION } from '@/projects/demo-showcase/components/simulati
 import { CLIPSTREAM_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/ClipStreamSim';
 import { useActiveAbortSignal } from '@/projects/demo-showcase/hooks/useActiveAbortSignal';
 import { useRunId } from '@/projects/demo-showcase/hooks/useRunId';
+import { ShowcaseNavbarMicBanner } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarMicBanner';
+import { useMicPermission } from '@/projects/new-home/hooks/useMicPermission';
 
 // Dynamic imports — SSR-unsafe sims/demos.
 const AIConfidenceSim = dynamic(
@@ -64,6 +66,10 @@ interface ProjectConfig {
   caseStudyUrl: string;
   simDuration: number;
   canvasProps: React.ComponentProps<typeof DemoCanvas>;
+  /** Whether the demo for this project requires microphone access.
+   *  Drives whether the showcase shows the navbar-slot mic permission
+   *  UI in place of the project pill while in demo mode. */
+  needsMic?: boolean;
 }
 
 const PROJECTS: ProjectConfig[] = [
@@ -73,6 +79,7 @@ const PROJECTS: ProjectConfig[] = [
     headlineSuffix: ' in what it heard',
     caseStudyUrl: '#',
     simDuration: SIM_DURATION,
+    needsMic: true,
     canvasProps: {
       tint: '#2E201E',
       tintOpacity: 0.08,
@@ -84,6 +91,7 @@ const PROJECTS: ProjectConfig[] = [
     headline: 'Voice-powered finance journal',
     caseStudyUrl: '#',
     simDuration: TRACE_SIM_DURATION,
+    needsMic: true,
     canvasProps: {
       tint: '#1C1917',
       tintOpacity: 0.06,
@@ -146,6 +154,19 @@ export default function DemoShowcasePage() {
   const clipStreamActive = activeIdx === 2;
   const clipStreamCancelSignal = useActiveAbortSignal(clipStreamActive);
 
+  // Mic permission state — single hook instance, lifted here so the
+  // navbar slot and any future consumer share one source of truth.
+  // The standalone /trace page renders its own MicPermissionBanner
+  // which calls this hook independently; that's fine because it
+  // doesn't run on the showcase page.
+  const {
+    micState,
+    handleEnable,
+    handleDismiss,
+    handleReshow,
+    handleDismissBlocked,
+  } = useMicPermission();
+
   const go = useCallback((delta: number) => {
     setActive(([i]) => {
       const total = totalRef.current;
@@ -206,6 +227,16 @@ export default function DemoShowcasePage() {
 
   const active = PROJECTS[activeIdx];
 
+  // Show the navbar-slot mic banner instead of the project pill when:
+  // (a) we're in demo mode, (b) the active project requires mic access,
+  // and (c) permission isn't already granted (and we're not still
+  // checking — `loading` falls through to the project pill to avoid
+  // flashing the banner on first paint).
+  const showMicInNavbar =
+    isDemoMode &&
+    active.needsMic === true &&
+    (micState === 'unknown' || micState === 'dismissed' || micState === 'blocked');
+
   // Measure canvas-area height so neighbours enter/exit exactly one
   // "card height + gap" away — mimics a stacked film strip.
   const PANEL_GAP = 100;
@@ -239,13 +270,25 @@ export default function DemoShowcasePage() {
 
       <div className={`showcase ${isDemoMode ? 'is-demo' : ''}`}>
         <div className="nav-slot nav-desktop">
-          <ShowcaseNavbarCompact
-            projectName={active.label}
-            currentIndex={activeIdx}
-            totalCount={PROJECTS.length}
-            onNext={() => go(1)}
-            onPrev={() => go(-1)}
-          />
+          {showMicInNavbar ? (
+            <ShowcaseNavbarMicBanner
+              // showMicInNavbar already narrows micState to the three
+              // "needs UI" states; assert for the prop's narrower union.
+              micState={micState as 'unknown' | 'dismissed' | 'blocked'}
+              onEnable={handleEnable}
+              onDismiss={handleDismiss}
+              onReshow={handleReshow}
+              onDismissBlocked={handleDismissBlocked}
+            />
+          ) : (
+            <ShowcaseNavbarCompact
+              projectName={active.label}
+              currentIndex={activeIdx}
+              totalCount={PROJECTS.length}
+              onNext={() => go(1)}
+              onPrev={() => go(-1)}
+            />
+          )}
         </div>
         <div className="nav-slot nav-mobile">
           <div className="mobile-nav-row">
