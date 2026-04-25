@@ -201,11 +201,11 @@ The non-realtime transcribe endpoint (used by `VoiceTextBoxClip` for the record-
 
 To fix: debug the API route (likely `/pages/api/voice-interface/transcribe.*`), get it returning real transcriptions for an audio blob, then swap the stub call sites at lines 322 and 334 for the real fetch. **Does NOT affect the realtime API path** — that's a separate code path (live PCM over WebRTC to OpenAI). This is purely the blob-based transcription.
 
-### Cancel button during Trace processing
-Production risk if the Gemini API hangs — user has no way to bail out. Needed before Trace is truly production-ready.
+### Cancel button during Trace processing (standalone `/trace` only)
+Production risk if the Gemini API hangs — standalone-page user has no way to bail out. The kill-switch wiring in TraceCore added a `cancelSignal` path so the showcase can abort fetches when the user swipes away, but that abort source isn't wired to a UI control on the standalone `/trace` page. Need a user-facing cancel button (or X-button surfaced during processing, not just recording) before Trace is truly production-ready.
 
 ### ClipStream simulation
-Auto-play recording → processing → results loop for the `/demo-showcase` page. Not built.
+Auto-play recording → processing → results loop for the `/demo-showcase` page. Not built. [ClipStreamSim.tsx](src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx) currently passes through to the real `ClipMasterScreen` (the live `/clipperstream` component) so the sim slot renders the real product. Once scripted-loop logic is written, it lives in this file — must NOT touch anything under `src/projects/clipperstream` (kill-switch porting boundary). Pattern to follow: AIConfidenceSim (scripted states) and TraceSim (idle → recording → processing → results → clear loop).
 
 ### Voice Interface simulation
 Design undecided. Separate from the Blob Studio page — this would be for the consolidated demo showcase.
@@ -220,7 +220,12 @@ Linear waveform playground exists in `otherexp` but not in `final-exp`. Could sh
 Single full-screen demo navigator (Figma "Dictation app" file). Nav with project dropdown + counter + up/down arrows, auto-playing simulation per demo, "Try Demo" + "View Case Study" CTAs. Would use simulation-mode versions of each project.
 
 ### Simulations for other projects
-Only AI Confidence Tracker has one. Need similar for Trace (partially done), Clipstream, Voice UI, Ollama.
+Status by project:
+- AI Confidence Tracker — **done** (scripted-state autoplay sim).
+- Trace — **done** ([TraceSim.tsx](src/projects/demo-showcase/components/simulations/TraceSim.tsx) auto-loops idle → recording → processing → results → clear → restart, using real `AnimatedTextBox` + `TRNavbarV2` with `simulateAudio`).
+- ClipStream — **not built** (see "ClipStream simulation" above; currently a passthrough to the real product).
+- Voice UI — **not built**, deferred (Voice Interface itself not yet in showcase).
+- Ollama — **not built**.
 
 ### Navigation bar for new home page
 Old home page had `MainNavBar`. New home page doesn't. Either adapt or build fresh from Figma.
