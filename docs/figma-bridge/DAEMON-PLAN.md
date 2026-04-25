@@ -10,6 +10,18 @@
 
 ## Revision history
 
+### Revision 4 — addressing R3 reviewer feedback
+
+Reviewer's R3 pass agreed the architecture is sound but flagged five consistency/specification issues. All addressed below.
+
+| # | Issue | Where addressed |
+|---|---|---|
+| H | Per-client active channel was named in R3 but the API surface still treats status as caller-agnostic. `getConnectedFileInfo()` and `client_status_update` would still produce wrong answers for sessions B, C, … unless tailored per-caller. | Rewrote §10.3, §10.6, §10.7. New §10.8 on the routing-state cache. The `client_status` and `client_join_channel` daemon-side handlers explicitly derive state from the sending WebSocket. The shared `FigmaBridge` interface is split: global plugin facts (pluginCount, plugins[]) vs per-client routing state (activeChannel, derived `connected`). The push payload is tailored per recipient. |
+| MH | Stale "no plugin code changes" / "identical protocol" claims now conflict with R2/R3's port narrowing, wire-message renames, and new wire types. | Rewrote NG3 in §4, §6 architecture description, §10 framing. New honest framing: plugin's main-thread command API unchanged; plugin connection config narrowed (manifest, WS_PORT); plugin ↔ daemon WebSocket protocol unchanged; MCP-client ↔ daemon protocol IS changing. |
+| M | §10b describes a port-sweep preflight, T12 tests it, §19 lists it as a TODO — but the §12 install-daemon.sh sketch doesn't actually include it. | Merged the preflight into §12. Removed the TODO from §19. |
+| M | AMBIGUOUS_FILE hot-path preflight in `mcp-server.ts` was hand-waved — the only documented accessor was `isPluginConnected(): boolean`, which can't distinguish "not connected" from "ambiguous." | New §10.8 on `getRoutingState()`: a richer cached accessor that exposes `pluginCount`, `activeChannel`, and `plugins[]`. `mcp-server.ts` uses it to choose between `NOT_CONNECTED`, `AMBIGUOUS_FILE`, and proceeding to `sendCommand`. `sendCommand` retains a defensive check as a backstop. |
+| L | Rollback (§21) still says `launchctl unload`; sign-off (§ at end) still says "T1–T9". Stale relative to R2 modernisation. | Updated to `bootout`. Updated to T1–T14. |
+
 ### Revision 3 — user direction (post-R2)
 
 After reviewing R2, the user (non-technical) clarified what their actual day-to-day pain is and made decisions that lock four open questions and meaningfully reshape one design choice. Reviewer's R2 changes all stand; this revision builds on top.
@@ -254,7 +266,7 @@ Patching any single one of these (e.g. better state mirroring, stronger heartbea
 
 - **NG1.** Cross-host bridging (e.g. running figma-mcp on machine A, plugin on machine B). Not a use case today.
 - **NG2.** Multi-user coordination (multiple humans editing). Single-user, single-machine.
-- **NG3.** Plugin protocol changes. The plugin keeps its existing `localhost:3055` connect behaviour. Plugin code is unchanged.
+- **NG3.** *(Revised in R4)* Plugin **main-thread command API** changes. The set of commands the plugin handles (`get_selection`, `set_fill_color`, `rename_node`, etc.) and their semantics remain unchanged. **What does change is narrower:** the plugin's connection config (`WS_PORTS` constant in `ui.ts`, `allowedDomains` in `manifest.json`) is narrowed from 3055–3060 to 3055-only per §10b. The plugin ↔ daemon WebSocket message types (`join`, `message`, `response`) are unchanged. **The MCP-client ↔ daemon protocol IS changing** (new wire types `client_status`, `client_status_update`, `client_join_channel*`, plus `relay_*` → `client_*` rename). R3-and-prior phrasing of "identical protocol" was wrong; this NG line clarifies the actual scope.
 - **NG4.** Persistent storage of plugin state across daemon restarts. Plugin reconnects from scratch on daemon restart. (See §19 for why this is fine.)
 - **NG5.** A polished UI for the daemon. It's a background service. Logs to files; that's all.
 - **NG6.** Replacing launchd with a userland process manager (PM2, etc.). launchd is built-in, free, reliable, and survives reboot — no reason to add a dependency.
@@ -310,11 +322,17 @@ Option (c) is meaningfully different from the others because it introduces an ac
                                           └────────────────────────┘   └─────────────────────────┘
 ```
 
-Two protocols on the same socket:
-- **Plugin ↔ daemon**: identical to the existing plugin ↔ host protocol. Plugin code does not change.
-- **MCP client ↔ daemon**: identical to the existing relay-client ↔ host protocol (`relay_command`, `relay_response`, `relay_status`, `relay_status_response`). The renamed "daemon-client" reuses these messages; the daemon side is the existing `FigmaBridgeWebSocketServer` which already speaks them.
+Two protocols on the same socket (revised in R4 to reflect actual scope):
 
-**Key insight:** the existing `FigmaBridgeWebSocketServer` and the existing relay protocol are already the right shapes for this. We're not redesigning anything — we're removing the part of the stdio process that *also* tries to be a host.
+- **Plugin ↔ daemon**: WebSocket message types (`join`, `message`, `response`) are unchanged. Plugin's main-thread command API is unchanged. Plugin's connection config narrows to port 3055 only (see §10b).
+- **MCP client ↔ daemon**: **changes meaningfully from the relay protocol.**
+  - Wire types renamed from `relay_*` → `client_*` (Q4).
+  - New types added: `client_status` (request/response), `client_status_update` (push), `client_join_channel` (request/response).
+  - Status responses and pushes are now **per-caller** (derived from the sending WebSocket — see §10.7), not a single global snapshot.
+  - The `FigmaBridge.joinChannel` and `FigmaBridge.getConnectedFileInfo` interface methods become async.
+  - Per-client active channel: the daemon's `activeChannel: string | null` becomes `activeChannelByClient: Map<WebSocket, string | null>`.
+
+**Key insight (revised):** the daemon role and host role have *similar* shapes (both own the WebSocket server, both broker plugin connections), but they are not interchangeable. The host model assumed one MCP process and shared state across whoever else relayed in. The daemon model has N independent MCP clients with independent routing state, plus a true singleton owner of the port. The protocol changes flow from that distinction.
 
 ---
 
@@ -341,9 +359,9 @@ All paths relative to `/Users/ethan/Documents/projects/figma-mcp/`. **Revised in
 | `src/daemon/index.ts` | **CREATE** | 30 min |
 | `src/server/index.ts` | **MODIFY** (delete host-or-relay fork; depend on daemon-client; keep `FIGMA_MCP_PORT` env var name) | 10 min |
 | `src/server/relay-client.ts` | **MODIFY + RENAME** to `daemon-client.ts` (delete promotion logic; add `client_status_update` push handler; add async `joinChannel` over the wire; ground-truth pull for `get_connection_status`) | 60 min |
-| `src/server/websocket-server.ts` | **MODIFY (R2 + R3)** — R2: broadcast `client_status_update` on plugin join/leave/active-channel-change; add `client_join_channel` / `client_status` request handlers; rename `relay_*` → `client_*` per Q4. R3: convert `activeChannel` to per-client map (`activeChannelByClient: Map<WebSocket, string|null>`); track `mcpClients: Set<WebSocket>`. | 75 min |
-| `src/server/mcp-server.ts` | **MODIFY (R2 + R3)** — R2: `joinChannel` and `getConnectedFileInfo` become async, await both. R3: tool descriptions get embedded disambiguation guidance per §17; `exec()` returns structured `AMBIGUOUS_FILE` error when multiple plugins are connected and no per-client active channel is set. | 25 min |
-| `src/server/types.ts` | **MODIFY (R2)** — add new wire message types (`client_status_update`, `client_join_channel`, `client_join_channel_response`, `client_status`); update `FigmaBridge.joinChannel` signature to `Promise<boolean>`; update consumers (`websocket-server.ts` `joinChannel` becomes `async` returning `Promise<boolean>` — trivial wrap) | 15 min |
+| `src/server/websocket-server.ts` | **MODIFY (R2 + R3 + R4)** — R2: broadcast `client_status_update` (now tailored per recipient per R4); add `client_join_channel` / `client_status` request handlers (R4: derive response from sending WS, see §10.7); rename `relay_*` → `client_*` per Q4. R3: convert `activeChannel` to per-client map; track `mcpClients: Set<WebSocket>`. R4: per-client auto-pick rule; plugin-disconnect cleanup of stale `activeChannelByClient` entries. | 110 min |
+| `src/server/mcp-server.ts` | **MODIFY (R2 + R3 + R4)** — R2: `joinChannel` and `getConnectedFileInfo` become async, await both. R3: tool descriptions get embedded disambiguation guidance per §17. R4: the exec helper reads `wsServer.getRoutingState()` (per §10.8) and chooses between `NOT_CONNECTED`, `AMBIGUOUS_FILE`, and proceeding. | 30 min |
+| `src/server/types.ts` | **MODIFY (R2 + R4)** — R2: add new wire message types (`client_status_update`, `client_join_channel`, `client_join_channel_response`, `client_status`); update `FigmaBridge.joinChannel` and `getConnectedFileInfo` signatures to async. R4: add `ClientStatusSnapshot` shape; restructure `FigmaBridge` to expose `getRoutingState(): ClientStatusSnapshot`; add `data?: any` on the error response shape so AMBIGUOUS_FILE can carry plugins[]. | 25 min |
 | `src/plugin/ui.ts` | **MODIFY (R2)** — narrow `WS_PORTS` to `[3055]`. Remove cycling logic. See §10b. | 10 min |
 | `src/plugin/manifest.json` | **MODIFY (R2)** — narrow `allowedDomains` and `devAllowedDomains` to `ws://localhost:3055`. See §10b. | 5 min |
 | `src/plugin/code.ts` | **UNCHANGED** | 0 |
@@ -454,18 +472,18 @@ main().catch((err) => {
 - The "if promoted, delegate to promotedServer" branches in `sendCommand` / `isPluginConnected` / `getConnectedFileInfo` / `joinChannel` / `stop` ([lines 215-217, 244-246, 253-255, 266-268, 278-281](../../../figma-mcp/src/server/relay-client.ts:215))
 - **The `refreshStatus` polling pattern ([lines 196-212](../../../figma-mcp/src/server/relay-client.ts:196))** — replaced by push-based status updates from the daemon (§10.3).
 
-### 10.3 Changes — push-based status (R2)
+### 10.3 Changes — push-based status, per-caller (R2 + R4)
 
-**This is the key behavioural change vs R1.**
+**This is the key behavioural change vs R1, refined in R4 to address per-caller correctness.**
 
-The cache field stays (`cachedStatus`) but is no longer populated by `refreshStatus`. Instead:
+The cache field stays (renamed `routingState` in R4 — see §10.8) but is no longer populated by `refreshStatus`. Instead:
 
-- On `connect`, the client sends ONE `client_status` request and awaits the response, populating `cachedStatus` with the daemon's current snapshot. (Bootstrap.)
-- The client adds a handler for the new `client_status_update` wire message. Whenever the daemon sends one, the client replaces `cachedStatus` with the pushed payload.
+- On `connect`, the client sends ONE `client_status` request and awaits the response, populating `routingState` with the daemon's snapshot **for this caller** (the daemon derives the response from the requesting WebSocket — global facts plus this caller's `activeChannel`). Bootstrap.
+- The client adds a handler for the new `client_status_update` wire message. Whenever the daemon sends one, the client replaces `routingState` with the pushed payload. **Pushes are tailored per recipient** (each MCP client receives its own activeChannel reflected in the payload — see §10.7).
 - `isPluginConnected` reads the cache (used by the per-command gate in `mcp-server.ts`).
 - **`getConnectedFileInfo` does NOT read the cache.** It always sends a `client_status` request and awaits the response. This is the user-facing `get_connection_status` query — must be ground truth (contract C3 in §2.5).
 
-**Why split the two reads:** the per-command gate runs hot (every tool call), so the cache is the right shape there — provided the cache stays fresh, which it does via push. The `get_connection_status` query is run by the user/Claude when they want to verify; it's not hot, and it has the strongest user expectation of correctness.
+**Why split the two reads:** the per-command gate runs hot (every tool call), so the cache is the right shape there — provided the cache stays fresh, which it does via per-caller push. The `get_connection_status` query is run by the user/AI when they want to verify; it's not hot, and it has the strongest user expectation of correctness.
 
 ### 10.4 Changes — async `joinChannel` over the wire (R2)
 
@@ -537,48 +555,62 @@ Today's `joinChannel` is synchronous everywhere ([types.ts:45](../../../figma-mc
 
 When initial `connect` fails because the daemon isn't running, throw a clear error that the MCP server can surface upward — see §11.
 
-### 10.6 Suggested final shape (sketch)
+### 10.6 Suggested final shape (sketch, revised in R4)
 
 ```ts
 // src/server/daemon-client.ts
 export class FigmaBridgeDaemonClient implements FigmaBridge {
   // ws, pendingRequests, reconnect/heartbeat fields kept from relay-client.
   // NO promoted, promotedServer fields.
-  // cachedStatus kept but populated only by push.
+  // routingState (renamed from cachedStatus) kept but populated only by push.
+  private routingState: ClientStatusSnapshot = {
+    pluginCount: 0,
+    plugins: [],
+    activeChannel: null,
+    connected: false,
+  };
 
   connect(): Promise<void> {
     // 1. Open ws to daemon.
-    // 2. On open: send a single "client_status" request, await response,
-    //    set cachedStatus from it. (Bootstrap.)
-    // 3. Subscribe to "client_status_update" in handleMessage.
+    // 2. On open: send one client_status request, await response,
+    //    set routingState from it (per-caller bootstrap).
+    // 3. Subscribe to client_status_update in handleMessage.
   }
 
-  // Cache-driven (hot path, per-command gate)
+  // Hot-path: rich routing state for mcp-server's AMBIGUOUS_FILE / NOT_CONNECTED
+  // preflight without a round-trip.
+  getRoutingState(): ClientStatusSnapshot {
+    return this.routingState;
+  }
+
+  // Convenience over getRoutingState().connected — interface compatibility.
   isPluginConnected(): boolean {
-    return this.cachedStatus?.connected ?? false;
+    return this.routingState.connected;
   }
 
-  // Ground-truth pull (cold path, user-facing query)
-  async getConnectedFileInfo(): Promise<{ ... }> {
-    // Always round-trip to daemon for client_status. Returns pushed-snapshot shape.
+  // Ground-truth pull (user-facing query — must reflect "right now").
+  async getConnectedFileInfo(): Promise<ClientStatusSnapshot> {
+    return this.requestClientStatus();   // wire RPC client_status / client_status_response
   }
 
   async joinChannel(channelId: string): Promise<boolean> {
-    // wire RPC via client_join_channel / client_join_channel_response
+    // wire RPC via client_join_channel / client_join_channel_response.
+    // After resolution, routingState is updated by the self-targeted push
+    // the daemon emits (§10.7).
   }
 
   async sendCommand(command, channel?): Promise<any> {
-    // unchanged from relay-client minus the "if promoted" branch
-    // (uses client_command / client_response wire messages)
+    // Unchanged from relay-client minus the "if promoted" branch.
+    // Uses client_command / client_response wire messages.
   }
 
   private handleMessage(msg) {
     switch (msg.type) {
-      case "client_response":           /* existing relay_response logic */ break;
-      case "client_status_response":    /* resolve pending status request */ break;
+      case "client_response":              /* existing relay_response logic */ break;
+      case "client_status_response":       /* resolve pending status request */ break;
       case "client_join_channel_response": /* resolve pending join request */ break;
-      case "client_status_update":      /* PUSH — replace cachedStatus */
-        this.cachedStatus = msg.data;
+      case "client_status_update":         /* PUSH — replace routingState */
+        this.routingState = msg.data;
         break;
     }
   }
@@ -587,26 +619,184 @@ export class FigmaBridgeDaemonClient implements FigmaBridge {
 }
 ```
 
-### 10.7 What this means for `getConnectedFileInfo` becoming async
+### 10.7 Per-caller status — daemon-side (R4)
 
-`FigmaBridge.getConnectedFileInfo` is currently synchronous. In R2's design, the daemon-client implementation must round-trip to the daemon. That makes it async, which propagates to `mcp-server.ts:54` where the `get_connection_status` tool reads it.
+The reviewer's H finding: with `activeChannel` per-client, the daemon can no longer produce a single shared `getConnectedFileInfo` answer. Each caller's view of "is a plugin connected" depends on **that caller's** `activeChannel`, plus global plugin presence.
+
+#### Daemon-side message handlers (server)
+
+The `client_status` and `client_join_channel` wire handlers in `websocket-server.ts` derive their response from the sending WebSocket. They do NOT go through a shared `FigmaBridge.getConnectedFileInfo` abstraction.
 
 ```ts
-// mcp-server.ts (R2)
-mcp.tool(
-  "get_connection_status",
-  "...",
-  {},
-  async () => {
-    const info = await wsServer.getConnectedFileInfo();   // was: not awaited
-    return formatResult({ ok: true, data: info });
+// src/server/websocket-server.ts — handleMessage (sketch, R4)
+case "client_status": {
+  const response = this.buildStatusFor(ws);   // ws is the requesting client
+  ws.send(JSON.stringify({
+    type: "client_status_response",
+    channel: "",
+    id: msg.id,
+    data: response,
+  }));
+  break;
+}
+
+case "client_join_channel": {
+  const channelId = msg.data?.channelId;
+  const ok = this.channelToClient.has(channelId);
+  if (ok) {
+    this.activeChannelByClient.set(ws, channelId);
   }
-);
+  ws.send(JSON.stringify({
+    type: "client_join_channel_response",
+    channel: "",
+    id: msg.id,
+    data: { success: ok, channelId: ok ? channelId : null },
+  }));
+  if (ok) this.pushStatusUpdateTo(ws);   // self-targeted refresh
+  break;
+}
 ```
 
-`FigmaBridgeWebSocketServer.getConnectedFileInfo` becomes trivially async by wrapping the existing impl in `Promise.resolve`. Same pattern as `joinChannel`.
+#### `buildStatusFor(ws)` (server-side derivation)
 
-This is one more place R1 was wrong about "websocket-server.ts: UNCHANGED."
+Computes a tailored snapshot for one specific MCP client:
+
+```ts
+private buildStatusFor(ws: WebSocket): ClientStatusSnapshot {
+  const activeChannel = this.activeChannelByClient.get(ws) ?? null;
+  const plugins = Array.from(this.clients.values()).map(p => ({
+    channel: p.channel,
+    fileName: p.fileName,
+    pageName: p.pageName,
+  }));
+  return {
+    pluginCount: plugins.length,                    // global
+    plugins,                                        // global
+    activeChannel,                                  // per-caller
+    connected:
+      activeChannel !== null &&
+      this.channelToClient.has(activeChannel),     // derived per-caller
+  };
+}
+```
+
+#### `pushStatusUpdateTo(ws)` and broadcast semantics
+
+When global plugin state changes (a plugin joined or left), the daemon iterates `mcpClients` and calls `pushStatusUpdateTo(client)` for each one — which builds a tailored snapshot for that client. The active-channel field in each push reflects the recipient's per-client active channel, not a shared one.
+
+When ONE client calls `client_join_channel`, the daemon pushes only to that one client (its activeChannel changed; nobody else's did).
+
+Special case: when a plugin disconnects, the daemon must also clear `activeChannelByClient` entries that point at the gone channel before broadcasting. Otherwise clients would receive a snapshot showing `connected: false` while still having their dead `activeChannel` set, which is internally inconsistent.
+
+#### `FigmaBridge` interface (revised in R4)
+
+The shared interface gets clarified — it is consumed only by `mcp-server.ts` against a daemon-client. The `FigmaBridgeWebSocketServer` no longer needs to implement it (its public surface is the wire-message handlers, not the interface).
+
+```ts
+// src/server/types.ts (R4)
+export interface ClientStatusSnapshot {
+  pluginCount: number;
+  plugins: Array<{ channel: string; fileName: string; pageName: string }>;
+  activeChannel: string | null;
+  connected: boolean;
+}
+
+// FigmaBridge becomes the daemon-client's contract specifically.
+export interface FigmaBridge {
+  sendCommand(command: CommandMessage): Promise<any>;
+  // Hot-path read of cached routing state. Returns the most recent
+  // pushed snapshot. Used by mcp-server.ts:exec for AMBIGUOUS_FILE
+  // and NOT_CONNECTED preflights without a round-trip.
+  getRoutingState(): ClientStatusSnapshot;
+  // User-facing query — round-trips to daemon for ground truth.
+  getConnectedFileInfo(): Promise<ClientStatusSnapshot>;
+  joinChannel(channelId: string): Promise<boolean>;
+  stop(): void;
+  // Convenience wrapper around getRoutingState().connected for callers
+  // that don't need the full shape.
+  isPluginConnected(): boolean;
+}
+```
+
+This split is what the reviewer's H finding was asking for: status reads that go through `FigmaBridge` are honest about being per-caller (the `getRoutingState` and `getConnectedFileInfo` accessors are properties of one daemon-client instance, which IS a single caller). Server-side derivation lives in `websocket-server.ts` outside the interface.
+
+### 10.8 Routing-state cache for AMBIGUOUS_FILE preflight (R4)
+
+The reviewer's M-AMBIGUOUS finding: `mcp-server.ts:exec` needs to distinguish three states without round-tripping every command:
+
+| State | What `exec` should do | Today's API can express? |
+|---|---|---|
+| No plugin connected | Return `NOT_CONNECTED` | Yes via `isPluginConnected() === false` |
+| Multiple plugins, this client hasn't picked one | Return `AMBIGUOUS_FILE` with plugin list | **No** — `isPluginConnected()` returns false (because activeChannel is null), indistinguishable from "no plugin" |
+| One plugin auto-picked OR client picked | Proceed to `sendCommand` | Yes |
+
+The fix: extend the cache to a richer shape and expose it via `getRoutingState()`. `mcp-server.ts:exec` becomes:
+
+```ts
+async function exec(command: string, args: Record<string, any> = {}) {
+  const state = wsServer.getRoutingState();
+
+  if (state.pluginCount === 0) {
+    return formatResult(notConnectedError());
+  }
+
+  if (state.activeChannel === null && state.pluginCount > 1) {
+    return formatResult(ambiguousFileError(state.plugins));
+  }
+
+  if (state.activeChannel === null) {
+    // pluginCount === 1 but daemon hasn't auto-picked yet
+    // (rare race window; tell user to retry)
+    return formatResult(notConnectedError());
+  }
+
+  try {
+    const result = await wsServer.sendCommand({ command, args });
+    return formatResult({ ok: true, data: result });
+  } catch (err: any) {
+    return formatResult({ ok: false, error: { code: "COMMAND_FAILED", message: err.message } });
+  }
+}
+
+function ambiguousFileError(plugins: ClientStatusSnapshot["plugins"]): ToolResponse {
+  return {
+    ok: false,
+    error: {
+      code: "AMBIGUOUS_FILE",
+      message: "Multiple Figma files are connected. Pick one with join_channel.",
+      data: { plugins },
+    },
+  };
+}
+```
+
+#### Why preflight at the gate AND in `sendCommand`?
+
+Defence in depth.
+
+- **Gate (cache-driven):** fast, correct under normal conditions, gives clear errors. Catches the common case.
+- **`sendCommand` server-side check:** if the cache somehow lags (push-loss bug, race during plugin-disconnect), the daemon's `sendCommand` handler still validates the caller's active channel exists in `channelToClient`. If not, it returns a server-generated error that the daemon-client surfaces as `COMMAND_FAILED` with a clear message.
+
+#### What this changes about types.ts
+
+```ts
+// types.ts (R4)
+export interface ToolResponse {
+  ok: boolean;
+  data?: any;
+  error?: {
+    code:
+      | "NOT_CONNECTED"
+      | "AMBIGUOUS_FILE"     // R3 announced, R4 specifies
+      | "COMMAND_FAILED"
+      | "EXPORT_FAILED"
+      | "INVALID_INPUT"
+      | "CHANNEL_NOT_FOUND";
+    message: string;
+    data?: any;              // AMBIGUOUS_FILE includes plugins[]
+  };
+}
+```
 
 ---
 
@@ -779,7 +969,22 @@ if [[ -z "$NODE_BIN" ]]; then
 fi
 echo "Using Node: $NODE_BIN ($($NODE_BIN --version))"
 
-# 2. Build the daemon
+# 2. Port-sweep preflight (R4 — closes the gap §10b/T12 expected)
+#    Refuse to install if anything is already listening on any port in the
+#    legacy range. Stale `node dist/server/index.js` from before install is
+#    the typical offender. Catches it loudly instead of letting the daemon
+#    fight a phantom.
+for port in 3055 3056 3057 3058 3059 3060; do
+  if lsof -i :"$port" -P -sTCP:LISTEN > /dev/null 2>&1; then
+    echo "ERROR: port $port is already in use." >&2
+    echo "       Identify the offender and stop it before retrying:" >&2
+    echo "         lsof -i :$port -P" >&2
+    echo "       Then run: kill <pid>  (or kill -9 <pid> if it ignores SIGTERM)" >&2
+    exit 1
+  fi
+done
+
+# 3. Build the daemon
 echo "Building daemon..."
 cd "$REPO_ROOT"
 npm run build:daemon
@@ -789,10 +994,10 @@ if [[ ! -f "$DAEMON_JS" ]]; then
   exit 1
 fi
 
-# 3. Make sure log dir exists
+# 4. Make sure log dir exists
 mkdir -p "$LOG_DIR"
 
-# 4. Write the plist
+# 5. Write the plist
 echo "Writing plist to $PLIST_PATH"
 cat > "$PLIST_PATH" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -827,7 +1032,7 @@ cat > "$PLIST_PATH" <<EOF
 </plist>
 EOF
 
-# 5. Bootout any old version (idempotent — fine if not loaded)
+# 6. Bootout any old version (idempotent — fine if not loaded)
 #    R2: switched from legacy `load`/`unload` to modern `bootstrap`/`bootout`/`kickstart`.
 #    The legacy commands still work but Apple has been deprecating them since macOS 10.11.
 #    The modern API requires a service target (gui/<uid>/<label>).
@@ -836,14 +1041,14 @@ LABEL="com.ethan.figma-bridge-daemon"
 
 launchctl bootout "$USER_TARGET/$LABEL" 2>/dev/null || true
 
-# 6. Bootstrap new version
+# 7. Bootstrap new version
 echo "Bootstrapping via launchctl..."
 launchctl bootstrap "$USER_TARGET" "$PLIST_PATH"
 
-# 7. Kickstart so it runs immediately (don't wait for next login)
+# 8. Kickstart so it runs immediately (don't wait for next login)
 launchctl kickstart "$USER_TARGET/$LABEL"
 
-# 8. Verify
+# 9. Verify
 sleep 1
 if launchctl print "$USER_TARGET/$LABEL" > /dev/null 2>&1; then
   echo "✓ Daemon registered with launchd"
@@ -1091,9 +1296,9 @@ The model sees these descriptions on every session, regardless of which AI clien
 
 Any reasonable AI client, on receiving an `AMBIGUOUS_FILE` error, will surface the choice to the user, take the answer, call `join_channel`, and retry. No client-specific skill needed.
 
-### Per-client active channel (Q13 — see §23)
+### Per-client active channel (Q13 — see §23, §10.7, §10.8)
 
-Today's daemon has a single `activeChannel: string | null` field shared across all connected clients ([websocket-server.ts:21](../../../figma-mcp/src/server/websocket-server.ts:21)). With proper multi-file UX, this needs to become **per-client** (keyed by the MCP client's WebSocket connection):
+Today's daemon has a single `activeChannel: string | null` field shared across all connected clients ([websocket-server.ts:21](../../../figma-mcp/src/server/websocket-server.ts:21)). For multi-file UX to actually work — and for two simultaneous MCP clients (Claude Code + Codex, or two Claude Code sessions) to not interfere with each other — this becomes **per-client**:
 
 ```ts
 // Before:
@@ -1101,11 +1306,12 @@ private activeChannel: string | null = null;
 
 // After:
 private activeChannelByClient = new Map<WebSocket, string | null>();
+private mcpClients = new Set<WebSocket>();   // for tailored broadcast (§10.7)
 ```
 
-Without this change, two simultaneous sessions (one in Claude Code, one in Codex) would interfere: client A calls `join_channel("Dictation app")`, client B's commands now also go to "Dictation app" until B calls `join_channel` itself.
+The full surface area of this change is documented in §10.7 (server-side derivation, tailored pushes) and §10.8 (client-side routing-state cache, AMBIGUOUS_FILE preflight). Both of those are essential to actually fulfilling the R3-described UX — without them, the "per-client" framing is just a rename without the contract changes that make it correct.
 
-Auto-pick on the first plugin still happens (preserves the single-file case where users never deal with channels at all), but it's per-client: a new client's active channel defaults to "the only plugin if there's just one" or `null` if there are multiple.
+Auto-pick on the first plugin still happens but is per-client. Detailed rule and the reviewer's open question on this are in §23 Q13.
 
 ### Behaviour to encode (revised)
 
@@ -1116,9 +1322,9 @@ Auto-pick on the first plugin still happens (preserves the single-file case wher
 
 ### What this changes in the file-by-file plan
 
-- `mcp-server.ts`: tool descriptions get the disambiguation hints embedded. `exec()` checks per-client active channel and returns `AMBIGUOUS_FILE` when ambiguous. ~15 min on top of the R2 changes.
-- `websocket-server.ts`: `activeChannel: string | null` → `activeChannelByClient: Map<WebSocket, string|null>`. `joinChannel` becomes scoped to a specific WebSocket. The on-disconnect cleanup removes the entry. ~30 min on top of the R2 changes.
-- `types.ts`: new error code `"AMBIGUOUS_FILE"` documented. (Just a string; no schema change.) ~2 min.
+- `mcp-server.ts`: tool descriptions get the disambiguation hints embedded. The exec helper reads `wsServer.getRoutingState()` (per §10.8) and chooses between `NOT_CONNECTED`, `AMBIGUOUS_FILE`, and proceeding. ~15 min on top of the R2 changes.
+- `websocket-server.ts`: see §10.7 for the full surface — `activeChannelByClient` map, `mcpClients` set, `client_status` and `client_join_channel` handlers, tailored push fan-out, plugin-disconnect cleanup of stale active channels. ~45 min on top of the R2 changes (R4 raised the estimate from R3's ~30 min once the per-caller correctness work was honestly accounted for).
+- `types.ts`: new `ClientStatusSnapshot` shape; new error code `"AMBIGUOUS_FILE"` with `data.plugins[]` payload. (See §10.8 type definitions.) ~5 min.
 
 ### What this means for the estimate
 
@@ -1277,7 +1483,7 @@ Validates the Q13 design.
 | **Plugin disconnects (Figma quit)** | Daemon's `pluginCount` drops. MCP `get_connection_status` returns `connected: false, pluginCount: 0`. Daemon stays up. | Expected behaviour. Plugin reconnect happens when user reopens Figma + plugin. |
 | **Daemon crashes mid-command** | MCP client's `pendingRequests` get rejected with `"Relay disconnected"` (currently `relay-client.ts:75`, post-rename `daemon-client.ts`). Reconnect timer kicks in. After daemon restarts (10s), reconnect succeeds. | Already handled by the existing reconnect logic. The 30s request timeout means in-flight commands at crash time may hang for up to 30s before failing. **Acceptable.** |
 | **Two daemons spawn simultaneously** | One wins port; the other gets `EADDRINUSE` and exits with code 2. launchd's `KeepAlive` would normally restart, but ThrottleInterval=10s gives it pause. Worst case: 10s of crash-loop until the loser stops trying. | In practice, this only happens if someone manually runs `node dist/daemon/index.js` while the launchd-managed daemon is alive. **Acceptable.** Could harden by changing exit code 2 handling — see §23, Q5. |
-| **Stale figma-mcp processes from before install** | Old `node ... dist/server/index.js` still binding port 3055 → daemon can't start, exits 2 → launchd retries, also fails. | Install script should detect this and instruct user to kill stale processes. **TODO: add to install-daemon.sh.** |
+| **Stale figma-mcp processes from before install** | Old `node ... dist/server/index.js` still binding port 3055 → daemon can't start. | The install script's port-sweep preflight (R4 — see §12 step 2) catches this at install time and refuses to proceed, instructing the user to kill the offender. After install, if a stale process binds AFTER install, the daemon's exit-2 + launchd retry policy is the safety net (see §22). |
 | **Plugin connects to daemon, daemon restarts, plugin reconnects but stdio MCPs still think they're disconnected** | Stdio MCPs have their own reconnect timer (3s default, exponential backoff to 30s). After daemon comes back, MCPs reconnect within ~3-30s. | Already handled. Worst-case ~30s lag visible to user. |
 | **Channel selection lost on daemon restart** | After daemon restart, MCP reconnects but its previous `join_channel` selection is gone (daemon has no persistence). Next `get_selection` would fail. | The Claude-Code-side disambiguation skill (§17) should detect "no active channel for this MCP" and re-disambiguate. **This is why §17 isn't optional.** Without it, daemon restart breaks multi-file flow. |
 | **launchd refuses to load** (e.g., plist permissions wrong) | `launchctl load` returns nonzero. Install script bails with the launchd error message. | Install script's `set -euo pipefail` + the `launchctl list | grep` check should catch this. |
@@ -1303,11 +1509,11 @@ The refactor is "done" when ALL of these hold:
 
 If the daemon model causes issues that aren't quickly fixable:
 
-1. `launchctl unload ~/Library/LaunchAgents/com.ethan.figma-bridge-daemon.plist`
+1. `launchctl bootout "gui/$(id -u)/com.ethan.figma-bridge-daemon"` *(R4 — modern command, replaces R1's `launchctl unload`)*
 2. `rm ~/Library/LaunchAgents/com.ethan.figma-bridge-daemon.plist`
-3. `git -C /Users/ethan/Documents/projects/figma-mcp revert <refactor-commit-sha>` (or `git checkout main~N` to a pre-refactor state).
+3. `git -C /Users/ethan/Documents/projects/figma-mcp revert <refactor-commit-sha>` (or `git checkout main~N` to a pre-refactor state). Don't forget the plugin port narrowing also reverts here, restoring the 3055–3060 fallback.
 4. `npm run build`
-5. Resume host-or-relay behavior.
+5. Resume host-or-relay behavior. Plugin needs to be reopened in Figma so it reconnects to the now-host-or-relay stdio process.
 
 **No data migration.** The daemon has no persistent state. Plugin connections are re-established by Figma reopening.
 
@@ -1379,30 +1585,29 @@ Add on first non-plugin message (`client_status` or `client_command`); remove on
 
 See Q4.
 
-### Q13. (R3, NEW) Per-client active channel — open for reviewer
+### Q13. (R3 → R4) Per-client active channel — API surface, awaiting reviewer
 
-**Background.** Today's daemon has a single shared `activeChannel: string | null` field ([websocket-server.ts:21](../../../figma-mcp/src/server/websocket-server.ts:21)). With multi-file UX working through MCP tool descriptions (§17), two simultaneous sessions (e.g. Claude Code and Codex) would interfere: client A calls `join_channel("Dictation app")` and client B's commands silently route to the same file.
+R3 introduced this and the reviewer accepted the *direction* but flagged that the R3 API surface didn't actually express it. R4 redesigns the surface; this question is now: **does the R4 API surface get it right?**
 
-**Proposed change.** Convert to a per-client map:
+#### What R4 commits to
 
-```ts
-// Before:
-private activeChannel: string | null = null;
+1. Server-side: `activeChannel: string | null` becomes `activeChannelByClient: Map<WebSocket, string | null>`.
+2. Server-side: dedicated wire-message handlers for `client_status` and `client_join_channel` that derive their response from the sending WebSocket. **No shared `getConnectedFileInfo` abstraction is preserved** for plugin-host vs client-facing views — they're different shapes.
+3. Server-side: `client_status_update` pushes are **tailored per recipient** — each MCP client receives a snapshot reflecting its own active channel, not a shared one.
+4. Client-side: `routingState` (renamed from `cachedStatus`) holds the latest pushed snapshot, populated only by push.
+5. Client-side: new `getRoutingState(): ClientStatusSnapshot` method on `FigmaBridge` for `mcp-server.ts` to do AMBIGUOUS_FILE preflight without round-tripping. `isPluginConnected()` retained as a convenience over `routingState.connected`.
+6. Auto-pick: when a plugin joins, the daemon scans `mcpClients` and for any client whose `activeChannel` is null and whose previous `pluginCount` was 0, sets activeChannel to the new plugin's channel and pushes an update. (i.e. auto-pick is per-client, fires on the moment-of-transition from "no plugin" to "exactly one plugin," whether that transition is caused by the client connecting or by a plugin joining.) **Reviewer should validate this auto-pick rule specifically.**
+7. When a plugin disconnects, the daemon clears `activeChannelByClient` entries pointing at it before broadcasting status — see §10.7's "internally inconsistent" note.
 
-// After:
-private activeChannelByClient = new Map<WebSocket, string | null>();
-```
+Concrete file refs: §10.7, §10.8 for the contract; §17 for the multi-file behaviour it powers; §6 for the protocol-level summary.
 
-`joinChannel` becomes scoped to a specific WebSocket. `sendCommand` looks up the active channel for the calling WebSocket. On client disconnect, the entry is removed.
+#### Reviewer should still push back on:
 
-Auto-pick on the first plugin still happens — but per-client: when a new client connects and there's exactly one plugin, its active channel defaults to that plugin. If there are multiple plugins, its active channel defaults to `null` (and the client gets `AMBIGUOUS_FILE` on the first command).
+- The auto-pick semantics (point 6) — alternatives include "never auto-pick; always require explicit `join_channel`" or "auto-pick only at the plugin-join moment, never on retroactive client-connect". Any of the three is defensible; R4 leans toward "fire on either transition" because it preserves the lovely property that single-file users never deal with channels at all.
+- Race conditions: two clients hitting `client_join_channel` simultaneously. The daemon-side handler is single-threaded (Node event loop), so the race is bounded — but the *response order* depends on event-loop ordering. Concrete concern: if client A joins channel X then client B joins channel Y in rapid succession, both succeed; their pushes don't interfere because they're tailored. Should be safe but worth a sanity check.
+- Whether the `FigmaBridge` interface should be split rather than just clarified. R4 keeps it as a single interface implemented only by the daemon-client; the WS server no longer implements `FigmaBridge` (it has wire-message handlers instead). Reviewer might prefer a hard split: `IDaemonClient` consumed by `mcp-server.ts`, no shared interface at all.
 
-**Open for review:**
-- Is this the right semantics? Specifically: should `auto-pick` on a single-plugin world ALSO happen for new clients that join after the plugin is already there, or only at plugin-join time?
-- Are there any existing protocol assumptions that would break? (E.g. does any tool today rely on `activeChannel` being a global property?)
-- Any concern about race conditions on `joinChannel` from two clients hitting the daemon at the same instant?
-
-This is the only genuinely open question in R3. Everything else is locked.
+This is the only genuinely open question in R4. Everything else is locked.
 
 ---
 
@@ -1419,37 +1624,36 @@ This is the only genuinely open question in R3. Everything else is locked.
 
 ---
 
-## 25. Estimate breakdown (revised in R3)
+## 25. Estimate breakdown (revised in R4)
 
-R1 estimate: 3.5h. R2: 6h (after reviewer flagged the protocol-change scope). R3: 7–7.5h (multi-file UX folded in via §17's daemon-side approach instead of a separate skill).
+R1: 3.5h. R2: 6h (protocol-change scope honest). R3: 7–7.5h (multi-file folded in). R4: **8–8.5h** (per-caller API surface is more work than R3 hand-waved).
 
 | Step | Time |
 |---|---|
 | Confirm existing shapes by re-reading websocket-server.ts, types.ts, mcp-server.ts | 15 min |
 | Write `src/daemon/index.ts` | 30 min |
-| Update `types.ts`: new wire messages + async `FigmaBridge.joinChannel` + async `FigmaBridge.getConnectedFileInfo` + `AMBIGUOUS_FILE` error code (R2 + R3) | 20 min |
-| Update `websocket-server.ts` (R2 + R3): broadcast `client_status_update`; add `client_join_channel` and `client_status` handlers; track `mcpClients` set; wrap `joinChannel`/`getConnectedFileInfo` async; **R3: convert `activeChannel` → `activeChannelByClient: Map<WebSocket, string|null>`; per-client auto-pick** | 90 min |
-| Rename + simplify `relay-client.ts` → `daemon-client.ts`: delete promotion logic; replace polling with `client_status_update` push handler; ground-truth pull for `getConnectedFileInfo`; real wire-RPC `joinChannel` (R2) | 75 min |
-| Update `mcp-server.ts` (R2 + R3): await `joinChannel`; await `getConnectedFileInfo`; **R3: tool descriptions include disambiguation hints; `exec()` returns structured `AMBIGUOUS_FILE` when ambiguous** | 25 min |
-| Rename `relay_*` → `client_*` wire types (Q4) — touches types.ts + websocket-server.ts + daemon-client.ts in tandem | 15 min |
+| Update `types.ts`: new wire messages, `ClientStatusSnapshot` shape, async `FigmaBridge.joinChannel` and `getConnectedFileInfo`, `getRoutingState` accessor, `AMBIGUOUS_FILE` error code with `data.plugins[]` payload (R2 + R3 + R4) | 25 min |
+| Update `websocket-server.ts`: broadcast `client_status_update` (tailored per recipient); add `client_join_channel` and `client_status` handlers (each derives state from sending WS); convert `activeChannel` → `activeChannelByClient`; track `mcpClients` set; per-client auto-pick semantics; plugin-disconnect cleanup of stale active channels; rename `relay_*` → `client_*` (R2 + R3 + R4) | 110 min |
+| Rename + simplify `relay-client.ts` → `daemon-client.ts`: delete promotion logic; replace polling with `client_status_update` push handler; rename `cachedStatus` → `routingState`; expose `getRoutingState()`; ground-truth pull for `getConnectedFileInfo`; real wire-RPC `joinChannel` (R2 + R4) | 75 min |
+| Update `mcp-server.ts`: await `joinChannel` + `getConnectedFileInfo`; the exec helper reads `getRoutingState()` and produces `NOT_CONNECTED` / `AMBIGUOUS_FILE` / proceed; tool descriptions include disambiguation hints (R2 + R3 + R4) | 30 min |
 | Modify `src/server/index.ts` (delete host-or-relay fork; depend on daemon-client; drop parent-PID heartbeat per Q2) | 10 min |
 | Plugin narrowing (R2): `ui.ts` constants + reconnect logic, `manifest.json` allowedDomains | 15 min |
 | Rebuild plugin and verify it still loads in Figma after manifest change | 10 min |
-| Write `scripts/install-daemon.sh` (bootstrap/bootout/kickstart, port-sweep preflight, hardcoded Node path per Q1) | 30 min |
+| Write `scripts/install-daemon.sh`: bootstrap/bootout/kickstart, **port-sweep preflight (R4 — actually included in §12 now, not just gestured at)**, hardcoded Node path per Q1 | 35 min |
 | Write `scripts/uninstall-daemon.sh` | 5 min |
 | `package.json` updates | 5 min |
 | **Create** `README.md` (R2 — does not exist today) | 25 min |
-| Run T1–T12 manually + new T13–T14 for multi-file (see §18) | 60 min |
-| Buffer for edge-case fixes during testing | 45 min |
-| **Total** | **~7.5 hours** |
+| Run T1–T12 manually + T13–T14 for multi-file (see §18) | 60 min |
+| Buffer for edge-case fixes during testing | 60 min |
+| **Total** | **~8.5 hours** |
 
-The R3 increase over R2 (~1.5h) comes from:
-- Per-client active channel refactor in `websocket-server.ts` (~30 min)
-- Tool description revisions and `AMBIGUOUS_FILE` error wiring in `mcp-server.ts` (~15 min)
-- Two new test cases for multi-file disambiguation (~15 min)
-- Increased buffer for the broader surface area
+The R4 increase over R3 (~1h) comes from:
+- The per-caller status work in `websocket-server.ts` is meaningfully more than R3 admitted: `buildStatusFor(ws)` derivation, tailored broadcasts, plugin-disconnect cleanup of stale `activeChannelByClient` entries (~25 min)
+- `getRoutingState()` + the richer cached-state shape on the daemon-client (~10 min)
+- Updated AMBIGUOUS_FILE preflight in `mcp-server.ts` is more than just a tool description tweak (~10 min)
+- Larger testing buffer (these are the kinds of changes where one boundary case finds another)
 
-**Recommendation:** budget a full day. The natural seam if breaking up: "land §8–§11 + §10b first (the daemon, protocol, port narrowing), live with it for a few days, then land the install scripts, README, and §17 multi-file work as a follow-up." But install needs to happen for the daemon to be usable at all, so the seam mostly just adds a context switch.
+**Recommendation:** budget a full day. The natural seam if breaking up: "land §8–§11 + §10b first (daemon, protocol, port narrowing), live with it for a few days, then land §17 multi-file behaviour, install scripts, README." Install needs to happen for the daemon to be usable, but multi-file is a coherent second commit.
 
 ---
 
@@ -1457,9 +1661,19 @@ The R3 increase over R2 (~1.5h) comes from:
 
 When ready to implement, the path forward is:
 
-1. Resolve all open questions in §23.
-2. Apply changes in §8 in the order listed (creating the daemon first, then simplifying server/index.ts, then renaming relay-client).
-3. Build, install, run T1–T9.
-4. Use for a week.
-5. If clean: delete `relay-client.ts` from git history is unnecessary — keeping it as `daemon-client.ts` is enough; old code is in git anyway.
+1. Resolve any remaining open questions in §23. *(R4 status: Q1, Q2, Q4, Q5, Q6, Q7, Q8, Q9, Q10, Q11, Q12 resolved. Q3 resolved in R2. Q13 awaiting reviewer sign-off on R4's per-caller API redesign.)*
+2. Apply changes in §8 in this order:
+   1. Update `types.ts` (new wire types, ClientStatusSnapshot, async interface, error codes).
+   2. Modify `websocket-server.ts` (per-client active channel map; new `client_status` / `client_join_channel` handlers; tailored push fan-out; rename `relay_*` → `client_*`).
+   3. Rename `relay-client.ts` → `daemon-client.ts`; refit to push-based routing state and the new interface.
+   4. Update `mcp-server.ts` (await async methods; embed disambiguation hints; route through `getRoutingState` for AMBIGUOUS_FILE preflight).
+   5. Create `src/daemon/index.ts`.
+   6. Simplify `src/server/index.ts` (depend on daemon-client; drop parent-PID heartbeat).
+   7. Narrow plugin: `ui.ts` and `manifest.json`.
+   8. Write install/uninstall scripts (with port-sweep preflight per §12).
+   9. Update `package.json`.
+   10. Create `README.md`.
+3. Build, install, run T1–T14.
+4. Use for a week. Validate A1–A6.
+5. If clean: ship. The renamed `daemon-client.ts` is the canonical name going forward; old `relay-client.ts` lives in git history.
 6. If problems: §21 rollback.
