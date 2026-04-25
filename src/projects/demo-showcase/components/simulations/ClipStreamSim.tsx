@@ -27,6 +27,10 @@ export const CLIPSTREAM_SIM_DURATION = 8000;
 
 interface ClipStreamSimProps {
   onLoopRestart?: () => void;
+  /** Kill-switch cancel signal from the showcase (Phase 1c step 4).
+   *  Forwarded into ClipMasterScreen so swipe-away cancellation flows
+   *  through the product's existing handleCloseClick path. */
+  cancelSignal?: AbortSignal;
 }
 
 // Minimal error boundary so a crash inside ClipMasterScreen surfaces
@@ -56,7 +60,7 @@ class SimErrorBoundary extends React.Component<
   }
 }
 
-export const ClipStreamSim: React.FC<ClipStreamSimProps> = () => {
+export const ClipStreamSim: React.FC<ClipStreamSimProps> = ({ cancelSignal }) => {
   // Defer ClipMasterScreen mount until after hydration — mirrors the
   // `mounted` gate used on /clipperstream. Without it, some hooks
   // inside ClipMasterScreen (mic, storage, zustand rehydration) can
@@ -81,7 +85,7 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = () => {
   return (
     <div className="clipstream-sim-frame">
       <SimErrorBoundary>
-        {mounted ? <ClipMasterScreen /> : null}
+        {mounted ? <ClipMasterScreen cancelSignal={cancelSignal} /> : null}
       </SimErrorBoundary>
       <style jsx>{`
         .clipstream-sim-frame :global(.master-screen) {

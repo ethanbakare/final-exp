@@ -47,6 +47,12 @@ interface ClipMasterScreenProps {
   pendingClips?: PendingClip[];
   initialScreen?: ActiveScreen;
   className?: string;
+  /** Optional showcase-side cancel signal (kill-switch architecture).
+   *  When it aborts, ClipMasterScreen invokes its existing handleCloseClick
+   *  cancel path and aborts any in-flight transcribe/format-text request.
+   *  Standalone /clipperstream callers omit this — the cancel path is
+   *  unchanged. See docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.3. */
+  cancelSignal?: AbortSignal;
 }
 
 /* ============================================
@@ -56,7 +62,8 @@ interface ClipMasterScreenProps {
 export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   pendingClips = [],
   initialScreen = 'home',
-  className = ''
+  className = '',
+  cancelSignal
 }) => {
   // ============================================
   // STATE
@@ -227,6 +234,21 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   const hasShownTranscriptionToast = useRef(false);
 
   // Recording hook - handles audio recording and transcription
+  // Abort controller for cancelling HTTP requests.
+  // Lazy-init render-time so it's never null at fetch sites. Replaced
+  // automatically after each abort so subsequent operations get a fresh
+  // signal — handleCloseClick can abort, user can start a new recording,
+  // and the new format/transcribe fetches use a non-aborted controller.
+  // (Phase 1c step 3: previously this ref was allocated as null and never
+  // populated — the abort() call in handleCloseClick was effectively a
+  // no-op against an uninitialised controller.)
+  // Declared BEFORE useClipRecording so its signal can be threaded into
+  // transcribeRecording via the externalSignal parameter.
+  const abortControllerRef = useRef<AbortController | null>(null);
+  if (!abortControllerRef.current || abortControllerRef.current.signal.aborted) {
+    abortControllerRef.current = new AbortController();
+  }
+
   const {
     isRecording,
     audioBlob,
@@ -241,7 +263,7 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     transcribeRecording,
     forceRetry,       // Allows tap-to-skip wait
     reset: resetRecording,
-  } = useClipRecording();
+  } = useClipRecording(abortControllerRef.current.signal);
 
   // Processing timer (for UI transition delay)
   const processingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -251,9 +273,6 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
   useEffect(() => {
     transcribeRef.current = transcribeRecording;
   }, [transcribeRecording]);
-
-  // Abort controller for cancelling HTTP requests
-  const abortControllerRef = useRef<AbortController | null>(null);
 
   // ============================================
   // DERIVED STATE - Content for clipboard
@@ -430,7 +449,12 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         body: JSON.stringify({
           rawText,
           existingFormattedContext: existingContext
-        })
+        }),
+        // Kill-switch (Phase 1c step 2): thread the cancel signal so abort()
+        // calls in handleCloseClick / external signal listener actually
+        // cancel this in-flight format request. Previously this fetch ran
+        // with no signal at all.
+        signal: abortControllerRef.current?.signal
       });
 
       if (!response.ok) {
@@ -822,6 +846,41 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
     // ✅ REMOVED: setSelectedClip(null) - selector returns null when currentClipId is null
     setCurrentClipId(null);
   }, [recordNavState, currentClipId, selectedClip, isAppendMode, stopRecordingHook, resetRecording, getClipById, updateClip]);
+
+  // Kill-switch (Phase 1c step 3): when an external cancelSignal aborts —
+  // i.e., the showcase has detected this slot is no longer active — invoke
+  // the product's existing cancel path. handleCloseClick already encodes
+  // the right state-machine behaviour for each screen (recording → discard
+  // partial; processing → mark pending-retry; complete → navigate). We
+  // also abort the internal controller as belt-and-braces in case state
+  // doesn't go through one of those branches. After this fires the next
+  // render's lazy init replaces the controller with a fresh one.
+  // See docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.3.
+  const handleCloseClickRef = useRef(handleCloseClick);
+  useEffect(() => { handleCloseClickRef.current = handleCloseClick; }, [handleCloseClick]);
+
+  useEffect(() => {
+    if (!cancelSignal) return;
+
+    const handleAbort = () => {
+      // Belt-and-braces HTTP cancel — works regardless of state machine.
+      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+        abortControllerRef.current.abort();
+      }
+      // Invoke product's existing cancel path. Resets state per current
+      // screen; respects ClipStream's persistence model (pending clips
+      // survive, partial recording discarded per existing semantics).
+      handleCloseClickRef.current();
+    };
+
+    if (cancelSignal.aborted) {
+      handleAbort();
+      return;
+    }
+
+    cancelSignal.addEventListener('abort', handleAbort, { once: true });
+    return () => cancelSignal.removeEventListener('abort', handleAbort);
+  }, [cancelSignal]);
 
   const handleDoneClick = async () => {
     setRecordNavState('processing');
@@ -1258,8 +1317,12 @@ export const ClipMasterScreen: React.FC<ClipMasterScreenProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rawText,
-          existingFormattedContext: context 
-        })
+          existingFormattedContext: context
+        }),
+        // Kill-switch (Phase 1c step 2): thread the cancel signal so abort()
+        // calls in handleCloseClick / external signal listener actually
+        // cancel this in-flight format request.
+        signal: abortControllerRef.current?.signal
       });
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

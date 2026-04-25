@@ -127,6 +127,14 @@ export default function DemoShowcasePage() {
   const aiConfidenceActive = activeIdx === 0 && isDemoMode;
   const aiConfidenceCancelSignal = useActiveAbortSignal(aiConfidenceActive);
   const aiConfidenceRunIdRef = useRunId(aiConfidenceActive);
+  // - ClipStream (idx 2): NOT demo-mode-gated — the sim slot mounts the
+  //   real ClipMasterScreen; there is no separate demo. Cancellation fires
+  //   when the user swipes away from ClipStream entirely. ClipStream's
+  //   adapter routes abort into its existing handleCloseClick (X-button)
+  //   path, which discards partial recording per product policy and
+  //   preserves pending clips / IndexedDB / zustand store (durable state).
+  const clipStreamActive = activeIdx === 2;
+  const clipStreamCancelSignal = useActiveAbortSignal(clipStreamActive);
 
   const go = useCallback((delta: number) => {
     setActive(([i]) => {
@@ -289,7 +297,7 @@ export default function DemoShowcasePage() {
                   {/* ClipStream sim. Inline demo not yet split out. */}
                   {activeIdx === 2 && (
                     <div className="layer layer-sim">
-                      <ClipStreamSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                      <ClipStreamSim key={loopKey} onLoopRestart={handleLoopRestart} cancelSignal={clipStreamCancelSignal} />
                     </div>
                   )}
                 </div>

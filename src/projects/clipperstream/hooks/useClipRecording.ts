@@ -50,7 +50,15 @@ export interface UseClipRecordingReturn {
    HOOK
    ============================================ */
 
-export function useClipRecording(): UseClipRecordingReturn {
+export function useClipRecording(externalSignal?: AbortSignal): UseClipRecordingReturn {
+  // Kill-switch (Phase 1c, step 1): compose this signal into the per-call
+  // timeout controller used by transcribeRecording. See
+  // docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md §2.3. Optional —
+  // standalone /clipperstream callers omit it; inline AbortSignal.any-style
+  // composition below is a no-op when undefined.
+  const externalSignalRef = useRef(externalSignal);
+  useEffect(() => { externalSignalRef.current = externalSignal; }, [externalSignal]);
+
   // ============================================
   // RECORDING STATE
   // ============================================
@@ -347,14 +355,28 @@ export function useClipRecording(): UseClipRecordingReturn {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-      // Send to API with timeout
-      const response = await fetch('/api/clipperstream/transcribe', {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      });
+      // Compose the external (showcase) signal into our local controller:
+      // when external aborts, our controller aborts too, which cancels the
+      // fetch. Inline rather than importing a helper to keep clipperstream
+      // standalone-portable (no cross-project dependency).
+      const externalSignal = externalSignalRef.current;
+      const handleExternalAbort = () => controller.abort();
+      if (externalSignal) {
+        if (externalSignal.aborted) controller.abort();
+        else externalSignal.addEventListener('abort', handleExternalAbort, { once: true });
+      }
 
-      clearTimeout(timeoutId);
+      let response: Response;
+      try {
+        response = await fetch('/api/clipperstream/transcribe', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeoutId);
+        if (externalSignal) externalSignal.removeEventListener('abort', handleExternalAbort);
+      }
 
       // Server error - definitive failure
       if (!response.ok) {
@@ -389,7 +411,18 @@ export function useClipRecording(): UseClipRecordingReturn {
       });
 
       // Classify error type
-      const isTimeout = error instanceof Error && error.name === 'AbortError';
+      const isAbort = error instanceof Error && error.name === 'AbortError';
+      // Kill-switch (Phase 1c): differentiate external cancellation from
+      // timeout. If the external signal was aborted, this was an intentional
+      // user-cancel (showcase swipe / X button) — bail silently, don't retry.
+      const isExternalCancellation = isAbort && externalSignalRef.current?.aborted === true;
+      if (isExternalCancellation) {
+        log.info('Transcription cancelled (external signal)');
+        setIsActiveRequest(false);
+        setIsTranscribing(false);
+        return { text: '', error: 'network' };
+      }
+      const isTimeout = isAbort && !isExternalCancellation;
       const isNetworkError = error instanceof TypeError;
       const isServerError = error instanceof Error && error.message.includes('Server error');
 
