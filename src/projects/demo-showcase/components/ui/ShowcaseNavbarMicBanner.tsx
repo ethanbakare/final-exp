@@ -156,8 +156,11 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
           align-items: center;
           border-radius: 20px;
           background: #F7F6F2;
-          /* No inset shadow here — the original ShowcaseNavbarCompact
-             has it; we deliberately omit. */
+          /* Inset shadow matches the granted-state navbar pill
+             (.selector-pill in ShowcaseNavbarCompact) so the chrome
+             reads as the SAME surface across all three mic-banner
+             states and the granted state. */
+          box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.06);
           box-sizing: border-box;
         }
 
@@ -222,13 +225,6 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
            this state, since there's only one child. */
         .pill-shell-centered {
           justify-content: center;
-          /* Drop the inset shadow back on for the dismissed state so
-             the outer tan pill reads as the same surface as the
-             granted-state navbar pill (which has the inset shadow).
-             Unknown and blocked states intentionally skip the shadow
-             — the title + buttons / X already give the pill enough
-             visual weight. */
-          box-shadow: inset 0 4px 6px rgba(0, 0, 0, 0.06);
         }
 
         .enable-mic-mini {
