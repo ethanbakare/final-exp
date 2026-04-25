@@ -1,21 +1,20 @@
 /**
  * Demo Showcase — Components page
  *
- * Renders every UI component used by the /demo-showcase carousel side-by-side
- * with all of its variants/states, so design + dev can review them without
- * having to drive the carousel into specific states (mic permissions,
- * recording, etc.).
+ * Renders every UI component used by the /demo-showcase carousel in
+ * isolation, in a fixed-size seamless grid. Mirrors the convention used
+ * by /pages/new-home/showcase/components.tsx and /pages/trace/showcase/
+ * tracecomponent.tsx — dark page bg, GridBox cells with thin borders
+ * that touch, tiny uppercase labels, component-library-feel.
  *
  * Route: /demo-showcase/showcase/components
  *
- * Pattern follows /pages/new-home/showcase/components.tsx, /pages/trace/
- * showcase/tracecomponent.tsx, etc.
- *
- * Add a new section here whenever a new showcase UI component is created.
+ * Add a new GridBox here whenever a new showcase component ships.
  */
 
 import React from 'react';
 import Head from 'next/head';
+import showcaseStyles from '@/projects/demo-showcase/styles/showcase.module.css';
 import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
 import { ShowcaseNavbarCompactSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompactSmall';
 import { ShowcaseNavbarMicBanner } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarMicBanner';
@@ -26,110 +25,120 @@ import { DemoIntroCard } from '@/projects/demo-showcase/components/ui/DemoIntroC
 import { DemoProgressSection } from '@/projects/demo-showcase/components/ui/DemoProgressSection';
 import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/components/ui/DemoProgressSectionTransparent';
 
-// Stable noop for components that need a callback we don't care about here.
 const noop = () => {};
 
-// Mobile-width container — used to constrain the previews of the *Small
-// component variants so they render at their intended viewport width
-// instead of stretching to fill the desktop preview column.
-const MobileFrame: React.FC<{ children: React.ReactNode; width?: number }> = ({
+/* ─────────────────────────────────────────────────────────────────────
+   GridBox — fixed-size cell with thin border + bottom label.
+   Mirrors trace's ButtonGrid + new-home's GridBox idiom.
+   ──────────────────────────────────────────────────────────────────── */
+function GridBox({
   children,
-  width = 360,
-}) => (
-  <div className="mobile-frame">
-    {children}
-    <style jsx>{`
-      .mobile-frame {
-        width: ${width}px;
-        border: 1px dashed rgba(0, 0, 0, 0.12);
-        border-radius: 12px;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.4);
-      }
-    `}</style>
-  </div>
-);
-
-interface VariantProps {
+  label,
+  width,
+  height,
+  // canvasBackdrop: tan canvas-coloured cell bg for components designed to
+  // layer over the showcase canvas (DemoIntroCard, DemoProgressSection).
+  // Without this they render as semi-transparent ghosts on the dark page.
+  // Also injects the .demoCanvasRoot class so the demo-* CSS variables
+  // resolve correctly inside the cell.
+  canvasBackdrop = false,
+}: {
+  children: React.ReactNode;
   label: string;
-  children: React.ReactNode;
+  width: number;
+  height: number;
+  canvasBackdrop?: boolean;
+}) {
+  return (
+    <div
+      className={`grid-box ${canvasBackdrop ? 'grid-box-canvas' : ''}`}
+      style={{ width, height }}
+    >
+      <div
+        className={`grid-box-content ${canvasBackdrop ? showcaseStyles.demoCanvasRoot : ''}`}
+      >
+        {children}
+      </div>
+      <span className="grid-box-label">{label}</span>
+      <style jsx>{`
+        .grid-box {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 0.8px solid rgba(255, 255, 255, 0.08);
+          flex-shrink: 0;
+          box-sizing: border-box;
+          background: transparent;
+        }
+        /* Canvas-backdrop cells: tan bg matching the showcase canvas
+           tint, so translucent components (intro card pill, progress
+           track) render as they do in production. */
+        .grid-box-canvas {
+          background: #F2EFE9;
+        }
+        .grid-box-content {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+        .grid-box-label {
+          position: absolute;
+          bottom: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-family: 'Inter', sans-serif;
+          font-size: 9px;
+          font-weight: 400;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.25);
+          white-space: nowrap;
+        }
+        /* Bottom label flips colour on canvas-backdrop cells (the dark
+           page label colour is invisible on tan). */
+        .grid-box-canvas .grid-box-label {
+          color: rgba(0, 0, 0, 0.35);
+        }
+      `}</style>
+    </div>
+  );
 }
 
-const Variant: React.FC<VariantProps> = ({ label, children }) => (
-  <div className="variant">
-    <span className="variant-label">{label}</span>
-    <div className="variant-stage">{children}</div>
-    <style jsx>{`
-      .variant {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .variant-label {
-        font-family: 'Inter', system-ui, sans-serif;
-        font-size: 12px;
-        font-weight: 500;
-        color: #6B6B68;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-      .variant-stage {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-    `}</style>
-  </div>
-);
-
-interface SectionProps {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
+/* ─────────────────────────────────────────────────────────────────────
+   SectionTitle — orange accent bar + uppercase label, new-home style.
+   ──────────────────────────────────────────────────────────────────── */
+function SectionTitle({ children }: { children: string }) {
+  return (
+    <h2 className="section-title">
+      <span className="section-accent" />
+      {children}
+      <style jsx>{`
+        .section-title {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-family: 'Inter', sans-serif;
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.45);
+          margin: 0 0 28px;
+        }
+        .section-accent {
+          width: 3px;
+          height: 16px;
+          background: #FB7232;
+          border-radius: 2px;
+          flex-shrink: 0;
+        }
+      `}</style>
+    </h2>
+  );
 }
-
-const Section: React.FC<SectionProps> = ({ title, description, children }) => (
-  <section className="section">
-    <header className="section-head">
-      <h2 className="section-title">{title}</h2>
-      {description && <p className="section-desc">{description}</p>}
-    </header>
-    <div className="section-body">{children}</div>
-    <style jsx>{`
-      .section {
-        padding: 32px 0;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-      }
-      .section:last-child {
-        border-bottom: none;
-      }
-      .section-head {
-        margin-bottom: 24px;
-      }
-      .section-title {
-        font-family: 'Inter', system-ui, sans-serif;
-        font-size: 20px;
-        font-weight: 600;
-        color: #2A2927;
-        margin: 0 0 6px;
-      }
-      .section-desc {
-        font-family: 'Inter', system-ui, sans-serif;
-        font-size: 14px;
-        color: #6B6B68;
-        margin: 0;
-        max-width: 720px;
-        line-height: 1.5;
-      }
-      .section-body {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-      }
-    `}</style>
-  </section>
-);
 
 export default function ShowcaseComponentsPage() {
   return (
@@ -139,70 +148,62 @@ export default function ShowcaseComponentsPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <main className="page">
-        <header className="page-head">
-          <h1 className="page-title">Demo Showcase — Components</h1>
-          <p className="page-desc">
-            Every UI component used by the <code>/demo-showcase</code> carousel,
-            with all variants. Add new sections here whenever a new showcase
-            component is built.
-          </p>
-        </header>
+      <div className="showcase-page">
+        <h1 className="page-title">Demo Showcase — Component Library</h1>
+        <p className="page-subtitle">All components displayed in isolation</p>
 
-        {/* ──────────────────────────────────────────────────────────────
-            TOP NAVBAR — DESKTOP
-            ────────────────────────────────────────────────────────────── */}
-        <Section
-          title="Top navbar — desktop"
-          description="Outer pill chrome stays constant across all four states; only the inner content swaps based on the active project + mic permission state. ShowcaseNavbarMicBanner replaces the project pill while a mic-needing demo is active and permission isn't yet granted."
-        >
-          <Variant label="Granted (default — project pill)">
-            <ShowcaseNavbarCompact
-              projectName="Trace"
-              currentIndex={1}
-              totalCount={3}
-              onNext={noop}
-              onPrev={noop}
-            />
-          </Variant>
-          <Variant label="Mic state: unknown">
-            <ShowcaseNavbarMicBanner
-              micState="unknown"
-              onEnable={noop}
-              onDismiss={noop}
-              onReshow={noop}
-              onDismissBlocked={noop}
-            />
-          </Variant>
-          <Variant label="Mic state: dismissed">
-            <ShowcaseNavbarMicBanner
-              micState="dismissed"
-              onEnable={noop}
-              onDismiss={noop}
-              onReshow={noop}
-              onDismissBlocked={noop}
-            />
-          </Variant>
-          <Variant label="Mic state: blocked">
-            <ShowcaseNavbarMicBanner
-              micState="blocked"
-              onEnable={noop}
-              onDismiss={noop}
-              onReshow={noop}
-              onDismissBlocked={noop}
-            />
-          </Variant>
-        </Section>
+        {/* ═══════════════════════════════════════════════════════════
+            TOP NAVBAR — DESKTOP (4 STATES)
+            ═══════════════════════════════════════════════════════════ */}
+        <div className="section">
+          <SectionTitle>Top Navbar — Desktop</SectionTitle>
+          <div className="seamless-grid">
+            <GridBox label="granted (project pill) — 668 × 51" width={720} height={120}>
+              <ShowcaseNavbarCompact
+                projectName="Trace"
+                currentIndex={1}
+                totalCount={3}
+                onNext={noop}
+                onPrev={noop}
+              />
+            </GridBox>
+            <GridBox label="mic state · unknown" width={720} height={120}>
+              <ShowcaseNavbarMicBanner
+                micState="unknown"
+                onEnable={noop}
+                onDismiss={noop}
+                onReshow={noop}
+                onDismissBlocked={noop}
+              />
+            </GridBox>
+            <GridBox label="mic state · dismissed" width={720} height={120}>
+              <ShowcaseNavbarMicBanner
+                micState="dismissed"
+                onEnable={noop}
+                onDismiss={noop}
+                onReshow={noop}
+                onDismissBlocked={noop}
+              />
+            </GridBox>
+            <GridBox label="mic state · blocked" width={720} height={120}>
+              <ShowcaseNavbarMicBanner
+                micState="blocked"
+                onEnable={noop}
+                onDismiss={noop}
+                onReshow={noop}
+                onDismissBlocked={noop}
+              />
+            </GridBox>
+          </div>
+        </div>
 
-        {/* ──────────────────────────────────────────────────────────────
+        {/* ═══════════════════════════════════════════════════════════
             TOP NAVBAR — MOBILE
-            ────────────────────────────────────────────────────────────── */}
-        <Section
-          title="Top navbar — mobile"
-          description="Compact mobile variant of the navbar (~0.7× baked-in dimensions). The X close button sits to the left when the user is in demo mode. Mobile mic-banner variant lives in Stage 3 of the kill-switch / banner work and isn't yet built."
-        >
-          <Variant label="Project pill (granted)">
-            <MobileFrame>
+            ═══════════════════════════════════════════════════════════ */}
+        <div className="section">
+          <SectionTitle>Top Navbar — Mobile</SectionTitle>
+          <div className="seamless-grid">
+            <GridBox label="project pill (granted) · 0.7×" width={400} height={120}>
               <ShowcaseNavbarCompactSmall
                 projectName="Trace"
                 currentIndex={1}
@@ -210,128 +211,145 @@ export default function ShowcaseComponentsPage() {
                 onNext={noop}
                 onPrev={noop}
               />
-            </MobileFrame>
-          </Variant>
-          <Variant label="Close button (mobile demo mode)">
-            <MobileFrame width={120}>
+            </GridBox>
+            <GridBox label="close button (demo mode)" width={120} height={120}>
               <ShowcaseCloseBtnSmall onClick={noop} />
-            </MobileFrame>
-          </Variant>
-        </Section>
+            </GridBox>
+          </div>
+        </div>
 
-        {/* ──────────────────────────────────────────────────────────────
+        {/* ═══════════════════════════════════════════════════════════
             CTA BUTTONS — DESKTOP
-            ────────────────────────────────────────────────────────────── */}
-        <Section
-          title="CTA buttons — desktop"
-          description='The primary CTA flips its label between "Try Demo" (sim playing) and "Play Simulation" (in demo mode), driven from the parent. View Case Study sits alongside.'
-        >
-          <Variant label="Try Demo (sim mode)">
-            <TryDemoButton onClick={noop} label="Try Demo" />
-          </Variant>
-          <Variant label="Play Simulation (demo mode)">
-            <TryDemoButton onClick={noop} label="Play Simulation" />
-          </Variant>
-          <Variant label="View Case Study">
-            <ViewCaseStudyButton onClick={noop} />
-          </Variant>
-        </Section>
+            ═══════════════════════════════════════════════════════════ */}
+        <div className="section">
+          <SectionTitle>CTA Buttons — Desktop</SectionTitle>
+          <div className="seamless-grid">
+            <GridBox label="try demo (sim mode)" width={240} height={120}>
+              <TryDemoButton onClick={noop} label="Try Demo" />
+            </GridBox>
+            <GridBox label="play simulation (demo mode)" width={240} height={120}>
+              <TryDemoButton onClick={noop} label="Play Simulation" />
+            </GridBox>
+            <GridBox label="view case study" width={240} height={120}>
+              <ViewCaseStudyButton onClick={noop} />
+            </GridBox>
+          </div>
+        </div>
 
-        {/* ──────────────────────────────────────────────────────────────
+        {/* ═══════════════════════════════════════════════════════════
             CTA BUTTONS — MOBILE
-            ────────────────────────────────────────────────────────────── */}
-        <Section
-          title="CTA buttons — mobile"
-          description="Mobile variants of the CTAs. Same label-swap pattern as desktop with an animated label crossfade."
-        >
-          <Variant label="Try Demo Small">
-            <MobileFrame width={200}>
+            ═══════════════════════════════════════════════════════════ */}
+        <div className="section">
+          <SectionTitle>CTA Buttons — Mobile</SectionTitle>
+          <div className="seamless-grid">
+            <GridBox label="try demo small" width={200} height={100}>
               <TryDemoButtonSmall onClick={noop} label="Try Demo" />
-            </MobileFrame>
-          </Variant>
-          <Variant label="Play Simulation Small">
-            <MobileFrame width={200}>
+            </GridBox>
+            <GridBox label="play simulation small" width={200} height={100}>
               <TryDemoButtonSmall onClick={noop} label="Play Simulation" />
-            </MobileFrame>
-          </Variant>
-          <Variant label="View Case Study Small">
-            <MobileFrame width={200}>
+            </GridBox>
+            <GridBox label="view case study small" width={200} height={100}>
               <ViewCaseStudyButtonSmall onClick={noop} />
-            </MobileFrame>
-          </Variant>
-        </Section>
+            </GridBox>
+          </div>
+        </div>
 
-        {/* ──────────────────────────────────────────────────────────────
+        {/* ═══════════════════════════════════════════════════════════
             DEMO INTRO CARD
-            ────────────────────────────────────────────────────────────── */}
-        <Section
-          title="Demo intro card"
-          description="Headline pill shown above the demo. headlineSuffix is desktop-only — kept in DOM for screen readers but visually hidden on mobile."
-        >
-          <Variant label="Headline only">
-            <DemoIntroCard headline="Voice-powered finance journal" />
-          </Variant>
-          <Variant label="Headline + suffix (desktop-only)">
-            <DemoIntroCard
-              headline="A grammar checker, but for how confident AI is"
-              headlineSuffix=" in what it heard"
-            />
-          </Variant>
-        </Section>
+            ═══════════════════════════════════════════════════════════ */}
+        <div className="section">
+          <SectionTitle>Demo Intro Card</SectionTitle>
+          <div className="seamless-grid">
+            <GridBox label="headline only" width={500} height={120} canvasBackdrop>
+              <DemoIntroCard headline="Voice-powered finance journal" />
+            </GridBox>
+            <GridBox
+              label="headline + suffix (desktop-only)"
+              width={720}
+              height={120}
+              canvasBackdrop
+            >
+              <DemoIntroCard
+                headline="A grammar checker, but for how confident AI is"
+                headlineSuffix=" in what it heard"
+              />
+            </GridBox>
+          </div>
+        </div>
 
-        {/* ──────────────────────────────────────────────────────────────
-            DEMO PROGRESS SECTION
-            ────────────────────────────────────────────────────────────── */}
-        <Section
-          title="Demo progress"
-          description="Sim-progress bar with caption. Default variant has a contained background; transparent variant drops the bg for mobile edge-to-edge layout."
-        >
-          <Variant label="Default (desktop)">
-            <DemoProgressSection duration={6000} loopKey={0} />
-          </Variant>
-          <Variant label="Transparent (mobile)">
-            <MobileFrame>
+        {/* ═══════════════════════════════════════════════════════════
+            DEMO PROGRESS
+            ═══════════════════════════════════════════════════════════ */}
+        <div className="section">
+          <SectionTitle>Demo Progress</SectionTitle>
+          <div className="seamless-grid">
+            <GridBox label="default (desktop)" width={720} height={120} canvasBackdrop>
+              <DemoProgressSection duration={6000} loopKey={0} />
+            </GridBox>
+            <GridBox label="transparent (mobile)" width={400} height={120} canvasBackdrop>
               <DemoProgressSectionTransparent duration={6000} loopKey={0} />
-            </MobileFrame>
-          </Variant>
-        </Section>
+            </GridBox>
+          </div>
+        </div>
+      </div>
 
-        <style jsx>{`
-          .page {
-            min-height: 100vh;
-            padding: 48px 32px 80px;
-            background: #F2EFE9;
-            font-family: 'Inter', system-ui, sans-serif;
+      <style jsx global>{`
+        body, html { margin: 0; padding: 0; background-color: #0A0A09; }
+      `}</style>
+
+      <style jsx>{`
+        .showcase-page {
+          max-width: 1200px;
+          width: 100%;
+          margin: 0 auto;
+          padding: 80px 24px 120px;
+          box-sizing: border-box;
+        }
+
+        .page-title {
+          font-family: 'Inter', sans-serif;
+          font-size: 24px;
+          font-weight: 600;
+          color: white;
+          margin: 0 0 6px;
+        }
+
+        .page-subtitle {
+          font-family: 'Inter', sans-serif;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.3);
+          margin: 0 0 64px;
+        }
+
+        .section {
+          margin-bottom: 0;
+          padding: 48px 0;
+          border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .section:first-of-type {
+          border-top: none;
+          padding-top: 0;
+        }
+
+        /* Seamless grid — Trace / new-home pattern. Cell borders touch. */
+        .seamless-grid {
+          display: inline-flex;
+          flex-wrap: wrap;
+          gap: 0;
+          margin-left: -0.8px;
+          margin-top: -0.8px;
+        }
+
+        @media (max-width: 768px) {
+          .seamless-grid {
+            display: flex;
+            justify-content: center;
+            max-width: 100%;
+            overflow-x: auto;
           }
-          .page-head {
-            max-width: 880px;
-            margin: 0 auto 32px;
-          }
-          .page-title {
-            font-size: 28px;
-            font-weight: 600;
-            color: #1F1E1C;
-            margin: 0 0 8px;
-          }
-          .page-desc {
-            font-size: 14px;
-            color: #6B6B68;
-            line-height: 1.55;
-            margin: 0;
-          }
-          .page-desc code {
-            background: rgba(0, 0, 0, 0.05);
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-family: 'JetBrains Mono', ui-monospace, monospace;
-            font-size: 13px;
-          }
-          .page :global(section) {
-            max-width: 880px;
-            margin: 0 auto;
-          }
-        `}</style>
-      </main>
+        }
+      `}</style>
     </>
   );
 }
