@@ -28,6 +28,7 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [canvasContentEl, setCanvasContentEl] = useState<Element | null>(null);
   const [clearButtonEl, setClearButtonEl] = useState<HTMLButtonElement | null>(null);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   useEffect(() => {
     setCanvasContentEl(wrapperRef.current?.closest('.canvas-content') ?? null);
@@ -35,6 +36,33 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
       wrapperRef.current?.querySelector<HTMLButtonElement>('.clear-button-below .clear-button') ?? null,
     );
   }, []);
+
+  useEffect(() => {
+    const root = wrapperRef.current;
+    if (!root) return;
+
+    const syncModalState = () => {
+      setIsClearModalOpen(Boolean(root.querySelector('.modal-overlay')));
+    };
+
+    syncModalState();
+
+    const observer = new MutationObserver(syncModalState);
+    observer.observe(root, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const layerDemo = wrapperRef.current?.closest('.layer-demo');
+    if (!layerDemo) return;
+
+    layerDemo.classList.toggle('trace-demo-modal-open', isClearModalOpen);
+
+    return () => {
+      layerDemo.classList.remove('trace-demo-modal-open');
+    };
+  }, [isClearModalOpen]);
 
   return (
     <div className="trace-demo-wrapper" ref={wrapperRef}>
@@ -79,6 +107,11 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
           right: 20px;
           bottom: 20px;
           z-index: 20;
+        }
+        @media (max-width: 768px) {
+          :global(.layer.layer-demo.trace-demo-modal-open) {
+            transform: none !important;
+          }
         }
       `}</style>
     </div>
