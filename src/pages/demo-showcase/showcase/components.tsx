@@ -27,11 +27,19 @@ import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/compone
 
 const noop = () => {};
 
-/* Typical mobile viewport width — used to constrain the cells holding
-   *Small (mobile) components so they render at their actual mobile
-   width instead of stretching across a wider desktop cell. Matches
-   how they appear on /demo-showcase at viewport ≤ 768. */
-const MOBILE_PILL_WIDTH = 343;
+/* Cell widths chosen to match the navbar's PRODUCTION rendering
+   context, not the navbar pill's own max-width. The pill caps at
+   668px internally — but on the live /demo-showcase page (at
+   viewport ≈ 990) the surrounding .top-navbar-compact wrapper is
+   ~950px, leaving ~141px breathing room on each side of the pill.
+   Showcase cells need to mimic that wrapper width so the pill
+   renders with the same breathing room and doesn't look 'hogged'
+   against the cell borders. */
+const NAVBAR_DESKTOP_CELL_WIDTH = 950;
+/* Mobile navbar pill on /demo-showcase at viewport 375 renders at
+   355px (fills the wrapper). Cell at 380 gives ~12px breathing
+   room each side so the pill doesn't touch the cell borders. */
+const NAVBAR_MOBILE_CELL_WIDTH = 380;
 
 /* ─────────────────────────────────────────────────────────────────────
    GridBox — fixed-size cell with thin border + bottom label.
@@ -166,7 +174,7 @@ export default function ShowcaseComponentsPage() {
         <div className="section">
           <SectionTitle>Top Navbar — Desktop</SectionTitle>
           <div className="seamless-grid">
-            <GridBox label="granted (project pill)" width={720} height={100}>
+            <GridBox label="granted (project pill)" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
               <ShowcaseNavbarCompact
                 projectName="Trace"
                 currentIndex={1}
@@ -175,7 +183,7 @@ export default function ShowcaseComponentsPage() {
                 onPrev={noop}
               />
             </GridBox>
-            <GridBox label="mic state · unknown" width={720} height={100}>
+            <GridBox label="mic state · unknown" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
               <ShowcaseNavbarMicBanner
                 micState="unknown"
                 onEnable={noop}
@@ -184,7 +192,7 @@ export default function ShowcaseComponentsPage() {
                 onDismissBlocked={noop}
               />
             </GridBox>
-            <GridBox label="mic state · dismissed" width={720} height={100}>
+            <GridBox label="mic state · dismissed" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
               <ShowcaseNavbarMicBanner
                 micState="dismissed"
                 onEnable={noop}
@@ -193,7 +201,7 @@ export default function ShowcaseComponentsPage() {
                 onDismissBlocked={noop}
               />
             </GridBox>
-            <GridBox label="mic state · blocked" width={720} height={100}>
+            <GridBox label="mic state · blocked" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
               <ShowcaseNavbarMicBanner
                 micState="blocked"
                 onEnable={noop}
@@ -216,9 +224,8 @@ export default function ShowcaseComponentsPage() {
           <div className="seamless-grid">
             <GridBox
               label="project pill (granted) · 0.7×"
-              width={400}
+              width={NAVBAR_MOBILE_CELL_WIDTH}
               height={100}
-              contentMaxWidth={MOBILE_PILL_WIDTH}
             >
               <ShowcaseNavbarCompactSmall
                 projectName="Trace"
