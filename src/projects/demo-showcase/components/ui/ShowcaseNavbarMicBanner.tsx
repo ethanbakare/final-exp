@@ -102,16 +102,16 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
       )}
 
       {micState === 'dismissed' && (
-        <button
-          type="button"
-          className={`pill-shell pill-orange ${styles.OpenRunde600_16}`}
-          onClick={onReshow}
-        >
-          <span className="orange-inner">
+        <div className="pill-shell pill-shell-centered">
+          <button
+            type="button"
+            className={`enable-mic-mini ${styles.OpenRunde600_16}`}
+            onClick={onReshow}
+          >
             <MicMutedIcon />
             Enable Mic
-          </span>
-        </button>
+          </button>
+        </div>
       )}
 
       {micState === 'blocked' && (
@@ -212,30 +212,34 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
           color: #FFFFFF;
         }
 
-        /* Dismissed state: orange takeover. The pill shell becomes the
-           click target. Same outer dimensions so nothing in the layout
-           shifts; just the colour and content change. */
-        .pill-orange {
-          background: #FB7232;
-          border: none;
-          cursor: pointer;
-          color: #FFFFFF;
-          transition: opacity 0.15s ease;
-          /* Override .pill-shell's space-between with centered content
-             (no left/right groups in this state — just the takeover
-             label). */
+        /* Dismissed state: outer tan pill stays the same (chrome is
+           constant); inside, a small orange pill sits CENTERED — sized
+           like the project counter / arrow buttons (35px tall, fit-
+           content width), with mic-off icon + 'Enable Mic'. Visually
+           the navbar is the same shape as always; only its single
+           inner child changed.
+           Override default space-between with centered alignment for
+           this state, since there's only one child. */
+        .pill-shell-centered {
           justify-content: center;
         }
 
-        .pill-orange:hover {
-          opacity: 0.92;
-        }
-
-        .orange-inner {
+        .enable-mic-mini {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           height: 35px;
+          padding: 0 14px;
+          background: #FB7232;
+          color: #FFFFFF;
+          border: none;
+          border-radius: 32px;
+          cursor: pointer;
+          transition: opacity 0.15s ease;
+        }
+
+        .enable-mic-mini:hover {
+          opacity: 0.92;
         }
 
         /* Blocked state: X close button on the right. Subtle hover. */
