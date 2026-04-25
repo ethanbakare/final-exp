@@ -18,6 +18,7 @@ import showcaseStyles from '@/projects/demo-showcase/styles/showcase.module.css'
 import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
 import { ShowcaseNavbarCompactSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompactSmall';
 import { ShowcaseNavbarMicBanner } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarMicBanner';
+import { ShowcaseNavbarMicBannerSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarMicBannerSmall';
 import { ShowcaseCloseBtnSmall } from '@/projects/demo-showcase/components/ui/ShowcaseCloseBtnSmall';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
 import { TryDemoButtonSmall, ViewCaseStudyButtonSmall } from '@/projects/demo-showcase/components/ui/ShowcaseButtonsSmall';
@@ -252,6 +253,48 @@ export default function DemoShowcaseComponentsPage() {
             </GridBox>
             <GridBox label="close button (demo mode)" width={120} height={100}>
               <ShowcaseCloseBtnSmall onClick={noop} />
+            </GridBox>
+            <GridBox
+              label="mic state · unknown"
+              width={NAVBAR_MOBILE_CELL_WIDTH}
+              height={100}
+              stretch
+            >
+              <ShowcaseNavbarMicBannerSmall
+                micState="unknown"
+                onEnable={noop}
+                onDismiss={noop}
+                onReshow={noop}
+                onDismissBlocked={noop}
+              />
+            </GridBox>
+            <GridBox
+              label="mic state · dismissed"
+              width={NAVBAR_MOBILE_CELL_WIDTH}
+              height={100}
+              stretch
+            >
+              <ShowcaseNavbarMicBannerSmall
+                micState="dismissed"
+                onEnable={noop}
+                onDismiss={noop}
+                onReshow={noop}
+                onDismissBlocked={noop}
+              />
+            </GridBox>
+            <GridBox
+              label="mic state · blocked"
+              width={NAVBAR_MOBILE_CELL_WIDTH}
+              height={100}
+              stretch
+            >
+              <ShowcaseNavbarMicBannerSmall
+                micState="blocked"
+                onEnable={noop}
+                onDismiss={noop}
+                onReshow={noop}
+                onDismissBlocked={noop}
+              />
             </GridBox>
           </div>
         </div>

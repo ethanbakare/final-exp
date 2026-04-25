@@ -32,6 +32,7 @@ import { CLIPSTREAM_SIM_DURATION } from '@/projects/demo-showcase/components/sim
 import { useActiveAbortSignal } from '@/projects/demo-showcase/hooks/useActiveAbortSignal';
 import { useRunId } from '@/projects/demo-showcase/hooks/useRunId';
 import { ShowcaseNavbarMicBanner } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarMicBanner';
+import { ShowcaseNavbarMicBannerSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarMicBannerSmall';
 import { useMicPermission } from '@/projects/new-home/hooks/useMicPermission';
 
 // Dynamic imports — SSR-unsafe sims/demos.
@@ -295,13 +296,23 @@ export default function DemoShowcasePage() {
             <div className="close-slot" aria-hidden={!isDemoMode}>
               <ShowcaseCloseBtnSmall onClick={handleToggleDemo} />
             </div>
-            <ShowcaseNavbarCompactSmall
-              projectName={active.label}
-              currentIndex={activeIdx}
-              totalCount={PROJECTS.length}
-              onNext={() => go(1)}
-              onPrev={() => go(-1)}
-            />
+            {showMicInNavbar ? (
+              <ShowcaseNavbarMicBannerSmall
+                micState={micState as 'unknown' | 'dismissed' | 'blocked'}
+                onEnable={handleEnable}
+                onDismiss={handleDismiss}
+                onReshow={handleReshow}
+                onDismissBlocked={handleDismissBlocked}
+              />
+            ) : (
+              <ShowcaseNavbarCompactSmall
+                projectName={active.label}
+                currentIndex={activeIdx}
+                totalCount={PROJECTS.length}
+                onNext={() => go(1)}
+                onPrev={() => go(-1)}
+              />
+            )}
           </div>
         </div>
 
