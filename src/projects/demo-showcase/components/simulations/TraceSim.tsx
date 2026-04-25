@@ -128,9 +128,22 @@ export const TraceSim: React.FC<TraceSimProps> = ({ onLoopRestart }) => {
           .trace-sim-embed {
             max-width: 100%;
           }
+          /* width: 100% lets the text-box shrink to fit when the
+             showcase slot is narrower than the cap below (very small
+             viewports — prevents overflow / horizontal scroll).
+             max-width caps the fill so the sim doesn't stretch wider
+             than the inline demo at toggle.
+             VALUE EXPLAINED: the demo card visual width on mobile is
+             360 × 0.8 = 288 (demo's natural product CSS × the .layer-demo
+             scale at mobile). For the sim VISUAL width to match, we need
+             sim_css × 0.9 = 288 ⇒ sim_css = 320. So 320px is the right
+             cap given the different scale factors on .layer-sim vs
+             .layer-demo (see /pages/demo-showcase/index.tsx:464-470).
+             If those scale factors ever change, recompute this. */
           .trace-sim-embed :global(.text-box),
           .trace-sim-embed :global(.text-box--with-navbar) {
             width: 100% !important;
+            max-width: 320px !important;
           }
         }
         /* Reduce the TextBox height so it fits in the showcase slot
