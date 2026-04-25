@@ -27,53 +27,52 @@ import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/compone
 
 const noop = () => {};
 
-/* Cell widths chosen to match the navbar's PRODUCTION rendering width
-   on /demo-showcase at standard viewports. Measured directly:
-   - Desktop at viewport 1280 → .top-navbar-compact wrapper renders at
-     1240px (full width minus body padding). The .selector-pill caps
-     at 668px internally and sits centered with ~286px breathing room
-     each side. Cell 1240 reproduces that proportion exactly.
-   - Mobile at viewport 375 → wrapper + pill both render at 355px
-     (pill fills the mobile wrapper). Cell 360 gives a hair of cell-
-     border breathing room without changing the pill's apparent width. */
-const NAVBAR_DESKTOP_CELL_WIDTH = 1240;
+/* Atomic cell sizes for components smaller than their container
+   (buttons, close icon). Navbar variants use fullWidth instead so
+   they're responsive like production. */
 const NAVBAR_MOBILE_CELL_WIDTH = 360;
 
 /* ─────────────────────────────────────────────────────────────────────
    GridBox — fixed-size cell with thin border + bottom label.
    Voice-components pattern: subtle dark border on white, dark faded label.
    ──────────────────────────────────────────────────────────────────── */
+/* GridBox cell with two orthogonal layout knobs:
+   - `width`: fixed cell width in px. Omit for fluid (100% of grid).
+     Fluid = navbar variants (responsive like production). Fixed = atomic
+     components shown at a specific size (buttons, close button, mobile
+     project pill at 360 to mimic phone width).
+   - `stretch`: when true, the inner content area is column-flex with
+     align-items: stretch — children take 100% of cell width. Used for
+     components that are designed to fill their parent (the navbar
+     variants and mobile project pill — which has width:100% in its
+     own CSS but needs a parent that gives it room to expand). When
+     false (default), content is centred at its natural size — used
+     for atomic components like buttons. */
+type GridBoxProps = {
+  children: React.ReactNode;
+  label: string;
+  height: number;
+  width?: number;
+  stretch?: boolean;
+  canvasBackdrop?: boolean;
+};
+
 function GridBox({
   children,
   label,
-  width,
   height,
-  // canvasBackdrop: tan canvas-coloured cell bg for components designed to
-  // layer over the showcase canvas (DemoIntroCard, DemoProgressSection).
-  // Without it those translucent pills become invisible on the white page.
-  // Also injects the .demoCanvasRoot class so the demo-* CSS variables
-  // resolve correctly inside the cell.
+  width,
+  stretch = false,
   canvasBackdrop = false,
-  // contentMaxWidth: caps the inner content area so a component that uses
-  // width: 100% can't stretch beyond the cap. Used for mobile components
-  // that should render at their actual mobile width inside a wider cell.
-  contentMaxWidth,
-}: {
-  children: React.ReactNode;
-  label: string;
-  width: number;
-  height: number;
-  canvasBackdrop?: boolean;
-  contentMaxWidth?: number;
-}) {
+}: GridBoxProps) {
+  const fluid = width === undefined;
   return (
     <div
-      className={`grid-box ${canvasBackdrop ? 'grid-box-canvas' : ''}`}
-      style={{ width, height }}
+      className={`grid-box ${canvasBackdrop ? 'grid-box-canvas' : ''} ${fluid ? 'grid-box-fluid' : ''}`}
+      style={fluid ? { height } : { width, height }}
     >
       <div
-        className={`grid-box-content ${canvasBackdrop ? showcaseStyles.demoCanvasRoot : ''}`}
-        style={contentMaxWidth ? { maxWidth: contentMaxWidth } : undefined}
+        className={`grid-box-content ${stretch ? 'grid-box-content-stretch' : ''} ${canvasBackdrop ? showcaseStyles.demoCanvasRoot : ''}`}
       >
         {children}
       </div>
@@ -89,12 +88,17 @@ function GridBox({
           box-sizing: border-box;
           background: transparent;
         }
-        /* Canvas-backdrop cells: tan bg matching the showcase canvas
-           tint so translucent components (intro card pill, progress
-           track) render as they do in production. */
+        /* Fluid cells claim the full row of the seamless-grid (which is
+           display:flex). flex: 1 0 100% gives them the entire row width. */
+        .grid-box-fluid {
+          width: 100%;
+          flex: 1 0 100%;
+        }
         .grid-box-canvas {
           background: #F2EFE9;
         }
+        /* Default content area: flex-centred. Atomic children stay at
+           their natural size, vertically + horizontally centred. */
         .grid-box-content {
           display: flex;
           align-items: center;
@@ -102,18 +106,17 @@ function GridBox({
           width: 100%;
           height: 100%;
         }
-        /* Force the navbar wrappers to full cell width. Without this
-           they're flex children inside grid-box-content (which is
-           display:flex) and hug content, causing the inner .selector-
-           pill / .pill-shell to size to its CONTENT instead of its
-           own width:100%; max-width:668px declaration. With this,
-           the pill caps at 668 and centres the same way it does on
-           the live /demo-showcase page (where the parent .nav-slot
-           gives the navbar full width). */
-        .grid-box-content :global(.top-navbar-compact),
-        .grid-box-content :global(.top-navbar-mic),
-        .grid-box-content :global(.top-navbar-compact-small) {
+        /* Stretch content area: flex-column with align-items: stretch
+           so children fill the cell width. The component's own CSS
+           (justify-content: center, max-width caps) handles inner
+           layout — no per-class :global() overrides needed. */
+        .grid-box-content-stretch {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: stretch;
           width: 100%;
+          height: 100%;
         }
         .grid-box-label {
           position: absolute;
@@ -185,7 +188,7 @@ export default function DemoShowcaseComponentsPage() {
         <div className="section">
           <SectionTitle>Top Navbar — Desktop</SectionTitle>
           <div className="seamless-grid">
-            <GridBox label="granted (project pill)" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
+            <GridBox label="granted (project pill)" stretch height={100}>
               <ShowcaseNavbarCompact
                 projectName="Trace"
                 currentIndex={1}
@@ -194,7 +197,7 @@ export default function DemoShowcaseComponentsPage() {
                 onPrev={noop}
               />
             </GridBox>
-            <GridBox label="mic state · unknown" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
+            <GridBox label="mic state · unknown" stretch height={100}>
               <ShowcaseNavbarMicBanner
                 micState="unknown"
                 onEnable={noop}
@@ -203,7 +206,7 @@ export default function DemoShowcaseComponentsPage() {
                 onDismissBlocked={noop}
               />
             </GridBox>
-            <GridBox label="mic state · dismissed" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
+            <GridBox label="mic state · dismissed" stretch height={100}>
               <ShowcaseNavbarMicBanner
                 micState="dismissed"
                 onEnable={noop}
@@ -212,7 +215,7 @@ export default function DemoShowcaseComponentsPage() {
                 onDismissBlocked={noop}
               />
             </GridBox>
-            <GridBox label="mic state · blocked" width={NAVBAR_DESKTOP_CELL_WIDTH} height={100}>
+            <GridBox label="mic state · blocked" stretch height={100}>
               <ShowcaseNavbarMicBanner
                 micState="blocked"
                 onEnable={noop}
@@ -237,6 +240,7 @@ export default function DemoShowcaseComponentsPage() {
               label="project pill (granted) · 0.7×"
               width={NAVBAR_MOBILE_CELL_WIDTH}
               height={100}
+              stretch
             >
               <ShowcaseNavbarCompactSmall
                 projectName="Trace"
@@ -333,10 +337,7 @@ export default function DemoShowcaseComponentsPage() {
 
       <style jsx>{`
         .showcase-page {
-          /* Page max-width sized to comfortably hold the 1240-wide
-             navbar cells (which mirror /demo-showcase's wrapper width
-             at viewport 1280) plus 24px of side padding. */
-          max-width: 1296px;
+          max-width: 1200px;
           width: 100%;
           margin: 0 auto;
           padding: 80px 24px 120px;
@@ -369,9 +370,12 @@ export default function DemoShowcaseComponentsPage() {
           padding-top: 0;
         }
 
-        /* Seamless grid — Trace / new-home / voice pattern. Cell borders touch. */
+        /* Seamless grid — Trace / new-home / voice pattern. Cell borders
+           touch. display: flex (block-level) so the grid fills the
+           section width — necessary for fullWidth cells which take 100%
+           of the grid. Atomic cells still wrap as normal flex children. */
         .seamless-grid {
-          display: inline-flex;
+          display: flex;
           flex-wrap: wrap;
           gap: 0;
           margin-left: -0.8px;
