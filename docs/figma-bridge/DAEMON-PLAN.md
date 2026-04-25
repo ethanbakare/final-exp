@@ -10,6 +10,18 @@
 
 ## Revision history
 
+### Revision 3 — user direction (post-R2)
+
+After reviewing R2, the user (non-technical) clarified what their actual day-to-day pain is and made decisions that lock four open questions and meaningfully reshape one design choice. Reviewer's R2 changes all stand; this revision builds on top.
+
+| # | What changed | Why |
+|---|---|---|
+| Q1 | **Resolved: hardcode the Node binary path at install time.** Re-running `npm run install-daemon` is the documented recovery if Node ever moves (Homebrew upgrade, macOS major version, etc.) | User does not actively manage Node versions — no nvm/asdf/Volta in use. Hardcoding is the simplest path; the recovery story is "rerun a 30-second install command." Wrapper-script complexity not justified. |
+| Q9 | **Resolved: narrow the Figma plugin to port 3055 only.** Drop the 3055–3060 fallback in `ui.ts` and `manifest.json`. | User has never needed `FIGMA_MCP_PORT` overrides in practice. The fallback range is the source of the H3 hazard the reviewer flagged. Eliminate it. |
+| Q7 | **Reshaped: multi-file disambiguation behaviour belongs in the daemon and the MCP tool surface, NOT in a Claude-Code-specific skill.** | The user wants to control Figma from non-Claude tools (Codex / OpenAI ChatGPT, Cursor, etc.) — anything that speaks MCP. A skill in `.claude/skills/` only helps Claude Code. Putting the disambiguation hint into the MCP tool descriptions and into structured daemon error responses (`AMBIGUOUS_FILE`) lets every MCP-capable client do the right thing without per-client configuration. See rewritten §17. |
+| Q2, Q4, Q5, Q6, Q8, Q10, Q11, Q12 | **Locked to author leans** per user direction "trust the leans on implementation details." | None of these are user-visible behaviour changes. Marked resolved in §23. |
+| Q13 (R3, new) | **Per-client active channel — flagged for review.** With multi-file working through MCP tool descriptions, the daemon's `activeChannel` field needs to become per-client (keyed by the MCP client's WebSocket) rather than shared across all clients. Otherwise client A picking "Dictation app" forces client B onto the same file. | This is structural for multi-file correctness when more than one Claude Code / Codex session is active simultaneously. R3 makes the change but flags it explicitly so the reviewer can re-validate. |
+
 ### Revision 2 — addressing review feedback
 
 Reviewer flagged four substantive issues with R1. All confirmed against code; all addressed below.
@@ -21,7 +33,7 @@ Reviewer flagged four substantive issues with R1. All confirmed against code; al
 | H3 | R1's "daemon owns 3055" invariant doesn't survive the plugin's 3055–3060 port-cycling logic ([ui.ts:4](../../../figma-mcp/src/plugin/ui.ts:4), [manifest.json:9](../../../figma-mcp/manifest.json:9)). | New §10b *Plugin port narrowing*. Updated §8. Updated §7 invariants. |
 | M1 | R1 conflated machine-boot with user-login behaviour for LaunchAgents and used legacy `launchctl load`/`unload`. | Updated §13 (login vs boot phrasing). Updated §12 to use `bootstrap`/`bootout`/`kickstart`. |
 | S1 | No `README.md` exists — "modify README" is really "create docs". | §16 retitled. |
-| S2 | R1 introduced `FIGMA_MCP_PORT` while existing code uses `FIGMA_MCP_PORT`. Drift, not intentional. | All `FIGMA_MCP_PORT` corrected to `FIGMA_MCP_PORT` throughout. |
+| S2 | R1 silently introduced a renamed env var (`FIGMA_BRIDGE_PORT`) while existing code uses `FIGMA_MCP_PORT`. Drift, not intentional. | Reverted throughout. |
 
 ### Revision 1
 
@@ -31,13 +43,13 @@ Initial draft. See git history for full content.
 
 ## TL;DR
 
-Today, every Claude Code session spawns its own `figma-mcp` stdio process. Each tries to bind port 3055; the winner is "host" and the rest become "relay clients" that proxy through it. State doesn't reliably mirror across this fleet, and the failure mode — plugin shows Connected in Figma while MCP returns `connected: false, pluginCount: 0` — costs ~10–15 minutes per occurrence to manually unstick.
+Today, every Claude Code session spawns its own `figma-mcp` stdio process. Each tries to bind port 3055; the winner is "host" and the rest become "relay clients" that proxy through it. State doesn't reliably mirror across this fleet, and the failure mode — plugin shows Connected in Figma while MCP returns `connected: false, pluginCount: 0` — costs ~10–15 minutes per occurrence to manually unstick (kill stale processes, reopen plugin, restart Claude Code).
 
-**Proposal:** replace host-or-relay with **one always-on daemon** (managed by macOS launchd) that exclusively owns the WebSocket and the plugin connection. All MCP stdio processes become **pure clients** of the daemon. No election. No promotion. No distributed state to mirror.
+**Proposal:** replace host-or-relay with **one always-on daemon** (managed by macOS launchd) that exclusively owns the WebSocket and the plugin connection. All MCP stdio processes become **pure clients** of the daemon. No election. No promotion. No distributed state to mirror. Status updates are pushed from the daemon to clients (eliminates the stale-cache bug). Multi-file behaviour lives in the daemon's MCP tool surface so any MCP client (Claude Code, Codex, Cursor) gets it for free.
 
-**Estimate:** ~1.5–2 hours of focused work for the refactor itself. ~30 min more for the install scripts and README. Multi-file UX skill is a separate workstream (~30 min).
+**Estimate (R3):** ~7.5 hours of focused work, including the install scripts, README, multi-file UX, and full test pass.
 
-**Reversibility:** entirely reversible via `git revert` + `launchctl unload` + `rm` of the plist. Nothing persistent moves.
+**Reversibility:** entirely reversible via `git revert` + `launchctl bootout` + `rm` of the plist. Nothing persistent moves.
 
 ---
 
@@ -231,11 +243,12 @@ Patching any single one of these (e.g. better state mirroring, stronger heartbea
 ### Goals
 
 - **G1.** Plugin connects once to the bridge and stays connected as long as Figma is open, regardless of how many Claude Code sessions come and go.
-- **G2.** Zero manual intervention to clear stuck states under normal use (no `kill <pid>`, no plugin reopens).
-- **G3.** Multi-Figma-file support actually works — `joinChannel` succeeds from any session.
-- **G4.** Survives Mac reboot — daemon comes back automatically, plugin reconnects when Figma opens.
+- **G2.** Zero manual intervention to clear stuck states under normal use (no `kill <pid>`, no plugin reopens, no copy-pasting channel codes).
+- **G3.** Multi-Figma-file support actually works — `joinChannel` succeeds from any session, and disambiguation works without per-client config (any MCP client benefits).
+- **G4.** Survives Mac login — daemon comes back automatically at user login, plugin reconnects when Figma opens.
 - **G5.** Easy to reason about: one process owns plugin state, every other process is a thin client.
 - **G6.** Cleanly reversible — if the daemon model causes problems, we can `git revert` and resume host-or-relay with no data migration.
+- **G7. (R3)** Tool-agnostic: Codex, Cursor, and any other MCP-capable AI client gets the same UX (no copy-paste, multi-file aware) without any client-specific configuration.
 
 ### Non-goals
 
@@ -328,8 +341,8 @@ All paths relative to `/Users/ethan/Documents/projects/figma-mcp/`. **Revised in
 | `src/daemon/index.ts` | **CREATE** | 30 min |
 | `src/server/index.ts` | **MODIFY** (delete host-or-relay fork; depend on daemon-client; keep `FIGMA_MCP_PORT` env var name) | 10 min |
 | `src/server/relay-client.ts` | **MODIFY + RENAME** to `daemon-client.ts` (delete promotion logic; add `client_status_update` push handler; add async `joinChannel` over the wire; ground-truth pull for `get_connection_status`) | 60 min |
-| `src/server/websocket-server.ts` | **MODIFY (R2)** — broadcast `client_status_update` on plugin join/leave/active-channel-change; add `client_join_channel` / `client_status` request handlers; preserve existing `relay_*` handlers during transition (or rename — see §23 Q4) | 45 min |
-| `src/server/mcp-server.ts` | **MODIFY (R2)** — `joinChannel` becomes async, await it; cache-refresh hint after channel change | 10 min |
+| `src/server/websocket-server.ts` | **MODIFY (R2 + R3)** — R2: broadcast `client_status_update` on plugin join/leave/active-channel-change; add `client_join_channel` / `client_status` request handlers; rename `relay_*` → `client_*` per Q4. R3: convert `activeChannel` to per-client map (`activeChannelByClient: Map<WebSocket, string|null>`); track `mcpClients: Set<WebSocket>`. | 75 min |
+| `src/server/mcp-server.ts` | **MODIFY (R2 + R3)** — R2: `joinChannel` and `getConnectedFileInfo` become async, await both. R3: tool descriptions get embedded disambiguation guidance per §17; `exec()` returns structured `AMBIGUOUS_FILE` error when multiple plugins are connected and no per-client active channel is set. | 25 min |
 | `src/server/types.ts` | **MODIFY (R2)** — add new wire message types (`client_status_update`, `client_join_channel`, `client_join_channel_response`, `client_status`); update `FigmaBridge.joinChannel` signature to `Promise<boolean>`; update consumers (`websocket-server.ts` `joinChannel` becomes `async` returning `Promise<boolean>` — trivial wrap) | 15 min |
 | `src/plugin/ui.ts` | **MODIFY (R2)** — narrow `WS_PORTS` to `[3055]`. Remove cycling logic. See §10b. | 10 min |
 | `src/plugin/manifest.json` | **MODIFY (R2)** — narrow `allowedDomains` and `devAllowedDomains` to `ws://localhost:3055`. See §10b. | 5 min |
@@ -1022,27 +1035,99 @@ The new README covers a one-time install section roughly like:
 
 ---
 
-## 17. Multi-file UX (separate workstream)
+## 17. Multi-file UX — in the daemon, not a skill (revised in R3)
 
-The protocol already supports the daemon holding multiple plugin connections, one per Figma file (keyed by `channelId`). What's missing is the **conversational disambiguation logic** at the Claude Code usage level. This is **NOT a daemon code change** — it lives in Claude Code as a skill or slash command.
+### Why R1 and R2 had this wrong
 
-### Behavior to encode
+R1 and R2 framed multi-file disambiguation as "a skill in `.claude/`" — a config file inside Claude Code that walks the user through selecting which Figma file they meant. **That framing is wrong** for one specific reason: it works only in Claude Code.
 
-1. Before any selection-dependent command, call `get_connection_status`.
-2. `pluginCount === 0` → tell the user "Open the Claude Code Bridge plugin in Figma, then retry."
-3. `pluginCount === 1` → auto-select via `join_channel(plugins[0].channel)`.
-4. `pluginCount > 1` and no active channel for this stdio MCP → ask "I see N files connected: [list]. Which one?" then `join_channel(selected)`.
-5. Mid-session switching: if the user says "switch to X", call `join_channel(x.channel)`.
+The bridge speaks **MCP** (Model Context Protocol), which is a standard. Any MCP-capable AI client can talk to the daemon: Claude Code, Codex (OpenAI ChatGPT), Cursor, Continue, and others. If the disambiguation logic lives inside Claude Code, every other client falls back to copy-paste-channel-codes — exactly the workflow pain the daemon is meant to eliminate.
 
-### Implementation options
+The user explicitly raised this: they want to use Codex to control Figma too. R3 reshapes this section accordingly.
 
-- **Option A:** A custom slash command `/figma-use` in `.claude/commands/figma-use.md` that walks the user through file selection.
-- **Option B:** A skill (`figma-bridge-disambiguation` or similar) that auto-triggers when figma-mcp tools are invoked without an active channel.
-- **Option C:** CLAUDE.md instructions documenting the flow as natural-language guidance for the model.
+### Where the disambiguation logic actually belongs
 
-**Recommendation:** Option B (skill). Slash commands require explicit invocation; skills auto-trigger on the right signals. CLAUDE.md is the weakest because it depends on the model remembering procedural details under load.
+Two layers, both inside `figma-mcp` itself (no Claude-Code-specific files):
 
-This is **out of scope for the daemon refactor itself** — it's a follow-up.
+**Layer 1 — MCP tool descriptions.** Every MCP client receives the daemon's tool descriptions when it connects. These descriptions are read by the model on the other end (Claude, GPT, etc.). We embed the disambiguation guidance directly in those descriptions:
+
+```ts
+mcp.tool(
+  "get_connection_status",
+  "Check if a Figma plugin is connected and which file/page is open. " +
+  "If pluginCount > 1, you MUST ask the user which file before invoking " +
+  "any selection-dependent command. Use join_channel to select.",
+  // ...
+);
+
+mcp.tool(
+  "join_channel",
+  "Select which Figma file to operate on when multiple are connected. " +
+  "Required when pluginCount > 1. The channelId comes from the plugins[] " +
+  "array returned by get_connection_status (each entry has channel and fileName).",
+  // ...
+);
+```
+
+The model sees these descriptions on every session, regardless of which AI client it's running in. Disambiguation behaviour falls out naturally.
+
+**Layer 2 — structured error responses from the daemon.** When a command needs an active channel and the user has multiple files connected without choosing one, the daemon returns a structured error the model can recognise and act on:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "AMBIGUOUS_FILE",
+    "message": "Multiple Figma files are connected. Pick one with join_channel.",
+    "data": {
+      "plugins": [
+        { "channel": "ps0gqiuc", "fileName": "Dictation app", "pageName": "Home" },
+        { "channel": "k82mqd7e", "fileName": "2025 design system", "pageName": "Tokens" }
+      ]
+    }
+  }
+}
+```
+
+Any reasonable AI client, on receiving an `AMBIGUOUS_FILE` error, will surface the choice to the user, take the answer, call `join_channel`, and retry. No client-specific skill needed.
+
+### Per-client active channel (Q13 — see §23)
+
+Today's daemon has a single `activeChannel: string | null` field shared across all connected clients ([websocket-server.ts:21](../../../figma-mcp/src/server/websocket-server.ts:21)). With proper multi-file UX, this needs to become **per-client** (keyed by the MCP client's WebSocket connection):
+
+```ts
+// Before:
+private activeChannel: string | null = null;
+
+// After:
+private activeChannelByClient = new Map<WebSocket, string | null>();
+```
+
+Without this change, two simultaneous sessions (one in Claude Code, one in Codex) would interfere: client A calls `join_channel("Dictation app")`, client B's commands now also go to "Dictation app" until B calls `join_channel` itself.
+
+Auto-pick on the first plugin still happens (preserves the single-file case where users never deal with channels at all), but it's per-client: a new client's active channel defaults to "the only plugin if there's just one" or `null` if there are multiple.
+
+### Behaviour to encode (revised)
+
+1. Single Figma file open → daemon auto-picks; `get_connection_status` returns `pluginCount: 1` with `activeChannel` set; commands just work. **No copy-paste, no channel codes.** ✓
+2. Zero Figma files open → daemon returns `pluginCount: 0`; `exec()` returns `NOT_CONNECTED`; user is prompted to open the plugin.
+3. Two+ Figma files open and the client hasn't called `join_channel` yet → first command attempt returns `AMBIGUOUS_FILE` with the plugin list; the model on the other end asks the user; calls `join_channel`; retries.
+4. Mid-session switch ("now use the design system file") → user asks the model; model calls `join_channel(other.channel)`; commands route to the new file.
+
+### What this changes in the file-by-file plan
+
+- `mcp-server.ts`: tool descriptions get the disambiguation hints embedded. `exec()` checks per-client active channel and returns `AMBIGUOUS_FILE` when ambiguous. ~15 min on top of the R2 changes.
+- `websocket-server.ts`: `activeChannel: string | null` → `activeChannelByClient: Map<WebSocket, string|null>`. `joinChannel` becomes scoped to a specific WebSocket. The on-disconnect cleanup removes the entry. ~30 min on top of the R2 changes.
+- `types.ts`: new error code `"AMBIGUOUS_FILE"` documented. (Just a string; no schema change.) ~2 min.
+
+### What this means for the estimate
+
+Multi-file is no longer a separate ~30–60 min workstream. It's bundled into the daemon refactor — adds ~45–60 min to §25's total. Trade-off: every MCP client benefits from day one, no Claude-Code-specific skill to maintain, no second shipping moment to coordinate.
+
+### What this does NOT do
+
+- Does not enforce *which* file the user picked. The model on the other end is responsible for asking the user well. The daemon just provides clear errors and clear options.
+- Does not persist channel selection across daemon restarts. If the daemon restarts, every client's channel is forgotten and they re-disambiguate next time. That's correct behaviour — daemon restart is rare and re-disambiguation is cheap.
 
 ---
 
@@ -1151,6 +1236,36 @@ The acceptance test for the §2.5 contract.
 3. Kill the stale process. Reinstall succeeds.
 4. Open Figma + plugin (post-narrowing build) → plugin connects ONLY to 3055. Verify by reading plugin console: should see "WebSocket connected on port 3055" and never attempt 3056.
 
+### T13. (R3) Multi-file disambiguation via MCP error response
+
+The acceptance test for §17. Validates that disambiguation works without any Claude-Code-specific config — and therefore would work for Codex, Cursor, etc.
+
+1. Daemon running. Open the bridge plugin in two Figma files (e.g. "Dictation app" and "2025 design system"). `get_connection_status` returns `pluginCount: 2` and the plugin list.
+2. From a fresh Claude Code session, immediately try `get_selection` (without first calling `join_channel`).
+3. **Expected:** the response is a structured error:
+   ```json
+   {
+     "ok": false,
+     "error": {
+       "code": "AMBIGUOUS_FILE",
+       "message": "Multiple Figma files are connected. Pick one with join_channel.",
+       "data": { "plugins": [...] }
+     }
+   }
+   ```
+4. The model on the other end should naturally surface this to the user. Call `join_channel("ps0gqiuc")`. Retry `get_selection` → succeeds, operates on the picked file.
+5. Mid-session: call `join_channel("k82mqd7e")` (the other file). `get_selection` now operates on the second file.
+
+### T14. (R3) Per-client active channel — sessions don't interfere
+
+Validates the Q13 design.
+
+1. Daemon running with two plugins connected (as T13).
+2. Open Claude Code session A. Call `join_channel("Dictation app")`.
+3. Open Claude Code session B (in parallel). Call `get_connection_status` first → expect `AMBIGUOUS_FILE` on the first command attempt (B has no active channel set yet, even though A picked one). Call `join_channel("2025 design system")`.
+4. **Expected:** session A's commands continue routing to "Dictation app". Session B's commands route to "2025 design system". No interference.
+5. Close session A. Daemon removes A's entry from `activeChannelByClient`. Session B unaffected.
+
 ---
 
 ## 19. Edge cases and failure modes
@@ -1171,15 +1286,16 @@ The acceptance test for the §2.5 contract.
 
 ---
 
-## 20. Acceptance criteria
+## 20. Acceptance criteria (revised in R3)
 
 The refactor is "done" when ALL of these hold:
 
-- **A1.** Three or more Claude Code sessions used in a row over a workday without killing any PIDs or reopening the Figma plugin.
-- **A2.** Two or more Figma files connected to the bridge concurrently; Claude correctly disambiguates or auto-selects (assumes §17 skill is also done — A2 is conditional).
-- **A3.** After Mac reboot, daemon starts automatically and Figma plugin connects without manual intervention.
+- **A1.** Three or more Claude Code sessions used in a row over a workday without killing any PIDs, reopening the Figma plugin, or copy-pasting channel codes.
+- **A2.** Two or more Figma files connected to the bridge concurrently; the AI on the other end (Claude Code) correctly disambiguates via `AMBIGUOUS_FILE` errors and `join_channel`, all driven by tool descriptions and structured errors — no Claude-Code-specific skill required.
+- **A3.** After Mac login (post-reboot), daemon starts automatically and Figma plugin connects without manual intervention.
 - **A4.** Zero "port in use" or "another instance is open" errors during normal use over a one-week period.
-- **A5.** All test plan items T1–T9 pass.
+- **A5.** All test plan items T1–T14 pass.
+- **A6. (R3)** The same daemon, with the same tool descriptions, drives correct multi-file behaviour from at least one non-Claude MCP client (Codex / OpenAI ChatGPT, Cursor, or equivalent) — proving the tool-agnostic design (G7).
 
 ---
 
@@ -1213,140 +1329,80 @@ If the daemon model causes issues that aren't quickly fixable:
 
 ## 23. Open questions for review
 
-These are the places where I'd push back on myself. Want your input before implementing.
+R3 status: most questions resolved. Q13 added. One remaining open question for the reviewer.
 
-### Q1. Node path in plist — hardcoded or wrapper script?
+### Q1. (Resolved in R3) Node path in plist — hardcoded.
 
-**Option A** (current plan): install script does `command -v node` at install time, hardcodes the resulting absolute path into the plist. **Pro:** simplest. **Con:** Node version upgrades require reinstall.
+The install script captures the active Node binary path via `command -v node` and writes it into the plist. Recovery for Node moves: rerun `npm run install-daemon`. Documented in README. User is not on nvm/asdf/Volta so the wrapper-script alternative would buy little.
 
-**Option B**: install script writes a wrapper at `scripts/run-daemon.sh`:
-```bash
-#!/usr/bin/env bash
-exec "$(command -v node)" "$REPO_ROOT/dist/daemon/index.js"
+### Q2. (Resolved in R3 — locked to lean) Drop parent-PID heartbeat in server/index.ts.
+
+stdin EOF and signal handlers cover the normal cases. The heartbeat was load-bearing when the host process owned port 3055; now the stdio MCP is a pure client, it's redundant.
+
+### Q3. (Resolved in R2) New message types for `joinChannel`.
+
+Resolved in R2: dedicated `client_join_channel` / `client_join_channel_response` message pair per §10.4.
+
+### Q4. (Resolved in R3 — locked to lean) Rename `relay_*` → `client_*`.
+
+Done. We're touching `types.ts` and `websocket-server.ts` for R2 already; the rename is ~5 minutes of additional churn. The protocol has no relays anymore, calling them relays will mislead future readers.
+
+### Q5. (Resolved in R3 — locked to lean) Daemon EADDRINUSE behaviour: exit 2, launchd retries.
+
+Self-healing for the common stale-process scenario. ThrottleInterval=10s bounds the cost if something is permanently bound. Errors show up loudly in `~/Library/Logs/figma-bridge-daemon.err.log` either way.
+
+### Q6. (Resolved in R3 — locked to lean) Bundle `ws` and `uuid` into the daemon binary.
+
+esbuild `--bundle` produces a single `dist/daemon/index.js` with no `node_modules` runtime dependency. ~50KB extra in the binary; simpler operationally.
+
+### Q7. (Resolved in R3 — reshaped) Multi-file disambiguation lives in the daemon and MCP tool surface, NOT in a Claude-Code-specific skill.
+
+User explicitly wants other MCP-capable tools (Codex / OpenAI ChatGPT, Cursor, etc.) to handle multi-file correctly without per-client setup. A skill in `.claude/` only serves Claude Code. By embedding disambiguation guidance into the MCP tool descriptions and surfacing structured `AMBIGUOUS_FILE` errors from the daemon, every MCP client benefits from day one. See rewritten §17.
+
+### Q8. (Resolved in R3 — locked to lean) Install script in bash.
+
+The script's job (call `launchctl`, write a plist, `lsof` to verify) is squarely in shell territory.
+
+### Q9. (Resolved in R3) Narrow plugin to port 3055-only.
+
+User has never used `FIGMA_MCP_PORT` overrides in practice. The fallback range was the source of H3. Drop it. If port conflict ever materialises, edit `WS_PORT` in `ui.ts` + `manifest.json` `allowedDomains` + daemon constant in lockstep.
+
+### Q10. (Resolved in R3 — locked to lean) `client_status` is both a one-shot request (used for bootstrap and ground-truth pulls) AND a subscribe target (the daemon broadcasts `client_status_update` on changes).
+
+Cache for the per-command gate, ground-truth pull for the user-facing `get_connection_status` query. Belt-and-braces against any push-loss bug, one round-trip per user query.
+
+### Q11. (Resolved in R3 — locked to lean) Daemon tracks MCP clients in `mcpClients: Set<WebSocket>`.
+
+Add on first non-plugin message (`client_status` or `client_command`); remove on close. Broadcast `client_status_update` only to this set, not to plugins.
+
+### Q12. (Resolved in R3 — same as Q4, locked to lean) `relay_*` wire messages renamed.
+
+See Q4.
+
+### Q13. (R3, NEW) Per-client active channel — open for reviewer
+
+**Background.** Today's daemon has a single shared `activeChannel: string | null` field ([websocket-server.ts:21](../../../figma-mcp/src/server/websocket-server.ts:21)). With multi-file UX working through MCP tool descriptions (§17), two simultaneous sessions (e.g. Claude Code and Codex) would interfere: client A calls `join_channel("Dictation app")` and client B's commands silently route to the same file.
+
+**Proposed change.** Convert to a per-client map:
+
+```ts
+// Before:
+private activeChannel: string | null = null;
+
+// After:
+private activeChannelByClient = new Map<WebSocket, string | null>();
 ```
-Plist's `ProgramArguments` calls the wrapper. The wrapper resolves Node fresh at every launch.
 
-**Con of B:** launchd doesn't run shells with the user's PATH by default. The wrapper would need to source `~/.zshrc` or similar to find `nvm`-shimmed node. That gets ugly fast.
+`joinChannel` becomes scoped to a specific WebSocket. `sendCommand` looks up the active channel for the calling WebSocket. On client disconnect, the entry is removed.
 
-**My lean:** A. Document "rerun install-daemon after Node upgrades" in README. Easier and works.
+Auto-pick on the first plugin still happens — but per-client: when a new client connects and there's exactly one plugin, its active channel defaults to that plugin. If there are multiple plugins, its active channel defaults to `null` (and the client gets `AMBIGUOUS_FILE` on the first command).
 
-**Your call?**
+**Open for review:**
+- Is this the right semantics? Specifically: should `auto-pick` on a single-plugin world ALSO happen for new clients that join after the plugin is already there, or only at plugin-join time?
+- Are there any existing protocol assumptions that would break? (E.g. does any tool today rely on `activeChannel` being a global property?)
+- Any concern about race conditions on `joinChannel` from two clients hitting the daemon at the same instant?
 
-### Q2. Should we keep parent-PID heartbeat in server/index.ts?
-
-The current server/index.ts has a 5-second `process.kill(parentPid, 0)` heartbeat ([lines 62-74](../../../figma-mcp/src/server/index.ts:62)) to catch zombie scenarios where stdin doesn't close cleanly on parent death. This was load-bearing when the host process needed to release port 3055.
-
-Now that the stdio MCP is a pure client (doesn't bind a port), is the heartbeat still useful?
-
-**My lean:** No. stdin EOF + signal handlers cover the normal cases. The heartbeat was mostly for the host scenario. Drop it for simplicity.
-
-**Your call?**
-
-### Q3. (Resolved in R2) New message types for `joinChannel`
-
-Resolved: new dedicated message pair (`client_join_channel` / `client_join_channel_response`) per §10.4. The reviewer's H2 finding made clear that this is required, not optional, and that piggybacking on `client_command` would be hacky.
-
-### Q4. Rename `relay_*` message types to `client_*`?
-
-After the rename, the protocol doesn't really have "relays" — it has clients. Strictly cosmetic, but if we're touching the file anyway, the naming will read better forever after.
-
-**My lean:** rename. Touches `types.ts`, `websocket-server.ts` (wherever it parses incoming messages), and `daemon-client.ts`. Maybe 15 minutes total.
-
-**Your call?**
-
-### Q5. Should daemon's `EADDRINUSE` exit be exit-2 (restart) or exit-3 (don't restart)?
-
-If the daemon starts and finds port 3055 already in use (because, e.g., a stale `node dist/server/index.js` from before install is still there), should launchd keep retrying every 10s, or give up?
-
-**Option A** (exit 2, restart): launchd keeps trying. Eventually the stale process dies, daemon starts. Self-healing. **Con:** if there's a real problem (some other software permanently bound port 3055), launchd hammers forever.
-
-**Option B** (exit 0 with sentinel, don't restart): daemon prints clear error and stops. User must intervene. **Con:** the user has to notice and fix manually.
-
-Since `KeepAlive: { Crashed: true, SuccessfulExit: false }` only restarts on non-clean exits, exit-0 wouldn't trigger a restart. Exit-2 would. Or we could use `ExitTimeOut` to delay.
-
-**My lean:** A (exit 2, restart). The stale-process scenario is the common case and self-heals. The "permanently bound" scenario shows up loudly in logs. ThrottleInterval bounds the cost.
-
-**Your call?**
-
-### Q6. Bundle `ws` into daemon, or keep external?
-
-`esbuild --bundle` pulls `ws` (and all transitive deps) into a single `dist/daemon/index.js`. Simpler runtime — no `node_modules` needed for the daemon to run.
-
-Alternative: `--external:ws --external:uuid` keeps them external; daemon needs `node_modules` reachable at runtime.
-
-**My lean:** bundle. The daemon is tiny; bundling adds ~50KB; runtime simplicity is worth it.
-
-**Your call?**
-
-### Q7. Multi-file disambiguation skill — included in this work or separate?
-
-§17 is genuinely a separate workstream (skill in `.claude/skills/`, not figma-mcp code). But without it, multi-file fundamentally doesn't work conversationally even after the daemon ships.
-
-**Option A:** ship the daemon refactor first, then ship the skill as a follow-up. Clean separation.
-
-**Option B:** ship them together so multi-file works from day one of the daemon being live.
-
-**My lean:** A. The daemon refactor is valuable on its own (single-file flows get massively better immediately). Multi-file is a nice-to-have that can wait. They're different code, different repos, different risk profiles.
-
-**Your call?**
-
-### Q8. Install script as `bash` or as a `tsx` script?
-
-The repo already uses `tsx scripts/build-plugin.ts` for build scripts. Could write `install-daemon.ts` instead of `install-daemon.sh` for consistency.
-
-**Pro of bash:** one less indirection, faster, matches the macOS-native vibe of launchd.
-**Pro of tsx:** consistent with existing `scripts/build-plugin.ts`, can use TypeScript types for plist/config validation.
-
-**My lean:** bash. The script's job (call `launchctl`, write a plist, `lsof` to verify) is squarely in shell territory. TypeScript adds nothing here.
-
-**Your call?**
-
-### Q9. (R2) Plugin port narrowing — collapse the 3055–3060 fallback?
-
-Per §10b, R2 narrows the plugin to a single port (3055). This eliminates the `FIGMA_MCP_PORT` runtime override knob in the plugin's manifest.
-
-**Option A (R2 default):** narrow to 3055. Anyone needing a different port edits both the plugin and the daemon.
-
-**Option B:** keep the 3055–3060 fallback in the plugin manifest, but have the plugin only attempt 3055 by default; expose `FIGMA_MCP_PORT` in the daemon plist's `EnvironmentVariables` and document a way to switch the plugin too.
-
-**My lean:** A. The override is effectively unused, and the fallback is the source of the H3 hazard. Edit lockstep if needed.
-
-**Your call?**
-
-### Q10. (R2) `client_status` request semantics — single-shot or subscribe?
-
-§10.3 says: on connect, the client sends one `client_status` request (bootstrap), then receives `client_status_update` pushes thereafter.
-
-Should the client also be able to send subsequent `client_status` requests for ground-truth pulls in `getConnectedFileInfo`? My current sketch does this — push for the cache, request/response for the user-facing query.
-
-**Alternative:** the client never re-requests; trusts the push entirely. `getConnectedFileInfo` reads the cache.
-
-**Pro of pull-on-query:** strongest correctness guarantee; survives any push-loss bug.
-**Pro of trust-the-push:** simpler, no two paths.
-
-**My lean:** pull-on-query. Belt and braces — the cost is one round-trip per user-initiated status check.
-
-**Your call?**
-
-### Q11. (R2) `client_status_update` push fan-out — broadcast to all clients vs targeted?
-
-Today's daemon doesn't track which clients exist (the WebSocket server's `clients` map is for plugins, not for MCP clients). To broadcast `client_status_update`, the daemon needs to track MCP clients too — likely a new `Set<WebSocket>` keyed by the WS connection.
-
-**Option A:** track all incoming WS connections in `mcpClients: Set<WebSocket>`. Add to the set when a non-plugin client first sends `client_status` or `client_command`. Remove on close. Broadcast iterates this set.
-
-**Option B:** broadcast to all `wss.clients` and let each peer decide whether to handle the message. Simpler but plugins would receive `client_status_update` they don't care about.
-
-**My lean:** A. Cleaner separation, plugins don't see daemon-internal messages.
-
-**Your call?**
-
-### Q12. (R2) Wire-message renames — `relay_*` → `client_*` (touched in Q4)
-
-Q4 originally asked whether to rename. With R2's actual scope (we're touching `types.ts` and `websocket-server.ts` regardless), the cost of renaming during this work is ~5 minutes vs leaving "relay" terminology in a daemon-model codebase forever.
-
-**My lean (firmer in R2):** rename. The system has no relays anymore. Calling them relays will mislead readers.
-
-**Your call?**
+This is the only genuinely open question in R3. Everything else is locked.
 
 ---
 
@@ -1363,34 +1419,37 @@ Q4 originally asked whether to rename. With R2's actual scope (we're touching `t
 
 ---
 
-## 25. Estimate breakdown (revised in R2)
+## 25. Estimate breakdown (revised in R3)
 
-Cumulative time, assuming focused work. R1 estimate was ~3.5 hours; R2 raises it because the protocol changes flagged by the reviewer (status push, async `joinChannel`, async `getConnectedFileInfo`, port narrowing) are real work.
+R1 estimate: 3.5h. R2: 6h (after reviewer flagged the protocol-change scope). R3: 7–7.5h (multi-file UX folded in via §17's daemon-side approach instead of a separate skill).
 
 | Step | Time |
 |---|---|
 | Confirm existing shapes by re-reading websocket-server.ts, types.ts, mcp-server.ts | 15 min |
 | Write `src/daemon/index.ts` | 30 min |
-| Update `types.ts`: new wire messages + async `FigmaBridge.joinChannel` + async `FigmaBridge.getConnectedFileInfo` (R2) | 15 min |
-| Update `websocket-server.ts`: broadcast `client_status_update` on plugin join/leave/active-channel-change; add `client_join_channel` and `client_status` handlers; track `mcpClients` set; wrap `joinChannel` and `getConnectedFileInfo` async (R2) | 60 min |
+| Update `types.ts`: new wire messages + async `FigmaBridge.joinChannel` + async `FigmaBridge.getConnectedFileInfo` + `AMBIGUOUS_FILE` error code (R2 + R3) | 20 min |
+| Update `websocket-server.ts` (R2 + R3): broadcast `client_status_update`; add `client_join_channel` and `client_status` handlers; track `mcpClients` set; wrap `joinChannel`/`getConnectedFileInfo` async; **R3: convert `activeChannel` → `activeChannelByClient: Map<WebSocket, string|null>`; per-client auto-pick** | 90 min |
 | Rename + simplify `relay-client.ts` → `daemon-client.ts`: delete promotion logic; replace polling with `client_status_update` push handler; ground-truth pull for `getConnectedFileInfo`; real wire-RPC `joinChannel` (R2) | 75 min |
-| Update `mcp-server.ts`: await `joinChannel`; await `getConnectedFileInfo` in `get_connection_status` (R2) | 10 min |
-| Modify `src/server/index.ts` (delete host-or-relay fork; depend on daemon-client) | 10 min |
-| Plugin narrowing: `ui.ts` constants + reconnect logic, `manifest.json` allowedDomains (R2) | 15 min |
+| Update `mcp-server.ts` (R2 + R3): await `joinChannel`; await `getConnectedFileInfo`; **R3: tool descriptions include disambiguation hints; `exec()` returns structured `AMBIGUOUS_FILE` when ambiguous** | 25 min |
+| Rename `relay_*` → `client_*` wire types (Q4) — touches types.ts + websocket-server.ts + daemon-client.ts in tandem | 15 min |
+| Modify `src/server/index.ts` (delete host-or-relay fork; depend on daemon-client; drop parent-PID heartbeat per Q2) | 10 min |
+| Plugin narrowing (R2): `ui.ts` constants + reconnect logic, `manifest.json` allowedDomains | 15 min |
 | Rebuild plugin and verify it still loads in Figma after manifest change | 10 min |
-| Write `scripts/install-daemon.sh` (with bootstrap/bootout/kickstart, port-sweep preflight) | 30 min |
+| Write `scripts/install-daemon.sh` (bootstrap/bootout/kickstart, port-sweep preflight, hardcoded Node path per Q1) | 30 min |
 | Write `scripts/uninstall-daemon.sh` | 5 min |
 | `package.json` updates | 5 min |
 | **Create** `README.md` (R2 — does not exist today) | 25 min |
-| Run T1–T9 manually + new T10–T12 (R2 — see §18) | 45 min |
+| Run T1–T12 manually + new T13–T14 for multi-file (see §18) | 60 min |
 | Buffer for edge-case fixes during testing | 45 min |
-| **Total** | **~6 hours** |
+| **Total** | **~7.5 hours** |
 
-The R1 estimate of 3.5 hours was based on the now-disproven assumption that `websocket-server.ts`, `mcp-server.ts`, and `types.ts` were unchanged. Once the reviewer surfaced that assumption, the protocol work and the async-ification cascade roughly double the code-change time.
+The R3 increase over R2 (~1.5h) comes from:
+- Per-client active channel refactor in `websocket-server.ts` (~30 min)
+- Tool description revisions and `AMBIGUOUS_FILE` error wiring in `mcp-server.ts` (~15 min)
+- Two new test cases for multi-file disambiguation (~15 min)
+- Increased buffer for the broader surface area
 
-Multi-file disambiguation skill (§17): still separate, ~30–60 min.
-
-**Recommendation:** budget half a day, not 2 hours. If the user wants to break this up, the natural seam is "land §8–§11 + §10b first (the daemon and the protocol changes), live with it for a few days, then land the install scripts and README as a follow-up." But install must happen for the daemon to actually be useful, so that seam mostly just adds a context switch.
+**Recommendation:** budget a full day. The natural seam if breaking up: "land §8–§11 + §10b first (the daemon, protocol, port narrowing), live with it for a few days, then land the install scripts, README, and §17 multi-file work as a follow-up." But install needs to happen for the daemon to be usable at all, so the seam mostly just adds a context switch.
 
 ---
 
