@@ -13,27 +13,68 @@
  *     listener invokes its existing handleCancelRecording path. localStorage
  *     entries persist by design — see KILL-SWITCH-ARCHITECTURE.md §2.2.
  */
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { TraceCore } from '@/projects/trace/components/TraceCore';
+import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
 
 interface TraceDemoProps {
   cancelSignal?: AbortSignal;
   runIdRef?: React.MutableRefObject<number>;
 }
 
-export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef }) => (
-  <div className="trace-demo-wrapper">
-    <TraceCore cancelSignal={cancelSignal} runIdRef={runIdRef} />
+export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef }) => {
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const [canvasContentEl, setCanvasContentEl] = useState<Element | null>(null);
+  const [clearButtonEl, setClearButtonEl] = useState<HTMLButtonElement | null>(null);
 
-    <style jsx>{`
-      .trace-demo-wrapper {
-        width: 100%;
-        max-width: 620px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-      }
-    `}</style>
-  </div>
-);
+  useEffect(() => {
+    setCanvasContentEl(wrapperRef.current?.closest('.canvas-content') ?? null);
+    setClearButtonEl(
+      wrapperRef.current?.querySelector('.clear-button-below .clear-button') ?? null,
+    );
+  }, []);
+
+  return (
+    <div className="trace-demo-wrapper" ref={wrapperRef}>
+      <div className="trace-demo-content">
+        <TraceCore
+          cancelSignal={cancelSignal}
+          runIdRef={runIdRef}
+        />
+      </div>
+      {canvasContentEl ? createPortal(
+        <div className="showcase-clear-button">
+          <ClearButton onClick={() => clearButtonEl?.click()} />
+        </div>,
+        canvasContentEl,
+      ) : null}
+
+      <style jsx>{`
+        .trace-demo-wrapper {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100%;
+        }
+        .trace-demo-content {
+          width: 100%;
+          max-width: 620px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .trace-demo-wrapper :global(.clear-button-below) {
+          display: none;
+        }
+        .showcase-clear-button {
+          position: absolute;
+          right: 20px;
+          bottom: 20px;
+          z-index: 20;
+        }
+      `}</style>
+    </div>
+  );
+};
