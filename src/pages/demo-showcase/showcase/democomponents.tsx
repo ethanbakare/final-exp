@@ -99,18 +99,25 @@ function GridBox({
           background: #F2EFE9;
         }
         /* Default content area: flex-centred. Atomic children stay at
-           their natural size, vertically + horizontally centred. */
+           their natural size, vertically + horizontally centred.
+           Inner padding on the content area so children don't touch
+           the cell border (was a problem on the narrow mobile cells
+           where stretch components rendered edge-to-edge). */
         .grid-box-content {
           display: flex;
           align-items: center;
           justify-content: center;
           width: 100%;
           height: 100%;
+          padding: 0 16px;
+          box-sizing: border-box;
         }
         /* Stretch content area: flex-column with align-items: stretch
            so children fill the cell width. The component's own CSS
            (justify-content: center, max-width caps) handles inner
-           layout — no per-class :global() overrides needed. */
+           layout — no per-class :global() overrides needed. Same
+           horizontal padding as the default so stretch components
+           also get cell-edge breathing room. */
         .grid-box-content-stretch {
           display: flex;
           flex-direction: column;
@@ -118,6 +125,8 @@ function GridBox({
           align-items: stretch;
           width: 100%;
           height: 100%;
+          padding: 0 16px;
+          box-sizing: border-box;
         }
         .grid-box-label {
           position: absolute;
