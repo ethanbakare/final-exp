@@ -196,6 +196,11 @@ No active blocker right now — we just worked around it manually this session. 
 
 ## Product work deferred from prior sessions
 
+### Voice Interface — fix `/api/voice-interface/transcribe` 400s (blob path)
+The non-realtime transcribe endpoint (used by `VoiceTextBoxClip` for the record-clip-then-transcribe flow) returns 400. As a workaround, [`transcribeAudio` in VoiceTextBoxClip.tsx:361](src/projects/voiceinterface/components/VoiceTextBoxClip.tsx:361) is a stub that fakes 1.2s latency and cycles through 6 hardcoded `SAMPLE_LINES`. UI state machine (recording → processing → reveal) still exercises correctly, but the transcript text is canned, not real STT.
+
+To fix: debug the API route (likely `/pages/api/voice-interface/transcribe.*`), get it returning real transcriptions for an audio blob, then swap the stub call sites at lines 322 and 334 for the real fetch. **Does NOT affect the realtime API path** — that's a separate code path (live PCM over WebRTC to OpenAI). This is purely the blob-based transcription.
+
 ### Cancel button during Trace processing
 Production risk if the Gemini API hangs — user has no way to bail out. Needed before Trace is truly production-ready.
 
