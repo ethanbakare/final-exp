@@ -200,11 +200,12 @@ export const ShowcaseNavbarMicBannerSmall: React.FC<ShowcaseNavbarMicBannerSmall
           color: #FFFFFF;
         }
 
-        /* Not now: white pill, dark text. Dismissive action — low
-           contrast against the beige pill, sits quietly. */
+        /* Not now: shares the project-counter chip palette — same
+           visual role (neutral secondary chip on beige). Reuses the
+           system token instead of inventing a new color. */
         .mic-btn-dismiss {
-          background: #FFFFFF;
-          color: #252525;
+          background: rgba(50, 51, 51, 0.10);
+          color: #5E5E5C;
         }
 
         /* Dismissed: small orange pill centred inside the tan shell,

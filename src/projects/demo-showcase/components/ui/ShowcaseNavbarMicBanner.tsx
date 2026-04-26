@@ -228,12 +228,15 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
           color: #FFFFFF;
         }
 
-        /* Not now: white pill, dark text. Dismissive action — low
-           contrast against the beige pill so it sits quietly next to
-           the prominent Enable button. */
+        /* Not now: shares the project-counter chip palette
+           (rgba(50,51,51,0.10) over beige reads as a slightly darker
+           beige; #5E5E5C text matches the counter). Same visual role —
+           neutral secondary chip — so the system token is reused
+           rather than inventing a new color. Subtle next to the
+           prominent dark Enable button. */
         .mic-btn-dismiss {
-          background: #FFFFFF;
-          color: #252525;
+          background: rgba(50, 51, 51, 0.10);
+          color: #5E5E5C;
         }
 
         /* Dismissed state: outer tan pill stays the same (chrome is
