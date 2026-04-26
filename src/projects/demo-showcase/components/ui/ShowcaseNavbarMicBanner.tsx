@@ -11,17 +11,27 @@
  * perceives a smooth "the navbar got taken over and then handed back."
  *
  * State map:
- *   unknown   → tan pill, title left + Enable / Not now buttons right
+ *   unknown   → pill, title left + Enable / Not now buttons right
  *   dismissed → entire pill turns orange and acts as a single Enable Mic
  *               button; mic-off icon + label centered
- *   blocked   → tan pill, "Microphone access denied" + X dismiss
+ *   blocked   → pill, "Microphone access denied" + X dismiss
+ *
+ * Variants (`variant` prop, default 'light'):
+ *   light → original beige pill (#F7F6F2) with dark text. Default.
+ *   dark  → dark pill (#252525) with white text and white X stroke,
+ *           lifted from the standalone /trace EnableModal /
+ *           EnableBlockedToast. Buttons (Enable, Not now) are unchanged
+ *           between variants. The dismissed-state orange "Enable Mic"
+ *           pill is unchanged between variants — it is the call to
+ *           action and stays the same regardless.
  *
  * Sizing rules (per design feedback):
  *   - Inner button height matches the existing arrow-btn (35px)
  *   - Width is auto / fit-content — no rigid match to arrow buttons
  *   - Text uses showcase OpenRunde 600 16 (same as project counter / name)
- *   - Inner shadow on the pill is removed (existing project pill has an
- *     inset shadow; the mic-banner variant doesn't need it)
+ *   - Light variant pill has the inset shadow that matches the
+ *     granted-state navbar pill; dark variant drops it (doesn't read on
+ *     dark, and the dark surface is its own contrast).
  *
  * Stage 2: desktop sizing only. Mobile compact variant (Stage 3) will
  * mirror this against ShowcaseNavbarCompactSmall's geometry.
@@ -41,6 +51,9 @@ interface ShowcaseNavbarMicBannerProps {
   onReshow: () => void;
   /** User dismissed the blocked toast. */
   onDismissBlocked: () => void;
+  /** Visual variant. Default 'light' (original beige pill).
+   *  'dark' uses the standalone /trace EnableModal palette. */
+  variant?: 'light' | 'dark';
 }
 
 // Muted-mic icon, lifted from new-home/EnableModal so this component is
@@ -62,9 +75,12 @@ const MicMutedIcon = () => (
   </svg>
 );
 
+// Stroke uses currentColor so the variant's button color flows through.
+// Default (light): .mic-btn-close sets color #5E5E5C — visually identical
+// to the previous hardcoded stroke. Dark: overridden to #FFFFFF.
 const CloseIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M17.99997 17.99997L6 6M18.00003 6L5.99997 18.00003" stroke="#5E5E5C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M17.99997 17.99997L6 6M18.00003 6L5.99997 18.00003" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -74,9 +90,10 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
   onDismiss,
   onReshow,
   onDismissBlocked,
+  variant = 'light',
 }) => {
   return (
-    <div className="top-navbar-mic">
+    <div className={`top-navbar-mic top-navbar-mic-${variant}`}>
       {micState === 'unknown' && (
         <div className="pill-shell">
           <div className={`mic-title ${styles.OpenRunde600_16}`}>
@@ -245,7 +262,9 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
           opacity: 0.92;
         }
 
-        /* Blocked state: X close button on the right. Subtle hover. */
+        /* Blocked state: X close button on the right. Subtle hover.
+           Explicit color flows into CloseIcon's currentColor stroke;
+           visually identical to the previous hardcoded #5E5E5C. */
         .mic-btn-close {
           display: inline-flex;
           height: 35px;
@@ -255,6 +274,7 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
           border: none;
           border-radius: 32px;
           background: transparent;
+          color: #5E5E5C;
           cursor: pointer;
           flex-shrink: 0;
           transition: background 0.15s ease;
@@ -262,6 +282,26 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
 
         .mic-btn-close:hover {
           background: rgba(0, 0, 0, 0.05);
+        }
+
+        /* ─── Dark variant overrides ────────────────────────────────
+           Only the unknown and blocked states differ — the dismissed
+           orange Enable Mic pill is intentionally identical between
+           variants (call to action shouldn't shift between contexts). */
+        .top-navbar-mic-dark .pill-shell {
+          background: #252525;
+          /* Drop the inset shadow on dark — invisible against #252525,
+             and the dark surface is its own contrast against the canvas. */
+          box-shadow: none;
+        }
+        .top-navbar-mic-dark .mic-title {
+          color: #FFFFFF;
+        }
+        .top-navbar-mic-dark .mic-btn-close {
+          color: #FFFFFF;
+        }
+        .top-navbar-mic-dark .mic-btn-close:hover {
+          background: rgba(255, 255, 255, 0.08);
         }
       `}</style>
     </div>
