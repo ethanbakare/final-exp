@@ -345,6 +345,17 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         .close-content,
         .processing-image-content {
           position: absolute;
+          /* inset: 0 forces this overlay to fill .left-content (the
+             button's relative container) so the inner flex centering
+             actually has a 100% × 100% box to work with. Without it,
+             the absolutely-positioned element relies on the flex
+             parent's "static position" rule for abs-positioned
+             children — which Chrome implements inconsistently across
+             different ancestor chains. The showcase's wrapper chain
+             happens to break that fallback, so contents land at the
+             button's top-left instead of centered. inset: 0 makes the
+             behaviour deterministic in any context. */
+          inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -482,6 +493,12 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         .sendaudio-content,
         .analysing-audio-content {
           position: absolute;
+          /* inset: 0 — same fix as the left-content trio above. Without
+             it, the showcase context renders TraceLiveWaveform at the
+             top-left of the Send Audio button instead of centered with
+             the text. See comment block on .upload-content / .close-content
+             / .processing-image-content above for the full reasoning. */
+          inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
