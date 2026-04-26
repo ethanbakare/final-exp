@@ -56,11 +56,11 @@
   gap: 34px;
   border-radius: 8px;
   background: var(--demo-card-bg);
-  /* Pill background fade between light/dark variants. Strong ease-out
-     curve (Emil Kowalski's recommended UI curve — built-in CSS
-     easings are too weak). 200ms keeps it under the 300ms UI ceiling
-     while feeling substantive. */
-  transition: background 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  /* Background does NOT transition. The dark/light flip is masked
+     by the blur cycle below — under peak blur the swap is invisible.
+     A slow background fade exposed the new text on the old pill
+     color for ~100ms after the text snap, which read as a "wrong
+     intermediate state." Snap-then-blur-clear avoids it entirely. */
 }
 
 /* Dark variant — used by ClipStreamSim to call out offline/online
@@ -95,12 +95,12 @@
 .demoHeadlineText {
   color: var(--demo-headline-color);
   text-align: center;
-  /* Color uses the same strong ease-out as the pill background so
-     they read as a single coordinated beat. Filter + opacity drive
-     the blur-mask under which the actual text content snap happens —
-     fast (100ms) so the dim-blur-undim cycle stays tight. */
+  /* Color, like background, snaps with the dark/light class flip
+     under peak blur — no slow color fade that would expose the new
+     text in the wrong color while the eye can still see it. Only
+     filter + opacity transition, since they're what creates the
+     blur mask itself. */
   transition:
-    color 200ms cubic-bezier(0.23, 1, 0.32, 1),
     filter 100ms cubic-bezier(0.23, 1, 0.32, 1),
     opacity 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
