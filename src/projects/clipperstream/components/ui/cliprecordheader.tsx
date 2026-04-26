@@ -16,6 +16,13 @@ interface ClipRecordHeaderProps {
   onNewClipClick?: () => void;           // Create new clip
   onNetworkChange?: (state: 'online' | 'offline') => void;  // Network status callback
   className?: string;
+  // [DEMO-SHOWCASE] Override the auto-detected network status. When set,
+  // the navigator.onLine + online/offline event listeners are bypassed
+  // and the indicator reflects this prop instead. Used by the
+  // demo-showcase ClipStreamSim to drive the scripted offline→online
+  // transition independently of the real browser network state.
+  // Drop on port: remove this prop and the conditional in the effect.
+  forcedNetworkState?: 'online' | 'offline';
 }
 
 /* ============================================
@@ -26,13 +33,21 @@ export const ClipRecordHeader: React.FC<ClipRecordHeaderProps> = ({
   onBackClick,
   onNewClipClick,
   onNetworkChange,
-  className = ''
+  className = '',
+  forcedNetworkState  // [DEMO-SHOWCASE] drop on port
 }) => {
   // Auto-detect network status using browser API
   // Default to 'online' for SSR, will sync with actual value in useEffect
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline'>('online');
 
   useEffect(() => {
+    // [DEMO-SHOWCASE] If forcedNetworkState is set, skip the
+    // navigator.onLine/event-listener path entirely. The simulation is
+    // controlling the indicator. Drop this `if` on port.
+    if (forcedNetworkState !== undefined) {
+      return;
+    }
+
     // Sync with actual browser state after mount (handles SSR hydration)
     if (typeof navigator !== 'undefined') {
       const actualStatus = navigator.onLine ? 'online' : 'offline';
@@ -69,7 +84,11 @@ export const ClipRecordHeader: React.FC<ClipRecordHeaderProps> = ({
       window.removeEventListener('offline', handleOffline);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount - event listeners handle all updates
+  }, [forcedNetworkState]); // Re-run if forcedNetworkState toggles between set/unset
+
+  // [DEMO-SHOWCASE] Effective state: forced override wins when set.
+  // On port, drop this and use `networkStatus` directly below.
+  const effectiveNetworkStatus = forcedNetworkState ?? networkStatus;
 
   return (
     <>
@@ -83,8 +102,8 @@ export const ClipRecordHeader: React.FC<ClipRecordHeaderProps> = ({
           
           {/* Network Status - Center, absolutely positioned (z-index: 1) */}
           <div className="status-wrapper">
-            <MorphingOnlineOfflineStatus 
-              state={networkStatus}
+            <MorphingOnlineOfflineStatus
+              state={effectiveNetworkStatus}
               onChange={onNetworkChange}
             />
           </div>

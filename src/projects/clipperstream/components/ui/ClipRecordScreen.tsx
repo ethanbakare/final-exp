@@ -48,6 +48,10 @@ interface ClipRecordScreenProps {
   onTranscribeClick?: (id: string) => void;   // Transcribe pending clip
   onDeletePendingClick?: (id: string) => void; // Delete pending clip
   className?: string;
+  // [DEMO-SHOWCASE] Forwarded straight to ClipRecordHeader. Lets the
+  // demo-showcase ClipStreamSim drive the offline/online indicator
+  // directly instead of relying on navigator.onLine. Drop on port.
+  forcedNetworkState?: 'online' | 'offline';
 }
 
 /* ============================================
@@ -64,7 +68,8 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
   onNetworkChange,
   onTranscribeClick,
   // onDeletePendingClick, // Removed - not used yet
-  className = ''
+  className = '',
+  forcedNetworkState  // [DEMO-SHOWCASE] drop on port
 }) => {
   // Portal container for dropdowns (ClipOffline uses portals)
   const portalContainerRef = React.useRef<HTMLDivElement>(null);
@@ -195,6 +200,7 @@ export const ClipRecordScreen: React.FC<ClipRecordScreenProps> = ({
             onBackClick={onBackClick}
             onNewClipClick={onNewClipClick}
             onNetworkChange={onNetworkChange}
+            forcedNetworkState={forcedNetworkState}
           />
 
           {/* Content Area - Scrollable */}

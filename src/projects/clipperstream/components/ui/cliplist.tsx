@@ -27,6 +27,14 @@ interface ClipListItemProps {
   isDeleting?: boolean;                            // Controls delete animation (fade out)
   className?: string;
   fullWidth?: boolean;  // Enables responsive mode - fills parent container (for use inside screens)
+  // [DEMO-SHOWCASE] Optional override of internal isMenuOpen state for the
+  // demo-showcase ClipStreamSim scripted loop. The simulation auto-opens the
+  // dropdown during the "menu-opening" phase and closes it before the
+  // "deleting" phase. When undefined (the default), behaviour is unchanged
+  // and the user controls the menu via the dot-menu click. When set, the
+  // boolean is synced into isMenuOpen on change. Drop on port: remove this
+  // prop and the matching effect below.
+  simulationOpenMenu?: boolean;
 }
 
 /* ============================================
@@ -95,12 +103,20 @@ export const ClipListItem: React.FC<ClipListItemProps> = ({
   onDelete,
   isDeleting = false,  // Controls fade-out animation when item is being deleted
   className = '',
-  fullWidth = false  // Default: fixed 361px width (for showcase)
+  fullWidth = false,  // Default: fixed 361px width (for showcase)
+  simulationOpenMenu  // [DEMO-SHOWCASE] drop on port
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isOverDot, setIsOverDot] = useState(false);
   const [isDotClicked, setIsDotClicked] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // [DEMO-SHOWCASE] Sync external simulation control into internal state
+  // when the prop is set. Drop the entire useEffect on port.
+  useEffect(() => {
+    if (simulationOpenMenu === undefined) return;
+    setIsMenuOpen(simulationOpenMenu);
+  }, [simulationOpenMenu]);
   const [isMenuAnimating, setIsMenuAnimating] = useState(false); // For animation state
   const [menuPlacedAbove, setMenuPlacedAbove] = useState(false); // Track if menu is above or below
   const [menuPosition, setMenuPosition] = useState<{ top?: number; bottom?: number; left?: number; right?: number }>({});

@@ -32,11 +32,24 @@ interface ClipHomeScreenProps {
   onRecordClick?: () => void;                   // Start new recording
   onSearchActiveChange?: (isActive: boolean) => void;  // Notify parent of search state (for RecordBar)
   className?: string;
-  
+
   // v2.5.3 FIX: For status derivation (parent-based tracking)
   activeTranscriptionParentId?: string | null;  // Which parent should show spinner
   activeHttpClipId?: string | null;  // v2.5.4 CRITICAL FIX: Which specific clip is doing HTTP RIGHT NOW
   isActiveRequest?: boolean;                     // From useClipRecording (GLOBAL flag, DO NOT USE for derivation)
+
+  // [DEMO-SHOWCASE] When set, forwards `simulationOpenMenu={true}` to the
+  // ClipListItem with the matching id. Drop on port. Used by the
+  // demo-showcase ClipStreamSim scripted loop to auto-open the
+  // triple-dot dropdown.
+  simulationOpenMenuForClipId?: string;
+  // [DEMO-SHOWCASE] When set, forwards `isDeleting={true}` to the
+  // ClipListItem with the matching id. Drop on port. Used by the
+  // demo-showcase ClipStreamSim scripted loop to trigger the existing
+  // delete fade-out animation without going through the real
+  // handleDeleteClick path. Distinct from the internal deletingClipId
+  // state which is set when the user actually clicks Delete.
+  simulationDeletingClipId?: string;
 }
 
 /* ============================================
@@ -51,7 +64,9 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
   className = '',
   activeTranscriptionParentId = null,  // v2.5.3 FIX (renamed)
   activeHttpClipId = null,  // v2.5.4 FIX: Add default value
-  isActiveRequest = false
+  isActiveRequest = false,
+  simulationOpenMenuForClipId,  // [DEMO-SHOWCASE] drop on port
+  simulationDeletingClipId  // [DEMO-SHOWCASE] drop on port
 }) => {
   // Zustand actions for delete and rename
   const updateClip = useClipStore((state) => state.updateClip);
@@ -412,7 +427,8 @@ export const ClipHomeScreen: React.FC<ClipHomeScreenProps> = ({
                   onRename={handleRenameClick}
                   onCopy={handleCopyClick}
                   onDelete={handleDeleteClick}
-                  isDeleting={deletingClipId === clip.id}
+                  isDeleting={deletingClipId === clip.id || simulationDeletingClipId === clip.id /* [DEMO-SHOWCASE] strip the OR side on port */}
+                  simulationOpenMenu={simulationOpenMenuForClipId === clip.id ? true : undefined /* [DEMO-SHOWCASE] drop on port */}
                 />
                 );
               })}
