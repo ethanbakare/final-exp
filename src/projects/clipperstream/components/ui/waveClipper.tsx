@@ -95,28 +95,42 @@ export const WaveClipper: React.FC<WaveClipperProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Function to resize canvas to match container
+    // Function to resize canvas to match container.
+    //
+    // Use offsetWidth/offsetHeight, NOT getBoundingClientRect. This
+    // matters when the component is rendered inside an ancestor that
+    // applies a transform: scale(...) — in the demo-showcase,
+    // ClipStreamDemo wraps ClipMasterScreen with `transform: scale(0.8)`
+    // on desktop and `scale(0.68)` on mobile. getBoundingClientRect()
+    // would return the post-transform size, so the canvas would be
+    // sized to e.g. layoutWidth * 0.8, then displayed at scale 0.8 of
+    // that — making it visibly tiny or empty. ResizeObserver does NOT
+    // fire on ancestor transform changes, so once sized wrong it stays
+    // wrong. offsetWidth/offsetHeight return the CSS layout-box size
+    // and are immune to ancestor transforms — same fix as the
+    // Trace LiveWaveform canvas (be2ccf9).
     const resizeCanvas = () => {
       const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      
+      const cssWidth = canvas.offsetWidth;
+      const cssHeight = canvas.offsetHeight;
+
       // Skip if container has no size yet (hidden/collapsed)
-      if (rect.width === 0 || rect.height === 0) return;
-      
+      if (cssWidth === 0 || cssHeight === 0) return;
+
       // Check if resize is actually needed (avoid unnecessary resets)
-      const newWidth = Math.floor(rect.width * dpr);
-      const newHeight = Math.floor(rect.height * dpr);
-      
+      const newWidth = Math.floor(cssWidth * dpr);
+      const newHeight = Math.floor(cssHeight * dpr);
+
       if (canvas.width === newWidth && canvas.height === newHeight) return;
-      
+
       // Set internal canvas resolution (accounts for Retina displays)
       canvas.width = newWidth;
       canvas.height = newHeight;
-      
+
       // Set display size
-      canvas.style.width = rect.width + 'px';
-      canvas.style.height = rect.height + 'px';
-      
+      canvas.style.width = cssWidth + 'px';
+      canvas.style.height = cssHeight + 'px';
+
       // Scale the drawing context to match DPI
       const ctx = canvas.getContext('2d');
       if (ctx) {
