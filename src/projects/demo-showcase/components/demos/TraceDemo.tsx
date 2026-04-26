@@ -105,6 +105,13 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
           bottom: 20px;
           z-index: 20;
         }
+
+        @media (max-width: 768px) {
+          .showcase-clear-button {
+            right: 8px;
+            bottom: 8px;
+          }
+        }
       `}</style>
     </div>
   );
