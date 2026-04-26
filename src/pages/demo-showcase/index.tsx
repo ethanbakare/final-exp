@@ -185,6 +185,40 @@ export default function DemoShowcasePage() {
     setIsDemoMode(m => !m);
   }, []);
 
+  // Keyboard navigation: ↓ = next demo, ↑ = previous demo. Mirrors
+  // the up/down arrow buttons in the navbar and the vertical swipe
+  // gesture on mobile. Listener is on document so the user can press
+  // anywhere on the page without focusing the carousel first.
+  //
+  // Safeguards:
+  //   - Skip when any modifier is held so browser shortcuts (Cmd+Down,
+  //     etc.) aren't shadowed.
+  //   - Skip when the user is typing in an input / textarea / any
+  //     contenteditable element so cursor movement still works.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (target.isContentEditable) return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        go(1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        go(-1);
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [go]);
+
   const handleViewCaseStudy = useCallback(() => {
     const url = PROJECTS[activeIdx].caseStudyUrl;
     if (url && url !== '#') window.location.href = url;
