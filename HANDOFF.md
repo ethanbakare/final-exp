@@ -239,6 +239,21 @@ Multiple back-and-forth attempts on visual fitting suggest the architecture itse
 - The real `ClipMasterScreen` has subtleties (`shouldHideRecordBar` derived from screen state, `animationVariant` for slide vs fade, search-active integrations, etc.) that I didn't replicate. Some of those probably matter and I'm only finding out what when the user spots a regression.
 - The four `[DEMO-SHOWCASE]`-tagged prop additions to product files mean the boundary is leaky — every product change has to remember the sim's dependency.
 
+### Safari waveform false start (do not repeat blindly)
+
+After this handoff was written, one additional idea was tested and **reverted** because it made no visible difference:
+
+- Hypothesis: the mobile Safari "flat / tiny bars" problem in `ClipStreamSim` matched the homepage preview's suspended-`AudioContext` issue, so the same `ctx.resume()` + gesture/visibility retry pattern from `VoiceTextBoxClip` should be copied into `ClipStreamSim`'s `useFakeAnalyser`.
+- Result: **no visible change** on device. The patch was reverted immediately; `ClipStreamSim.tsx` is back to its pre-test state.
+
+Why this matters:
+
+- The homepage preview does not just differ by the Safari resume snippet.
+- It uses `VoiceTextBoxClip` + `ClipLinearWaveform` + a sample-audio `MediaStream` simulation path.
+- `ClipStreamSim` uses `WaveClipper` fed by a simpler oscillator/analyser path.
+
+So the likely lesson is: if the Safari/mobile waveform issue needs solving later, start by comparing the **simulation source strategy** between those two implementations, not by re-applying the no-effect resume patch.
+
 ### Recommended approach for the next session
 1. Open the new conversation with a clear-eyed read of the existing `ClipStreamSim.tsx` from commit `bb03044` AND the user's screenshots.
 2. Decide whether to:
