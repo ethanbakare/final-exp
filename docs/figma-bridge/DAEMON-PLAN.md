@@ -1,6 +1,6 @@
 # Figma Bridge — Singleton Daemon Refactor
 
-**Status:** DRAFT (Revision 2) — review-only. Do NOT implement until plan is signed off.
+**Status:** DRAFT (Revision 5) — review pass-through complete; treat as implementation-ready pending final user sign-off.
 
 **Target repo:** `/Users/ethan/Documents/projects/figma-mcp/` (the active bridge: stdio MCP + WebSocket on port 3055).
 
@@ -9,6 +9,18 @@
 ---
 
 ## Revision history
+
+### Revision 5 — final consistency pass
+
+R4 reviewer pass confirmed no architectural blockers remain. Three categories of small consistency fixes applied:
+
+| # | Issue | Fix |
+|---|---|---|
+| M1 | Edge-case table referenced "Claude-Code-side disambiguation skill"; A2 framed success around "the AI on the other end (Claude Code)" — both contradicted R4's tool-agnostic story. | Reworded to MCP-level disambiguation behaviour and "whichever MCP client is in use (Claude Code, Codex, Cursor, etc.)". |
+| M2 | Three places still showed legacy `launchctl load`/`unload` (server/index.ts error message, dev:daemon note, edge-case row) — exact lines someone would copy-paste when debugging. | All converted to `launchctl bootstrap` / `bootout` / `kickstart` per §12. Revision-history references to the legacy commands kept (they're historical context). |
+| L1 | Header still said "Revision 2"; TL;DR estimate said "(R3) ~7.5h" while §25 said R4 8.5h; TOC called §17 a "separate workstream"; out-of-scope said "plugin is unchanged" while §10b explicitly narrows the plugin port. | Header → R5; TL;DR → R4 8.5h; TOC reflects §17's actual title; out-of-scope reframed to "plugin main-thread command logic" with explicit acknowledgement of the port-narrowing scope change. |
+
+No design changes. Plan is now treated as implementation-ready pending final user sign-off.
 
 ### Revision 4 — addressing R3 reviewer feedback
 
@@ -59,7 +71,7 @@ Today, every Claude Code session spawns its own `figma-mcp` stdio process. Each 
 
 **Proposal:** replace host-or-relay with **one always-on daemon** (managed by macOS launchd) that exclusively owns the WebSocket and the plugin connection. All MCP stdio processes become **pure clients** of the daemon. No election. No promotion. No distributed state to mirror. Status updates are pushed from the daemon to clients (eliminates the stale-cache bug). Multi-file behaviour lives in the daemon's MCP tool surface so any MCP client (Claude Code, Codex, Cursor) gets it for free.
 
-**Estimate (R3):** ~7.5 hours of focused work, including the install scripts, README, multi-file UX, and full test pass.
+**Estimate (R4):** ~8.5 hours of focused work, including the install scripts, README, multi-file UX, and full T1–T14 test pass.
 
 **Reversibility:** entirely reversible via `git revert` + `launchctl bootout` + `rm` of the plist. Nothing persistent moves.
 
@@ -85,7 +97,7 @@ Today, every Claude Code session spawns its own `figma-mcp` stdio process. Each 
 14. [Build pipeline](#14-build-pipeline)
 15. [package.json changes](#15-packagejson-changes)
 16. [README — CREATE (R2 correction)](#16-readme--create-r2-correction)
-17. [Multi-file UX (separate workstream)](#17-multi-file-ux-separate-workstream)
+17. [Multi-file UX — in the daemon, not a skill (revised in R3)](#17-multi-file-ux--in-the-daemon-not-a-skill-revised-in-r3)
 18. [Test plan](#18-test-plan)
 19. [Edge cases and failure modes](#19-edge-cases-and-failure-modes)
 20. [Acceptance criteria](#20-acceptance-criteria)
@@ -909,9 +921,10 @@ async function main() {
     await client.connect();
   } catch (err: any) {
     console.error("[figma-mcp] Cannot connect to figma-bridge-daemon.");
-    console.error("[figma-mcp] Start the daemon with:");
-    console.error("[figma-mcp]   launchctl load ~/Library/LaunchAgents/com.ethan.figma-bridge-daemon.plist");
-    console.error("[figma-mcp] Or run scripts/install-daemon.sh from /Users/ethan/Documents/projects/figma-mcp/");
+    console.error("[figma-mcp] Start (or restart) the daemon with:");
+    console.error(`[figma-mcp]   launchctl kickstart "gui/$(id -u)/com.ethan.figma-bridge-daemon"`);
+    console.error("[figma-mcp] If the daemon was never installed, run scripts/install-daemon.sh from");
+    console.error("[figma-mcp]   /Users/ethan/Documents/projects/figma-mcp/");
     console.error("[figma-mcp] Underlying error:", err.message);
     process.exit(1);
   }
@@ -1196,7 +1209,7 @@ Sanity-check: the daemon imports `FigmaBridgeWebSocketServer` from `../server/we
  }
 ```
 
-`dev:daemon` is optional but useful: rebuilds on file change. To take effect, you'd `launchctl unload` then `launchctl load` to pick up the new binary, OR run the daemon manually for the dev session (`node dist/daemon/index.js` after building).
+`dev:daemon` is optional but useful: rebuilds on file change. To pick up the rebuilt binary in the running daemon, use `launchctl kickstart -k "gui/$(id -u)/com.ethan.figma-bridge-daemon"` (the `-k` flag kills the running instance first, then starts a fresh one). Alternative for an iterative dev loop: stop the launchd-managed daemon (`launchctl bootout "gui/$(id -u)/com.ethan.figma-bridge-daemon"`) and run the daemon manually with `node dist/daemon/index.js` so you see logs in the terminal.
 
 ---
 
@@ -1485,8 +1498,8 @@ Validates the Q13 design.
 | **Two daemons spawn simultaneously** | One wins port; the other gets `EADDRINUSE` and exits with code 2. launchd's `KeepAlive` would normally restart, but ThrottleInterval=10s gives it pause. Worst case: 10s of crash-loop until the loser stops trying. | In practice, this only happens if someone manually runs `node dist/daemon/index.js` while the launchd-managed daemon is alive. **Acceptable.** Could harden by changing exit code 2 handling — see §23, Q5. |
 | **Stale figma-mcp processes from before install** | Old `node ... dist/server/index.js` still binding port 3055 → daemon can't start. | The install script's port-sweep preflight (R4 — see §12 step 2) catches this at install time and refuses to proceed, instructing the user to kill the offender. After install, if a stale process binds AFTER install, the daemon's exit-2 + launchd retry policy is the safety net (see §22). |
 | **Plugin connects to daemon, daemon restarts, plugin reconnects but stdio MCPs still think they're disconnected** | Stdio MCPs have their own reconnect timer (3s default, exponential backoff to 30s). After daemon comes back, MCPs reconnect within ~3-30s. | Already handled. Worst-case ~30s lag visible to user. |
-| **Channel selection lost on daemon restart** | After daemon restart, MCP reconnects but its previous `join_channel` selection is gone (daemon has no persistence). Next `get_selection` would fail. | The Claude-Code-side disambiguation skill (§17) should detect "no active channel for this MCP" and re-disambiguate. **This is why §17 isn't optional.** Without it, daemon restart breaks multi-file flow. |
-| **launchd refuses to load** (e.g., plist permissions wrong) | `launchctl load` returns nonzero. Install script bails with the launchd error message. | Install script's `set -euo pipefail` + the `launchctl list | grep` check should catch this. |
+| **Channel selection lost on daemon restart** | After daemon restart, MCP reconnects but its previous `join_channel` selection is gone (daemon has no persistence). Next `get_selection` would fail. | The MCP-level disambiguation behaviour (§17) handles this: when there are multiple plugins and no per-client active channel, the daemon returns `AMBIGUOUS_FILE` and the AI on the other end re-disambiguates with the user. The behaviour is encoded in tool descriptions and structured errors, so any MCP client (Claude Code, Codex, Cursor, etc.) handles it the same way — no client-specific skill required. **This is why §17 isn't optional.** Without it, daemon restart breaks multi-file flow. |
+| **launchd refuses to bootstrap** (e.g., plist permissions wrong, malformed XML) | `launchctl bootstrap` returns nonzero. Install script bails with the launchd error message. | Install script's `set -euo pipefail` + the `launchctl print` verification step (§12 step 9) catches this. |
 | **Disk full / log rotation** | `~/Library/Logs/figma-bridge-daemon.log` grows unboundedly. | Document log rotation as a known limitation. macOS doesn't auto-rotate user-LaunchAgent logs. Real fix would require `newsyslog` config or a separate cron job. **Out of scope.** |
 | **Apple Silicon Rosetta mismatch** | If user's `node` is x64 but their Figma is arm64 (or vice versa), no problem — daemon and Figma talk over WebSocket, not in-process. | No mitigation needed. |
 
@@ -1497,7 +1510,7 @@ Validates the Q13 design.
 The refactor is "done" when ALL of these hold:
 
 - **A1.** Three or more Claude Code sessions used in a row over a workday without killing any PIDs, reopening the Figma plugin, or copy-pasting channel codes.
-- **A2.** Two or more Figma files connected to the bridge concurrently; the AI on the other end (Claude Code) correctly disambiguates via `AMBIGUOUS_FILE` errors and `join_channel`, all driven by tool descriptions and structured errors — no Claude-Code-specific skill required.
+- **A2.** Two or more Figma files connected to the bridge concurrently; whichever MCP client is in use (Claude Code, Codex, Cursor, etc.) correctly disambiguates via `AMBIGUOUS_FILE` errors and `join_channel`, driven entirely by tool descriptions and structured errors — no per-client configuration required.
 - **A3.** After Mac login (post-reboot), daemon starts automatically and Figma plugin connects without manual intervention.
 - **A4.** Zero "port in use" or "another instance is open" errors during normal use over a one-week period.
 - **A5.** All test plan items T1–T14 pass.
@@ -1614,8 +1627,8 @@ This is the only genuinely open question in R4. Everything else is locked.
 ## 24. Out of scope
 
 - **Cross-host bridging.** Daemon stays on `localhost`.
-- **Plugin code changes.** The plugin is unchanged.
-- **MCP tool surface changes.** All exported tools (`get_selection`, `set_fill_color`, etc.) keep the same signatures.
+- **Plugin main-thread command logic.** The set of commands the plugin handles and their semantics are unchanged. *(Note: the plugin's connection config does change — port narrowing in `ui.ts` and `manifest.json` per §10b. That's in scope; the main-thread command implementations are not.)*
+- **MCP tool signatures.** All exported tools (`get_selection`, `set_fill_color`, etc.) keep the same arguments and return shapes. *(Tool descriptions get richer per §17, but that's metadata, not signature.)*
 - **Persistent storage of plugin state.** Daemon is in-memory only.
 - **Log rotation.** Manual or via external tools if needed.
 - **Multi-user / multi-machine support.**
