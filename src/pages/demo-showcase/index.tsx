@@ -281,7 +281,7 @@ export default function DemoShowcasePage() {
   // else the project's static headline + light pill apply.
   const NARRATIVE_COPY: Partial<Record<ClipStreamNarrative, string>> = {
     'recording-offline': 'Recording while offline',
-    'online-transcribing': 'Online — transcribing',
+    'back-online': 'Back online',
   };
   const dynamicHeadline = clipStreamSimSlotActive
     ? NARRATIVE_COPY[clipStreamNarrative] ?? null

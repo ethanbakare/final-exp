@@ -331,11 +331,17 @@ function useFakeAnalyser(enabled: boolean) {
  * `narrative` useMemo in the component for the rules. The showcase
  * decides the actual display copy; the sim only emits structured
  * state.
+ *
+ * `back-online` covers the full online-recovery beat — from the
+ * moment the network flips through the read-the-transcript pause —
+ * so the dark-pill message has time to register as a deliberate
+ * state rather than flicker for a second. Reverts to default only
+ * when the loop slides back to home.
  */
 export type ClipStreamNarrative =
-  | 'default'              // home / transcribed-read / settle / menu / delete
-  | 'recording-offline'    // record screen, offline, no transcript yet
-  | 'online-transcribing'; // record screen, online, no transcript yet
+  | 'default'           // home phases (idle, settle, menu, delete)
+  | 'recording-offline' // record screen, offline (recording, done-pending)
+  | 'back-online';      // record screen, online (waiting, transcribing, transcribed-read)
 
 // ─── Component ───────────────────────────────────────────────────────────
 
@@ -409,11 +415,15 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = ({ onLoopRestart, onN
   // Narrative state — fully derived from the snapshot. The showcase
   // chrome consumes this via onNarrativeChange to swap the
   // DemoIntroCard headline + pill color. Spec §14.
+  //
+  // `back-online` deliberately spans the transcribed-read step too,
+  // not just the spinner phases — it gives the online-recovery beat
+  // a full ~5s window (waiting + transcribing + reading) instead of
+  // the ~2s flicker that read like a glitch.
   const narrative: ClipStreamNarrative = useMemo(() => {
     if (snapshot.screen === 'home') return 'default';
-    if (snapshot.selectedClip?.content) return 'default';
-    return snapshot.network === 'offline' ? 'recording-offline' : 'online-transcribing';
-  }, [snapshot.screen, snapshot.selectedClip, snapshot.network]);
+    return snapshot.network === 'offline' ? 'recording-offline' : 'back-online';
+  }, [snapshot.screen, snapshot.network]);
 
   const onNarrativeChangeRef = useRef(onNarrativeChange);
   useEffect(() => {

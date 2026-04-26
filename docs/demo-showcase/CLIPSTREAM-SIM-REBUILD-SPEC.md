@@ -662,14 +662,15 @@ ClipStream's project-config headline is `"Voice notes that work offline"`. This 
 `ClipStreamSim` emits a `ClipStreamNarrative` value via an `onNarrativeChange` callback. The value is fully derived from the snapshot — no new snapshot field:
 
 ```ts
-type ClipStreamNarrative = 'default' | 'recording-offline' | 'online-transcribing';
+type ClipStreamNarrative = 'default' | 'recording-offline' | 'back-online';
 
 const narrative =
   snapshot.screen === 'home' ? 'default' :
-  snapshot.selectedClip?.content ? 'default' :
   snapshot.network === 'offline' ? 'recording-offline' :
-  'online-transcribing';
+  'back-online';
 ```
+
+`back-online` deliberately spans the transcribed-read step as well as the waiting + transcribing steps, so the dark-pill message has a full ~5s window rather than flickering for ~2s. The 2-second window in earlier drafts read as a glitch; the longer copy ("Back online" rather than "Online — transcribing") is also generic enough to stay on-screen during transcript-read without lying about the active state.
 
 ### 14.3 Per-step mapping
 
@@ -679,9 +680,9 @@ const narrative =
 | 2 go-to-record | `recording-offline` | "Recording while offline" | dark |
 | 3 recording | `recording-offline` | "Recording while offline" | dark |
 | 4 done-offline-pending | `recording-offline` | "Recording while offline" | dark |
-| 4.5 online-still-waiting | `online-transcribing` | "Online — transcribing" | dark |
-| 5 online-transcribing | `online-transcribing` | "Online — transcribing" | dark |
-| 6 transcribed-read | `default` | "Voice notes that work offline" | light |
+| 4.5 online-still-waiting | `back-online` | "Back online" | dark |
+| 5 online-transcribing | `back-online` | "Back online" | dark |
+| 6 transcribed-read | `back-online` | "Back online" | dark |
 | 7 back-home | `default` | "Voice notes that work offline" | light |
 | 7b home-settle | `default` | "Voice notes that work offline" | light |
 | 8 menu-open | `default` | "Voice notes that work offline" | light |
