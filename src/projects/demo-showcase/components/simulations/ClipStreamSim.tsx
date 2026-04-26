@@ -171,7 +171,7 @@ const SIM_STEPS: SimStepDef[] = [
   },
   {
     id: 'online-transcribing',
-    durationMs: 1300,
+    durationMs: 2500,
     snapshot: () => ({
       ...baseEmpty,
       screen: 'record',

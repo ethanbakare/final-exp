@@ -224,7 +224,7 @@ This step exists so the user can actually perceive:
 
 If online and spinner-start happen in one step boundary, they render together and the intended visual beat is lost.
 
-### Step 5: `online-transcribing` — 1300ms
+### Step 5: `online-transcribing` — 2500ms
 
 - `screen = 'record'`
 - `trayState = 'record'`
@@ -305,7 +305,7 @@ Return to step 1.
 
 ### Total loop length
 
-With the timings above, the loop is approximately 15.1 seconds.
+With the timings above, the loop is approximately 16.3 seconds.
 
 Intentional note:
 - step 9 ends online, and step 1 restarts offline
