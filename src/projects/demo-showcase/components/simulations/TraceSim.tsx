@@ -124,6 +124,16 @@ export const TraceSim: React.FC<TraceSimProps> = ({ onLoopRestart }) => {
           display: flex;
           justify-content: center;
         }
+        /* Reduce the TextBox height so it fits in the showcase slot
+           without clipping. The native height is 500px + navbar;
+           shrinking by ~80px keeps everything visible on desktop.
+           Mobile reduces further — see the @media block below. */
+        .trace-sim-embed :global(.text-box) {
+          height: calc(var(--trace-textbox-height) - 80px) !important;
+        }
+        .trace-sim-embed :global(.text-box--with-navbar) {
+          height: calc(var(--trace-textbox-height) - 80px + var(--trace-button-height) + 20px) !important;
+        }
         @media (max-width: 768px) {
           .trace-sim-embed {
             max-width: 100%;
@@ -145,15 +155,20 @@ export const TraceSim: React.FC<TraceSimProps> = ({ onLoopRestart }) => {
             width: 100% !important;
             max-width: 320px !important;
           }
-        }
-        /* Reduce the TextBox height so it fits in the showcase slot
-           without clipping. The native height is 500px + navbar;
-           shrinking by ~40px keeps everything visible. */
-        .trace-sim-embed :global(.text-box) {
-          height: calc(var(--trace-textbox-height) - 80px) !important;
-        }
-        .trace-sim-embed :global(.text-box--with-navbar) {
-          height: calc(var(--trace-textbox-height) - 80px + var(--trace-button-height) + 20px) !important;
+          /* Mobile-specific extra height reduction. The showcase chrome
+             above (project-pill / mic banner) and below (progress bar +
+             Try Demo button) stacks more aggressively on mobile and
+             eats vertical room out of the sim slot. Sim narrative is
+             auto-loop only — total + nav + body still need to be
+             visible, but the trailing scroll padding doesn't. Drop an
+             additional 80px (total -160px from native) to free that
+             space. Standalone /trace and TraceDemo are unaffected. */
+          .trace-sim-embed :global(.text-box) {
+            height: calc(var(--trace-textbox-height) - 160px) !important;
+          }
+          .trace-sim-embed :global(.text-box--with-navbar) {
+            height: calc(var(--trace-textbox-height) - 160px + var(--trace-button-height) + 20px) !important;
+          }
         }
       `}</style>
     </div>
