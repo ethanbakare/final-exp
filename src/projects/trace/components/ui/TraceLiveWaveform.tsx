@@ -130,20 +130,33 @@ export const TraceLiveWaveform = ({
     }
   }, [resetHistoryTrigger])
 
-  // Handle canvas resizing
+  // Handle canvas resizing.
+  //
+  // Use offsetWidth/offsetHeight, NOT getBoundingClientRect. This
+  // matters when the component is rendered inside an ancestor that
+  // applies a transform: scale(...) — for example when a Framer
+  // Motion variant transition is mid-animation as TraceLiveWaveform
+  // mounts. getBoundingClientRect() returns the visual (post-
+  // transform) size, so the canvas would be sized to the scaled
+  // value (e.g. 14.9px instead of 24px). ResizeObserver does NOT
+  // fire on ancestor transform changes — only on layout-box changes
+  // — so once the canvas is sized wrong on first measurement, it
+  // stays wrong forever. offsetWidth/offsetHeight return the
+  // CSS layout-box size and are immune to ancestor transforms.
   useEffect(() => {
     const canvas = canvasRef.current
     const container = containerRef.current
     if (!canvas || !container) return
 
     const resizeObserver = new ResizeObserver(() => {
-      const rect = container.getBoundingClientRect()
+      const cssWidth = container.offsetWidth
+      const cssHeight = container.offsetHeight
       const dpr = window.devicePixelRatio || 1
 
-      canvas.width = rect.width * dpr
-      canvas.height = rect.height * dpr
-      canvas.style.width = `${rect.width}px`
-      canvas.style.height = `${rect.height}px`
+      canvas.width = cssWidth * dpr
+      canvas.height = cssHeight * dpr
+      canvas.style.width = `${cssWidth}px`
+      canvas.style.height = `${cssHeight}px`
 
       const ctx = canvas.getContext("2d")
       if (ctx) {
@@ -151,7 +164,7 @@ export const TraceLiveWaveform = ({
       }
 
       gradientCacheRef.current = null
-      lastWidthRef.current = rect.width
+      lastWidthRef.current = cssWidth
       needsRedrawRef.current = true
     })
 
@@ -172,8 +185,9 @@ export const TraceLiveWaveform = ({
         )
 
         const processingData = []
+        // offsetWidth (transform-immune) — see resize-observer comment above.
         const barCount = Math.floor(
-          (containerRef.current?.getBoundingClientRect().width || 200) /
+          (containerRef.current?.offsetWidth || 200) /
           (barWidth + barGap)
         )
 
@@ -291,7 +305,10 @@ export const TraceLiveWaveform = ({
         fadeToIdle()
       } else {
         // No data yet - initialize with baseline bars
-        const rect = containerRef.current?.getBoundingClientRect()
+        // offsetWidth/offsetHeight — see resize-observer comment above.
+        const rect = containerRef.current
+          ? { width: containerRef.current.offsetWidth, height: containerRef.current.offsetHeight }
+          : undefined
         if (rect) {
           const barCount = Math.floor(rect.width / (barWidth + barGap))
           const baselineBars = Array(barCount).fill(0.05)
@@ -425,7 +442,7 @@ export const TraceLiveWaveform = ({
         if (!analyserRef.current && mode === "static") {
           // No mic stream (e.g. simulation mode) — fill with baseline
           // values so ambientWave has something to modulate visually.
-          const rect = canvas.getBoundingClientRect()
+          const rect = { width: canvas.offsetWidth, height: canvas.offsetHeight }
           const barCountNoMic = Math.floor(rect.width / (barWidth + barGap))
           if (staticBarsRef.current.length !== barCountNoMic) {
             staticBarsRef.current = Array(barCountNoMic).fill(0.15)
@@ -455,7 +472,7 @@ export const TraceLiveWaveform = ({
             const endFreq = Math.floor(dataArray.length * 0.4)
             const relevantData = dataArray.slice(startFreq, endFreq)
 
-            const rect = canvas.getBoundingClientRect()
+            const rect = { width: canvas.offsetWidth, height: canvas.offsetHeight }
             const barCount = Math.floor(rect.width / (barWidth + barGap))
             // Use ceil and floor to correctly handle odd barCounts
             const leftHalf = Math.ceil(barCount / 2)
@@ -496,7 +513,7 @@ export const TraceLiveWaveform = ({
 
             // Pruning: Keep enough history to fill screen + buffer
             // We need slightly more than visible to handle the scrolling off-screen bar
-            const rect = canvas.getBoundingClientRect()
+            const rect = { width: canvas.offsetWidth, height: canvas.offsetHeight }
             const step = barWidth + barGap
             const maxBars = Math.ceil(rect.width / step) + 2
             if (historyRef.current.length > maxBars) {
@@ -511,7 +528,7 @@ export const TraceLiveWaveform = ({
       // Always clear and redraw if active (for smooth animation)
       // OR if a static redraw is requested.
       if (active || processing || needsRedrawRef.current) {
-        const rect = canvas.getBoundingClientRect()
+        const rect = { width: canvas.offsetWidth, height: canvas.offsetHeight }
         ctx.clearRect(0, 0, rect.width, rect.height)
 
         const computedBarColor = barColor || TraceColors.textPrimary // Fallback to design token
