@@ -220,16 +220,20 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
           opacity: 0.85;
         }
 
-        /* Enable: white pill, dark text — carried over from EnableModal. */
+        /* Enable: dark pill, white text. Primary action — high contrast
+           against the light variant's beige pill so the call-to-action
+           reads as the dominant button. */
         .mic-btn-enable {
-          background: #FFFFFF;
-          color: #252525;
+          background: #252525;
+          color: #FFFFFF;
         }
 
-        /* Not now: dark pill, white text — carried over from EnableModal. */
+        /* Not now: white pill, dark text. Dismissive action — low
+           contrast against the beige pill so it sits quietly next to
+           the prominent Enable button. */
         .mic-btn-dismiss {
-          background: #373737;
-          color: #FFFFFF;
+          background: #FFFFFF;
+          color: #252525;
         }
 
         /* Dismissed state: outer tan pill stays the same (chrome is
@@ -287,7 +291,11 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
         /* ─── Dark variant overrides ────────────────────────────────
            Only the unknown and blocked states differ — the dismissed
            orange Enable Mic pill is intentionally identical between
-           variants (call to action shouldn't shift between contexts). */
+           variants (call to action shouldn't shift between contexts).
+           Buttons swap back to the EnableModal palette: Enable white
+           (prominent on dark), Not now #373737 (subtle on dark). The
+           same prominent/subtle hierarchy as the light variant, just
+           inverted because the pill background flipped. */
         .top-navbar-mic-dark .pill-shell {
           background: #252525;
           /* Drop the inset shadow on dark — invisible against #252525,
@@ -295,6 +303,14 @@ export const ShowcaseNavbarMicBanner: React.FC<ShowcaseNavbarMicBannerProps> = (
           box-shadow: none;
         }
         .top-navbar-mic-dark .mic-title {
+          color: #FFFFFF;
+        }
+        .top-navbar-mic-dark .mic-btn-enable {
+          background: #FFFFFF;
+          color: #252525;
+        }
+        .top-navbar-mic-dark .mic-btn-dismiss {
+          background: #373737;
           color: #FFFFFF;
         }
         .top-navbar-mic-dark .mic-btn-close {

@@ -325,6 +325,36 @@ export default function DemoShowcaseComponentsPage() {
                 onDismissBlocked={noop}
               />
             </GridBox>
+            <GridBox
+              label="mic state · unknown · dark variant"
+              width={NAVBAR_MOBILE_CELL_WIDTH}
+              height={100}
+              stretch
+            >
+              <ShowcaseNavbarMicBannerSmall
+                micState="unknown"
+                variant="dark"
+                onEnable={noop}
+                onDismiss={noop}
+                onReshow={noop}
+                onDismissBlocked={noop}
+              />
+            </GridBox>
+            <GridBox
+              label="mic state · blocked · dark variant"
+              width={NAVBAR_MOBILE_CELL_WIDTH}
+              height={100}
+              stretch
+            >
+              <ShowcaseNavbarMicBannerSmall
+                micState="blocked"
+                variant="dark"
+                onEnable={noop}
+                onDismiss={noop}
+                onReshow={noop}
+                onDismissBlocked={noop}
+              />
+            </GridBox>
           </div>
         </div>
 
