@@ -84,6 +84,26 @@ Preserved at `/old-home` since the April refactor. Can be removed once new home 
 ### Old voice-interface JPG/PNG images
 `wt1.jpg`, `wt6.png`, `wt7.jpeg` in the public folder are no longer referenced (replaced by WebP versions). Can be deleted.
 
+### Rename `demo-showcase` namespace to `demos`
+The path/namespace `demo-showcase` is unnecessarily long. Mechanical rename, no behaviour change, ~206 occurrences across ~25 files. Scoped on 2026-04-26 — picking up later just means executing the plan below.
+
+**Rename (definitely):**
+- URL route: `/demo-showcase` → `/demos`
+- Source dirs: `src/pages/demo-showcase` → `src/pages/demos`; `src/projects/demo-showcase` → `src/projects/demos`
+- Asset dir: `public/images/demo-showcase` → `public/images/demos`
+- Doc dir: `docs/demo-showcase` → `docs/demos`
+- Page component: `DemoShowcasePage` → `DemosPage`
+- All `@/projects/demo-showcase/...` and `@/pages/demo-showcase/...` imports
+- Subroute survives: `/demos/showcase/democomponents` (inner `/showcase/` is a cross-project convention also used at `/voiceinterface/showcase/voicecomponent` — leave it)
+
+**Rename for consistency:**
+- `[DEMO-SHOWCASE]` porting markers → `[DEMOS]` (~30+ inline tags across `TraceCore.tsx`, `ClipMasterScreen.tsx`, hooks, showcase index, etc.). Documented in `docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md` and `HANDOFF.md`.
+
+**Leave as-is:**
+- `Showcase*` component prefix (`ShowcaseNavbarMicBanner`, `ShowcaseModalLayer`, ~14 components) — describes the layout chrome concept, not the URL. Not what made `demo-showcase` long.
+
+**Verification:** collision check confirmed `src/pages/demos`, `src/projects/demos` do NOT exist. Single commit, then `npm run build` + `tsc` to verify.
+
 ### `@ts-nocheck` files
 Three files have `@ts-nocheck` applied for Vercel build. Not urgent, but worth fixing when touching them:
 - `src/pages/clipperstream/showcase/ClipOfflineScreen.tsx`
