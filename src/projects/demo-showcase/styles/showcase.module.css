@@ -56,6 +56,19 @@
   gap: 34px;
   border-radius: 8px;
   background: var(--demo-card-bg);
+  /* Smooth pill-color swap when ClipStreamSim flips into a narrative
+     beat (recording-offline / online-transcribing) and back. */
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark variant — used by ClipStreamSim to call out offline/online
+   narrative moments. ClipGrey #252525 matches the in-phone tray and
+   button surface for visual consistency. */
+.demoIntroCardDark {
+  background: #252525;
+}
+.demoIntroCardDark .demoHeadlineText {
+  color: #FFFFFF;
 }
 
 .demoHeadline {
@@ -69,6 +82,7 @@
 .demoHeadlineText {
   color: var(--demo-headline-color);
   text-align: center;
+  transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Optional trailing text in the headline. Inline on desktop, hidden

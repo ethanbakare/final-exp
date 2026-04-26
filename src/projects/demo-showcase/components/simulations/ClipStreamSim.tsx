@@ -322,13 +322,32 @@ function useFakeAnalyser(enabled: boolean) {
   return analyser;
 }
 
+// ─── Narrative ───────────────────────────────────────────────────────────
+
+/**
+ * Narrative state surfaced to the showcase chrome so the
+ * DemoIntroCard headline can flip its copy + pill color in sync with
+ * the offline/online story. Derived from the snapshot — see the
+ * `narrative` useMemo in the component for the rules. The showcase
+ * decides the actual display copy; the sim only emits structured
+ * state.
+ */
+export type ClipStreamNarrative =
+  | 'default'              // home / transcribed-read / settle / menu / delete
+  | 'recording-offline'    // record screen, offline, no transcript yet
+  | 'online-transcribing'; // record screen, online, no transcript yet
+
 // ─── Component ───────────────────────────────────────────────────────────
 
 interface ClipStreamSimProps {
   onLoopRestart?: () => void;
+  /** Fires whenever the narrative state changes. The showcase listens
+   *  to swap the DemoIntroCard headline + dark variant. Optional — sim
+   *  works fine without it (used only by demo-showcase index.tsx). */
+  onNarrativeChange?: (narrative: ClipStreamNarrative) => void;
 }
 
-export const ClipStreamSim: React.FC<ClipStreamSimProps> = ({ onLoopRestart }) => {
+export const ClipStreamSim: React.FC<ClipStreamSimProps> = ({ onLoopRestart, onNarrativeChange }) => {
   const [stepIndex, setStepIndex] = useState(0);
   const [loopId, setLoopId] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
@@ -386,6 +405,27 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = ({ onLoopRestart }) =
     if (snapshot.pendingClips.length > 0) return 'offline';
     return 'recording';
   }, [snapshot.selectedClip, snapshot.pendingClips]);
+
+  // Narrative state — fully derived from the snapshot. The showcase
+  // chrome consumes this via onNarrativeChange to swap the
+  // DemoIntroCard headline + pill color. Spec §14.
+  const narrative: ClipStreamNarrative = useMemo(() => {
+    if (snapshot.screen === 'home') return 'default';
+    if (snapshot.selectedClip?.content) return 'default';
+    return snapshot.network === 'offline' ? 'recording-offline' : 'online-transcribing';
+  }, [snapshot.screen, snapshot.selectedClip, snapshot.network]);
+
+  const onNarrativeChangeRef = useRef(onNarrativeChange);
+  useEffect(() => {
+    onNarrativeChangeRef.current = onNarrativeChange;
+  }, [onNarrativeChange]);
+
+  useEffect(() => {
+    onNarrativeChangeRef.current?.(narrative);
+    // ref-pattern for the callback — re-firing on parent identity
+    // changes would cause unnecessary work.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [narrative]);
 
   const noop = useCallback(() => { /* sim is non-interactive */ }, []);
 

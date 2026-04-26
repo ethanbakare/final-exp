@@ -13,10 +13,14 @@ interface DemoIntroCardProps {
    *  the DOM so assistive tech reads the full headline; hidden via
    *  CSS on mobile for space. */
   headlineSuffix?: string;
+  /** Dark pill variant — used by ClipStreamSim to call out the
+   *  recording/transcribing narrative beats. Pill flips to ClipGrey
+   *  (#252525) with white text. */
+  dark?: boolean;
 }
 
-export const DemoIntroCard: React.FC<DemoIntroCardProps> = ({ headline, headlineSuffix }) => (
-  <div className={styles.demoIntroCard}>
+export const DemoIntroCard: React.FC<DemoIntroCardProps> = ({ headline, headlineSuffix, dark = false }) => (
+  <div className={`${styles.demoIntroCard} ${dark ? styles.demoIntroCardDark : ''}`}>
     <div className={styles.demoHeadline}>
       <span className={`${styles.OpenRunde600_16} ${styles.demoHeadlineText}`}>
         {headline}

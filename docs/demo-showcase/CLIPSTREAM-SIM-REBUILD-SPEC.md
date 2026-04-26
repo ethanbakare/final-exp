@@ -649,7 +649,59 @@ Do not repeat these mistakes:
 
 ---
 
-## 13. Success Definition
+## 14. Showcase Narrative Headline
+
+The `DemoIntroCard` headline above the phone-frame is the most-read piece of copy in the carousel slot. The sim leverages it to tell the offline-resilience narrative explicitly, since the small "Offline" indicator inside the phone-frame header is too easy to miss at a casual glance.
+
+### 14.1 Default static headline
+
+ClipStream's project-config headline is `"Voice notes that work offline"`. This leads with the differentiator so even a 1-second glance at the carousel reads the value prop. It applies whenever no narrative override is active (home phases, transcribed-read, every step that isn't actively offline-recording or online-transcribing).
+
+### 14.2 Dynamic narrative state
+
+`ClipStreamSim` emits a `ClipStreamNarrative` value via an `onNarrativeChange` callback. The value is fully derived from the snapshot — no new snapshot field:
+
+```ts
+type ClipStreamNarrative = 'default' | 'recording-offline' | 'online-transcribing';
+
+const narrative =
+  snapshot.screen === 'home' ? 'default' :
+  snapshot.selectedClip?.content ? 'default' :
+  snapshot.network === 'offline' ? 'recording-offline' :
+  'online-transcribing';
+```
+
+### 14.3 Per-step mapping
+
+| Step | Narrative | Headline shown | Pill |
+|---|---|---|---|
+| 1 idle-home-offline | `default` | "Voice notes that work offline" | light |
+| 2 go-to-record | `recording-offline` | "Recording while offline" | dark |
+| 3 recording | `recording-offline` | "Recording while offline" | dark |
+| 4 done-offline-pending | `recording-offline` | "Recording while offline" | dark |
+| 4.5 online-still-waiting | `online-transcribing` | "Online — transcribing" | dark |
+| 5 online-transcribing | `online-transcribing` | "Online — transcribing" | dark |
+| 6 transcribed-read | `default` | "Voice notes that work offline" | light |
+| 7 back-home | `default` | "Voice notes that work offline" | light |
+| 7b home-settle | `default` | "Voice notes that work offline" | light |
+| 8 menu-open | `default` | "Voice notes that work offline" | light |
+| 9 delete | `default` | "Voice notes that work offline" | light |
+
+### 14.4 Pill style
+
+The dark variant uses `#252525` (matches the in-phone tray and button surface) with white text. Background and color transition with `0.25s cubic-bezier(0.4, 0, 0.2, 1)` so the swap reads as a single coordinated beat.
+
+### 14.5 Scoping
+
+Only ClipStream's slot uses the dynamic headline. AI Confidence and Trace use their static project headlines unchanged. The override only honors when `ClipStreamSim` is the active mounted slot — entering live demo mode (`Try Demo`) or navigating to a different project reverts to the project's default headline.
+
+### 14.6 Copy ownership
+
+The sim emits structured `ClipStreamNarrative` state; the showcase holds the display copy. Renaming a string never touches sim logic.
+
+---
+
+## 15. Success Definition
 
 The rebuild is successful when:
 

@@ -27,7 +27,7 @@ import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/com
 import { TryDemoButtonSmall, ViewCaseStudyButtonSmall } from '@/projects/demo-showcase/components/ui/ShowcaseButtonsSmall';
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
 import { TRACE_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/TraceSim';
-import { CLIPSTREAM_SIM_DURATION } from '@/projects/demo-showcase/components/simulations/ClipStreamSim';
+import { CLIPSTREAM_SIM_DURATION, type ClipStreamNarrative } from '@/projects/demo-showcase/components/simulations/ClipStreamSim';
 import { useActiveAbortSignal } from '@/projects/demo-showcase/hooks/useActiveAbortSignal';
 import { useRunId } from '@/projects/demo-showcase/hooks/useRunId';
 import { ShowcaseNavbarMicBanner } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarMicBanner';
@@ -105,8 +105,12 @@ const PROJECTS: ProjectConfig[] = [
   },
   {
     label: 'ClipStream',
-    // Placeholder headline — keep under one mobile line; tune later.
-    headline: 'Record and transcribe voice clips',
+    // Default headline leads with the offline-resilience hook so the
+    // differentiator reads at-a-glance even before the sim plays.
+    // The sim itself swaps this for state-specific narrative copy
+    // ('Recording while offline', 'Online — transcribing') during
+    // its scripted loop — see ClipStreamSim's onNarrativeChange.
+    headline: 'Voice notes that work offline',
     caseStudyUrl: '#',
     simDuration: CLIPSTREAM_SIM_DURATION,
     // Warm pink variation from the lab — same colour family we proved
@@ -155,6 +159,15 @@ export default function DemoShowcasePage() {
   //   applies only to the live demo instance when Try Demo is active.
   const clipStreamActive = activeIdx === 2 && isDemoMode;
   const clipStreamCancelSignal = useActiveAbortSignal(clipStreamActive);
+
+  // ClipStream sim narrative — swaps the DemoIntroCard headline +
+  // dark pill in sync with the offline → online → transcribed beats
+  // of the scripted loop. Sim drives this via onNarrativeChange.
+  // Only honored while the ClipStream sim slot is actually mounted
+  // (i.e. on slide 3 and not in live-demo mode); otherwise the
+  // project's default static headline shows.
+  const [clipStreamNarrative, setClipStreamNarrative] = useState<ClipStreamNarrative>('default');
+  const clipStreamSimSlotActive = activeIdx === 2 && !isDemoMode;
 
   // Mic permission state — single hook instance, lifted here so the
   // navbar slot and any future consumer share one source of truth.
@@ -262,6 +275,20 @@ export default function DemoShowcasePage() {
   );
 
   const active = PROJECTS[activeIdx];
+
+  // Resolve DemoIntroCard headline/dark — ClipStream sim swaps copy
+  // for the recording-offline / online-transcribing beats; everywhere
+  // else the project's static headline + light pill apply.
+  const NARRATIVE_COPY: Partial<Record<ClipStreamNarrative, string>> = {
+    'recording-offline': 'Recording while offline',
+    'online-transcribing': 'Online — transcribing',
+  };
+  const dynamicHeadline = clipStreamSimSlotActive
+    ? NARRATIVE_COPY[clipStreamNarrative] ?? null
+    : null;
+  const introHeadline = dynamicHeadline ?? active.headline;
+  const introHeadlineSuffix = dynamicHeadline ? undefined : active.headlineSuffix;
+  const introHeadlineDark = !!dynamicHeadline;
 
   // Show the navbar-slot mic banner instead of the project pill when:
   // (a) we're in demo mode, (b) the active project requires mic access,
@@ -371,8 +398,9 @@ export default function DemoShowcasePage() {
                 <DemoCanvas {...active.canvasProps}>
                   <div className={`chrome chrome-top ${isDemoMode ? 'chrome-hidden' : ''}`}>
                     <DemoIntroCard
-                      headline={active.headline}
-                      headlineSuffix={active.headlineSuffix}
+                      headline={introHeadline}
+                      headlineSuffix={introHeadlineSuffix}
+                      dark={introHeadlineDark}
                     />
                   </div>
                   <div className="sim-slot">
@@ -411,7 +439,7 @@ export default function DemoShowcasePage() {
                       <>
                         {!isDemoMode && (
                           <div className="layer layer-sim layer-sim-clipstream">
-                            <ClipStreamSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                            <ClipStreamSim key={loopKey} onLoopRestart={handleLoopRestart} onNarrativeChange={setClipStreamNarrative} />
                           </div>
                         )}
                         {isDemoMode && (
