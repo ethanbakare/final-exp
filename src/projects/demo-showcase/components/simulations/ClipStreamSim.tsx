@@ -71,7 +71,7 @@ const formatTodayDate = () => {
 const buildCompletedClip = (loopId: number): Clip => ({
   id: `sim-clip-${loopId}`,
   createdAt: Date.now(),
-  title: 'Recording 01',
+  title: 'Lock that thought in',
   date: formatTodayDate(),
   rawText: MOCK_TRANSCRIPT,
   formattedText: MOCK_TRANSCRIPT,
@@ -147,7 +147,7 @@ const SIM_STEPS: SimStepDef[] = [
   },
   {
     id: 'done-offline-pending',
-    durationMs: 1500,
+    durationMs: 3000,
     snapshot: () => ({
       ...baseEmpty,
       screen: 'record',
@@ -159,7 +159,7 @@ const SIM_STEPS: SimStepDef[] = [
   },
   {
     id: 'online-still-waiting',
-    durationMs: 350,
+    durationMs: 700,
     snapshot: () => ({
       ...baseEmpty,
       screen: 'record',
@@ -183,7 +183,7 @@ const SIM_STEPS: SimStepDef[] = [
   },
   {
     id: 'transcribed-read',
-    durationMs: 2000,
+    durationMs: 3000,
     snapshot: (clip) => ({
       ...baseEmpty,
       screen: 'record',

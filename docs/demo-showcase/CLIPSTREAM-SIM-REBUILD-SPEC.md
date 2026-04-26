@@ -189,7 +189,7 @@ Purpose:
 - waveform moves
 - timer advances
 
-### Step 4: `done-offline-pending` — 1500ms
+### Step 4: `done-offline-pending` — 3000ms
 
 - `screen = 'record'`
 - `trayState = 'record'`
@@ -203,7 +203,7 @@ Purpose:
 - pending row appears
 - toast is triggered on entry to this step by a small effect, not by a snapshot field
 
-### Step 4.5: `online-still-waiting` — 350ms
+### Step 4.5: `online-still-waiting` — 700ms
 
 - `screen = 'record'`
 - `trayState = 'record'`
@@ -235,7 +235,7 @@ If online and spinner-start happen in one step boundary, they render together an
 Purpose:
 - spinner rotation begins only after the brief online-but-still-waiting step
 
-### Step 6: `transcribed-read` — 2000ms
+### Step 6: `transcribed-read` — 3000ms
 
 - `screen = 'record'`
 - `network = 'online'`
@@ -305,7 +305,7 @@ Return to step 1.
 
 ### Total loop length
 
-With the timings above, the loop is approximately 12.25 seconds.
+With the timings above, the loop is approximately 15.1 seconds.
 
 Intentional note:
 - step 9 ends online, and step 1 restarts offline
