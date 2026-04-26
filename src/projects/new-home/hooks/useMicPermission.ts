@@ -8,9 +8,22 @@ import { useState, useEffect } from 'react';
  * - 'loading'    → initial check in progress (render nothing to avoid flash)
  * - 'granted'    → mic already enabled, no UI needed
  * - 'unknown'    → show the EnableModal toast
- * - 'dismissed'  → user clicked "Not now", show EnableMicButton fallback
- * - 'blocked'    → user permanently denied mic (e.g. "Never for This Website"),
- *                  show message to update browser settings
+ * - 'dismissed'  → user clicked "Not now". Reserved for that one path —
+ *                  any getUserMedia failure goes to 'blocked', not here.
+ * - 'blocked'    → mic is denied at the browser level (clicked Block in
+ *                  prompt, or "Never for This Website" in browser settings).
+ *                  getUserMedia won't re-prompt; user must change browser
+ *                  settings to recover.
+ *
+ * State machine:
+ *   mount + permission='granted'  → 'granted'   (no UI)
+ *   mount + permission='denied'   → 'blocked'   (X message)
+ *   mount + permission='prompt'   → 'unknown'   (toast)
+ *   click Enable → granted        → 'granted'
+ *   click Enable → denied/error   → 'blocked'   (single error path)
+ *   click Not now                 → 'dismissed' (orange button)
+ *   click orange Enable Mic       → re-runs handleEnable (browser prompt)
+ *   click X on blocked            → 'dismissed' (lets user retry via orange)
  */
 
 type MicPermissionState = 'loading' | 'unknown' | 'granted' | 'dismissed' | 'blocked';
@@ -31,18 +44,25 @@ export function useMicPermission() {
       return;
     }
 
-    // Check if already granted — only skip toast if mic is already enabled
+    // Initial probe via permissions API. Three branches:
+    //   granted → hide UI entirely
+    //   denied  → show 'blocked' immediately (clicking Enable would
+    //             auto-reject anyway; spare the user the wasted click)
+    //   prompt  → show the toast so the user can choose
+    // If the permissions API isn't available or throws, fall back to
+    // showing the toast — getUserMedia is the next chance to discover
+    // the real state.
     navigator.permissions?.query({ name: 'microphone' as PermissionName })
       .then((result) => {
         if (result.state === 'granted') {
           setState('granted');
+        } else if (result.state === 'denied') {
+          setState('blocked');
         } else {
-          // 'prompt' or 'denied' — show toast first
           setState('unknown');
         }
       })
       .catch(() => {
-        // permissions API not supported, show toast
         setState('unknown');
       });
   }, []);
@@ -57,30 +77,35 @@ export function useMicPermission() {
     }
   };
 
-  // Handle "Enable" from the toast — triggers browser permission prompt
+  // Handle "Enable" from the toast — triggers browser permission prompt.
+  // Once the user clicks Enable, they're committed to the prompt path:
+  // any failure (cached denial, click-Block in prompt, no device, etc.)
+  // resolves to 'blocked'. We do NOT fall back to 'dismissed' (orange)
+  // because that state is reserved for the explicit "Not now" path.
+  // permissions.query is also unreliable across browsers for detecting
+  // post-prompt denial, so trusting the getUserMedia outcome is more
+  // honest.
   const handleEnable = async () => {
-    // First check if permanently blocked
+    // Pre-flight: if already denied at the browser level, show the
+    // blocked message without bothering with a getUserMedia call that
+    // would auto-reject anyway.
     const blocked = await checkIfBlocked();
     if (blocked) {
       setState('blocked');
       return;
     }
 
-    // Hide the toast immediately so it doesn't sit behind the browser prompt
+    // Hide the toast/button immediately so it doesn't sit behind the
+    // browser prompt.
     setState('loading');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Immediately stop — we just needed the permission grant
+      // Immediately stop — we just needed the permission grant.
       stream.getTracks().forEach((track) => track.stop());
       setState('granted');
     } catch {
-      // User denied in browser prompt — check if now permanently blocked
-      const nowBlocked = await checkIfBlocked();
-      if (nowBlocked) {
-        setState('blocked');
-      } else {
-        setState('dismissed');
-      }
+      // Any failure → blocked. Single error path; predictable UX.
+      setState('blocked');
     }
   };
 
@@ -92,15 +117,12 @@ export function useMicPermission() {
     }
   };
 
-  // Handle clicking the EnableMicButton — re-shows the toast
+  // Handle clicking the orange "Enable Mic" button. Re-runs the same
+  // browser-prompt path as the original Enable click — no UI cycle in
+  // between. This means the orange button is a one-step retry, not a
+  // toggle back to the toast.
   const handleReshow = async () => {
-    // Check if blocked before re-showing toast
-    const blocked = await checkIfBlocked();
-    if (blocked) {
-      setState('blocked');
-    } else {
-      setState('unknown');
-    }
+    await handleEnable();
   };
 
   // Handle dismissing the blocked message
