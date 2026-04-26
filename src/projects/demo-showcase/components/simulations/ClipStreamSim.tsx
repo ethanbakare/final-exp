@@ -27,10 +27,6 @@ export const CLIPSTREAM_SIM_DURATION = 8000;
 
 interface ClipStreamSimProps {
   onLoopRestart?: () => void;
-  /** Kill-switch cancel signal from the showcase (Phase 1c step 4).
-   *  Forwarded into ClipMasterScreen so swipe-away cancellation flows
-   *  through the product's existing handleCloseClick path. */
-  cancelSignal?: AbortSignal;
 }
 
 // Minimal error boundary so a crash inside ClipMasterScreen surfaces
@@ -60,7 +56,7 @@ class SimErrorBoundary extends React.Component<
   }
 }
 
-export const ClipStreamSim: React.FC<ClipStreamSimProps> = ({ cancelSignal }) => {
+export const ClipStreamSim: React.FC<ClipStreamSimProps> = () => {
   // Defer ClipMasterScreen mount until after hydration — mirrors the
   // `mounted` gate used on /clipperstream. Without it, some hooks
   // inside ClipMasterScreen (mic, storage, zustand rehydration) can
@@ -85,7 +81,7 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = ({ cancelSignal }) =>
   return (
     <div className="clipstream-sim-frame">
       <SimErrorBoundary>
-        {mounted ? <ClipMasterScreen cancelSignal={cancelSignal} /> : null}
+        {mounted ? <ClipMasterScreen /> : null}
       </SimErrorBoundary>
       <style jsx>{`
         .clipstream-sim-frame :global(.master-screen) {
@@ -106,8 +102,19 @@ export const ClipStreamSim: React.FC<ClipStreamSimProps> = ({ cancelSignal }) =>
            showcase the frame floats inside a canvas, so it should
            look like a rounded phone card on mobile too. */
         @media (max-width: 768px) {
+          .clipstream-sim-frame {
+            transform: scale(0.65);
+          }
           .clipstream-sim-frame :global(.master-screen) {
+            height: 572px;
+            min-height: 572px;
+            max-height: 572px;
             border-radius: 16px;
+          }
+          .clipstream-sim-frame :global(.record-bar) {
+            height: 80px;
+            padding: 0 12px;
+            align-items: center;
           }
         }
       `}</style>

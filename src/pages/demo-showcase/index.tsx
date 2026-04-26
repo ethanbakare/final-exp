@@ -4,9 +4,8 @@
  * now: AI Confidence Tracker, Trace, ClipStream. Voice Interface is
  * deferred (not yet "inline demo"-ready).
  *
- * Only AI Confidence has a full sim + demo wired in. Trace renders
- * its sim; its inline demo is not yet built. ClipStream is a
- * placeholder on both axes. Adding more demos is additive: wire a
+ * AI Confidence, Trace, and ClipStream each have separate simulation
+ * and inline demo wrappers now. Adding more demos is additive: wire a
  * new activeIdx branch in the sim-slot + pass a canvasProps entry.
  *
  * The kill-switch architecture (AbortSignal contract) is tracked
@@ -58,6 +57,10 @@ const TraceDemo = dynamic(
 // real /clipperstream page.
 const ClipStreamSim = dynamic(
   () => import('@/projects/demo-showcase/components/simulations/ClipStreamSim').then(m => m.ClipStreamSim),
+  { ssr: false },
+);
+const ClipStreamDemo = dynamic(
+  () => import('@/projects/demo-showcase/components/demos/ClipStreamDemo').then(m => m.ClipStreamDemo),
   { ssr: false },
 );
 
@@ -147,13 +150,10 @@ export default function DemoShowcasePage() {
   const traceActive = activeIdx === 1 && isDemoMode;
   const traceCancelSignal = useActiveAbortSignal(traceActive);
   const traceRunIdRef = useRunId(traceActive);
-  // - ClipStream (idx 2): NOT demo-mode-gated — the sim slot mounts the
-  //   real ClipMasterScreen; there is no separate demo. Cancellation fires
-  //   when the user swipes away from ClipStream entirely. ClipStream's
-  //   adapter routes abort into its existing handleCloseClick (X-button)
-  //   path, which discards partial recording per product policy and
-  //   preserves pending clips / IndexedDB / zustand store (durable state).
-  const clipStreamActive = activeIdx === 2;
+  // - ClipStream (idx 2): now split like the other projects — a compact
+  //   simulation wrapper plus a separate live demo wrapper. Cancellation
+  //   applies only to the live demo instance when Try Demo is active.
+  const clipStreamActive = activeIdx === 2 && isDemoMode;
   const clipStreamCancelSignal = useActiveAbortSignal(clipStreamActive);
 
   // Mic permission state — single hook instance, lifted here so the
@@ -372,11 +372,20 @@ export default function DemoShowcasePage() {
                         </div>
                       </>
                     )}
-                    {/* ClipStream sim. Inline demo not yet split out. */}
+                    {/* ClipStream — separate sim + live demo wrappers. */}
                     {activeIdx === 2 && (
-                      <div className="layer layer-sim">
-                        <ClipStreamSim key={loopKey} onLoopRestart={handleLoopRestart} cancelSignal={clipStreamCancelSignal} />
-                      </div>
+                      <>
+                        {!isDemoMode && (
+                          <div className="layer layer-sim layer-sim-clipstream">
+                            <ClipStreamSim key={loopKey} onLoopRestart={handleLoopRestart} />
+                          </div>
+                        )}
+                        {isDemoMode && (
+                          <div className="layer layer-demo layer-demo-clipstream">
+                            <ClipStreamDemo cancelSignal={clipStreamCancelSignal} />
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   <div className={`chrome chrome-desktop ${isDemoMode ? 'chrome-hidden' : ''}`}>
@@ -522,10 +531,10 @@ export default function DemoShowcasePage() {
             pointer-events: none;
           }
           @media (max-width: 768px) {
-            .sim-slot :global(.layer.layer-demo) {
+            .sim-slot :global(.layer.layer-demo:not(.layer-demo-clipstream)) {
               transform: scale(0.8);
             }
-            .sim-slot :global(.layer.layer-sim) {
+            .sim-slot :global(.layer.layer-sim:not(.layer-sim-clipstream)) {
               transform: scale(0.9);
             }
           }
