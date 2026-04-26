@@ -344,22 +344,28 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         .upload-content,
         .close-content,
         .processing-image-content {
+          /* Center via transform rather than relying on inset:0 + the
+             flex parent's static-position behaviour. inset:0 plus the
+             parent's align-items/justify-content SHOULD work in every
+             modern browser, but in practice Chrome occasionally fails
+             to apply the flex-static-position rule for absolutely-
+             positioned flex children when the ancestor chain has
+             certain properties (the showcase wrapper chain triggers it
+             on this codebase). This transform centering is the
+             classic "always works" pattern: position the element's
+             top-left at the parent's center, then translate it back
+             by half its own size. The element collapses to content
+             size and lands precisely centered, regardless of what the
+             ancestor chain does. */
           position: absolute;
-          /* inset: 0 forces this overlay to fill .left-content (the
-             button's relative container) so the inner flex centering
-             actually has a 100% × 100% box to work with. Without it,
-             the absolutely-positioned element relies on the flex
-             parent's "static position" rule for abs-positioned
-             children — which Chrome implements inconsistently across
-             different ancestor chains. The showcase's wrapper chain
-             happens to break that fallback, so contents land at the
-             button's top-left instead of centered. inset: 0 makes the
-             behaviour deterministic in any context. */
-          inset: 0;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
           display: flex;
           align-items: center;
           justify-content: center;
           gap: var(--trace-spacing-sm);
+          white-space: nowrap;
           transition: opacity 0.3s ease;
         }
 
@@ -492,17 +498,25 @@ export const TRNavbar: React.FC<TRNavbarProps> = ({
         .speak-content,
         .sendaudio-content,
         .analysing-audio-content {
+          /* Same transform-based centering as the left-content trio
+             above. See that block for the full reasoning. The previous
+             inset:0 approach worked in theory but failed in the
+             showcase ancestor chain — TraceLiveWaveform was landing at
+             the top-left of the Send Audio button instead of centered
+             with the text. transform: translate(-50%, -50%) centers the
+             collapsed-to-content-size box at the parent's center, with
+             the inner flex still handling the waveform-and-text
+             alignment within the box. Independent of any flex
+             static-position quirks. */
           position: absolute;
-          /* inset: 0 — same fix as the left-content trio above. Without
-             it, the showcase context renders TraceLiveWaveform at the
-             top-left of the Send Audio button instead of centered with
-             the text. See comment block on .upload-content / .close-content
-             / .processing-image-content above for the full reasoning. */
-          inset: 0;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
           display: flex;
           align-items: center;
           justify-content: center;
           gap: var(--trace-spacing-sm);
+          white-space: nowrap;
           transition: opacity 0.3s ease;
         }
 
