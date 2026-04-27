@@ -42,7 +42,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatedTextBox } from './ui/tracefinance-animated';
 import { TRNavbarV2 } from './ui/tracenavbar-v2';
 import { ClearButton } from './ui/tracebuttons';
@@ -54,6 +54,7 @@ import type { ProcessingState } from './ui/traceIcons';
 import { groupEntriesByDay } from '../utils/dataUtils';
 import { blobToBase64, fileToBase64 } from '../utils/fileUtils';
 import type { ExpenseEntry } from '../types/trace.types';
+import { SAMPLE_RECEIPTS, type SampleReceipt } from '../data/sample-receipts';
 
 // Minimum audio blob size (~1 second of webm audio)
 const MIN_AUDIO_BLOB_SIZE = 1000;
@@ -92,6 +93,42 @@ export interface TraceCoreProps {
   // share the same source of truth. See
   // docs/trace/CLEAR-BUTTON-DORMANT-STATE.md.
   renderClearButton?: (requestClearAll: () => void, isDisabled: boolean) => React.ReactNode;
+  // [DEMO-SHOWCASE] Optional callback for the sample-receipt picker
+  // modal. When present, TraceCore delegates the picker UI to the
+  // caller (showcase mounts it through ShowcaseModalContext); when
+  // absent, the strip click is a no-op (phase 2 will wire a
+  // TraceModalOverlay-based fallback for standalone /trace).
+  //
+  // Controls bag — see docs/trace/RECEIPT-PICKER-MODAL.md §5.3 + §9
+  // for the rationale on the external-store contract:
+  //   - receipts:           the SAMPLE_RECEIPTS array
+  //   - initialIndex:       which thumbnail was clicked (modal opens centered there)
+  //   - selectReceipt:      called on Upload tap; runs the sample File through processImageFile
+  //   - cancel:             showcase handles modal close; this is here for parity with onRequestClearAll
+  //   - subscribeIsDisabled / getIsDisabled:
+  //       useSyncExternalStore-compatible pair so the modal can dim
+  //       its Upload button live when navbarState flips mid-modal.
+  //       A plain getter or boolean wouldn't trigger a re-render of
+  //       the captured ReactNode — the subscription does.
+  onRequestSamplePicker?: (controls: {
+    receipts: SampleReceipt[];
+    initialIndex: number;
+    selectReceipt: (file: File) => Promise<void>;
+    cancel: () => void;
+    subscribeIsDisabled: (callback: () => void) => () => void;
+    getIsDisabled: () => boolean;
+  }) => void;
+  // [DEMO-SHOWCASE] Optional render slot for the sample-receipt strip
+  // (the four-thumbnail row beneath the demo card). Same shape as
+  // renderClearButton — third arg is the live disabled flag derived
+  // from the §5 gate (navbarState !== 'idle'). Consumers should
+  // render <button disabled={isDisabled}> on each thumbnail and
+  // wire onThumbnailClick to call back with the clicked index.
+  renderSampleStrip?: (
+    receipts: SampleReceipt[],
+    onThumbnailClick: (index: number) => void,
+    isDisabled: boolean,
+  ) => React.ReactNode;
 }
 
 export const TraceCore: React.FC<TraceCoreProps> = ({
@@ -102,6 +139,8 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
   hideMicBanner = false,
   onRequestClearAll,
   renderClearButton,
+  onRequestSamplePicker,
+  renderSampleStrip,
 }) => {
   // State management
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
@@ -249,7 +288,57 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
     setNavbarState('idle');
   };
 
-  // Image upload handler
+  // Process a single image File through the receipt-parse pipeline.
+  // Extracted from handleUploadClick so the same flow can be invoked
+  // by sources other than the file picker — specifically the sample-
+  // receipt picker modal in the showcase, which fetches a preset PNG,
+  // wraps it in a File, and calls this directly. The behavior here
+  // (state transitions, error handling, abort semantics) is identical
+  // regardless of where the File came from.
+  const processImageFile = useCallback(async (file: File) => {
+    // [DEMO-SHOWCASE] Capture runId for the receipt-parse async chain.
+    const myRun = runIdRef?.current ?? 0;
+
+    setNavbarState('processing_image');
+
+    try {
+      const base64Image = await fileToBase64(file);
+      if (!isStillCurrentRun(myRun)) return; // [DEMO-SHOWCASE]
+
+      const response = await fetch('/api/trace/parse-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64Image, mimeType: file.type }),
+        signal: cancelSignal, // [DEMO-SHOWCASE]
+      });
+      if (!isStillCurrentRun(myRun)) return; // [DEMO-SHOWCASE]
+
+      if (!response.ok) {
+        showError("That doesn't look like a receipt");
+        setNavbarState('idle');
+        return;
+      }
+
+      const entry: ExpenseEntry = await response.json();
+      if (!isStillCurrentRun(myRun)) return; // [DEMO-SHOWCASE]
+
+      setEntries((prev) => [entry, ...prev]);
+      setNavbarState('idle');
+    } catch (err) {
+      // [DEMO-SHOWCASE] Swallow deliberate cancellation; everything else
+      // is a real user-facing error.
+      if (err instanceof Error && err.name === 'AbortError') return;
+      if (cancelSignal?.aborted) return;
+      if (!isStillCurrentRun(myRun)) return;
+
+      showError("That doesn't look like a receipt");
+      setNavbarState('idle');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cancelSignal, runIdRef]);
+
+  // Image upload handler — opens the native file picker and feeds the
+  // chosen file through processImageFile.
   const handleUploadClick = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -257,45 +346,7 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
-
-      // [DEMO-SHOWCASE] Capture runId for the receipt-parse async chain.
-      const myRun = runIdRef?.current ?? 0;
-
-      setNavbarState('processing_image');
-
-      try {
-        const base64Image = await fileToBase64(file);
-        if (!isStillCurrentRun(myRun)) return; // [DEMO-SHOWCASE]
-
-        const response = await fetch('/api/trace/parse-receipt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Image, mimeType: file.type }),
-          signal: cancelSignal, // [DEMO-SHOWCASE]
-        });
-        if (!isStillCurrentRun(myRun)) return; // [DEMO-SHOWCASE]
-
-        if (!response.ok) {
-          showError("That doesn't look like a receipt");
-          setNavbarState('idle');
-          return;
-        }
-
-        const entry: ExpenseEntry = await response.json();
-        if (!isStillCurrentRun(myRun)) return; // [DEMO-SHOWCASE]
-
-        setEntries((prev) => [entry, ...prev]);
-        setNavbarState('idle');
-      } catch (err) {
-        // [DEMO-SHOWCASE] Swallow deliberate cancellation; everything else
-        // is a real user-facing error.
-        if (err instanceof Error && err.name === 'AbortError') return;
-        if (cancelSignal?.aborted) return;
-        if (!isStillCurrentRun(myRun)) return;
-
-        showError("That doesn't look like a receipt");
-        setNavbarState('idle');
-      }
+      await processImageFile(file);
     };
     input.click();
   };
@@ -373,6 +424,62 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
   // can never disagree on whether clearing is currently appropriate.
   const isClearDisabled = entries.length === 0 || navbarState !== 'idle';
 
+  // Sample-receipt picker dormant state — see
+  // docs/trace/RECEIPT-PICKER-MODAL.md §5.
+  // Strictly the navbar gate (no entries-count clause) because the
+  // picker is most useful in the empty-entries state. Prevents the
+  // second upload entrance from racing the navbar state machine.
+  const isSamplePickerDisabled = navbarState !== 'idle';
+
+  // External-store plumbing for the §5.3.2 live-update contract.
+  // The ref holds the latest disabled value; the Set holds modal-side
+  // subscribers; the effect mirrors React state into the ref AND
+  // notifies all subscribers on each change. The picker modal — whose
+  // captured ReactNode is otherwise frozen by ShowcaseModalContext —
+  // consumes this pair via React.useSyncExternalStore so its Upload
+  // button can dim live when the gate flips mid-modal (e.g. a
+  // kill-switch abort firing while the user is still on the carousel).
+  const isSamplePickerDisabledRef = useRef(isSamplePickerDisabled);
+  const samplePickerSubscribersRef = useRef<Set<() => void>>(new Set());
+
+  useEffect(() => {
+    isSamplePickerDisabledRef.current = isSamplePickerDisabled;
+    samplePickerSubscribersRef.current.forEach((cb) => cb());
+  }, [isSamplePickerDisabled]);
+
+  const subscribeIsSamplePickerDisabled = useCallback((cb: () => void) => {
+    samplePickerSubscribersRef.current.add(cb);
+    return () => {
+      samplePickerSubscribersRef.current.delete(cb);
+    };
+  }, []);
+
+  // Strip thumbnail click handler. Defense-in-depth early-return
+  // mirrors the visual disabled state on the thumbnails — catches
+  // any path that bypasses the <button disabled> attribute (e.g.
+  // programmatic click). Then forwards to onRequestSamplePicker
+  // when present; standalone /trace currently no-ops (phase 2).
+  const handleSampleStripClick = useCallback((index: number) => {
+    if (isSamplePickerDisabled) return;
+    if (!onRequestSamplePicker) return;
+    onRequestSamplePicker({
+      receipts: SAMPLE_RECEIPTS,
+      initialIndex: index,
+      selectReceipt: async (file: File) => {
+        if (isSamplePickerDisabledRef.current) return;
+        await processImageFile(file);
+      },
+      cancel: () => {},
+      subscribeIsDisabled: subscribeIsSamplePickerDisabled,
+      getIsDisabled: () => isSamplePickerDisabledRef.current,
+    });
+  }, [
+    isSamplePickerDisabled,
+    onRequestSamplePicker,
+    processImageFile,
+    subscribeIsSamplePickerDisabled,
+  ]);
+
   // Derive empty-state processing copy/icon from navbar state
   const processingState: ProcessingState =
     navbarState === 'processing_audio'
@@ -422,6 +529,14 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
           <ClearButton onClick={requestClearAll} disabled={isClearDisabled} />
         </div>
       )}
+
+      {/* Sample-receipt strip — only renders when the consumer provides
+          the render slot. Standalone /trace doesn't pass this prop in
+          phase 1, so this evaluates to null and the page is unchanged.
+          Showcase TraceDemo will provide it in commit 4. */}
+      {renderSampleStrip
+        ? renderSampleStrip(SAMPLE_RECEIPTS, handleSampleStripClick, isSamplePickerDisabled)
+        : null}
 
       <TraceModalOverlay
         isVisible={showClearModal}
