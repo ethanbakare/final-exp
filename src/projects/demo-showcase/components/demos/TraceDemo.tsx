@@ -81,6 +81,25 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
               canvasContentEl,
             ) : null
           )}
+          renderSampleStrip={(receipts, onThumbnailClick, isDisabled) => (
+            isVisible && canvasContentEl ? createPortal(
+              <div className="showcase-sample-strip" aria-label="Sample receipts">
+                {receipts.map((receipt, index) => (
+                  <button
+                    key={receipt.id}
+                    type="button"
+                    className="strip-thumb"
+                    onClick={() => onThumbnailClick(index)}
+                    disabled={isDisabled}
+                    aria-label={`Open picker at ${receipt.alt}`}
+                  >
+                    <img src={receipt.thumbSrc} alt="" draggable={false} />
+                  </button>
+                ))}
+              </div>,
+              canvasContentEl,
+            ) : null
+          )}
         />
       </div>
 
@@ -106,10 +125,74 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
           z-index: 20;
         }
 
+        /* Sample-receipt strip — independently positioned from
+           the Clear button. See docs/trace/RECEIPT-PICKER-MODAL.md §7.
+           Mobile: bottom-left corner (Y-aligned with Clear). Desktop:
+           horizontally centered under the card. Both portaled to
+           .canvas-content. */
+        .showcase-sample-strip {
+          position: absolute;
+          left: 20px;
+          bottom: 20px;
+          z-index: 20;
+          display: flex;
+          flex-direction: row;
+          gap: 10px;
+          align-items: center;
+        }
+        @media (min-width: 769px) {
+          .showcase-sample-strip {
+            left: 50%;
+            transform: translateX(-50%);
+          }
+        }
+
+        /* Each thumbnail is a button so disabled gating works
+           natively. 80px square on desktop, 64px on mobile. */
+        .strip-thumb {
+          width: 80px;
+          height: 80px;
+          padding: 0;
+          border: none;
+          border-radius: 8px;
+          overflow: hidden;
+          cursor: pointer;
+          background: rgba(255, 255, 255, 0.7);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+          transition: opacity 150ms ease, transform 100ms ease, box-shadow 150ms ease;
+        }
+        .strip-thumb:hover:not(:disabled) {
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+        }
+        .strip-thumb:active:not(:disabled) {
+          transform: scale(0.97);
+        }
+        .strip-thumb:disabled {
+          opacity: 0.35;
+          cursor: not-allowed;
+        }
+        .strip-thumb img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+
         @media (max-width: 768px) {
           .showcase-clear-button {
             right: 8px;
             bottom: 8px;
+          }
+          .showcase-sample-strip {
+            left: 8px;
+            bottom: 8px;
+            gap: 6px;
+          }
+          .strip-thumb {
+            width: 64px;
+            height: 64px;
           }
         }
       `}</style>
