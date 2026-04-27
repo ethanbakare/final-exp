@@ -28,6 +28,7 @@ import React, {
   useState,
   useSyncExternalStore,
 } from 'react';
+import { createPortal } from 'react-dom';
 import type { SampleReceipt } from '../../data/sample-receipts';
 
 interface SampleReceiptPickerModalProps {
@@ -57,6 +58,15 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
   const [dragOffsetX, setDragOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartXRef = useRef(0);
+
+  // Mobile-only close button portals to document.body so it can pin to
+  // the viewport corner (mobile modal is full-width-ish, so the modal's
+  // own top-right is also the viewport's). The portal is needed because
+  // the showcase modal layer's transform/backdrop-filter create a
+  // containing block that breaks position: fixed for descendants.
+  // Guarded with a mounted flag to avoid SSR mismatch.
+  const [bodyMounted, setBodyMounted] = useState(false);
+  useEffect(() => setBodyMounted(true), []);
 
   // Live disabled state from TraceCore — see §5.3.2.
   const isDisabled = useSyncExternalStore(subscribeIsDisabled, getIsDisabled);
@@ -117,10 +127,34 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
     void onUpload(currentReceipt);
   };
 
+  // Two close buttons, one per breakpoint:
+  //   - Desktop: inline inside .picker-modal so it sits at the modal's
+  //     top-right corner (viewport corner is too far on wide screens).
+  //   - Mobile: portaled to document.body, fixed to the viewport top-right.
+  //     Required because the modal is full-width on mobile, so an inline
+  //     button would crowd the caption text.
+  // Each is hidden at the other breakpoint via CSS.
+  const mobileCloseButton = (
+    <button
+      type="button"
+      className="sample-picker-close-mobile"
+      onClick={onClose}
+      aria-label="Close picker"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M18 6L6 18M6 6L18 18"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  );
+
   return (
     <div className="picker-modal" role="dialog" aria-label="Choose a sample receipt">
-      {/* Close button — top-right corner. The backdrop also dismisses
-          (handled by the surrounding modal layer). */}
       <button
         type="button"
         className="close-btn"
@@ -137,6 +171,7 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           />
         </svg>
       </button>
+      {bodyMounted && createPortal(mobileCloseButton, document.body)}
 
       {/* Caption — describes what makes this receipt a useful test case. */}
       <div className="caption" aria-live="polite">
@@ -230,11 +265,13 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           max-height: 90vh;
         }
 
-        /* Close button — top-right corner of the modal box. */
+        /* Desktop close button — anchored to the picker-modal's top-right
+           corner. Hidden on mobile; the portaled .sample-picker-close-mobile
+           takes over there (see :global block below). */
         .close-btn {
           position: absolute;
-          top: 16px;
-          right: 16px;
+          top: 24px;
+          right: 24px;
           width: 36px;
           height: 36px;
           display: flex;
@@ -245,6 +282,7 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           background: rgba(255, 255, 255, 0.12);
           color: #ffffff;
           cursor: pointer;
+          z-index: 2;
           transition:
             background 160ms cubic-bezier(0.23, 1, 0.32, 1),
             transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
@@ -258,8 +296,45 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           transform: scale(0.95);
         }
 
-        /* Caption — short descriptive line about the current receipt. */
+        /* Mobile close button — portaled to document.body and pinned to
+           the viewport top-right. Portal escapes the showcase modal
+           layer's transform/backdrop-filter (both create containing
+           blocks that break position: fixed). Styles are :global because
+           styled-jsx drops its scoping hash on portaled elements.
+           Hidden by default; activated by the mobile media query. */
+        :global(.sample-picker-close-mobile) {
+          display: none;
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          width: 36px;
+          height: 36px;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.12);
+          color: #ffffff;
+          cursor: pointer;
+          z-index: 1001;
+          transition:
+            background 160ms cubic-bezier(0.23, 1, 0.32, 1),
+            transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        :global(.sample-picker-close-mobile):active {
+          transform: scale(0.95);
+        }
+
+        /* Caption — short descriptive line about the current receipt.
+           min-height reserves 2 lines of space so single-line captions
+           don't cause the carousel/dots/upload pill to jump up by a line
+           on swipe. align-items: flex-end keeps short text hugging the
+           receipt below, so caption-to-receipt distance stays constant. */
         .caption {
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          min-height: 2.8em;
           color: #ffffff;
           font-size: 16px;
           font-weight: 500;
@@ -358,6 +433,13 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           }
           .center img {
             height: 55vh;
+          }
+          /* Swap the desktop button for the portaled mobile one. */
+          .close-btn {
+            display: none;
+          }
+          :global(.sample-picker-close-mobile) {
+            display: flex;
           }
         }
 
