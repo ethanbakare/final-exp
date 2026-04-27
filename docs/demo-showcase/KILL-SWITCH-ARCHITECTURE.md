@@ -1,6 +1,6 @@
 # Demo Showcase — Kill-Switch Architecture Plan
 
-Status: **Planned, not yet implemented.** Reviewed and rewritten 2026-04-25 to fix conceptual errors caught in review (session-state vs durable-state conflation, ClipStream offline-queue blind spot, race in `useActiveAbortSignal`, fictional ClipStream APIs in adapter sketch).
+Status: **Implemented through Phase 2.** Layer 1 primitives + AI Confidence + ClipStream + Trace are all wired into the kill-switch contract. Voice Interface (Phase 3) and convention enforcement (Phase 4) are still pending. Plan was reviewed and rewritten 2026-04-25 to fix conceptual errors caught in review (session-state vs durable-state conflation, ClipStream offline-queue blind spot, race in `useActiveAbortSignal`, fictional ClipStream APIs in adapter sketch); subsequent commits (`fbdaa5d`, `9fb5e80`, `65fd7cb`, `90a91b9`) implemented the plan.
 
 ## Three rules
 
@@ -376,9 +376,9 @@ Existing cancel path: [`handleCloseClick` at ClipMasterScreen.tsx:739](../../src
 
 **Important caveat: the existing cancel path is not yet fully wired to actual HTTP request abortion.** Today, `handleCloseClick` calls `abort()` on `abortControllerRef` ([ClipMasterScreen.tsx:763](../../src/projects/clipperstream/components/ui/ClipMasterScreen.tsx)), but that controller's signal is **never threaded into any fetch**. Meanwhile the real transcribe request inside [`useClipRecording.ts:347-352`](../../src/projects/clipperstream/hooks/useClipRecording.ts) creates its own local `AbortController` for a 30-second timeout, isolated from the rest of the app. The format-text fetch in ClipMasterScreen ([line ~1256](../../src/projects/clipperstream/components/ui/ClipMasterScreen.tsx)) does not currently take a signal at all.
 
-So the kill-switch implementation cannot be "just wire `cancelSignal` into `handleCloseClick`." It requires concrete plumbing changes, all of them additive and beneficial to the standalone product as well:
+So the kill-switch implementation could not be "just wire `cancelSignal` into `handleCloseClick`." It required concrete plumbing changes, all of them additive and also beneficial to the standalone product. These shipped in commit `65fd7cb`:
 
-**Required plumbing (Phase 1, ClipStream):**
+**Plumbing that shipped (Phase 1, ClipStream):**
 
 1. **`useClipRecording`'s transcribe fetch** must compose its existing 30s-timeout controller with an external signal. Either:
    - Add an optional `externalSignal?: AbortSignal` parameter to the function, and use `composeAbortSignals(timeoutController.signal, externalSignal)` for the fetch call, OR
@@ -397,7 +397,7 @@ So the kill-switch implementation cannot be "just wire `cancelSignal` into `hand
    <ClipMasterScreen cancelSignal={cancelSignal} />
    ```
 
-The work is mostly mechanical signal-threading, but it must be done — the doc previously implied this was already complete, and it isn't.
+The work was mostly mechanical signal-threading, scoped surgically so removing the kill-switch later is a clean revert (see the `[DEMO-SHOWCASE]` markers in `useClipRecording.ts` and `ClipMasterScreen.tsx` for the exact lines to drop on port).
 
 Two important non-actions for ClipStream:
 
@@ -506,17 +506,17 @@ Missing items are leaks; touching durable state is product-behaviour bugs. Use t
 
 ## Rollout plan
 
-1. **Phase 1 — Layer 1 + AI Confidence + ClipStream.**
-   - Build `useActiveAbortSignal`, `useRunId`, `abortUtils`.
-   - Wire AI Confidence end-to-end (prop → provider → hooks; `cancelSignal` into the transcribe fetch; `runId` capture-at-start in `useDeepgramProcessing.processAudio` and capture-at-attach for `MediaRecorder.onstop` in `useAudioRecording`).
-   - Wire ClipStream — **all four plumbing steps** from §2.3, not just step 3:
-     1. Compose external signal into `useClipRecording`'s transcribe fetch (currently uses an isolated 30s timeout controller).
-     2. Add `signal` parameter to the format-text fetch in `ClipMasterScreen` (currently takes no signal).
-     3. Add `cancelSignal?: AbortSignal` prop to `ClipMasterScreen`; compose it into `abortControllerRef` so `handleCloseClick`'s existing `abort()` call now actually cancels the live HTTP requests.
-     4. Pass the signal through from `ClipStreamSim`.
-   - Validate both with the acceptance criteria below — including the offline-reconnect scenario for ClipStream — before declaring Phase 1 done.
+1. **Phase 1 — Layer 1 + AI Confidence + ClipStream.** ✅ **Shipped.**
+   - `fbdaa5d` — built `useActiveAbortSignal`, `useRunId`, `abortUtils`.
+   - `9fb5e80` — wired AI Confidence end-to-end (prop → provider → hooks; `cancelSignal` into the transcribe fetch; `runId` capture-at-start in `useDeepgramProcessing.processAudio` and capture-at-attach for `MediaRecorder.onstop` in `useAudioRecording`).
+   - `65fd7cb` — wired ClipStream's four plumbing steps from §2.3:
+     1. Composed external signal into `useClipRecording`'s transcribe fetch (was using an isolated 30s timeout controller).
+     2. Added `signal` parameter to the format-text fetch in `ClipMasterScreen`.
+     3. Added `cancelSignal?: AbortSignal` prop to `ClipMasterScreen`; composed it into `abortControllerRef` so `handleCloseClick`'s `abort()` call now cancels the live HTTP requests.
+     4. Passed the signal through from `ClipStreamDemo` (the wrapper that mounts `ClipMasterScreen` inside the showcase slot).
+   - Manual acceptance tests below — especially the offline-reconnect scenario for ClipStream — are still pending a formal walk-through.
 
-2. **Phase 2 — Trace adapter.** When `TraceDemo` is built (currently only sim is wired). Same pattern: wrapper accepts prop, threads into the mega-component.
+2. **Phase 2 — Trace adapter.** ✅ **Shipped** in `90a91b9` alongside `TraceDemo`. Wrapper accepts `cancelSignal`, threads into the mega-component.
 
 3. **Phase 3 — Voice Interface.** Whenever Voice ships into the showcase. Realtime + non-realtime variants each get their own adapter pattern (composed with their existing internal `AbortController`s).
 
