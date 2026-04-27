@@ -1,309 +1,216 @@
-# Handoff — 2026-04-26 (extended session)
+# Handoff — 2026-04-27 session
 
-Long extended session. **Eight workstreams shipped, one still wrong.** The ClipStream simulation rewrite at the very end has known visual issues and the user has explicitly asked to start it fresh from a new conversation. Everything else is in a known-good state.
+Very long extended session. Six major workstreams shipped end-to-end. One pre-existing bug fixed (mobile mic banner). Two new skill-doc artefacts dropped (`/remove-bg`, plus the rebg toolchain outside the repo). All work is in a known-good state.
 
 ---
 
 ## TL;DR by status
 
-| ✅ Shipped and verified | ⚠️ Shipped but not visually verified | ❌ Done badly, restart from scratch |
+| ✅ Shipped and verified | 📚 New skills / tooling | 🐛 Fixed |
 |---|---|---|
-| Backlog grooming + Voice transcribe stub note | ClipStream sim/demo split (works architecturally; visuals depend on no further changes from previous session) | **ClipStreamSim scripted simulation rewrite — user has tested, sees issues, wants to start fresh** |
-| Figma bridge daemon refactor (R1→R5 plan + implementation, plugin reconnected, T1–T3 verified) | | |
-| `useMicPermission` state-machine fix | | |
-| ShowcaseNavbarMicBanner dark variant (desktop + mobile) | | |
-| Mic banner button hierarchy swap (light variant) | | |
-| Trace `Send Audio` waveform misalignment fix (real cause: `getBoundingClientRect` returning post-transform sizes inside Framer Motion's scaling carousel) | | |
-| Same-class fix for ClipStream's `WaveClipper` canvas | | |
-| Keyboard arrow navigation on `/demo-showcase` (↓ next, ↑ previous) | | |
+| ClipStream sim — full scripted rebuild per spec | `/remove-bg` slash command (`~/.claude/commands/remove-bg.md`) | Mobile mic banner stretch (pre-existing from Apr 23) |
+| Trace ClearButton dormant-state pattern | `~/Documents/projects/rembg-tools/` venv + pipeline script | |
+| Trace mobile -160px height compaction | `docs/trace/CLEAR-BUTTON-DORMANT-STATE.md` plan | |
+| Receipt cleanup — 4 cleaned PNGs + WebP thumbnails | `docs/trace/RECEIPT-PICKER-MODAL.md` plan (16 sections) | |
+| Trace sample-receipt picker (7-commit chain) | | |
+| ClipStream narrative headline (dynamic dark pill) | | |
 
 ---
 
-## 1. Figma Bridge — singleton daemon refactor (SHIPPED) ✅
+## 1. ClipStream sim rebuild — SHIPPED ✅
 
-The biggest infrastructure change of the session. Replaces the host-or-relay model in `/Users/ethan/Documents/projects/figma-mcp/` with a launchd-managed singleton daemon. Plugin connects once and stays connected across every Claude Code / Codex / Cursor session and every reboot.
+The big one this session. Replaces the broken `bb03044` rewrite with a clean scripted simulation built from a 16-section spec.
 
-### What's done
+### Plan-driven workflow established
 
-- **Plan:** [`docs/figma-bridge/DAEMON-PLAN.md`](docs/figma-bridge/DAEMON-PLAN.md) — five revisions (R1 → R2 → R3 → R4 → R5) through three reviewer passes. Final estimate ~8.5h, actual ~3h focused work plus testing.
-- **Implementation:** Single feature branch `feat/singleton-daemon` in `figma-mcp`, merged to `master` at commit `dbe8852`.
-  - New: `src/daemon/index.ts`, `scripts/install-daemon.sh`, `scripts/uninstall-daemon.sh`, `README.md`
-  - Renamed: `relay-client.ts` → `daemon-client.ts`
-  - Modified: `types.ts` (new wire types + ClientStatusSnapshot + async FigmaBridge), `websocket-server.ts` (per-client active channel map, push status broadcast, AMBIGUOUS_FILE flow), `mcp-server.ts` (await async methods, embed disambiguation hints), `server/index.ts` (host-or-relay fork removed, depend on daemon-client), `plugin/ui.ts` + `plugin/manifest.json` (port narrowing 3055-3060 → 3055 only)
-- **Daemon installed and running:** `~/Library/LaunchAgents/com.ethan.figma-bridge-daemon.plist`, autostart at every login.
-- **Plugin connected** to the new daemon (channel `b9yfir9k` initially, channel cycles per plugin reload).
-- **T1–T3 verified end-to-end this session:** clean install, plugin connects, MCP comes-and-goes (the central proof of value — restart Claude Code, plugin stays connected, new session immediately sees `connected: true`).
-- **Multi-file works:** confirmed via `get_connection_status` returning `pluginCount: 2` with both files when "2025" file was opened alongside "Dictation app".
+This was the first big thing this session, and set the pattern for every subsequent piece of work: write a plan doc, take reviewer feedback, patch the doc until it's implementable cold, then execute.
 
-### Pending tests (user-driven, optional)
-- T4 multi-file with explicit `join_channel` round-trips
-- T5 daemon crash resilience (`kill -9` daemon, watch launchd respawn after 10s)
-- T6 concurrent Claude Code sessions
-- T7 Mac reboot
-- T8/T9 uninstall/reinstall cycle
+[docs/demo-showcase/CLIPSTREAM-SIM-REBUILD-SPEC.md](docs/demo-showcase/CLIPSTREAM-SIM-REBUILD-SPEC.md) — the full spec. 14 sections covering goal, scope, ClipStream architecture rules, what went wrong with the old rewrite, snapshot-based state model (`SimSnapshot` + `SimStep`), 11-step loop contract, sizing rules with explicit dimension-stickiness (§7.4), reuse policy, acceptance criteria, implementation plan, and a "Showcase Narrative Headline" section (§14) covering the dynamic dark-pill behavior.
 
-### Backlog reflects this work as shipped
-[BACKLOG.md](BACKLOG.md) — moved from active section to "Completed" at the bottom.
+### Implementation
 
----
+Reset → rebuild → tweak → polish, in this order:
 
-## 2. Showcase modal layer refactor (SHIPPED) ✅
+- `5d98091` — reset `ClipStreamSim.tsx` to pre-`bb03044` thin passthrough so the showcase kept working between commits
+- `864be71` — full scripted simulation per spec (snapshot model, 11-step loop, persistent tray, scripted mock receipts, etc.)
+- `27838ec` — proper clip title ("Lock that thought in") + longer offline/read beats
+- `1c3b660` — bumped `online-transcribing` spinner from 1.3s to 2.5s
+- Total loop: ~16.3s
 
-Replaces the MutationObserver + mobile transform-strip hack with proper showcase-owned modal infrastructure that portals to `document.body`.
+### Dynamic narrative headline (the dark-pill swap)
 
-- **TraceCore** gained two opt-in props: `onRequestClearAll`, `renderClearButton` (both `[DEMO-SHOWCASE]` marked). Standalone `/trace` unaffected when not passed.
-- **New:** `ShowcaseModalContext` + `useShowcaseModal` hook + `ShowcaseModalLayer` (portals to body, esc + backdrop dismiss, scroll lock, scale-in animation respects `prefers-reduced-motion`).
-- **TraceDemo** delegates the clear-confirm modal through the showcase modal layer.
-- Showcase `index.tsx` wraps the carousel in `ShowcaseModalProvider`.
+The user-visible "voice notes that work offline" pill above the phone-frame turns dark and changes copy during the offline-recording / online-transcribing beats — making the differentiating story scannable at a glance, not buried in a tiny in-phone "Offline" indicator.
 
-Commit: `feb6186`
+- `aad4a95` — dynamic narrative headline feature (data flow + per-step copy + dark variant)
+- `dd8ca1e` — Emil-style blur-mask on the headline swap (`docs/skills/emil-design-eng.md` consulted)
+- `88a4044` — extended "Back online" to span the transcribed-read step too (~5s window instead of glitch-feeling 2s)
+- `9b98eed` — fixed wrong-color intermediate frame: dropped slow background/color transitions so swap is fully masked under blur
 
----
+Per-step mapping:
+- Steps 1, 6-9 → `default` ("Voice notes that work offline", light pill)
+- Steps 2-4 → `recording-offline` ("Recording while offline", dark pill `#252525`)
+- Steps 4.5-5-6 → `back-online` ("Back online", dark pill)
 
-## 3. ShowcaseNavbarMicBanner dark variant + button hierarchy fix (SHIPPED) ✅
+The architecture: ClipStreamSim emits a `ClipStreamNarrative` value via `onNarrativeChange`; the showcase tracks `clipStreamNarrative` state and overrides the `DemoIntroCard` headline + dark variant accordingly. Same display copy stays in the showcase chrome; sim only emits structured state.
 
-Both desktop and mobile mic banners now have a `variant?: 'light' | 'dark'` prop, default `'light'`. Original beige render is bit-for-bit unchanged when no variant is passed.
+### Reviewer pattern from this session
 
-### Light variant button hierarchy fix
-The original had `Not now` more prominent than `Enable` (dark on beige is heavier than white on beige). Swapped:
-- **Enable**: dark pill (`#252525`), white text — primary action wins
-- **Not now**: `rgba(50, 51, 51, 0.10)` background + `#5E5E5C` text (the project-counter chip tokens) — sits quietly on the beige pill, picks up the tint
-
-### Dark variant
-Lifted from `EnableModal` palette: pill `#252525`, white title, white X stroke, no inset shadow. Buttons swap back to the EnableModal hierarchy (Enable=white, Not now=`#373737`) — same prominent/subtle relationship inverted because the pill background flipped.
-
-Dismissed-state orange "Enable Mic" pill is **identical between variants** — the call to action shouldn't shift.
-
-Mobile mirrors all of this.
-
-Components review page (`/demo-showcase/showcase/democomponents`) gains four new cells: dark unknown + dark blocked for both desktop and mobile.
-
-Commits: `5d9a307`, `cada9d5`, `5729fef`
+Both the ClipStream rebuild spec and the receipt-picker spec went through a reviewer-feedback loop. Pattern: write plan → reviewer pushes back → patch plan → reviewer signs off → execute. This pattern is now part of how big work flows here.
 
 ---
 
-## 4. `useMicPermission` state-machine fix (SHIPPED) ✅
+## 2. Trace ClearButton dormant state — SHIPPED ✅
 
-Two real UX bugs the user reported on `/demo-showcase`:
+First structural-fix-not-patch this session. `[CLEAR-BUTTON-DORMANT-STATE.md](docs/trace/CLEAR-BUTTON-DORMANT-STATE.md)` plan + `0e309b0` implementation.
 
-1. **Clicking Enable sometimes landed on the orange button (dismissed) instead of triggering the browser prompt.** Cause: `handleEnable`'s catch fell through to `'dismissed'` if `permissions.query` couldn't confirm denial — but that API is unreliable for post-prompt state, so real denials were hidden behind a misleading retry button.
+### The rule
 
-2. **Clicking the orange "Enable Mic" button just re-showed the toast — didn't actually re-trigger `getUserMedia`.**
-
-### Fix
-- `handleEnable` catch → always `setState('blocked')`. Clicking Enable can no longer land on orange. Orange is reserved for the explicit Not-now path.
-- `handleReshow` → calls `handleEnable`. Orange button is now a one-step retry of the browser prompt.
-- Mount-time `permissions.query()` returning `'denied'` → go straight to `'blocked'` (skip the wasted Enable click on a permanently denied origin).
-
-State machine documented inline at the top of [`useMicPermission.ts`](src/projects/new-home/hooks/useMicPermission.ts).
-
-Commit: `9f80fb9`
-
----
-
-## 5. Trace `Send Audio` waveform fix — TraceLiveWaveform offsetWidth (SHIPPED) ✅
-
-This one took multiple attempts. The actual bug was deep, the diagnosis from screenshots was misleading, and the user (correctly) suggested the cause when I was stuck.
-
-### What the user saw
-On the showcase Trace demo's Send Audio button (recording state), the waveform appeared as small bars at the top-left of the orange button, not centered with the "Send Audio" text. On standalone `/trace`, same component rendered correctly.
-
-### Two false starts that I reverted
-- `afa8d55` — added `inset: 0` to the absolute-positioned `.sendaudio-content` overlays. Idea was that the flex parent's static-position rule for absolutely positioned children was failing in the showcase ancestor chain. **Didn't fix it.**
-- `2538628` — switched to `top: 50%; left: 50%; transform: translate(-50%, -50%)` centering. Bulletproof in theory. **Also didn't fix it.** (Both reverted.)
-
-### The actual cause (user's hint cracked it)
-The `WaveClipper`-equivalent component for Trace, `TraceLiveWaveform`, sized its canvas via `container.getBoundingClientRect()` in a `ResizeObserver`. `getBoundingClientRect` returns the **post-transform visual size**.
-
-Flow:
-1. User swipes to Trace in the showcase carousel
-2. Framer Motion animates `.canvas-motion` through `scale: 0.6 → 1` for the entry transition
-3. `TraceLiveWaveform` mounts during this transition; ResizeObserver fires for the first time
-4. Reads container rect at scale ~0.622 → canvas sized to `24 × 0.622 = 14.92px` instead of 24px
-5. Animation completes, parent reaches `scale: 1`. **ResizeObserver does NOT fire on ancestor transform changes** — only on layout-box changes — so the canvas stays stuck at 14.92px forever
-6. Visual: tiny bars looking off-center against the much larger "Send Audio" text
-
-### Real fix
-Replaced every `getBoundingClientRect()` in `TraceLiveWaveform.tsx` with `offsetWidth`/`offsetHeight`. Those return the CSS layout-box size and are immune to ancestor transforms. Five call sites updated (resize observer, processing animation barCount, static-mode bar baseline, four spots in active-mode bar drawing).
-
-Commit: `be2ccf9`
-
-### Same-class bug in ClipStream
-After the Trace fix, the user found the same symptom on the ClipStream record-bar waveform (showing as missing/invisible in the demo-showcase view). Same root cause — `WaveClipper` also used `canvas.getBoundingClientRect()` in its resize observer. Fixed identically: replaced with `canvas.offsetWidth`/`canvas.offsetHeight`. Now the waveform is fully dynamic — works at any wrapper scale (0.5, 0.68, 1.2, etc.) without further changes.
-
-Commit: `4ff40a3`
-
-### Pattern to remember
-**Any component that sizes itself via `getBoundingClientRect()` will break inside the demo-showcase wrapper chain** because of the various `transform: scale(...)` wrappers (Framer Motion variants on the carousel, plus the per-demo wrapper transforms). If you find a third one, this is almost certainly the cause — same one-line fix.
-
----
-
-## 6. Keyboard arrow navigation (SHIPPED) ✅
-
-Document-level keydown handler on `/demo-showcase`. ↓ = next demo, ↑ = previous. Routes through the same `go()` callback the navbar arrows and mobile swipe use, so all the side-effects (resetting `isDemoMode`, kill-switch firing on swipe-away) apply consistently.
-
-Safeguards:
-- Modifier keys (Cmd/Ctrl/Alt/Shift) skip the handler — preserves browser shortcuts like Cmd+Down
-- Inputs (`input`/`textarea`/`select`) and contenteditable elements skip — cursor movement still works inside demos like Trace
-
-Commit: `23d0462`
-
----
-
-## 7. ClipStream demo/sim split (USER'S CHANGES, COMMITTED) ✅ (architecturally)
-
-Earlier in the session the user split `ClipStreamSim` into:
-- **`ClipStreamSim`** (sim mode) — `onLoopRestart` only, no `cancelSignal`
-- **`ClipStreamDemo`** (new file) — receives `cancelSignal` and forwards to `ClipMasterScreen`
-
-Showcase wiring updated:
-- `clipStreamActive = activeIdx === 2 && isDemoMode` (now matches AI Confidence + Trace gating)
-- Cancel signal flows only to `<ClipStreamDemo>`
-- **Conditional mount** rather than `layer-hidden` (because both wrappers currently render the same `ClipMasterScreen` — having two instances simultaneously would race on the zustand store's `processAllPendingClips` registration, fight for the mic, etc.)
-
-Commit: `4480e42`
-
-### Important architectural note documented in this session
-The user asked whether to switch ClipStream to keep-mounted (the AI Confidence / Trace pattern). Answer: **no, not yet** — the prerequisite is that `ClipStreamSim` becomes a scripted-state mock that doesn't render `ClipMasterScreen`. Until that exists, two `ClipMasterScreen` instances would step on each other. The "build the scripted ClipStreamSim" item in the backlog is exactly this prerequisite. **§9 below was the attempt to do that — and it has issues.**
-
-### Doc staleness flagged but NOT yet fixed
-[`docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md`](docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md) still describes the pre-split state in several places (line 3 status, lines 38, 41, 47, 395, 405, 433, 440). I did a full code review of ClipStream's kill-switch wiring earlier in the session and reported the affected lines, but the user wanted to focus on building the sim. Doc fixes are still pending.
-
----
-
-## 8. Backlog grooming (SHIPPED) ✅
-
-Multiple updates to [BACKLOG.md](BACKLOG.md):
-
-- Added **Voice Interface `/api/voice-interface/transcribe` 400 stub** entry (the dummy `transcribeAudio` in `VoiceTextBoxClip.tsx` faking 1.2s latency + cycling 6 hardcoded `SAMPLE_LINES`). Commit: `397a1c5`
-- Updated **per-project sim status** to reflect reality (AI Confidence + Trace done; ClipStream + Voice + Ollama still outstanding) and clarified Trace cancel button (showcase has it via swipe; standalone `/trace` still needs a UI control). Commit: `86386b2`
-- Added **`demo-showcase` → `demos` rename** as a parked item with the full scope analysis (206 occurrences, three distinct uses, recommended scope). Commit: `95f1e97`
-- Marked **Figma Bridge daemon refactor as Completed** at the bottom. Commit: `b5981ee`
-
----
-
-## 9. ❌ ClipStreamSim scripted offline-loop simulation (BROKEN — start fresh)
-
-**Status: do not build on this. The user explicitly asked to restart this from a new conversation.**
-
-### What we tried to build
-A scripted ~12-second loop that mimics the offline-recording UX:
-
-1. Idle on record screen, RECORD button visible, `Offline` in the header (always offline at the start, no "Online → Offline" flip)
-2. Auto-tap RECORD → recording state, synthetic waveform animates, timer 0:00 → 0:03
-3. Auto-tap DONE → record bar morphs back to RECORD; `ClipOffline` block appears showing "Clip 001 — 0:03" with the muted/static spinner; `AudioToast` slides in showing "Audio saved for later", then auto-dismisses
-4. Status flips Offline → Online
-5. ClipOffline spinner starts spinning (status: `'transcribing'`)
-6. Transcribed text appears (`ClipRecordScreen` switches to `'transcribed'` state, `selectedClip` set)
-7. Reading pause (~1.5s)
-8. Slide back to home screen — new clip in list with title + date
-9. Auto-open triple-dot dropdown menu
-10. Clip fades out via the existing `isDeleting` animation
-11. Slide back to record screen → loop
-
-### What was implemented
-Commit: `bb03044` (~570-line rewrite plus minimal `[DEMO-SHOWCASE]`-tagged prop additions to four product files).
-
-**Architectural decisions taken:**
-- Reuse the real product's leaf components (`ClipHomeScreen`, `ClipRecordScreen`, `ClipOffline`, `RecordNavBarVarMorphing`, `ToastNotification`, `ClipRecordHeader`, `ClipListItem`, `OptionsDropDown`) so visuals match `/clipperstream` 1:1
-- **Do NOT use** `ClipMasterScreen`, `useClipRecording`, `useClipStore`, `useAutoRetry`, IndexedDB, or `MediaRecorder` — bypass the entire real recording/transcription pipeline
-- Drive everything via a single setTimeout-chained state machine of phases inside `ClipStreamSim`
-- Synthetic waveform: `OscillatorNode → LFO-modulated GainNode → AnalyserNode`, never connected to `ctx.destination` (silent), fed to `WaveClipper` via the existing `audioAnalyser` prop
-
-### `[DEMO-SHOWCASE]` prop additions to four product files
-All marked with strip-on-port comments. Listed here so they can be cleanly removed if the rewrite goes a different direction:
-
-| File | Prop added | Purpose |
-|---|---|---|
-| `cliplist.tsx` (`ClipListItem`) | `simulationOpenMenu?: boolean` + sync useEffect | Force the triple-dot dropdown open from outside |
-| `ClipHomeScreen.tsx` | `simulationOpenMenuForClipId?: string`, `simulationDeletingClipId?: string` | Forwards to the matching `ClipListItem` |
-| `cliprecordheader.tsx` | `forcedNetworkState?: 'online' \| 'offline'` | Bypass `navigator.onLine` + event listeners; sim drives the indicator |
-| `ClipRecordScreen.tsx` | `forcedNetworkState?: 'online' \| 'offline'` | Passthrough to `ClipRecordHeader` |
-
-### What I got wrong (multiple iterations, still not right)
-
-**Attempt 1 issue:** Rendered my own custom record-screen header on top of `ClipRecordScreen`'s internal `ClipRecordHeader`. **Result: duplicated headers stacked vertically** (Offline label on top, Online below, then the clip block). User caught this in a screenshot.
-
-**Attempt 1 partial fix:** Added the `forcedNetworkState` prop to `ClipRecordHeader` and `ClipRecordScreen`, removed my custom header. Header is no longer duplicated.
-
-**Attempt 2 issue:** My custom `.record-bar` styles in `ClipStreamSim` were a stripped-down version. Result: **RECORD button at the very bottom of the master-screen with no padding/tray container** — scraping the floor. User caught this too.
-
-**Attempt 2 fix:** Mirrored the real `.record-bar` styles from `ClipMasterScreen` (160px height, `padding: 24px 12px 0`, `background: var(--ClipRecTrayBg)`, `border-radius: 16px 16px 0 0`, transitions). The button now sits in the proper dark tray.
-
-**Status when handed off:** committed at `bb03044`. The user has tested after both fixes and reports the simulation is still wrong / has visible problems. They have NOT specified exactly what's still wrong in the latest screenshot — only that they want to restart from scratch.
-
-### Why this likely needs a fresh start (my read)
-Multiple back-and-forth attempts on visual fitting suggest the architecture itself is fragile:
-
-- Composing `ClipRecordScreen` + a separate `RecordNavBarVarMorphing` outside of `ClipMasterScreen`'s natural layout means I'm rebuilding the master-screen plumbing without the master-screen guarantees. Each time I miss a CSS rule, something breaks visibly.
-- The real `ClipMasterScreen` has subtleties (`shouldHideRecordBar` derived from screen state, `animationVariant` for slide vs fade, search-active integrations, etc.) that I didn't replicate. Some of those probably matter and I'm only finding out what when the user spots a regression.
-- The four `[DEMO-SHOWCASE]`-tagged prop additions to product files mean the boundary is leaky — every product change has to remember the sim's dependency.
-
-### Safari waveform false start (do not repeat blindly)
-
-After this handoff was written, one additional idea was tested and **reverted** because it made no visible difference:
-
-- Hypothesis: the mobile Safari "flat / tiny bars" problem in `ClipStreamSim` matched the homepage preview's suspended-`AudioContext` issue, so the same `ctx.resume()` + gesture/visibility retry pattern from `VoiceTextBoxClip` should be copied into `ClipStreamSim`'s `useFakeAnalyser`.
-- Result: **no visible change** on device. The patch was reverted immediately; `ClipStreamSim.tsx` is back to its pre-test state.
-
-Why this matters:
-
-- The homepage preview does not just differ by the Safari resume snippet.
-- It uses `VoiceTextBoxClip` + `ClipLinearWaveform` + a sample-audio `MediaStream` simulation path.
-- `ClipStreamSim` uses `WaveClipper` fed by a simpler oscillator/analyser path.
-
-So the likely lesson is: if the Safari/mobile waveform issue needs solving later, start by comparing the **simulation source strategy** between those two implementations, not by re-applying the no-effect resume patch.
-
-### Recommended approach for the next session
-1. Open the new conversation with a clear-eyed read of the existing `ClipStreamSim.tsx` from commit `bb03044` AND the user's screenshots.
-2. Decide whether to:
-   - **(a) Fix the existing rewrite** — likely several more rounds of "you broke X" → fix → "you broke Y." Probably most of an additional session.
-   - **(b) Take a different architectural approach** — e.g., fork `ClipMasterScreen` itself into a `ClipMasterScreenSim` that takes mock state as props rather than using its hooks. Bigger change, but probably less fragile because you're not re-composing leaf components manually.
-   - **(c) Build the simulation as a standalone phone-frame component that doesn't try to reuse `ClipRecordScreen` or `ClipHomeScreen` at all** — purely scripted visuals using the same icons/buttons. More work but full control.
-3. Whatever path is chosen, **start with screenshots of the real `/clipperstream` flow** at every relevant state, then build the sim to match those exactly.
-4. Keep the four `[DEMO-SHOWCASE]` prop additions — they're each genuinely useful regardless of the sim approach. (Or remove them if going with option C.)
-
-### Files in the broken state right now
-- `src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx` — full ~570-line scripted simulation (commit `bb03044`)
-- `src/projects/clipperstream/components/ui/cliplist.tsx` — `simulationOpenMenu` prop added
-- `src/projects/clipperstream/components/ui/ClipHomeScreen.tsx` — `simulationOpenMenuForClipId` + `simulationDeletingClipId` props added
-- `src/projects/clipperstream/components/ui/cliprecordheader.tsx` — `forcedNetworkState` prop added
-- `src/projects/clipperstream/components/ui/ClipRecordScreen.tsx` — `forcedNetworkState` passthrough added
-
-If the next session decides to fully restart, those four product files can keep their props (still useful) or be reverted. The simulation file itself should probably be reset to its pre-`bb03044` state (a thin passthrough to `ClipMasterScreen`) before building the new approach, so the showcase still works while the new sim is being developed.
-
----
-
-## Commits this session (newest → oldest)
-
-```
-bb03044 feat(ClipStreamSim): scripted offline→online recording loop      ❌ broken
-4ff40a3 fix(WaveClipper): size canvas via offsetWidth                    ✅
-23d0462 feat(demo-showcase): keyboard arrow nav (↓ next, ↑ previous)    ✅
-be2ccf9 fix(TraceLiveWaveform): size canvas via offsetWidth              ✅
-2538628 fix(TRNavbar): switch to transform-based centering               ⚠️ reverted
-afa8d55 fix(TRNavbar): pin content overlays with inset:0                 ⚠️ reverted
-9f80fb9 fix(useMicPermission): correct state machine                     ✅
-4480e42 refactor(showcase/clipstream): split into separate sim and demo  ✅ (user's)
-5729fef fix(MicBanner light): Not now adopts project-counter palette    ✅
-cada9d5 feat(ShowcaseNavbarMicBanner+Small): light-variant button hierarchy + mobile dark variant ✅
-5d9a307 feat(ShowcaseNavbarMicBanner): add dark variant alongside light ✅
-95f1e97 docs(backlog): park demo-showcase → demos rename                 ✅
-b5981ee docs(backlog): mark Figma Bridge daemon refactor as shipped     ✅
-a47dc04 docs(figma-bridge): R5 — final consistency pass on plan         ✅
-e3f484a docs(figma-bridge): R4 — address R3 reviewer feedback           ✅
-ec3136d docs(figma-bridge): R3 — user direction, multi-file in daemon   ✅
-b0e3381 docs(figma-bridge): R2 — address review feedback                ✅
-00cec23 docs(figma-bridge): draft singleton daemon refactor plan        ✅
-feb6186 refactor(demo-showcase): showcase-owned modal layer              ✅ (user's)
-86386b2 docs(backlog): reflect current sim + Trace cancel status        ✅
-397a1c5 docs(backlog): add Voice Interface transcribe 400 stub note     ✅
+```ts
+const isClearDisabled = entries.length === 0 || navbarState !== 'idle';
 ```
 
-Plus, in the figma-mcp repo:
-```
-dbe8852 feat(daemon): replace host-or-relay with singleton daemon architecture  ✅
-```
+Single source of truth in TraceCore. When true:
+- Visual: opacity 0.35, cursor `not-allowed`, `<button disabled>` for click-blocking
+- Defense in depth: `requestClearAll` early-returns if disabled
+
+### The structural shape
+
+This established the pattern that the receipt-picker also uses:
+1. Derive once in TraceCore from local state
+2. Honor the `disabled` prop already declared on `BaseButtonProps`
+3. Add `:disabled` CSS that was missing
+4. Propagate via render-slot signature: `renderClearButton: (req, isDisabled) => ReactNode`
+5. TraceDemo's portal-rendered button reads the flag — single source of truth across all render paths
+
+### Verified
+
+Empty entries → button dormant. Recording / processing → button dormant. Idle with entries → button active. Identical behavior on standalone `/trace` and showcase TraceDemo.
+
+---
+
+## 3. Trace mobile compaction — SHIPPED ✅
+
+`1f24a27` — `TraceSim` mobile gets an additional -80px on top of the desktop -80px (total -160px from native), because mobile chrome eats more vertical space. Sim text-box: 484px → 404px CSS / ~436px → ~364px visual at 0.9 scale.
+
+Also `8c2c5b4` — TraceDemo mobile clear-button positioning fixed (20px → 8px corners on mobile).
+
+Standalone `/trace` and TraceDemo desktop are unaffected by the sim height tweak.
+
+---
+
+## 4. Receipt cleanup pipeline — SHIPPED ✅
+
+User had four phone-photos of receipts and wanted background-removed cutouts for an upload-preview UI.
+
+### The tool
+
+Installed [`rembg`](https://github.com/danielgatis/rembg) instead of the requested `backgroundremover` because rembg has better Apple Silicon wheels and doesn't require ffmpeg for image-only use.
+
+**Toolchain location** (sibling of figma-mcp, OUTSIDE this repo):
+- `~/Documents/projects/rembg-tools/.venv/` — Python 3.13 venv with `rembg[cpu]` + `Pillow`
+- `~/Documents/projects/rembg-tools/clean-receipts.py` — pipeline script (EXIF auto-rotate + resize 1500px max edge + bg-remove via u2net + alpha matting + save PNG)
+- `~/.u2net/u2net.onnx` — model file (~176 MB, downloaded on first run, cached system-wide)
+
+### The cleaned assets
+
+Originals were deleted after cleanup. Final state in `public/images/receipts-cutout/`:
+
+| File | Receipt | Conditions captured | Final caption |
+|---|---|---|---|
+| tesco-1.png | Tesco 21/12/2024 £14.65 | Heavily crumpled | "Crumpled receipt — creases obscure some values." |
+| tesco-2.png | Tesco 18/01/2025 £21.05 | Slight thermal-paper fade near footer | "Well-shot but slight fading near the footer." |
+| tesco-3.png | Tesco 25/01/2025 £13.30 | Dim lighting + faded values | "Dimly lit receipt with fading values." |
+| sainsburys.png | Sainsbury's 06/08/2022 £5.75 | Clean / well-lit / all values legible | "Clean shot — all values strongly visible." |
+
+Plus four matching square WebP thumbnails (200×200, ~5 KB each) at `public/images/receipts-cutout/thumbs/` for the strip render.
+
+### The skill — `/remove-bg`
+
+`~/.claude/commands/remove-bg.md` — full slash-command skill. Captures: where the tool lives, the pipeline, exact CLI to run, troubleshooting table for common failure modes (light-on-light, edges-too-soft, edges-too-sharp, model-lost-subject, portrait subject), output format constraint (PNG, never WebP for Trace's API), recovery instructions if the venv or pipeline script is ever lost.
+
+This skill is fully indexed by Claude Code and can be invoked via `/remove-bg` from any future session.
+
+---
+
+## 5. Trace sample-receipt picker — SHIPPED ✅ (7-commit chain)
+
+The biggest single feature this session. Lets a user demo Trace upload without a real receipt photo on hand by picking from the four cleaned sample receipts.
+
+### Plan first
+
+[docs/trace/RECEIPT-PICKER-MODAL.md](docs/trace/RECEIPT-PICKER-MODAL.md) — 16-section plan, 2 reviewer rounds. Caught:
+1. State-gating gap (second upload entrance needs the same gate as Clear)
+2. Layout contradiction (claimed shared row but desktop diagrams said independent)
+3. Tight-row math on mobile (~3px slack on 375px viewport)
+
+The structural fix path: independent positioning (strip and Clear are separate portals; on mobile they share the same Y band; on desktop strip is centered + Clear stays bottom-right). Plus a brand-new live-update contract for the modal (`useSyncExternalStore` reading TraceCore's gate, since the captured ReactNode is otherwise frozen by ShowcaseModalContext).
+
+### The 7 commits
+
+1. `b4aefe1` — data + assets (4 WebP thumbnails + `sample-receipts.ts` + plan doc)
+2. `fe1468a` — TraceCore refactor: extracted `processImageFile`, added `onRequestSamplePicker` + `renderSampleStrip` render-slot props with full §5 gating + `subscribeIsDisabled` external-store contract
+3. `991cba1` — `SampleReceiptPickerModal` component (carousel + caption + page dots + Upload + X close, drag-swipe + arrow keys + click peeks navigation, `useSyncExternalStore` for live disabled state)
+4. `dad4373` — TraceDemo wires `renderSampleStrip` to a portal-rendered strip on `.canvas-content`
+5. `812f2f4` — TraceDemo wires `onRequestSamplePicker` to open the picker modal
+6. `e6daef2` — Upload wire-up end-to-end: fetch PNG → wrap in File → close modal → `processImageFile` → real `/api/trace/parse-receipt` call → entry rendered
+7. `82fd677` — Emil-style polish: `cubic-bezier(0.23, 1, 0.32, 1)` easing throughout, hover gated behind `@media (hover: hover) and (pointer: fine)`, strip thumbs lift on hover
+
+### Verified end-to-end
+
+Tesco-1 uploaded via the picker → Gemini parsed it → returned 7 line items totaling £14.65 (matching the actual printed total on the original photo). The pipeline doesn't know the difference between a sample upload and a phone-photo upload.
+
+### Strip dimensions
+
+The user later tweaked thumb sizes after the initial 80/64 → **44 desktop, 38 mobile** in `b23345e` — smaller / more discreet thumbnails that read as a quiet selector under the card.
+
+### Caption refinements
+
+`02cdbd3` + `433afac` — final caption set, grounded in what's actually visible in each receipt photo. Drop "different store" framing since it's not a parsing condition.
+
+### What's NOT done — Phase 2
+
+[Per spec §2](docs/trace/RECEIPT-PICKER-MODAL.md), the standalone `/trace` page integration is **deferred to a future round**. Render-slot props and `processImageFile` are already in place on TraceCore; phase 2 just needs to:
+1. Render the thumbnail strip via `renderSampleStrip` with positioning appropriate for the standalone page (probably below the card, with the existing Clear button shifted to the side)
+2. Wire `onRequestSamplePicker` to `TraceModalOverlay` instead of `ShowcaseModalContext`
+
+That's a small follow-up — the architecture already supports both consumers.
+
+---
+
+## 6. Mobile mic banner stretch fix — SHIPPED ✅
+
+Pre-existing bug (introduced Apr 23 in commit `3dce800`, four days before this session) where the mobile small mic banner sat at content width instead of filling the row next to the close button. Only visible when:
+- Viewport ≤ 768px
+- Demo project requires mic (Trace, AI Confidence)
+- Demo mode active (Try Demo)
+- Mic state ≠ granted
+
+Fix in `8925675`: extended the existing `flex: 1 1 0` selector from `.top-navbar-compact-small` to also cover `.top-navbar-mic-small`. Both possible occupants of the slot now stretch identically. Verified at 375px mobile: banner measures 289px wide.
+
+---
+
+## 7. Other things touched this session
+
+### TraceCore architecture pattern is now stable
+
+Two render-slot pairs in place, both following the same shape:
+- `onRequestClearAll` + `renderClearButton` (modal trigger + render slot)
+- `onRequestSamplePicker` + `renderSampleStrip` (modal trigger + render slot)
+
+If a third upload entrance or destructive-action gets added, copy this pattern. Single source of truth in TraceCore for derived disabled state, propagated through the render-slot signature.
+
+### `processImageFile` is reusable
+
+Any source of a `File` (sample receipt, future drag-and-drop, paste-from-clipboard, etc.) can run through `processImageFile` and behave identically to a navbar-Upload-button file picker. The API never sees the difference.
+
+### Skill artefacts created
+
+- `~/.claude/commands/remove-bg.md` — `/remove-bg` slash command for background removal
+- The image-convert skill at `~/.claude/commands/image-convert.md` was already present and integrates with `/remove-bg` for the WebP thumbnail step
+
+### Outstanding `useLayoutEffect` SSR warning
+
+When visiting `/clipperstream/showcase/clipscreencomponents` (or any page that server-renders WaveClipper), Next.js logs a "useLayoutEffect does nothing on the server" warning. **Not new, not harmful** — the canvas effect's first line is `if (!canvas) return;` and `canvasRef.current` is null on server, so the effect body would no-op anyway. Standard fix is the `useIsomorphicLayoutEffect` two-line pattern (`typeof window !== 'undefined' ? useLayoutEffect : useEffect`). Not done because it's noise, not a bug. User was made aware; the user can decide if/when to silence.
 
 ---
 
@@ -311,18 +218,77 @@ dbe8852 feat(daemon): replace host-or-relay with singleton daemon architecture  
 
 | File | Why you'd open it |
 |---|---|
-| [BACKLOG.md](BACKLOG.md) | Current parked work; "ClipStream simulation" entry is the one we tried + failed at |
-| [docs/figma-bridge/DAEMON-PLAN.md](docs/figma-bridge/DAEMON-PLAN.md) | Reference if any figma-mcp issues come up; the daemon is live |
-| [docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md](docs/demo-showcase/KILL-SWITCH-ARCHITECTURE.md) | **Has stale references to pre-split ClipStream** — clean up next session |
-| [src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx](src/projects/demo-showcase/components/simulations/ClipStreamSim.tsx) | The broken simulation. Either fix or fully rewrite. |
-| [src/projects/demo-showcase/components/simulations/AIConfidenceSim.tsx](src/projects/demo-showcase/components/simulations/AIConfidenceSim.tsx) + [TraceSim.tsx](src/projects/demo-showcase/components/simulations/TraceSim.tsx) | Working scripted-state sims to use as reference patterns |
-| [src/projects/clipperstream/components/ui/ClipMasterScreen.tsx](src/projects/clipperstream/components/ui/ClipMasterScreen.tsx) | The real product orchestrator. Read this carefully if rebuilding the sim. |
-| [src/projects/clipperstream/components/ui/000_COMPLETE_APPLICATION_FLOW.md](src/projects/clipperstream/components/ui/000_COMPLETE_APPLICATION_FLOW.md) | Best entry point for understanding the real ClipStream flow if you haven't read it |
+| [BACKLOG.md](BACKLOG.md) | Current parked work |
+| [docs/trace/RECEIPT-PICKER-MODAL.md](docs/trace/RECEIPT-PICKER-MODAL.md) | Plan for the receipt picker — phase 2 (standalone `/trace`) is the natural follow-up |
+| [docs/trace/CLEAR-BUTTON-DORMANT-STATE.md](docs/trace/CLEAR-BUTTON-DORMANT-STATE.md) | Reference for the dormant-state pattern when adding more destructive actions |
+| [docs/demo-showcase/CLIPSTREAM-SIM-REBUILD-SPEC.md](docs/demo-showcase/CLIPSTREAM-SIM-REBUILD-SPEC.md) | Authoritative reference for the new sim — read §14 if anyone changes ClipStream's headline behavior |
+| [src/projects/trace/components/TraceCore.tsx](src/projects/trace/components/TraceCore.tsx) | Now has render-slot pattern + state gating + extracted `processImageFile` |
+| [src/projects/trace/components/ui/SampleReceiptPickerModal.tsx](src/projects/trace/components/ui/SampleReceiptPickerModal.tsx) | The picker modal — uses `useSyncExternalStore` for live disabled state |
+| [src/projects/trace/data/sample-receipts.ts](src/projects/trace/data/sample-receipts.ts) | Single source of truth for sample receipts — edit captions here |
+| `~/.claude/commands/remove-bg.md` | The `/remove-bg` skill — invoke when more receipts (or other objects) need cutting out |
 
 ## Suggested next moves
 
-1. **ClipStream sim from scratch.** Open a new conversation. Don't pick up the existing rewrite without fresh consideration of the architecture options listed in §9. The user's frustration is real and the code so far isn't worth defending.
-2. **Clean up KILL-SWITCH-ARCHITECTURE.md** stale references to pre-split ClipStream (~10 minutes, line list in §7 above).
-3. **Optional:** delete the `feat/singleton-daemon` local branch in `figma-mcp` (already merged to `master`). One-liner: `git -C ~/Documents/projects/figma-mcp branch -d feat/singleton-daemon`. Cosmetic only.
-4. Manual mic-required acceptance tests for kill-switch (carry-over from previous session, still pending).
-5. Voice Interface transcribe 400 stub fix (in backlog; carry-over).
+1. **Phase 2 of the receipt picker** — wire it into standalone `/trace`. Architecture already supports it; just need a `TraceModalOverlay`-based fallback for the picker. Probably 2-3 commits, no new architectural work.
+2. **Optional: silence the useLayoutEffect SSR warning** with `useIsomorphicLayoutEffect` — two-line patch in `WaveClipper.tsx`.
+3. **Optional: Phase 2 polish on `/demo-showcase`** — manual testing across mobile + desktop on different mic-permission paths now that the Apr 23 bug is fixed.
+4. Carry-over from previous handoff:
+   - `KILL-SWITCH-ARCHITECTURE.md` doc has stale references to pre-split ClipStream (~10 minutes of doc cleanup)
+   - Voice Interface `/api/voice-interface/transcribe` 400 stub fix (still in backlog)
+   - Manual mic-required acceptance tests for kill-switch (carry-over from earlier session)
+
+## Commit log this session (newest → oldest)
+
+```
+b23345e tweak(TraceDemo): smaller sample-strip thumbs (80→44 desktop, 64→38 mobile)
+433afac tweak(Trace): drop 'different store' from sainsburys caption
+02cdbd3 tweak(Trace): refine sample-receipt captions to match real conditions
+8925675 fix(showcase): mobile mic banner stretches to fill row width
+82fd677 polish(Trace): Emil pass on sample-picker transitions (commit 7/7)
+e6daef2 feat(Trace): wire sample-receipt upload end-to-end (commit 6/7)
+812f2f4 feat(Trace): wire sample-picker modal trigger (commit 5/7)
+dad4373 feat(Trace): TraceDemo renders sample-receipt strip (commit 4/7)
+991cba1 feat(Trace): SampleReceiptPickerModal component (commit 3/7)
+fe1468a feat(Trace): TraceCore exposes sample-picker render slots (commit 2/7)
+b4aefe1 feat(Trace): sample receipts data + thumbnails (commit 1/7)
+5a38cd1 assets(trace): add background-removed receipt cutouts for upload preview
+0e309b0 feat(Trace): dormant ClearButton when nothing to clear or flow in flight
+1f24a27 tweak(TraceSim): extra -80px height on mobile to free showcase chrome space
+1ca8030 docs(HANDOFF): note Safari waveform false-start experiment
+8c2c5b4 fix(TraceDemo): tighter clear-button positioning on mobile
+1c3b660 tweak(ClipStreamSim): bump online-transcribing spinner to 2.5s
+9b98eed fix(DemoIntroCard): drop background/color transitions so swap is fully masked
+88a4044 tweak(ClipStreamSim): 'Back online' spans transcribed-read for ~5s
+dd8ca1e polish(DemoIntroCard): blur-mask the headline swap per Emil
+aad4a95 feat(demo-showcase): dynamic narrative headline for ClipStream sim
+27838ec tweak(ClipStreamSim): proper clip title + longer offline/read beats
+864be71 feat(ClipStreamSim): scripted offline→online loop per rebuild spec
+5d98091 revert(ClipStreamSim): restore thin passthrough pre-rebuild
+d913a4e docs(demo-showcase): ClipStreamSim rebuild spec
+```
+
+Plus four plan/skill artefacts that aren't commit-history-visible:
+- `docs/trace/CLEAR-BUTTON-DORMANT-STATE.md`
+- `docs/trace/RECEIPT-PICKER-MODAL.md`
+- `~/.claude/commands/remove-bg.md` (slash command)
+- `~/Documents/projects/rembg-tools/` (toolchain, outside repo)
+
+---
+
+## Process patterns established this session
+
+These are how things flowed; worth carrying forward:
+
+1. **Plan first for non-trivial work.** Both the ClipStream rebuild and the receipt picker were preceded by long plan docs that went through reviewer cycles before any code was written. The reviewer feedback caught real architectural gaps (state gating, layout contradictions, modal-content-stale-state issue). Plan docs live in `docs/<project>/`.
+
+2. **Reviewer pushback is fair game.** Pushed back on a reviewer comment about the modal Upload button's gating ("technically correct, but the practical risk is low"); also pushed back on a reviewer's literal "same row" mobile layout requirement when it broke the math. User explicitly endorsed taking ownership and pushing back when warranted.
+
+3. **Structural fix over patch.** Made this explicit twice (clear-button dormant state, sample-picker gating). Both reused the same render-slot signature pattern. Both honor a prop that was already declared on the type interface but never wired. The pattern is now stable — copy it for similar work.
+
+4. **Single source of truth + render-slot prop signature for showcase/standalone parity.** TraceCore derives state once, propagates through both `renderClearButton` and `renderSampleStrip` (or their `onRequest*` modal-trigger callbacks). Different consumers can never disagree.
+
+5. **Emil's design.md as a real reference.** Not just decorative — `cubic-bezier(0.23, 1, 0.32, 1)` for UI motion, `@media (hover: hover) and (pointer: fine)` gating, `:active` scale-down for buttons, blur-mask for crossfades that feel jarring. Used in the dynamic narrative pill polish AND the sample-picker polish.
+
+6. **Verify in browser before claiming done.** Used `preview_eval` + `preview_screenshot` extensively. Not always smooth (stale dev-server logs caused some confusion mid-session), but the workflow caught real issues.
+
+End of handoff.
