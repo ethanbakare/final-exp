@@ -18,6 +18,8 @@ import { createPortal } from 'react-dom';
 import { TraceCore } from '@/projects/trace/components/TraceCore';
 import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
 import { ClearButton } from '@/projects/trace/components/ui/tracebuttons';
+import { SampleReceiptPickerModal } from '@/projects/trace/components/ui/SampleReceiptPickerModal';
+import type { SampleReceipt } from '@/projects/trace/data/sample-receipts';
 import { useShowcaseModal } from '@/projects/demo-showcase/context/ShowcaseModalContext';
 
 interface TraceDemoProps {
@@ -61,6 +63,48 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
     });
   }, [closeModal, openModal]);
 
+  // Sample-receipt picker modal wiring. TraceCore calls this when the
+  // user clicks a strip thumbnail. We open the showcase modal layer
+  // with SampleReceiptPickerModal as the content, threading through:
+  //   - the receipts array + initialIndex (which thumbnail was clicked)
+  //   - the external-store pair (subscribeIsDisabled / getIsDisabled)
+  //     so the modal's Upload button can dim live if navbarState
+  //     flips mid-modal — see RECEIPT-PICKER-MODAL.md §5.3.2
+  //   - onUpload: currently a no-op; commit 6 connects it to
+  //     controls.selectReceipt to run the chosen receipt through
+  //     TraceCore's processImageFile pipeline
+  //   - onClose: closeModal() from the showcase context
+  const handleSamplePickerRequest = useCallback((controls: {
+    receipts: SampleReceipt[];
+    initialIndex: number;
+    selectReceipt: (file: File) => Promise<void>;
+    cancel: () => void;
+    subscribeIsDisabled: (callback: () => void) => () => void;
+    getIsDisabled: () => boolean;
+  }) => {
+    const handleClose = () => {
+      controls.cancel();
+      closeModal();
+    };
+
+    openModal({
+      closeOnBackdropClick: true,
+      onRequestClose: handleClose,
+      content: (
+        <SampleReceiptPickerModal
+          receipts={controls.receipts}
+          initialIndex={controls.initialIndex}
+          onUpload={() => {
+            // Wired in commit 6.
+          }}
+          onClose={handleClose}
+          subscribeIsDisabled={controls.subscribeIsDisabled}
+          getIsDisabled={controls.getIsDisabled}
+        />
+      ),
+    });
+  }, [closeModal, openModal]);
+
   return (
     <div className="trace-demo-wrapper" ref={wrapperRef}>
       <div className="trace-demo-content">
@@ -73,6 +117,7 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
           // top chrome. Standalone /trace is unaffected.
           hideMicBanner={true}
           onRequestClearAll={handleShowcaseClearRequest}
+          onRequestSamplePicker={handleSamplePickerRequest}
           renderClearButton={(requestClearAll, isDisabled) => (
             isVisible && canvasContentEl ? createPortal(
               <div className="showcase-clear-button">
