@@ -518,7 +518,14 @@ export default function DemoShowcasePage() {
               align-items: flex-start;
               width: 100%;
             }
-            .mobile-nav-row :global(.top-navbar-compact-small) {
+            /* Stretch whichever component is rendered in the slot —
+               the project pill OR the mic banner — to fill the row's
+               remaining width after the close button. Previously this
+               only targeted the compact pill, so the dismissed-state
+               'Enable Mic' mini banner was content-sized and left a
+               visible gap next to the close button. */
+            .mobile-nav-row :global(.top-navbar-compact-small),
+            .mobile-nav-row :global(.top-navbar-mic-small) {
               flex: 1 1 0;
               min-width: 0;
             }
