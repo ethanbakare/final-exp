@@ -245,10 +245,14 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           background: rgba(255, 255, 255, 0.12);
           color: #ffffff;
           cursor: pointer;
-          transition: background 150ms ease, transform 100ms ease;
+          transition:
+            background 160ms cubic-bezier(0.23, 1, 0.32, 1),
+            transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
         }
-        .close-btn:hover {
-          background: rgba(255, 255, 255, 0.2);
+        @media (hover: hover) and (pointer: fine) {
+          .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+          }
         }
         .close-btn:active {
           transform: scale(0.95);
@@ -282,7 +286,9 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           align-items: center;
           justify-content: center;
           z-index: 2;
-          transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+          /* Emil's strong ease-out — built-in CSS curves are too weak.
+             See docs/skills/emil-design-eng.md §Animation Decision Framework. */
+          transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
         }
         .center.dragging {
           transition: none;
@@ -302,7 +308,6 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
         .peek {
           position: absolute;
           top: 50%;
-          transform: translateY(-50%);
           background: transparent;
           border: none;
           padding: 0;
@@ -310,10 +315,9 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           opacity: 0.45;
           filter: blur(10px);
           z-index: 1;
-          transition: opacity 200ms ease;
-        }
-        .peek:hover {
-          opacity: 0.6;
+          transition:
+            opacity 220ms cubic-bezier(0.23, 1, 0.32, 1),
+            transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
         }
         .peek img {
           display: block;
@@ -332,11 +336,16 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           right: -20px;
           transform: translate(50%, -50%);
         }
-        .peek-left:hover {
-          transform: translate(-48%, -50%);
-        }
-        .peek-right:hover {
-          transform: translate(48%, -50%);
+        @media (hover: hover) and (pointer: fine) {
+          .peek:hover {
+            opacity: 0.6;
+          }
+          .peek-left:hover {
+            transform: translate(-48%, -50%);
+          }
+          .peek-right:hover {
+            transform: translate(48%, -50%);
+          }
         }
 
         @media (max-width: 768px) {
@@ -365,10 +374,14 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           padding: 0;
           background: rgba(255, 255, 255, 0.3);
           cursor: pointer;
-          transition: background 150ms ease, transform 100ms ease;
+          transition:
+            background 200ms cubic-bezier(0.23, 1, 0.32, 1),
+            transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
         }
-        .dot:hover {
-          background: rgba(255, 255, 255, 0.55);
+        @media (hover: hover) and (pointer: fine) {
+          .dot:hover {
+            background: rgba(255, 255, 255, 0.55);
+          }
         }
         .dot.active {
           background: #ffffff;
@@ -392,10 +405,15 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           font-size: 15px;
           font-weight: 600;
           cursor: pointer;
-          transition: opacity 150ms ease, transform 100ms ease, background 150ms ease;
+          transition:
+            opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+            transform 100ms cubic-bezier(0.23, 1, 0.32, 1),
+            background 200ms cubic-bezier(0.23, 1, 0.32, 1);
         }
-        .upload-pill:hover:not(:disabled) {
-          background: #ffffff;
+        @media (hover: hover) and (pointer: fine) {
+          .upload-pill:hover:not(:disabled) {
+            background: #ffffff;
+          }
         }
         .upload-pill:active:not(:disabled) {
           transform: scale(0.97);

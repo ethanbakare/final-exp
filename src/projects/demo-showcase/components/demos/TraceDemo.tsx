@@ -217,10 +217,18 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
           cursor: pointer;
           background: rgba(255, 255, 255, 0.7);
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-          transition: opacity 150ms ease, transform 100ms ease, box-shadow 150ms ease;
+          /* Emil's strong ease-out — built-in CSS curves are too weak.
+             See docs/skills/emil-design-eng.md. */
+          transition:
+            opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+            transform 100ms cubic-bezier(0.23, 1, 0.32, 1),
+            box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1);
         }
-        .strip-thumb:hover:not(:disabled) {
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+        @media (hover: hover) and (pointer: fine) {
+          .strip-thumb:hover:not(:disabled) {
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
+            transform: translateY(-1px);
+          }
         }
         .strip-thumb:active:not(:disabled) {
           transform: scale(0.97);
