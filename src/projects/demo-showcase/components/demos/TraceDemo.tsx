@@ -206,10 +206,10 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
         }
 
         /* Each thumbnail is a button so disabled gating works
-           natively. 80px square on desktop, 64px on mobile. */
+           natively. 44px square on desktop, 38px on mobile. */
         .strip-thumb {
-          width: 80px;
-          height: 80px;
+          width: 44px;
+          height: 44px;
           padding: 0;
           border: none;
           border-radius: 8px;
@@ -257,8 +257,8 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
             gap: 6px;
           }
           .strip-thumb {
-            width: 64px;
-            height: 64px;
+            width: 38px;
+            height: 38px;
           }
         }
       `}</style>
