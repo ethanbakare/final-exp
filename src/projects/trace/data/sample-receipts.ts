@@ -69,8 +69,8 @@ export const SAMPLE_RECEIPTS: SampleReceipt[] = [
     id: 'sainsburys',
     src: '/images/receipts-cutout/sainsburys.png',
     thumbSrc: '/images/receipts-cutout/thumbs/sainsburys.webp',
-    alt: "Clean, well-lit Sainsbury's receipt with all values legible",
-    caption: 'Clean shot — different store, values strongly visible.',
+    alt: 'Clean, well-lit receipt with all values legible',
+    caption: 'Clean shot — all values strongly visible.',
     mimeType: 'image/png',
   },
 ];
