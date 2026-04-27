@@ -87,6 +87,21 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
       closeModal();
     };
 
+    // Upload handler — fetch the chosen receipt's PNG, wrap it in a
+    // File the same way a native picker would deliver one, close the
+    // modal, then hand it to TraceCore's processImageFile via
+    // controls.selectReceipt. From here, the rest of the pipeline
+    // (state transitions, /api/trace/parse-receipt, entry rendering)
+    // is identical to a real file-picker upload — the API never knows
+    // the difference.
+    const handleUpload = async (receipt: SampleReceipt) => {
+      const response = await fetch(receipt.src);
+      const blob = await response.blob();
+      const file = new File([blob], `${receipt.id}.png`, { type: receipt.mimeType });
+      closeModal();
+      await controls.selectReceipt(file);
+    };
+
     openModal({
       closeOnBackdropClick: true,
       onRequestClose: handleClose,
@@ -94,9 +109,7 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
         <SampleReceiptPickerModal
           receipts={controls.receipts}
           initialIndex={controls.initialIndex}
-          onUpload={() => {
-            // Wired in commit 6.
-          }}
+          onUpload={handleUpload}
           onClose={handleClose}
           subscribeIsDisabled={controls.subscribeIsDisabled}
           getIsDisabled={controls.getIsDisabled}
