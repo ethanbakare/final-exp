@@ -214,12 +214,14 @@ export const CloseButton: React.FC<CloseButtonProps> = ({
 
 export const ClearButton: React.FC<ClearButtonProps> = ({
   onClick,
+  disabled = false,
   className = '',
 }) => {
   return (
     <button
       className={`clear-button ${className} ${styles.container}`}
       onClick={onClick}
+      disabled={disabled}
       type="button"
     >
       {/* Clear/Delete Icon - From voicebuttons.tsx */}
@@ -248,8 +250,18 @@ export const ClearButton: React.FC<ClearButtonProps> = ({
           border-radius: var(--trace-button-radius);
           color: var(--trace-btn-light); /* Icon color - previous button background */
           cursor: pointer;
-          transition: var(--trace-transition-fast);
+          transition: opacity var(--trace-transition-fast), var(--trace-transition-fast);
           user-select: none;
+        }
+
+        /* Dormant state — clearing isn't appropriate right now (empty
+           list OR active recording / processing flow). Click-blocking
+           is handled natively by <button disabled>; cursor + opacity
+           are the visible affordance. See
+           docs/trace/CLEAR-BUTTON-DORMANT-STATE.md. */
+        .clear-button:disabled {
+          opacity: 0.35;
+          cursor: not-allowed;
         }
 
         .icon-container {

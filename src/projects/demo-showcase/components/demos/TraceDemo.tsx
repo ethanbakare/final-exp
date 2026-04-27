@@ -73,10 +73,10 @@ export const TraceDemo: React.FC<TraceDemoProps> = ({ cancelSignal, runIdRef, is
           // top chrome. Standalone /trace is unaffected.
           hideMicBanner={true}
           onRequestClearAll={handleShowcaseClearRequest}
-          renderClearButton={(requestClearAll) => (
+          renderClearButton={(requestClearAll, isDisabled) => (
             isVisible && canvasContentEl ? createPortal(
               <div className="showcase-clear-button">
-                <ClearButton onClick={requestClearAll} />
+                <ClearButton onClick={requestClearAll} disabled={isDisabled} />
               </div>,
               canvasContentEl,
             ) : null

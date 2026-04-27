@@ -84,7 +84,14 @@ export interface TraceCoreProps {
   // [DEMO-SHOWCASE] Optional clear-button render slot. Lets the showcase
   // place the destructive action outside TraceCore's default layout
   // without changing standalone /trace behavior.
-  renderClearButton?: (requestClearAll: () => void) => React.ReactNode;
+  //
+  // The second arg `isDisabled` mirrors the disabled state TraceCore
+  // computes for its own standalone render path (entries empty OR
+  // active recording / processing flow). Consumers should thread it
+  // through to <ClearButton disabled={isDisabled}> so all render paths
+  // share the same source of truth. See
+  // docs/trace/CLEAR-BUTTON-DORMANT-STATE.md.
+  renderClearButton?: (requestClearAll: () => void, isDisabled: boolean) => React.ReactNode;
 }
 
 export const TraceCore: React.FC<TraceCoreProps> = ({
@@ -293,8 +300,16 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
     input.click();
   };
 
-  // Clear all entries handler
+  // Clear all entries handler.
+  // Defense-in-depth early-return mirrors the visual disabled state
+  // computed below. The primary contract is the <button disabled>
+  // attribute on ClearButton, which prevents the click reaching here
+  // in the first place; this guard catches any path that bypasses the
+  // button (programmatic call, future render path that forgets to
+  // wire the disabled prop, etc.).
   const requestClearAll = () => {
+    if (entries.length === 0 || navbarState !== 'idle') return;
+
     if (onRequestClearAll) {
       onRequestClearAll({
         confirmClear: handleConfirmClear,
@@ -351,6 +366,13 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
   // Compute grand total across all entries
   const grandTotal = entries.reduce((sum, entry) => sum + entry.total, 0).toFixed(2);
 
+  // ClearButton dormant state — single source of truth.
+  // Disabled when there's nothing to clear OR when an active flow is in
+  // progress (recording / processing audio / processing image). Both
+  // standalone and showcase render paths consume this same value so they
+  // can never disagree on whether clearing is currently appropriate.
+  const isClearDisabled = entries.length === 0 || navbarState !== 'idle';
+
   // Derive empty-state processing copy/icon from navbar state
   const processingState: ProcessingState =
     navbarState === 'processing_audio'
@@ -394,10 +416,10 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
       </div>
 
       {renderClearButton ? (
-        renderClearButton(requestClearAll)
+        renderClearButton(requestClearAll, isClearDisabled)
       ) : (
         <div className="clear-button-below">
-          <ClearButton onClick={requestClearAll} />
+          <ClearButton onClick={requestClearAll} disabled={isClearDisabled} />
         </div>
       )}
 
