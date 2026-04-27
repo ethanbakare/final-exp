@@ -375,6 +375,8 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           background: rgba(255, 255, 255, 0.3);
           cursor: pointer;
           transition:
+            width 200ms cubic-bezier(0.23, 1, 0.32, 1),
+            border-radius 200ms cubic-bezier(0.23, 1, 0.32, 1),
             background 200ms cubic-bezier(0.23, 1, 0.32, 1),
             transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
         }
@@ -384,6 +386,8 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           }
         }
         .dot.active {
+          width: 24px;
+          border-radius: 4px;
           background: #ffffff;
         }
         .dot:active {
