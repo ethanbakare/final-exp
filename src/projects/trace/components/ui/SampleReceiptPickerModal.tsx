@@ -46,6 +46,11 @@ interface SampleReceiptPickerModalProps {
 // enough that an accidental tap doesn't register as a swipe.
 const DRAG_THRESHOLD_PX = 50;
 
+// Movement past this point promotes the gesture from "tap" to "drag".
+// Below this we don't capture the pointer, so a tap on a peek button
+// still propagates as a native click.
+const DRAG_ARM_PX = 5;
+
 export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> = ({
   receipts,
   initialIndex,
@@ -95,26 +100,57 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
   }, [goNext, goPrev]);
 
   // Pointer-based drag (works for both touch and mouse).
+  //
+  // We only `setPointerCapture` once the user has moved past DRAG_ARM_PX.
+  // Before that, the gesture is treated as a potential tap and the native
+  // click event is allowed to reach descendants (peek buttons, dots).
+  // Capturing on every pointerdown would re-target subsequent pointer
+  // events to the carousel and suppress the click on the original peek.
+  const pointerArmedRef = useRef(false);
+  const justDraggedRef = useRef(false);
+
   const handlePointerDown = (e: React.PointerEvent) => {
     dragStartXRef.current = e.clientX;
-    setIsDragging(true);
-    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    pointerArmedRef.current = false;
+    setDragOffsetX(0);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    setDragOffsetX(e.clientX - dragStartXRef.current);
+    const offset = e.clientX - dragStartXRef.current;
+    if (!pointerArmedRef.current) {
+      if (Math.abs(offset) < DRAG_ARM_PX) return;
+      pointerArmedRef.current = true;
+      setIsDragging(true);
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    }
+    setDragOffsetX(offset);
   };
 
   const handlePointerUp = () => {
-    if (!isDragging) return;
+    if (!pointerArmedRef.current) {
+      // Pure tap — let click propagate to peek/dot/etc.
+      return;
+    }
+    pointerArmedRef.current = false;
     setIsDragging(false);
+    // Suppress the imminent click that browsers fire on whichever element
+    // the gesture started on (often a peek), so a swipe-from-peek doesn't
+    // double-navigate.
+    justDraggedRef.current = true;
     if (dragOffsetX < -DRAG_THRESHOLD_PX) {
       goNext();
     } else if (dragOffsetX > DRAG_THRESHOLD_PX) {
       goPrev();
     }
     setDragOffsetX(0);
+  };
+
+  const consumeJustDragged = () => {
+    if (justDraggedRef.current) {
+      justDraggedRef.current = false;
+      return true;
+    }
+    return false;
   };
 
   const currentReceipt = receipts[currentIndex];
@@ -190,7 +226,10 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           <button
             type="button"
             className="peek peek-left"
-            onClick={goPrev}
+            onClick={() => {
+              if (consumeJustDragged()) return;
+              goPrev();
+            }}
             aria-label={`Previous: ${prevReceipt.alt}`}
           >
             <img src={prevReceipt.src} alt="" draggable={false} />
@@ -212,7 +251,10 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           <button
             type="button"
             className="peek peek-right"
-            onClick={goNext}
+            onClick={() => {
+              if (consumeJustDragged()) return;
+              goNext();
+            }}
             aria-label={`Next: ${nextReceipt.alt}`}
           >
             <img src={nextReceipt.src} alt="" draggable={false} />
@@ -388,7 +430,7 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           padding: 0;
           cursor: pointer;
           opacity: 0.45;
-          filter: blur(10px);
+          filter: blur(5px);
           z-index: 1;
           transition:
             opacity 220ms cubic-bezier(0.23, 1, 0.32, 1),
