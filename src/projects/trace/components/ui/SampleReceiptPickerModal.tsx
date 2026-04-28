@@ -24,12 +24,18 @@
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
 import { createPortal } from 'react-dom';
 import type { SampleReceipt } from '../../data/sample-receipts';
+
+// useLayoutEffect logs an SSR warning; on the server we transparently fall
+// back to useEffect since DOM measurement is meaningless there anyway.
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 interface SampleReceiptPickerModalProps {
   receipts: SampleReceipt[];
@@ -72,6 +78,44 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
   // Guarded with a mounted flag to avoid SSR mismatch.
   const [bodyMounted, setBodyMounted] = useState(false);
   useEffect(() => setBodyMounted(true), []);
+
+  // Carousel layout measurement.
+  //
+  // The track is a flex row of all receipts; we translate it in pixels to
+  // keep the active slide horizontally centered. That requires knowing
+  // the carousel's actual rendered width, which we read once with a sync
+  // layout effect (no first-paint flash) and then keep in sync via
+  // ResizeObserver for window resizes / modal-width changes.
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [carouselWidth, setCarouselWidth] = useState(0);
+  useIsomorphicLayoutEffect(() => {
+    if (!carouselRef.current) return;
+    // Use offsetWidth + ResizeObserver.contentRect — both report the
+    // layout-box width, which is independent of any transform that may
+    // be in flight on an ancestor (e.g. the showcase modal layer's
+    // scale-in entrance animation). getBoundingClientRect includes
+    // transforms and would lock in a too-small measurement during that
+    // initial frame.
+    setCarouselWidth(carouselRef.current.offsetWidth);
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (typeof w === 'number') setCarouselWidth(w);
+    });
+    ro.observe(carouselRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Breakpoint state. On desktop each slide takes 70% of the carousel so
+  // adjacent peeks are visible at the edges; on mobile slides are 100%
+  // wide so only the active is visible (peeks are offscreen via overflow).
+  const [isDesktop, setIsDesktop] = useState(true);
+  useEffect(() => {
+    const mql = window.matchMedia('(min-width: 769px)');
+    setIsDesktop(mql.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
 
   // Live disabled state from TraceCore — see §5.3.2.
   const isDisabled = useSyncExternalStore(subscribeIsDisabled, getIsDisabled);
@@ -169,9 +213,22 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
   };
 
   const currentReceipt = receipts[currentIndex];
-  const prevReceipt = currentIndex > 0 ? receipts[currentIndex - 1] : null;
-  const nextReceipt =
-    currentIndex < receipts.length - 1 ? receipts[currentIndex + 1] : null;
+
+  // Track translation in px. Centers the active slide:
+  //   trackOffset = (carouselW - slideW) / 2 - currentIndex * slideW + dragX
+  // Falls back to 0 until carouselWidth has been measured (slides are
+  // gated on width > 0 below so nothing renders mis-positioned).
+  //
+  // Slot width determines how much of each adjacent peek shows: slot
+  // takes the center, leaving (1 - slidePercent) / 2 of carousel on each
+  // side for peek content. At 0.5 each peek has 25% of carousel — enough
+  // to read the receipt outline rather than just a thin sliver.
+  const slidePercent = isDesktop ? 0.5 : 1.0;
+  const slideWidthPx = carouselWidth * slidePercent;
+  const trackOffsetX =
+    (carouselWidth - slideWidthPx) / 2 -
+    currentIndex * slideWidthPx +
+    dragOffsetX;
 
   const handleUploadClick = () => {
     if (isDisabled) return;
@@ -229,52 +286,62 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
         {currentReceipt.caption}
       </div>
 
-      {/* Carousel: peeks (desktop only) flank the center receipt. */}
+      {/* Carousel: track-based slider. All receipts live on a single
+          horizontal flex track; the track translates in pixels to keep
+          the active slide centered. Each slide's CSS class (active vs
+          peek) drives its size/blur, so when currentIndex changes the
+          track translation and the slide-style transitions run together
+          and the previously-active slide visibly shrinks + blurs while
+          the incoming peek visibly grows + clears. */}
       <div
         className="carousel"
+        ref={carouselRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        {prevReceipt && (
-          <button
-            type="button"
-            className="peek peek-left"
-            onClick={() => {
-              if (consumeJustDragged()) return;
-              goPrev();
-            }}
-            aria-label={`Previous: ${prevReceipt.alt}`}
-          >
-            <img src={prevReceipt.src} alt="" draggable={false} />
-          </button>
-        )}
-
         <div
-          className={`center ${isDragging ? 'dragging' : ''}`}
-          style={{ transform: `translateX(${dragOffsetX}px)` }}
+          className={`track ${isDragging ? 'dragging' : ''}`}
+          style={{ transform: `translate3d(${trackOffsetX}px, 0, 0)` }}
         >
-          <img
-            src={currentReceipt.src}
-            alt={currentReceipt.alt}
-            draggable={false}
-          />
+          {carouselWidth > 0 &&
+            receipts.map((r, i) => {
+              const distance = i - currentIndex;
+              const isActive = distance === 0;
+              // Only the immediate peek on each side is rendered visibly;
+              // anything further away fades out so the carousel doesn't
+              // bleed multiple receipts into the modal padding (overflow:
+              // visible on the carousel lets every slide render, but only
+              // the directly adjacent ones should be readable).
+              const cls = isActive
+                ? 'active'
+                : Math.abs(distance) === 1
+                  ? distance < 0 ? 'peek-left' : 'peek-right'
+                  : 'far';
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  className={`slide ${cls}`}
+                  style={{ width: `${slideWidthPx}px` }}
+                  onClick={() => {
+                    if (consumeJustDragged()) return;
+                    if (i !== currentIndex) setCurrentIndex(i);
+                  }}
+                  aria-label={isActive ? r.alt : `Go to ${r.alt}`}
+                  aria-current={isActive ? 'true' : undefined}
+                  tabIndex={isActive ? -1 : 0}
+                >
+                  <img
+                    src={r.src}
+                    alt={isActive ? r.alt : ''}
+                    draggable={false}
+                  />
+                </button>
+              );
+            })}
         </div>
-
-        {nextReceipt && (
-          <button
-            type="button"
-            className="peek peek-right"
-            onClick={() => {
-              if (consumeJustDragged()) return;
-              goNext();
-            }}
-            aria-label={`Next: ${nextReceipt.alt}`}
-          >
-            <img src={nextReceipt.src} alt="" draggable={false} />
-          </button>
-        )}
       </div>
 
       {/* Page indicator dots. */}
@@ -401,95 +468,133 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           padding: 0 16px;
         }
 
-        /* Carousel: row of [peek-left | center | peek-right] on desktop;
-           just the center on mobile. The center stretches; peeks are
-           absolutely positioned on the outside edges. */
+        /* Carousel — fixed-height window. Overflow is *visible* so peeks
+           can extend past the carousel into the modal's padding area
+           rather than being sliced at the edge (the old design did this
+           too — peeks faded into the modal background, no hard clip).
+           The modal itself + the showcase modal layer handle outer
+           clipping. */
         .carousel {
           position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           width: 100%;
+          height: 60vh;
+          max-height: 600px;
+          overflow: visible;
           touch-action: pan-y; /* allow vertical scroll, capture horizontal */
         }
 
-        .center {
+        /* Track — flex row of all slides, translated as a unit. Strong
+           ease-out matching the rest of the picker (see
+           docs/skills/emil-design-eng.md §Animation Decision Framework).
+           When the user is mid-drag we drop the transition so the track
+           snaps to the finger; on release the class clears and the snap
+           animates. */
+        .track {
+          display: flex;
+          height: 100%;
+          align-items: center;
+          will-change: transform;
+          transition: transform 320ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .track.dragging {
+          transition: none;
+        }
+
+        /* Slides — each is a button so peeks are clickable to navigate.
+           Width is set inline (px) from the measured carousel size.
+           Default styling matches mobile (no peek dimming); the desktop
+           media query below adds the scaled-down + blurred peek state. */
+        .slide {
+          flex-shrink: 0;
+          height: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 2;
-          /* Emil's strong ease-out — built-in CSS curves are too weak.
-             See docs/skills/emil-design-eng.md §Animation Decision Framework. */
-          transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        .center.dragging {
-          transition: none;
-        }
-        .center img {
-          display: block;
-          height: 60vh;
-          max-height: 600px;
-          width: auto;
-          max-width: 100%;
-          object-fit: contain;
-          user-select: none;
-          -webkit-user-drag: none;
-        }
-
-        /* Peeks — desktop only. Hidden on mobile via media query below. */
-        .peek {
-          position: absolute;
-          top: 50%;
           background: transparent;
           border: none;
           padding: 0;
           cursor: pointer;
-          opacity: 0.45;
-          filter: blur(5px);
-          z-index: 1;
           transition:
-            opacity 220ms cubic-bezier(0.23, 1, 0.32, 1),
-            transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+            transform 320ms cubic-bezier(0.23, 1, 0.32, 1),
+            opacity 320ms cubic-bezier(0.23, 1, 0.32, 1),
+            filter 320ms cubic-bezier(0.23, 1, 0.32, 1);
         }
-        .peek img {
+        .slide.active {
+          transform: scale(1);
+          opacity: 1;
+          filter: none;
+          cursor: default;
+          /* Stack above peeks so any visual overlap shows the active
+             receipt cleanly on top. */
+          z-index: 2;
+        }
+        /* Default (mobile) peek state: adjacent slides match active so a
+           drag reveals normally-sized receipts. Desktop overrides below. */
+        .slide.peek-left,
+        .slide.peek-right {
+          transform: scale(1);
+          opacity: 1;
+          filter: none;
+        }
+        /* Slides further than one step from active fade out so they
+           don't bleed past the immediate peek into the modal padding. */
+        .slide.far {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .slide img {
           display: block;
-          height: 36vh; /* 60% of center's 60vh */
-          max-height: 360px;
+          height: 100%;
           width: auto;
+          /* No max-width: image renders at its natural width given the
+             height (active = full carousel height). max-width: 100% would
+             shrink the active image to the slot width and make it look
+             smaller than intended. */
           object-fit: contain;
           user-select: none;
           -webkit-user-drag: none;
         }
-        .peek-left {
-          left: -20px;
-          transform: translate(-50%, -50%);
+
+        @media (min-width: 769px) {
+          /* Desktop peeks — small, dim, blurred. translateX shifts each
+             peek toward the active slide so its visible content sits at
+             the inner edge of its slot (carousel viewport boundary)
+             rather than centered in a mostly-offscreen slot. The 20%
+             value matches the slot's empty-margin-after-scale: with
+             scale(0.6) the content fills 60% of the slot; the remaining
+             40% is split 20% on each side, so 20% of nudge places the
+             content flush against one side. */
+          .slide.peek-left {
+            transform: translateX(20%) scale(0.6);
+            opacity: 0.45;
+            filter: blur(5px);
+          }
+          .slide.peek-right {
+            transform: translateX(-20%) scale(0.6);
+            opacity: 0.45;
+            filter: blur(5px);
+          }
         }
-        .peek-right {
-          right: -20px;
-          transform: translate(50%, -50%);
-        }
-        @media (hover: hover) and (pointer: fine) {
-          .peek:hover {
+        @media (hover: hover) and (pointer: fine) and (min-width: 769px) {
+          .slide.peek-left:hover {
+            transform: translateX(20%) scale(0.65);
             opacity: 0.6;
+            filter: blur(3px);
           }
-          .peek-left:hover {
-            transform: translate(-48%, -50%);
-          }
-          .peek-right:hover {
-            transform: translate(48%, -50%);
+          .slide.peek-right:hover {
+            transform: translateX(-20%) scale(0.65);
+            opacity: 0.6;
+            filter: blur(3px);
           }
         }
 
         @media (max-width: 768px) {
-          .peek {
-            display: none;
+          .carousel {
+            height: 55vh;
           }
           .picker-modal {
             padding: 56px 16px 24px;
             gap: 20px;
-          }
-          .center img {
-            height: 55vh;
           }
           /* Swap the desktop button for the portaled mobile one. */
           .close-btn {
