@@ -125,7 +125,17 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
       if (Math.abs(offset) < DRAG_ARM_PX) return;
       pointerArmedRef.current = true;
       setIsDragging(true);
-      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      // setPointerCapture can throw NotFoundError if the underlying pointer
+      // was released between pointerdown and this move (browser quirk after
+      // pointercancel, rapid input, or synthetic event dispatch). The drag
+      // works without capture in the common case — only edge case is
+      // losing tracking if the cursor leaves the carousel mid-drag, which
+      // is rare with a full-width carousel. Non-fatal either way.
+      try {
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
     }
     setDragOffsetX(offset);
   };
