@@ -320,12 +320,14 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
               // anything further away fades out so the carousel doesn't
               // bleed multiple receipts into the modal padding (overflow:
               // visible on the carousel lets every slide render, but only
-              // the directly adjacent ones should be readable).
+              // the directly adjacent ones should be readable). Far is
+              // split per direction so the transition shrinks the slide
+              // toward the appropriate side rather than growing it.
               const cls = isActive
                 ? 'active'
                 : Math.abs(distance) === 1
                   ? distance < 0 ? 'peek-left' : 'peek-right'
-                  : 'far';
+                  : distance < 0 ? 'far-left' : 'far-right';
               return (
                 <button
                   key={r.id}
@@ -557,8 +559,14 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           filter: none;
         }
         /* Slides further than one step from active fade out so they
-           don't bleed past the immediate peek into the modal padding. */
-        .slide.far {
+           don't bleed past the immediate peek into the modal padding.
+           They also scale DOWN below peek size so the transition from
+           peek → far visibly shrinks the receipt as it leaves (and
+           grows it on the way back in) — the perspective cue that the
+           slide is moving "into the distance" rather than zooming in
+           awkwardly as it disappears. */
+        .slide.far-left,
+        .slide.far-right {
           opacity: 0;
           pointer-events: none;
         }
@@ -593,6 +601,18 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
             transform: translateX(-20%) scale(0.6);
             opacity: 0.45;
             filter: blur(5px);
+          }
+          /* Far slides keep the directional translateX so the slide
+             stays anchored to the inner edge of its slot, but scale
+             below peek (0.6 → 0.3) so the transition shrinks the
+             receipt as it leaves. Without this the slide interpolates
+             toward the default scale(1) and visibly *grows* on its way
+             out, which reads as zooming in rather than going away. */
+          .slide.far-left {
+            transform: translateX(20%) scale(0.3);
+          }
+          .slide.far-right {
+            transform: translateX(-20%) scale(0.3);
           }
         }
         @media (hover: hover) and (pointer: fine) and (min-width: 769px) {
