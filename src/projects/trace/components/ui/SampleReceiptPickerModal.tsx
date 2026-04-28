@@ -101,21 +101,25 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
 
   // Pointer-based drag (works for both touch and mouse).
   //
-  // We only `setPointerCapture` once the user has moved past DRAG_ARM_PX.
-  // Before that, the gesture is treated as a potential tap and the native
-  // click event is allowed to reach descendants (peek buttons, dots).
-  // Capturing on every pointerdown would re-target subsequent pointer
-  // events to the carousel and suppress the click on the original peek.
+  // pointermove fires on hover too, not just during drag. We gate every
+  // movement on pointerDownRef so a bare cursor passing over the carousel
+  // never moves the receipt. Only after pointerdown — and only after
+  // movement passes DRAG_ARM_PX — do we capture the pointer and start
+  // translating. Below that threshold the gesture stays a tap and the
+  // native click reaches whichever child was hit (peek button, dot).
+  const pointerDownRef = useRef(false);
   const pointerArmedRef = useRef(false);
   const justDraggedRef = useRef(false);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     dragStartXRef.current = e.clientX;
+    pointerDownRef.current = true;
     pointerArmedRef.current = false;
     setDragOffsetX(0);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pointerDownRef.current) return;
     const offset = e.clientX - dragStartXRef.current;
     if (!pointerArmedRef.current) {
       if (Math.abs(offset) < DRAG_ARM_PX) return;
@@ -127,6 +131,7 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
   };
 
   const handlePointerUp = () => {
+    pointerDownRef.current = false;
     if (!pointerArmedRef.current) {
       // Pure tap — let click propagate to peek/dot/etc.
       return;
