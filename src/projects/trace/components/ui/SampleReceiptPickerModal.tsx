@@ -129,14 +129,21 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
   }, []);
 
   // Keyboard nav: ←/→ to step. Esc is handled by the modal layer.
+  // After arrow-key navigation we blur whichever slide currently has
+  // focus so its focus ring doesn't linger on a now-inactive receipt
+  // (focus follows the DOM node, not the active class). Mouse clicks
+  // are handled by :focus-visible in CSS, which suppresses the outline
+  // for non-keyboard focus.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') {
-        goNext();
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        if (e.key === 'ArrowRight') goNext();
+        else goPrev();
         e.preventDefault();
-      } else if (e.key === 'ArrowLeft') {
-        goPrev();
-        e.preventDefault();
+        const focused = document.activeElement;
+        if (focused instanceof HTMLElement && focused.classList.contains('slide')) {
+          focused.blur();
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -518,6 +525,19 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
             transform 320ms cubic-bezier(0.23, 1, 0.32, 1),
             opacity 320ms cubic-bezier(0.23, 1, 0.32, 1),
             filter 320ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        /* Suppress the default focus outline for mouse/touch clicks —
+           it lingered on whichever slide was clicked and looked like a
+           sticky bounding box around an old receipt after navigation.
+           :focus-visible still applies the outline for keyboard focus
+           so accessibility is preserved. */
+        .slide:focus {
+          outline: none;
+        }
+        .slide:focus-visible {
+          outline: 2px solid rgba(255, 255, 255, 0.6);
+          outline-offset: 4px;
+          border-radius: 8px;
         }
         .slide.active {
           transform: scale(1);
