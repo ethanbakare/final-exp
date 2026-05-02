@@ -495,7 +495,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           gap: 20px;
 
           width: 100%;
-          max-width: 1000px;
+          max-width: 901px;
+          min-height: 566px;
           padding: 40px 20px 20px;
 
           background: var(--VoiceBoxBg, #F7F6F4);
