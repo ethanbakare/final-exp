@@ -31,9 +31,12 @@ interface RealtimeBlobProps {
   height?: number;
 }
 
+// At canvas 252×252 with FOV 45°/z=3.5, visible world-height ≈ 2.9 units.
+// scale ≈ 1.35 makes the blob fill ~90% of canvas, matching the Figma spec
+// where orb-canvas occupies the full 252×252 frame.
 const REALTIME_BASE = {
   ...WHIMSY_BASE,
-  scale: 0.74,
+  scale: 1.35,
 };
 
 const STATE_MAP: Record<RealtimeVoiceState, BlobVoiceState> = {
