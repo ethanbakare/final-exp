@@ -492,12 +492,13 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: space-between;
           gap: 20px;
 
           width: 100%;
           max-width: 901px;
           min-height: 566px;
-          padding: 40px 20px 20px;
+          padding: 60px 20px 30px;
 
           background: var(--VoiceBoxBg, #F7F6F4);
           border: 1px solid var(--VoiceBoxOutline, #F2F2F2);
