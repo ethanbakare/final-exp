@@ -31,12 +31,13 @@ interface RealtimeBlobProps {
   height?: number;
 }
 
-// At canvas 252×252 with FOV 45°/z=3.5, visible world-height ≈ 2.9 units.
-// scale ≈ 1.35 makes the blob fill ~90% of canvas, matching the Figma spec
-// where orb-canvas occupies the full 252×252 frame.
+// Canvas is sized 30% larger than the blob's visible diameter so the
+// Speaking-state morph (sphere bigger than the idle torus) doesn't clip
+// at the bounding box. At canvas 328×328 with FOV 45°/z=3.5, scale ≈ 1.04
+// keeps the visible blob ~227px (same as scale 1.35 at 252×252).
 const REALTIME_BASE = {
   ...WHIMSY_BASE,
-  scale: 1.35,
+  scale: 1.04,
 };
 
 const STATE_MAP: Record<RealtimeVoiceState, BlobVoiceState> = {
@@ -49,8 +50,8 @@ const STATE_MAP: Record<RealtimeVoiceState, BlobVoiceState> = {
 export const RealtimeBlob: React.FC<RealtimeBlobProps> = ({
   audioData,
   voiceState,
-  width = 252,
-  height = 252,
+  width = 328,
+  height = 328,
 }) => {
   const blobState = STATE_MAP[voiceState];
   const stateSettings = DEFAULT_STATE_SETTINGS[blobState];

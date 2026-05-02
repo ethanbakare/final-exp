@@ -511,14 +511,18 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
+          gap: 20px;
           border: 0.5px solid orange; /* DEBUG */
         }
 
-        /* Orb Container */
+        /* Orb Container — sized 30% larger than the visible blob so
+           the Speaking-state morph (larger sphere) doesn't clip at the
+           canvas edges. RealtimeBlob compensates via base.scale to keep
+           the visible blob the same diameter as the Figma 252px spec. */
         .orb-container {
           flex-shrink: 0;
-          width: 252px;
-          height: 252px;
+          width: 328px;
+          height: 328px;
           border: 0.5px solid red; /* DEBUG */
         }
 
@@ -562,8 +566,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           }
 
           .orb-container {
-            width: 252px;
-            height: 252px;
+            width: 328px;
+            height: 328px;
           }
 
           .state-label-container {
