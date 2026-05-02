@@ -511,7 +511,6 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 20px;
           border: 0.5px solid orange; /* DEBUG */
         }
 
