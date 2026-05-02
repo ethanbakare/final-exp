@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RealtimeAgent, RealtimeSession, OpenAIRealtimeWebRTC } from '@openai/agents-realtime';
-import { VelvetOrb, VoiceState } from './orb/VelvetOrb';
+// VelvetOrb is shelved — kept in tree at ./orb/VelvetOrb for revert.
+// Active orb is RealtimeBlob (CoralStoneMorph adapter, matches Figma 252×252).
+import { RealtimeBlob, RealtimeVoiceState as VoiceState } from './RealtimeBlob';
 import { VoiceStateLabel, VoiceStateLabelState } from './ui/VoiceStateLabel';
 import { MorphingRecordWideSimple } from './ui/voicemorphingbuttons';
 import { AudioData } from '../types';
@@ -11,7 +13,7 @@ import { AUDIO_BANDS } from '../constants';
  *
  * Architecture:
  * - Landscape card: Responsive (max-width: 1000px)
- * - Velvet orb: Audio-reactive 3D torus (400×400px, 300×300px on mobile)
+ * - Coral orb: Audio-reactive CoralStoneMorph via RealtimeBlob adapter (252×252px)
  * - State label: Text below orb showing conversation state
  * - Record button: MorphingRecordWideSimple (76×44px pill, white mic/stop icons)
  *
@@ -447,11 +449,9 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           <div className="orb-label-group">
             {/* Velvet Orb - Audio-reactive visualization */}
             <div className="orb-container">
-              <VelvetOrb
+              <RealtimeBlob
                 audioData={audioData}
                 voiceState={getVoiceState()}
-                width={400}
-                height={400}
               />
             </div>
 
@@ -515,8 +515,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
         /* Orb Container */
         .orb-container {
           flex-shrink: 0;
-          width: 400px;
-          height: 400px;
+          width: 252px;
+          height: 252px;
           border: 0.5px solid red; /* DEBUG */
         }
 
@@ -560,8 +560,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           }
 
           .orb-container {
-            width: 300px;
-            height: 300px;
+            width: 252px;
+            height: 252px;
           }
 
           .state-label-container {
