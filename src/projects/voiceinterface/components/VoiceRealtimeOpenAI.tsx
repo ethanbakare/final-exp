@@ -37,10 +37,17 @@ import { AUDIO_BANDS } from '../constants';
 
 type AppState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking';
 
-/** Minimum time (ms) to show ai_thinking state before triggering AI response.
- *  VAD is configured with createResponse: false, so we manually send response.create
- *  after this delay. No audio is lost because the AI hasn't started generating yet. */
-const MIN_THINKING_DURATION_MS = 5000;
+/** Artificial delay (ms) between user finishing their turn and the AI being
+ *  asked to respond. VAD is configured with createResponse: false, so we
+ *  manually send response.create after this gate elapses.
+ *
+ *  Default: 0 — trust the API's real latency. The shader's morphSpeed-based
+ *  interpolation in CoralStoneMorph absorbs any timing variance smoothly
+ *  (~540ms torus→sphere morph when ai_speaking begins).
+ *
+ *  Set >0 only if you need a forced minimum thinking phase (e.g. for visual
+ *  testing or to mask a slow downstream model). */
+const THINKING_GATE_MS = 0;
 
 /**
  * Extract frequency band data from a Web Audio API AnalyserNode.
@@ -141,7 +148,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             if (sessionRef.current) {
               sessionRef.current.transport.sendEvent({ type: 'response.create' });
             }
-          }, MIN_THINKING_DURATION_MS);
+          }, THINKING_GATE_MS);
           break;
 
         case 'output_audio_buffer.started':
