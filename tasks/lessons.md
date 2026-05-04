@@ -106,3 +106,9 @@
 - `root_cause`: Switched from analysis mode to fix mode before resolving the user’s requested verification step.
 - `rule`: If the user explicitly asks to check the original behavior first, answer that question from the source before making any new change.
 - `prevention_check`: Before patching, restate the verification question and confirm it has been answered with source evidence.
+
+### 19) Preserve user-requested response packaging exactly
+- `mistake`: Repeatedly gave review feedback as inline findings after the user asked for one copyable block.
+- `root_cause`: Followed the review-output pattern mechanically instead of adapting to the user's explicit packaging requirement.
+- `rule`: When the user asks for feedback in a single block, put all actionable feedback inside one copyable fenced block unless they later ask otherwise.
+- `prevention_check`: Before sending review feedback, check the latest user message for output packaging instructions and make the format match exactly.
