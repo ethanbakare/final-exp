@@ -8,6 +8,7 @@ Revision history:
 - v2 (initial)
 - v2.1 — clarifications from reviewer feedback: audio gating, bottom-swatch write semantics, thickenSpeed semantics, inherited-row styling implementation, gallery parity precision, thinking color inheritance, shader-mount assumption for the snap-free guarantee, stale implementation step.
 - v2.2 — second clarification pass: idle motion semantics (does not audio-ripple, breath stays), `current.thickenSpeed` does not get passed to the shader, Peak rows reimplemented locally instead of wrapping shared rows, RenderValues field count corrected.
+- v2.3 — backend persistence added (gallery-style). New §10. Reuses `/api/studio-profiles` with new variant key `realtime-state` and a new JSON file `realtime-state-profiles.json`. Bottom bar gains a profile dropdown + Save / Update controls. This pass ships Kyoto only; multiple-profile UX is plumbed but not pre-populated.
 
 ---
 
@@ -125,14 +126,17 @@ When leaving `thinking`, the phase ref resets to 0 / forward direction so re-ent
 The floating top state-pill row is **removed**. There is one bottom bar, period:
 
 ```
-[≡] [idle] [listening] [thinking] [talking]   |   [Size] [Thickness] [Motion] [Colours]   [●●●]   [⟲]
+[≡]  [idle] [listening] [thinking] [talking]  |  [Kyoto ▾]  |  [Size] [Thickness] [Motion] [Colours]  [●●●]  [⟲]  ⟶  [Save] [Update]
 ```
 
 - `≡` — hamburger; toggles 4-column expanded drawer
 - `idle / listening / thinking / talking` — state pills. **Each pill is BOTH the preview state AND the edit scope** (no two-pill-set ambiguity)
+- `[Kyoto ▾]` — profile dropdown. Lists saved LinkedProfiles. Selecting one loads it into editing state. (See §10.)
 - `Size / Thickness / Motion / Colours` — tab buttons; clicking pops up the popover above the bar with that tab's controls scoped to the active pill
 - `●●●` — three color swatches (write semantics defined in §4.6)
 - `⟲` — auto-loop (cycle through states every 2.5s)
+- `[Save]` — opens an inline save dialog (gallery pattern); creates a new named profile from the current `LinkedProfile` state
+- `[Update]` — visible only when the active profile has unsaved edits (`isDirty`); writes the current `LinkedProfile` back to the active profile entry. (See §10.)
 
 ### 4.2 Pill behavior
 
@@ -256,14 +260,17 @@ Mobile parity is not required this pass:
 - Same expanded drawer concept (full 4-column drawer behind the bar).
 - Same round color swatch treatment.
 - Same Repeat icon treatment for auto-loop.
+- Profile dropdown (mirrors gallery's "Default ▾"). See [GalleryNavBar.tsx:482-517](src/projects/blob-orb/components/GalleryNavBar.tsx:482).
+- Save dialog (text input + check/X confirm). See [GalleryNavBar.tsx:594-641](src/projects/blob-orb/components/GalleryNavBar.tsx:594).
+- Update button (visible only when `isDirty` and active profile is not the seeded default).
 
-**NOT required this pass** (gallery has them; this preview doesn't need them):
+**NOT required this pass** (gallery has them; this preview doesn't need them yet):
 
-- Profile dropdown (gallery's "Default ▾").
-- Save / Update / Bookmark controls.
+- Bookmark control (no curated favourites system in this pass).
 - Hue / Saturation / Lightness controls.
 - Variant tabs (Tube / Coral / Coral D / Coral Morph).
 - Goal toggle ("Thick" / "Thin" button).
+- Pre-populated additional profiles (Helix, Dusk, etc.) — this pass ships only Kyoto. Other profiles get created via the Save flow once Kyoto is dialed in.
 
 ---
 
@@ -294,6 +301,9 @@ Mobile parity is not required this pass:
 | Shader's `thickenSpeed` prop                              | Hardcoded to `0.05`. Not driven by `current.thickenSpeed`. (§3.1, §3.2)                            |
 | First-frame `uThicken` correctness                        | Out of scope. Snap-free guarantee applies after initial mount only. (§3.2)                          |
 | What "idle" means visually                                 | "Does not audio-ripple" — not "frozen." Breath + idleAmp motion stays on. (§4.3)                   |
+| Where edits persist                                       | Backend save like the gallery. New variant key `realtime-state` on `/api/studio-profiles`, file `realtime-state-profiles.json`. (§10)                |
+| In-memory only                                            | Rejected. (§10)                                                                                      |
+| Multiple named profiles in this pass                      | Plumbing only. Kyoto is the only profile pre-seeded; user creates others via Save once we land Kyoto. (§10)               |
 
 ---
 
@@ -311,6 +321,9 @@ Mobile parity is not required this pass:
 10. **Audio start while idle**: state auto-jumps to talking once. If auto-loop was on, auto-loop is cancelled at the same moment. Click `thinking` while audio still plays: state stays on thinking, audio just keeps the surface rippling.
 11. **Bottom swatch write semantics**: with `idle` active, clicking a swatch and picking a color updates `profile.base.color*` (visible across all pills). With `thinking` active, clicking a swatch updates `profile.thinking.color*` (visible only at thinking peak; other pills unaffected). Same for `talking`.
 12. **Inherited row visual cue**: on the thinking pill with no Peak overrides set, Peak slider/color labels appear muted (lighter text). After touching a Peak slider, the label switches to normal weight, indicating it's now an override.
+13. **Persistence (§10)**: edit any field, click Update, refresh the page → the edit is still there.
+14. **Save flow**: edit fields, click Save, type a name (e.g. "Kyoto bright"), confirm → a new entry appears in the profile dropdown. Switching to it loads its values; switching back to the original Kyoto restores those.
+15. **First load with no file**: delete `realtime-state-profiles.json` (or never having it written) → page loads, dropdown shows "Kyoto" (seeded from in-code defaults), Update button hidden until first edit. After clicking Save once, the file exists with the seeded Kyoto values plus any edits.
 
 ---
 
@@ -331,16 +344,109 @@ Mobile parity is not required this pass:
 7. **Animator changes**: confirm pulse clock uses `effectiveThinking.thickenSpeed` (not `current.thickenSpeed`). Update tau computation per §3.1.
 8. **Bottom swatch handler**: on click, route to `setRest` (idle/listening) or `setPeak(state, color*, value)` (thinking/talking). Display the inherited effective value if Peak is unset.
 9. **Move auto-loop button into bottom bar.** Remove the separate floating Repeat button above the canvas.
-10. **Verify against acceptance criteria 1–12** in §7 before committing. Browser-test each one.
+10. **Persistence wiring** (per §10):
+    - Add `"realtime-state": "realtime-state-profiles.json"` to the variant map in [src/pages/api/studio-profiles.ts:5-23](src/pages/api/studio-profiles.ts:5).
+    - Add `fetchProfiles()` / `persistProfiles()` calls in `realtime-states.tsx` mirroring [GalleryScene.tsx:32-60](src/projects/blob-orb/components/GalleryScene.tsx:32).
+    - On first mount, `GET /api/studio-profiles?variant=realtime-state` → if `[]`, fall back to in-code Kyoto seed; if non-empty, load first entry as active.
+    - Add profile dropdown UI mirroring [GalleryNavBar.tsx:482-517](src/projects/blob-orb/components/GalleryNavBar.tsx:482).
+    - Add inline Save dialog mirroring [GalleryNavBar.tsx:594-641](src/projects/blob-orb/components/GalleryNavBar.tsx:594).
+    - `isDirty` derived from `JSON.stringify(currentLinkedProfile) !== JSON.stringify(activeProfile.settings)`.
+    - Update button: `POST` the full updated array back to the endpoint.
+11. **Verify against acceptance criteria 1–15** in §7 before committing. Browser-test each one.
 
 ---
 
 ## 9. What I'm explicitly NOT doing in this pass
 
 - No hybrid 8-wave/24-wave shader for talking (deferred per user — separate task).
-- No profile save/load/CRUD UI (this preview is a single in-memory profile).
 - No bgColor per-state.
 - No changes to `GentleOrbThicken.tsx` or any other shared component.
 - No mobile side drawer.
 - No first-frame `uThicken=1` shader change.
 - No changes to production `/voiceinterface/realtime` page.
+- No bookmark UI (gallery has it; this pass doesn't need it yet).
+- No pre-population of additional profiles beyond Kyoto. The persistence plumbing is in (§10), but the only profile shipped is Kyoto. Helix / Dusk / etc. equivalents come from the user using the Save flow once we land Kyoto.
+
+(Persistence IS in this pass — see §10.)
+
+---
+
+## 10. Backend persistence
+
+Edits to the `LinkedProfile` persist to a JSON file at the repo root via the existing `/api/studio-profiles` endpoint. Pattern mirrors the gallery's profile system exactly. Sources:
+
+- [src/pages/api/studio-profiles.ts:5-23](src/pages/api/studio-profiles.ts:5) — variant→filename map. Add `"realtime-state": "realtime-state-profiles.json"`.
+- [src/pages/api/studio-profiles.ts:25-53](src/pages/api/studio-profiles.ts:25) — generic GET/POST handler. Reused as-is — no shape validation, accepts the LinkedProfile shape.
+- [src/projects/blob-orb/galleryTypes.ts:25-31](src/projects/blob-orb/galleryTypes.ts:25) — `GalleryProfile` shape `{ id, name, settings, lastModified, bookmarked? }`. Mirrored with `settings: LinkedProfile`.
+- [src/projects/blob-orb/components/GalleryScene.tsx:32-60](src/projects/blob-orb/components/GalleryScene.tsx:32) — `fetchProfiles` / `persistProfiles` call pattern. Mirrored.
+- [src/projects/blob-orb/components/GalleryNavBar.tsx:482-517](src/projects/blob-orb/components/GalleryNavBar.tsx:482) — profile dropdown UI. Mirrored.
+- [src/projects/blob-orb/components/GalleryNavBar.tsx:594-641](src/projects/blob-orb/components/GalleryNavBar.tsx:594) — Save dialog UI. Mirrored.
+
+### 10.1 On-disk shape
+
+`realtime-state-profiles.json` (at repo root) is an array of entries:
+
+```json
+[
+  {
+    "id": "rt-<uuid>",
+    "name": "Kyoto",
+    "settings": {
+      "base": {
+        "scale": 0.5, "thinRadius": 0.15, "thickenSpeed": 1.2,
+        "waveIntensity": 0.18, "breathAmp": 0.015, "idleAmp": 0.04,
+        "color1": "#080602", "color2": "#efff08", "color3": "#693a22",
+        "bgColor": "#fffafa"
+      },
+      "thinking": { "thickRadius": 0.25 },
+      "talking": {}
+    },
+    "lastModified": 1730000000000
+  }
+]
+```
+
+The `settings` field carries the full `LinkedProfile` (base + thinking + talking peak overrides). Field shape matches the in-memory `LinkedProfile` exactly — no transformation on save/load.
+
+### 10.2 First-load behavior
+
+On first page mount:
+
+1. `GET /api/studio-profiles?variant=realtime-state`
+2. If response is `[]` (file missing or empty): seed in-memory state with the in-code Kyoto defaults; the dropdown shows just "Kyoto"; no profile is yet on disk.
+3. If response has entries: load the first one as `activeProfile` (or last-bookmarked once bookmark is added later); populate the dropdown with all entries.
+
+### 10.3 Save flow
+
+User clicks `[Save]`:
+1. Inline text input appears (gallery-pattern: text input + check + X).
+2. User types a name, presses Enter or clicks check.
+3. Page constructs a new entry: `{ id: crypto.randomUUID(), name, settings: currentLinkedProfile, lastModified: Date.now() }`.
+4. `POST /api/studio-profiles?variant=realtime-state` with the full updated array (existing entries + new entry).
+5. New entry becomes active; dropdown updates.
+
+### 10.4 Update flow
+
+User has edited the active profile. `isDirty === true`. Update button visible.
+
+User clicks `[Update]`:
+1. Page maps the active profile entry to `{ ...entry, settings: currentLinkedProfile, lastModified: Date.now() }`.
+2. `POST` the full array.
+3. `isDirty` flips back to `false`.
+
+### 10.5 Switch flow
+
+User selects a different profile from the dropdown:
+1. Page replaces the in-memory `LinkedProfile` with the selected entry's `settings`.
+2. The animator's `current` lerps toward the new target — same snap-free guarantee from §3.2 applies (this is just another target change).
+3. `isDirty` re-derives based on whether anything's been touched since the switch.
+
+### 10.6 Delete flow
+
+Out of scope this pass. The gallery has a delete-with-confirm in the dropdown (Trash2 icon); we'll add it once the user wants to prune saved profiles.
+
+### 10.7 What's deferred
+
+- Bookmark / star / favourites — gallery has this (Bookmark icon + count); not needed here yet.
+- Per-profile hue/saturation/lightness color transforms — deferred (out of scope).
+- "Default" sentinel profile — gallery's Default is hardcoded as a baseline; for realtime-states the in-code Kyoto seed plays this role implicitly. We don't need a special "Default" entry in the dropdown.
