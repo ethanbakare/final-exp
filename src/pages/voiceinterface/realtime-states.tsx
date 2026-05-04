@@ -12,7 +12,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Menu, X, Repeat, ChevronDown, Save, Check } from 'lucide-react';
+import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw } from 'lucide-react';
 import GentleOrbThicken from '@/projects/blob-orb/variants/GentleOrbThicken';
 import GalleryAudioControls from '@/projects/blob-orb/components/GalleryAudioControls';
 import SliderRow from '@/projects/blob-orb/components/shared/SliderRow';
@@ -371,6 +371,7 @@ export default function RealtimeStates() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const [thinkingPaused, setThinkingPaused] = useState(false);
 
   const profileRef = useRef(profile);
   const stateRef = useRef(state);
@@ -378,6 +379,8 @@ export default function RealtimeStates() {
   const pulseRef = useRef({ phase: 0, dir: 1 });
   const lastTsRef = useRef(performance.now());
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(thinkingPaused);
+  pausedRef.current = thinkingPaused;
 
   profileRef.current = profile;
   stateRef.current = state;
@@ -437,6 +440,11 @@ export default function RealtimeStates() {
     }
   }, [audioActive]);
 
+  // Leaving thinking clears the paused flag so re-entering resumes pulsing.
+  useEffect(() => {
+    if (state !== 'thinking') setThinkingPaused(false);
+  }, [state]);
+
   // Profile dropdown outside-click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -472,15 +480,17 @@ export default function RealtimeStates() {
         target = talkingR;
       } else {
         // Thinking pulse — clock uses effective thinking peak speed (§3.1),
-        // not cur.thickenSpeed.
-        const pulseSpeed = 1 / Math.max(0.05, thinkingR.thickenSpeed);
-        pulseRef.current.phase += dt * pulseSpeed * pulseRef.current.dir;
-        if (pulseRef.current.phase >= 1) {
-          pulseRef.current.phase = 1;
-          pulseRef.current.dir = -1;
-        } else if (pulseRef.current.phase <= 0) {
-          pulseRef.current.phase = 0;
-          pulseRef.current.dir = 1;
+        // not cur.thickenSpeed. When paused, phase doesn't advance.
+        if (!pausedRef.current) {
+          const pulseSpeed = 1 / Math.max(0.05, thinkingR.thickenSpeed);
+          pulseRef.current.phase += dt * pulseSpeed * pulseRef.current.dir;
+          if (pulseRef.current.phase >= 1) {
+            pulseRef.current.phase = 1;
+            pulseRef.current.dir = -1;
+          } else if (pulseRef.current.phase <= 0) {
+            pulseRef.current.phase = 0;
+            pulseRef.current.dir = 1;
+          }
         }
         const t = pulseRef.current.phase;
         const eased = t * t * (3 - 2 * t);
@@ -488,7 +498,8 @@ export default function RealtimeStates() {
       }
 
       // Reset pulse phase whenever state isn't thinking, so re-entering
-      // thinking starts cleanly from the rest side.
+      // thinking starts cleanly from the rest side. Also clears any
+      // paused state so re-entering doesn't start frozen.
       if (s !== 'thinking') {
         pulseRef.current.phase = 0;
         pulseRef.current.dir = 1;
@@ -585,11 +596,13 @@ export default function RealtimeStates() {
     const isPeakState = state === 'thinking' || state === 'talking';
     const peakScope: PeakScope = state === 'thinking' ? 'thinking' : 'talking';
 
+    const restSuffix = isPeakState ? ' (Rest)' : '';
+
     switch (tab) {
       case 'size': {
         const restRow = (
           <SliderRow
-            label="Scale (Rest)"
+            label={`Scale${restSuffix}`}
             value={profile.base.scale}
             min={0.05}
             max={0.72}
@@ -622,7 +635,7 @@ export default function RealtimeStates() {
       case 'thickness': {
         const thinRest = (
           <SliderRow
-            label="Thin Radius (Rest)"
+            label={`Tube Thickness${restSuffix}`}
             value={profile.base.thinRadius}
             min={0.05}
             max={0.3}
@@ -630,14 +643,17 @@ export default function RealtimeStates() {
             onChange={(v) => setBase({ thinRadius: v })}
           />
         );
+        // Thicken Speed has no immediate visible effect on idle/listening
+        // (those states aren't morphing), so show the value but mute it.
         const speedRest = (
           <SliderRow
-            label="Thicken Speed (Rest)"
+            label={`Thicken Speed${restSuffix}`}
             value={profile.base.thickenSpeed}
             min={0.3}
             max={4.0}
             step={0.1}
             unit="s"
+            disabled={!isPeakState}
             onChange={(v) => setBase({ thickenSpeed: v })}
           />
         );
@@ -671,7 +687,7 @@ export default function RealtimeStates() {
             <div className="space-y-3">
               {thinRest}
               <PeakSliderRow
-                label="Thick Radius (Peak)"
+                label="Tube Thickness (Peak)"
                 value={tEff}
                 min={0.15}
                 max={0.45}
@@ -702,7 +718,7 @@ export default function RealtimeStates() {
         const restRows = (
           <>
             <SliderRow
-              label="Wave Intensity (Rest)"
+              label={`Wave Intensity${restSuffix}`}
               value={profile.base.waveIntensity}
               min={0.02}
               max={0.5}
@@ -710,7 +726,7 @@ export default function RealtimeStates() {
               onChange={(v) => setBase({ waveIntensity: v })}
             />
             <SliderRow
-              label="Idle Intensity (Rest)"
+              label={`Idle Intensity${restSuffix}`}
               value={profile.base.idleAmp * 100}
               min={0}
               max={20}
@@ -719,7 +735,7 @@ export default function RealtimeStates() {
               onChange={(v) => setBase({ idleAmp: v / 100 })}
             />
             <SliderRow
-              label="Breath Amplitude (Rest)"
+              label={`Breath Amplitude${restSuffix}`}
               value={profile.base.breathAmp}
               min={0}
               max={0.1}
@@ -777,22 +793,22 @@ export default function RealtimeStates() {
         const restRows = (
           <>
             <ColorRow
-              label="Highlight (Rest)"
+              label={`Highlight${restSuffix}`}
               value={profile.base.color1}
               onChange={(v) => setBase({ color1: v })}
             />
             <ColorRow
-              label="Mid Tone (Rest)"
+              label={`Mid Tone${restSuffix}`}
               value={profile.base.color2}
               onChange={(v) => setBase({ color2: v })}
             />
             <ColorRow
-              label="Edge (Rest)"
+              label={`Edge${restSuffix}`}
               value={profile.base.color3}
               onChange={(v) => setBase({ color3: v })}
             />
             <ColorRow
-              label="Background (Rest)"
+              label={`Background${restSuffix}`}
               value={profile.base.bgColor}
               onChange={(v) => setBase({ bgColor: v })}
             />
@@ -1035,7 +1051,22 @@ export default function RealtimeStates() {
               ))}
             </div>
 
-            {/* Auto-loop */}
+            {/* Pause / resume thinking pulse — only visible while thinking */}
+            {state === 'thinking' && (
+              <button
+                onClick={() => setThinkingPaused((p) => !p)}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ml-2 ${
+                  thinkingPaused
+                    ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+                title={thinkingPaused ? 'Resume pulse' : 'Pause pulse'}
+              >
+                {thinkingPaused ? <Play size={14} /> : <Pause size={14} />}
+              </button>
+            )}
+
+            {/* Auto-loop through states (idle → listening → thinking → talking, every 2.5s) */}
             <button
               onClick={() => setAutoLoop((p) => !p)}
               className={`p-1.5 rounded-lg transition-colors cursor-pointer ml-2 ${
@@ -1043,21 +1074,31 @@ export default function RealtimeStates() {
                   ? 'bg-amber-50 text-amber-600 border border-amber-200'
                   : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
               }`}
-              title="Auto-loop states"
+              title="Cycle through states (2.5s each)"
             >
               <Repeat size={14} />
             </button>
 
             <div className="flex-1" />
 
-            {/* Update */}
+            {/* Discard + Update — both visible when isDirty */}
             {isDirty && (
-              <button
-                onClick={handleUpdate}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer"
-              >
-                Update
-              </button>
+              <>
+                <button
+                  onClick={() => setProfile(activeBaseline)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-1"
+                  title="Discard unsaved edits and reset to last saved"
+                >
+                  <RotateCcw size={12} />
+                  Discard
+                </button>
+                <button
+                  onClick={handleUpdate}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer"
+                >
+                  Update
+                </button>
+              </>
             )}
 
             {/* Save */}
