@@ -1,6 +1,12 @@
 # Realtime-states plan: linked-profile control centre, v2.1
 
-Path: `src/pages/voiceinterface/realtime-states.tsx` (single file, no shared component changes)
+**Primary page:** `src/pages/voiceinterface/realtime-states.tsx`
+
+**Additional persistence files touched:**
+- `src/pages/api/studio-profiles.ts` — add the `realtime-state` variant key.
+- `realtime-state-profiles.json` — root-level saved-profile file, pre-seeded with the Kyoto entry, committed as part of this pass.
+
+**Out of scope:** no shared component changes. No changes to `GentleOrbThicken.tsx`. No changes to production `/voiceinterface/realtime`.
 
 This document is the contract. If the implementation deviates from anything in here, the deviation is a bug.
 
@@ -9,6 +15,7 @@ Revision history:
 - v2.1 — clarifications from reviewer feedback: audio gating, bottom-swatch write semantics, thickenSpeed semantics, inherited-row styling implementation, gallery parity precision, thinking color inheritance, shader-mount assumption for the snap-free guarantee, stale implementation step.
 - v2.2 — second clarification pass: idle motion semantics (does not audio-ripple, breath stays), `current.thickenSpeed` does not get passed to the shader, Peak rows reimplemented locally instead of wrapping shared rows, RenderValues field count corrected.
 - v2.3 — backend persistence added (gallery-style). New §10. Reuses `/api/studio-profiles` with new variant key `realtime-state` and a new JSON file `realtime-state-profiles.json`. Bottom bar gains a profile dropdown + Save / Update controls. This pass ships Kyoto only; multiple-profile UX is plumbed but not pre-populated.
+- v2.4 — third clarification pass: declared file scope expanded (page + API route + JSON file). Kyoto is pre-seeded on disk as a normal saved entry (no in-memory-only seed; no protected Default sentinel). Update button rule simplified (visible whenever `isDirty`, no Default protection). Save vs Update semantics specified. Dirty-switching behavior pinned (no auto-save; switch discards unsaved unless Save/Update was clicked). Gallery citation refined to include CRUD-flow line range.
 
 ---
 
@@ -136,7 +143,7 @@ The floating top state-pill row is **removed**. There is one bottom bar, period:
 - `●●●` — three color swatches (write semantics defined in §4.6)
 - `⟲` — auto-loop (cycle through states every 2.5s)
 - `[Save]` — opens an inline save dialog (gallery pattern); creates a new named profile from the current `LinkedProfile` state
-- `[Update]` — visible only when the active profile has unsaved edits (`isDirty`); writes the current `LinkedProfile` back to the active profile entry. (See §10.)
+- `[Update]` — visible whenever `isDirty === true` and an active saved profile exists. Writes the current `LinkedProfile` back to the active entry. **Every profile in the dropdown — including Kyoto — is updateable.** No Default sentinel, no protected-default behavior. (See §10.4.)
 
 ### 4.2 Pill behavior
 
@@ -262,7 +269,7 @@ Mobile parity is not required this pass:
 - Same Repeat icon treatment for auto-loop.
 - Profile dropdown (mirrors gallery's "Default ▾"). See [GalleryNavBar.tsx:482-517](src/projects/blob-orb/components/GalleryNavBar.tsx:482).
 - Save dialog (text input + check/X confirm). See [GalleryNavBar.tsx:594-641](src/projects/blob-orb/components/GalleryNavBar.tsx:594).
-- Update button (visible only when `isDirty` and active profile is not the seeded default).
+- Update button (visible whenever `isDirty === true`; no Default-protection — Kyoto is editable like any other profile).
 
 **NOT required this pass** (gallery has them; this preview doesn't need them yet):
 
@@ -304,6 +311,10 @@ Mobile parity is not required this pass:
 | Where edits persist                                       | Backend save like the gallery. New variant key `realtime-state` on `/api/studio-profiles`, file `realtime-state-profiles.json`. (§10)                |
 | In-memory only                                            | Rejected. (§10)                                                                                      |
 | Multiple named profiles in this pass                      | Plumbing only. Kyoto is the only profile pre-seeded; user creates others via Save once we land Kyoto. (§10)               |
+| Kyoto seeded in memory or on disk                         | On disk. `realtime-state-profiles.json` is committed with the Kyoto entry. Defensive fallback recreates it if missing. (§10.1, §10.2)  |
+| Protected Default sentinel (gallery's `if (id === DEFAULT_ID) return;`)        | NOT mirrored. Kyoto is editable like any other profile; Update writes Kyoto back to disk. (§10.4)                                |
+| Dirty switching behavior                                  | No auto-save. Switching profiles silently discards unsaved edits. Confirmation dialog deferred. (§10.5)                  |
+| Save vs Update                                            | Save always creates new; Update overwrites active. (§10.3, §10.4)                                                        |
 
 ---
 
@@ -346,12 +357,15 @@ Mobile parity is not required this pass:
 9. **Move auto-loop button into bottom bar.** Remove the separate floating Repeat button above the canvas.
 10. **Persistence wiring** (per §10):
     - Add `"realtime-state": "realtime-state-profiles.json"` to the variant map in [src/pages/api/studio-profiles.ts:5-23](src/pages/api/studio-profiles.ts:5).
-    - Add `fetchProfiles()` / `persistProfiles()` calls in `realtime-states.tsx` mirroring [GalleryScene.tsx:32-60](src/projects/blob-orb/components/GalleryScene.tsx:32).
-    - On first mount, `GET /api/studio-profiles?variant=realtime-state` → if `[]`, fall back to in-code Kyoto seed; if non-empty, load first entry as active.
+    - Commit `realtime-state-profiles.json` at the repo root with one entry — the Kyoto profile (per §10.1).
+    - Add `fetchProfiles()` / `persistProfiles()` helpers in `realtime-states.tsx` mirroring [GalleryScene.tsx:32-60](src/projects/blob-orb/components/GalleryScene.tsx:32).
+    - Add `selectProfile()` / `saveProfile()` / `updateProfile()` handlers mirroring [GalleryScene.tsx:189-266](src/projects/blob-orb/components/GalleryScene.tsx:189), but **omit** the `if (id === DEFAULT_ID) return;` guard at line ~259 — there is no Default sentinel here.
+    - On first mount, `GET /api/studio-profiles?variant=realtime-state`. Normal case: load first entry as active. Defensive fallback: if `[]`, build the Kyoto entry in code and `POST` `[kyotoEntry]` to recreate the file before activating it (§10.2).
     - Add profile dropdown UI mirroring [GalleryNavBar.tsx:482-517](src/projects/blob-orb/components/GalleryNavBar.tsx:482).
     - Add inline Save dialog mirroring [GalleryNavBar.tsx:594-641](src/projects/blob-orb/components/GalleryNavBar.tsx:594).
     - `isDirty` derived from `JSON.stringify(currentLinkedProfile) !== JSON.stringify(activeProfile.settings)`.
-    - Update button: `POST` the full updated array back to the endpoint.
+    - Update button: visible whenever `isDirty === true`. `POST` the full updated array back to the endpoint, then flip `isDirty` to `false` (active profile unchanged).
+    - Switch handler (dropdown selection): replace in-memory `LinkedProfile` with the selected entry's `settings`. **Discard** any current unsaved edits without prompting (§10.5).
 11. **Verify against acceptance criteria 1–15** in §7 before committing. Browser-test each one.
 
 ---
@@ -373,32 +387,43 @@ Mobile parity is not required this pass:
 
 ## 10. Backend persistence
 
-Edits to the `LinkedProfile` persist to a JSON file at the repo root via the existing `/api/studio-profiles` endpoint. Pattern mirrors the gallery's profile system exactly. Sources:
+Edits to the `LinkedProfile` persist to a JSON file at the repo root via the existing `/api/studio-profiles` endpoint. Pattern mirrors the gallery's profile system, but **without** the gallery's protected-Default behavior — Kyoto is a normal saved profile, not a sentinel.
+
+Sources (cite both ranges from GalleryScene since they cover different concerns):
 
 - [src/pages/api/studio-profiles.ts:5-23](src/pages/api/studio-profiles.ts:5) — variant→filename map. Add `"realtime-state": "realtime-state-profiles.json"`.
 - [src/pages/api/studio-profiles.ts:25-53](src/pages/api/studio-profiles.ts:25) — generic GET/POST handler. Reused as-is — no shape validation, accepts the LinkedProfile shape.
 - [src/projects/blob-orb/galleryTypes.ts:25-31](src/projects/blob-orb/galleryTypes.ts:25) — `GalleryProfile` shape `{ id, name, settings, lastModified, bookmarked? }`. Mirrored with `settings: LinkedProfile`.
-- [src/projects/blob-orb/components/GalleryScene.tsx:32-60](src/projects/blob-orb/components/GalleryScene.tsx:32) — `fetchProfiles` / `persistProfiles` call pattern. Mirrored.
+- [src/projects/blob-orb/components/GalleryScene.tsx:32-60](src/projects/blob-orb/components/GalleryScene.tsx:32) — `fetchProfiles` / `persistProfiles` API helpers. Mirrored.
+- [src/projects/blob-orb/components/GalleryScene.tsx:189-266](src/projects/blob-orb/components/GalleryScene.tsx:189) — select / delete / save / update flow handlers. Mirrored, but **omit** the `if (id === DEFAULT_ID) return;` guard at line ~259 — there is no Default sentinel here.
 - [src/projects/blob-orb/components/GalleryNavBar.tsx:482-517](src/projects/blob-orb/components/GalleryNavBar.tsx:482) — profile dropdown UI. Mirrored.
 - [src/projects/blob-orb/components/GalleryNavBar.tsx:594-641](src/projects/blob-orb/components/GalleryNavBar.tsx:594) — Save dialog UI. Mirrored.
 
-### 10.1 On-disk shape
+### 10.1 On-disk shape and the Kyoto seed
 
-`realtime-state-profiles.json` (at repo root) is an array of entries:
+`realtime-state-profiles.json` (at repo root) is committed as part of this pass with one entry — the Kyoto profile. Kyoto is **a normal saved profile**, not a protected default; it can be edited and Updated like anything else.
 
 ```json
 [
   {
-    "id": "rt-<uuid>",
+    "id": "rt-kyoto",
     "name": "Kyoto",
     "settings": {
       "base": {
-        "scale": 0.5, "thinRadius": 0.15, "thickenSpeed": 1.2,
-        "waveIntensity": 0.18, "breathAmp": 0.015, "idleAmp": 0.04,
-        "color1": "#080602", "color2": "#efff08", "color3": "#693a22",
+        "scale": 0.5,
+        "thinRadius": 0.15,
+        "thickenSpeed": 1.2,
+        "waveIntensity": 0.18,
+        "breathAmp": 0.015,
+        "idleAmp": 0.04,
+        "color1": "#080602",
+        "color2": "#efff08",
+        "color3": "#693a22",
         "bgColor": "#fffafa"
       },
-      "thinking": { "thickRadius": 0.25 },
+      "thinking": {
+        "thickRadius": 0.25
+      },
       "talking": {}
     },
     "lastModified": 1730000000000
@@ -412,34 +437,50 @@ The `settings` field carries the full `LinkedProfile` (base + thinking + talking
 
 On first page mount:
 
-1. `GET /api/studio-profiles?variant=realtime-state`
-2. If response is `[]` (file missing or empty): seed in-memory state with the in-code Kyoto defaults; the dropdown shows just "Kyoto"; no profile is yet on disk.
-3. If response has entries: load the first one as `activeProfile` (or last-bookmarked once bookmark is added later); populate the dropdown with all entries.
+1. `GET /api/studio-profiles?variant=realtime-state`.
+2. **Normal case** (the committed `realtime-state-profiles.json` is present): load the first entry as the active profile. The dropdown is populated with all entries (just Kyoto in this pass).
+3. **Defensive fallback only** — if the file is missing or the response is `[]`: build the Kyoto entry in memory from in-code defaults, immediately `POST` `[kyotoEntry]` back to `/api/studio-profiles?variant=realtime-state` to recreate the file, then make that persisted Kyoto active. (Honors the "no in-memory only" requirement even if the file is accidentally deleted.)
+4. There is **no protected Default sentinel.** Editing Kyoto sets `isDirty === true`; Update writes Kyoto back to disk. Refreshing after Update keeps the change.
 
-### 10.3 Save flow
+### 10.3 Save flow (always creates a new profile)
+
+`Save` always creates a new named profile from the current `LinkedProfile`. It does not overwrite anything.
 
 User clicks `[Save]`:
 1. Inline text input appears (gallery-pattern: text input + check + X).
 2. User types a name, presses Enter or clicks check.
-3. Page constructs a new entry: `{ id: crypto.randomUUID(), name, settings: currentLinkedProfile, lastModified: Date.now() }`.
+3. Page constructs a new entry: `{ id: \`rt-${crypto.randomUUID()}\`, name, settings: currentLinkedProfile, lastModified: Date.now() }`.
 4. `POST /api/studio-profiles?variant=realtime-state` with the full updated array (existing entries + new entry).
-5. New entry becomes active; dropdown updates.
+5. The new entry becomes active. Dropdown updates. `isDirty` flips to `false` since the new entry's settings match `currentLinkedProfile` by construction.
 
-### 10.4 Update flow
+### 10.4 Update flow (overwrites the active profile)
 
-User has edited the active profile. `isDirty === true`. Update button visible.
+`Update` overwrites the currently active profile entry. It never creates a new profile.
+
+`isDirty` is derived from `JSON.stringify(currentLinkedProfile) !== JSON.stringify(activeProfile.settings)`. Update button visible whenever `isDirty === true` and there is an active saved profile (which is always the case once §10.2 has run).
 
 User clicks `[Update]`:
 1. Page maps the active profile entry to `{ ...entry, settings: currentLinkedProfile, lastModified: Date.now() }`.
 2. `POST` the full array.
-3. `isDirty` flips back to `false`.
+3. The active profile stays active. `isDirty` flips back to `false`.
 
-### 10.5 Switch flow
+**Save vs Update at a glance:**
+
+| Action | Creates new entry? | Active profile after? | `lastModified` updates? |
+| ------ | ------------------ | --------------------- | ----------------------- |
+| Save   | Yes                | The new entry         | Yes (on the new entry)  |
+| Update | No                 | Same as before        | Yes (on the same entry) |
+
+### 10.5 Switch flow (no auto-save; unsaved edits are discarded)
 
 User selects a different profile from the dropdown:
-1. Page replaces the in-memory `LinkedProfile` with the selected entry's `settings`.
-2. The animator's `current` lerps toward the new target — same snap-free guarantee from §3.2 applies (this is just another target change).
-3. `isDirty` re-derives based on whether anything's been touched since the switch.
+
+1. **No auto-save.** If the current profile has unsaved edits (`isDirty === true`), those edits are **discarded** unless the user clicked Save or Update first. This matches the gallery's simple behavior — no confirmation dialog in this pass.
+2. Page replaces the in-memory `LinkedProfile` with the selected entry's `settings`.
+3. The animator's `current` lerps toward the new target — same snap-free guarantee from §3.2 applies (this is just another target change).
+4. `isDirty` re-derives based on whether anything has been touched since the switch.
+
+(Optional future improvement: a dirty-change confirmation dialog before discarding. Out of scope for this pass.)
 
 ### 10.6 Delete flow
 
@@ -448,5 +489,6 @@ Out of scope this pass. The gallery has a delete-with-confirm in the dropdown (T
 ### 10.7 What's deferred
 
 - Bookmark / star / favourites — gallery has this (Bookmark icon + count); not needed here yet.
-- Per-profile hue/saturation/lightness color transforms — deferred (out of scope).
-- "Default" sentinel profile — gallery's Default is hardcoded as a baseline; for realtime-states the in-code Kyoto seed plays this role implicitly. We don't need a special "Default" entry in the dropdown.
+- Per-profile hue / saturation / lightness color transforms — deferred (out of scope).
+- Dirty-switch confirmation dialog — out of scope; switch silently discards unsaved edits in this pass (§10.5).
+- Delete flow (gallery has Trash2 icon + confirm step) — out of scope until the user wants to prune saved profiles.
