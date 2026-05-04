@@ -12,7 +12,7 @@
         "idleAmp": 0.04,
         "color1": "#080602",
         "color2": "#efff08",
-        "color3": "#693a22",
+        "color3": "#949e05",
         "bgColor": "#fffafa"
       },
       "thinking": {
@@ -20,6 +20,6 @@
       },
       "talking": {}
     },
-    "lastModified": 1777936486549
+    "lastModified": 1777938040269
   }
 ]
