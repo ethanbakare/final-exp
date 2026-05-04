@@ -1,4 +1,4 @@
-# Realtime-states plan: linked-profile control centre, v2.1
+# Realtime-states plan: linked-profile control centre, v2.4
 
 **Primary page:** `src/pages/voiceinterface/realtime-states.tsx`
 
@@ -16,6 +16,7 @@ Revision history:
 - v2.2 — second clarification pass: idle motion semantics (does not audio-ripple, breath stays), `current.thickenSpeed` does not get passed to the shader, Peak rows reimplemented locally instead of wrapping shared rows, RenderValues field count corrected.
 - v2.3 — backend persistence added (gallery-style). New §10. Reuses `/api/studio-profiles` with new variant key `realtime-state` and a new JSON file `realtime-state-profiles.json`. Bottom bar gains a profile dropdown + Save / Update controls. This pass ships Kyoto only; multiple-profile UX is plumbed but not pre-populated.
 - v2.4 — third clarification pass: declared file scope expanded (page + API route + JSON file). Kyoto is pre-seeded on disk as a normal saved entry (no in-memory-only seed; no protected Default sentinel). Update button rule simplified (visible whenever `isDirty`, no Default protection). Save vs Update semantics specified. Dirty-switching behavior pinned (no auto-save; switch discards unsaved unless Save/Update was clicked). Gallery citation refined to include CRUD-flow line range.
+- v2.4-patches — fourth clarification pass: title version corrected, §3 clarifies that `current.thickenSpeed` is excluded when passing `current` to the shader, §8 step 4 says "local implementations" instead of "wrappers", acceptance criterion 15 updated to reflect §10.2's defensive fallback (file is recreated on missing-file load, not deferred until first save).
 
 ---
 
@@ -96,7 +97,7 @@ Single `requestAnimationFrame` loop. Maintains `current: RenderValues` (9 fields
    - **thinking** → oscillate a `phase` value 0↔1 between rest and thinking-peak. `target = lerp(base, thinkingPeak, smoothstep(phase))`
    - **talking** → `target = talkingPeak` with `thickRadius` forced to `1.0`
 2. Exponentially ease `current → target` with tau derived from the relevant **effective state speed** (see Thicken Speed semantics below). Every numeric and color field uses the same alpha so they stay visually coherent.
-3. Pass `current.*` to `<GentleOrbThicken>` as static-looking props with `goal=1` and `thickenSpeed=0.05` (so the shader's internal animator settles instantly and JS owns all motion).
+3. Pass render fields from `current` to `<GentleOrbThicken>` as static-looking props **except** `current.thickenSpeed` (animator-internal only — see §3.1). Shader receives `goal=1` and a hardcoded `thickenSpeed={0.05}` so its internal animator settles instantly and JS owns all motion.
 
 ### 3.1 Thicken Speed semantics (explicit)
 
@@ -334,7 +335,7 @@ Mobile parity is not required this pass:
 12. **Inherited row visual cue**: on the thinking pill with no Peak overrides set, Peak slider/color labels appear muted (lighter text). After touching a Peak slider, the label switches to normal weight, indicating it's now an override.
 13. **Persistence (§10)**: edit any field, click Update, refresh the page → the edit is still there.
 14. **Save flow**: edit fields, click Save, type a name (e.g. "Kyoto bright"), confirm → a new entry appears in the profile dropdown. Switching to it loads its values; switching back to the original Kyoto restores those.
-15. **First load with no file**: delete `realtime-state-profiles.json` (or never having it written) → page loads, dropdown shows "Kyoto" (seeded from in-code defaults), Update button hidden until first edit. After clicking Save once, the file exists with the seeded Kyoto values plus any edits.
+15. **First load with no file**: delete `realtime-state-profiles.json` → page loads, immediately recreates the file by `POST`ing the Kyoto entry (defensive fallback per §10.2), dropdown shows "Kyoto", Kyoto is active, Update is hidden until the first edit. After editing Kyoto and clicking Update, refresh preserves the edit.
 
 ---
 
@@ -349,7 +350,7 @@ Mobile parity is not required this pass:
    - `setRest<K>(field, value)` — writes `profile.base[field]`.
    - `setPeak(scope, field, value)` — writes `profile[scope][field]`.
    - `clearPeak(scope, field)` — deletes the override key.
-4. **Replace `renderTabControls` to take active state** (not active scope) and render Rest rows for idle/listening, Rest+Peak rows for thinking/talking. Use `PeakSliderRow`/`PeakColorRow` wrappers (defined in §4.8) for Peak rows.
+4. **Replace `renderTabControls` to take active state** (not active scope) and render Rest rows for idle/listening, Rest+Peak rows for thinking/talking. Use the local `PeakSliderRow` / `PeakColorRow` implementations defined in §4.8 for Peak rows (not wrappers around shared `SliderRow` / `ColorRow`).
 5. **Audio gating in render**: compute `blobAudioData` once per render per §4.3 and pass to `<GentleOrbThicken>`.
 6. **Auto-loop + audio interaction**: in the `audioActive` useEffect, set `autoLoop=false` before `setState('talking')`.
 7. **Animator changes**: confirm pulse clock uses `effectiveThinking.thickenSpeed` (not `current.thickenSpeed`). Update tau computation per §3.1.
