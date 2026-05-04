@@ -135,5 +135,24 @@
       "bgColor": "#f7f6f4"
     },
     "lastModified": 1769968434640
+  },
+  {
+    "id": "g-70c0a21e-9e79-4df5-9494-004fb3e0d622",
+    "name": "canon",
+    "settings": {
+      "scale": 0.5,
+      "thinRadius": 0.15,
+      "thickRadius": 0.25,
+      "thickenSpeed": 1.2,
+      "torusRadius": 0.3,
+      "waveIntensity": 0.12,
+      "breathAmp": 0.015,
+      "idleAmp": 0.02,
+      "color1": "#FFF5F0",
+      "color2": "#efff08",
+      "color3": "#FFC4C4",
+      "bgColor": "#FFFFFF"
+    },
+    "lastModified": 1777928626926
   }
 ]
