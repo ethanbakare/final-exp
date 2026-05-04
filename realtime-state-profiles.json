@@ -1,0 +1,25 @@
+[
+  {
+    "id": "rt-kyoto",
+    "name": "Kyoto",
+    "settings": {
+      "base": {
+        "scale": 0.55,
+        "thinRadius": 0.15,
+        "thickenSpeed": 1.2,
+        "waveIntensity": 0.18,
+        "breathAmp": 0.015,
+        "idleAmp": 0.04,
+        "color1": "#080602",
+        "color2": "#efff08",
+        "color3": "#693a22",
+        "bgColor": "#fffafa"
+      },
+      "thinking": {
+        "thickRadius": 0.25
+      },
+      "talking": {}
+    },
+    "lastModified": 1777936486549
+  }
+]

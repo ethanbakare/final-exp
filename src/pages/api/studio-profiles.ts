@@ -20,6 +20,8 @@ const VARIANT_FILES: Record<string, string> = {
   "radial-inward": "radial-inward-profiles.json",
   // Linear waveform
   "linear-waveform": "linear-waveform-profiles.json",
+  // Realtime-states preview (linked-profile model)
+  "realtime-state": "realtime-state-profiles.json",
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
