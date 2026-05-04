@@ -7,6 +7,7 @@ This document is the contract. If the implementation deviates from anything in h
 Revision history:
 - v2 (initial)
 - v2.1 — clarifications from reviewer feedback: audio gating, bottom-swatch write semantics, thickenSpeed semantics, inherited-row styling implementation, gallery parity precision, thinking color inheritance, shader-mount assumption for the snap-free guarantee, stale implementation step.
+- v2.2 — second clarification pass: idle motion semantics (does not audio-ripple, breath stays), `current.thickenSpeed` does not get passed to the shader, Peak rows reimplemented locally instead of wrapping shared rows, RenderValues field count corrected.
 
 ---
 
@@ -80,7 +81,7 @@ interface LinkedProfile {
 
 ## 3. Animator (the load-bearing piece)
 
-Single `requestAnimationFrame` loop. Maintains `current: RenderValues` (10 numeric/color fields). Each frame:
+Single `requestAnimationFrame` loop. Maintains `current: RenderValues` (9 fields: scale, thickRadius, thickenSpeed, waveIntensity, breathAmp, idleAmp, color1, color2, color3). Each frame:
 
 1. Compute `target` based on the active state:
    - **idle / listening** → `target = base`
@@ -99,7 +100,7 @@ Single `requestAnimationFrame` loop. Maintains `current: RenderValues` (10 numer
 - **Thinking pulse clock**: full out-and-back cycle takes `effectiveThinking.thickenSpeed * 2` seconds. Driven by the *effective* thinking-peak value, **not** the currently-lerping `current.thickenSpeed`. The clock must not jitter while the lerped value is in motion.
 - **Talking target easing tau**: `effectiveTalking.thickenSpeed * 0.5` — uses the effective talking-peak value.
 - **Idle/listening target easing tau**: `profile.base.thickenSpeed * 0.5`.
-- The lerped `current.thickenSpeed` is still passed to the shader as a prop for consistency, but it does not drive the JS animator. JS uses the *target's* effective speed for its tau.
+- **`current.thickenSpeed` is NOT passed to the shader.** The shader's `thickenSpeed` prop is hardcoded to `0.05` (per §3.2) so that `uThicken` settles immediately and the shader's internal animator stays out of the way. `current.thickenSpeed` stays inside `RenderValues` only as bookkeeping (and as a debug surface) — JS animator timing reads from the *effective state speed* for the active state, not from `current`.
 
 ### 3.2 Snap-free assumption (explicit)
 
@@ -135,25 +136,27 @@ The floating top state-pill row is **removed**. There is one bottom bar, period:
 
 ### 4.2 Pill behavior
 
-| Pill         | Blob preview                                | What sliders edit                                                              |
-| ------------ | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| `idle`       | Open torus at base.thinRadius, no audio    | `base` only — all values are "Rest"                                            |
-| `listening`  | Open torus at base.thinRadius + audio waves | `base` (same data as idle — touching either pill's slider updates the other)   |
-| `thinking`   | Pulses thin↔thick                           | `base` ("Rest" rows) AND `thinking` overrides ("Peak" rows) — both visible     |
-| `talking`    | Morphs to sphere                            | `base` ("Rest" rows) AND `talking` overrides ("Peak" rows) — both visible      |
+| Pill         | Blob preview                                                              | What sliders edit                                                              |
+| ------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `idle`       | Open torus at base.thinRadius. Subtle breath + idleAmp motion still on; does NOT audio-ripple. | `base` only — all values are "Rest"                                            |
+| `listening`  | Open torus at base.thinRadius + audio ripples on the surface              | `base` (same data as idle — touching either pill's slider updates the other)   |
+| `thinking`   | Pulses thin↔thick                                                         | `base` ("Rest" rows) AND `thinking` overrides ("Peak" rows) — both visible     |
+| `talking`    | Morphs to sphere                                                          | `base` ("Rest" rows) AND `talking` overrides ("Peak" rows) — both visible      |
 
 ### 4.3 Audio gating (explicit)
 
-The blob receives audio data only on states where ripples make visual sense. Rule:
+The blob receives audio data only on states where audio-reactive ripples make visual sense. Rule:
 
 ```ts
 const blobAudioData = audioActive && state !== 'idle' ? audioData : SILENT;
 ```
 
-- `idle` always passes `SILENT` to the blob — its surface stays still even if audio is playing.
+- `idle` always passes `SILENT` to the blob — its surface does not audio-ripple even if audio is playing.
 - `listening`, `thinking`, `talking` pass live `audioData` while `audioActive`, otherwise `SILENT`.
 
-This makes the visual difference between idle and listening unambiguous: idle is geometrically still at all times; listening ripples when audio is on.
+**What "idle" means visually:** "does not audio-ripple," NOT "frozen." `GentleOrbThicken`'s breath cycle (`breathAmp`) and idle wave amplitude (`idleAmp`) keep producing subtle motion even with `SILENT` audio — that's the orb's normal life-sign and it remains on. The visual difference between idle and listening is unambiguous: idle has only its baseline breath motion; listening adds audio-driven ripples on top.
+
+(If the product later requires a truly frozen idle, the rule would extend to also force `waveIntensity=0`, `breathAmp=0`, `idleAmp=0` when `state==='idle'`. That is **not** in this pass.)
 
 ### 4.4 Auto-pop-to-talking + auto-loop interaction
 
@@ -221,19 +224,19 @@ Per user's confirmation: use `Field (Rest)` and `Field (Peak)` consistently acro
 
 ### 4.8 Inherited Peak row visual treatment + implementation
 
-Shared `SliderRow` and `ColorRow` have hardcoded label classes. They will **not** be modified.
+Shared `SliderRow` and `ColorRow` have **hardcoded** label classes (`text-gray-600`) and render their own label text internally. They will **not** be modified.
 
-Implementation: create local wrapper rows in `realtime-states.tsx`:
+Wrapping the shared rows with an additional label header would create duplicate visible labels and still leave the internal label undimmed. So Peak rows are **reimplemented locally** in `realtime-states.tsx` as small components — they are short and self-contained:
 
-- `PeakSliderRow` — wraps `SliderRow`, takes an `inherited: boolean` flag plus a `(field, scope)` pair. Renders the shared `SliderRow` underneath a small label header that styles itself based on inherited state. Fields the wrapper can render around the shared control: a label-row above (with inherited dimming), an optional "↺ inherit" reset button, etc. Or, if cleaner, the wrapper can re-implement a minimal slider row inline (it's small and self-contained).
-- `PeakColorRow` — same pattern wrapping `ColorRow`.
+- `PeakSliderRow` — local component using the shared `<Slider />` primitive (`@/components/ui/slider`) directly, plus its own label/value/reset-button row above it. Props: `label`, `value`, `min`, `max`, `step`, `unit?`, `inherited: boolean`, `onChange`, `onReset?`.
+- `PeakColorRow` — local component with its own label, hex display, and color picker square. Props: `label`, `value`, `inherited: boolean`, `onChange`, `onReset?`.
 
-Rest rows can render shared `SliderRow` / `ColorRow` directly with no wrapper.
+Rest rows continue to render shared `SliderRow` / `ColorRow` directly (no wrapper, no duplicate label). The mix is fine — Rest rows are well-served by the shared components; Peak rows have different semantics (inherited state, optional reset) so they get their own minimal implementation.
 
-Inherited-vs-overridden indication:
-- Inherited Peak row: label text uses a muted/lighter color (e.g. `text-gray-400`), value still reflects effective base.
-- Overridden Peak row: normal label color (e.g. `text-gray-700`), value reflects the override.
-- Optional `↺` reset button on overridden Peak rows that calls `clearPeak(scope, field)`. Only add if it fits without crowding.
+Inherited-vs-overridden indication on Peak rows:
+- **Inherited** (`profile[scope][field] === undefined`): label text uses `text-gray-400`, value reflects the inherited effective base value.
+- **Overridden** (`profile[scope][field] !== undefined`): label text uses `text-gray-700` (normal weight), value reflects the override.
+- Optional `↺` reset button only shown when overridden — calls `clearPeak(scope, field)`. Skip if it crowds the row layout.
 
 ### 4.9 Mobile
 
@@ -287,8 +290,10 @@ Mobile parity is not required this pass:
 | Bottom-swatch write target on thinking/talking            | Swatches edit Peak. Rest editable from the popover. (§4.6)                                         |
 | Audio rippling idle                                       | Idle always passes SILENT regardless of audio state. (§4.3)                                        |
 | Auto-loop + audio start interaction                       | Audio start cancels auto-loop, then jumps to talking. (§4.4)                                        |
-| Pulse clock source — current or peak `thickenSpeed`        | Effective peak `thickenSpeed`. Render `current.thickenSpeed` may lerp but does not drive the clock. (§3.1) |
+| Pulse clock source — current or peak `thickenSpeed`        | Effective peak `thickenSpeed`. Render `current.thickenSpeed` may lerp internally but is never passed to the shader. (§3.1) |
+| Shader's `thickenSpeed` prop                              | Hardcoded to `0.05`. Not driven by `current.thickenSpeed`. (§3.1, §3.2)                            |
 | First-frame `uThicken` correctness                        | Out of scope. Snap-free guarantee applies after initial mount only. (§3.2)                          |
+| What "idle" means visually                                 | "Does not audio-ripple" — not "frozen." Breath + idleAmp motion stays on. (§4.3)                   |
 
 ---
 
@@ -296,7 +301,7 @@ Mobile parity is not required this pass:
 
 1. **Visual parity with gallery's bottom bar (per §4.10).** Same hamburger, same pill style, same tab buttons, same popover position, same color swatches, same Repeat icon.
 2. **No floating state pills above the canvas.** Only one control bar exists.
-3. **Click `idle` then `listening`**: blob shows torus in both; toggle audio on, listening's torus ripples, idle's stays still (per §4.3 audio gating).
+3. **Click `idle` then `listening`**: blob shows torus in both. Toggle audio on — listening's torus develops audio-driven ripples; idle's torus does NOT audio-ripple. Idle may still show its baseline subtle breath / idleAmp motion (that's its normal life-sign and is expected). Per §4.3 audio gating.
 4. **Click `thinking`**: blob pulses thin↔thick. If thinking Peak colors are unset, colors stay inherited from Rest (the orb gets thicker but does not shift hue at peak). If colors are set, peak colors lerp in along the morph curve.
 5. **Click `talking`**: blob morphs to a sphere; Thickness tab shows the italic "Geometry pinned" note in place of the Peak Radius slider.
 6. **Edit base scale on `idle` pill** → switching to `listening` / `thinking` / `talking` shows the new scale across all (linkage proof).
