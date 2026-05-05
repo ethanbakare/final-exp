@@ -1246,49 +1246,37 @@ export default function RealtimeStates() {
             onChange={(v) => setBase({ thinRadius: v })}
           />
         );
-        // Settle Speed = base.thickenSpeed. Drives the animator's
-        // tau when settling toward base values (idle/listening, and
-        // returning to either from talking or thinking). Shared
-        // across all pills — editing on one updates everywhere.
-        // (Underlying field stays thickenSpeed for compatibility
-        // with the gallery's shared profile shape.)
-        const speedRest = (
-          <SliderRow
-            label="Settle Speed"
-            value={profile.base.thickenSpeed}
-            min={0.1}
-            max={4.0}
-            step={0.02}
-            unit="s"
-            onChange={(v) => setBase({ thickenSpeed: v })}
-          />
-        );
+        // idle/listening: just the shared base.thickenSpeed under
+        // a directional label. This is the "speed of returning to
+        // idle from any state" knob, shared across the experience.
         if (state === 'idle' || state === 'listening') {
           return (
             <div className="space-y-3">
               {thinRest}
-              {speedRest}
+              <SliderRow
+                label="Settle Speed (→ idle)"
+                value={profile.base.thickenSpeed}
+                min={0.1}
+                max={4.0}
+                step={0.02}
+                unit="s"
+                onChange={(v) => setBase({ thickenSpeed: v })}
+              />
             </div>
           );
         }
-        const speedInherited = !peakHas(peakScope, 'thickenSpeed');
-        const speedEff = peakEff(peakScope, 'thickenSpeed') as number;
-        const speedPeak = (
-          <PeakSliderRow
-            label={state === 'thinking' ? 'Pulse Speed' : 'Morph Speed'}
-            value={speedEff}
-            min={0.1}
-            max={4.0}
-            step={0.02}
-            unit="s"
-            inherited={speedInherited}
-            onChange={(v) => setPeak(peakScope, { thickenSpeed: v })}
-            onReset={speedInherited ? undefined : () => clearPeak(peakScope, 'thickenSpeed')}
-          />
-        );
+
         if (state === 'thinking') {
+          // Thinking gets its own Entry Speed (decoupled from the
+          // pulse cycle) and its own Pulse Speed.
+          // Settle Speed is intentionally NOT shown here — it lives
+          // on idle/listening as the shared base.
           const tInherited = !peakHas('thinking', 'thickRadius');
           const tEff = (profile.thinking.thickRadius ?? profile.base.thinRadius) as number;
+          const entryInherited = !peakHas('thinking', 'entrySpeed');
+          const entryEff = (profile.thinking.entrySpeed ?? profile.base.thickenSpeed) as number;
+          const pulseInherited = !peakHas('thinking', 'thickenSpeed');
+          const pulseEff = (profile.thinking.thickenSpeed ?? profile.base.thickenSpeed) as number;
           return (
             <div className="space-y-3">
               {thinRest}
@@ -1302,17 +1290,40 @@ export default function RealtimeStates() {
                 onChange={(v) => setPeak('thinking', { thickRadius: v })}
                 onReset={tInherited ? undefined : () => clearPeak('thinking', 'thickRadius')}
               />
-              {speedRest}
-              {speedPeak}
+              <PeakSliderRow
+                label="Entry Speed (→ thinking)"
+                value={entryEff}
+                min={0.1}
+                max={4.0}
+                step={0.02}
+                unit="s"
+                inherited={entryInherited}
+                onChange={(v) => setPeak('thinking', { entrySpeed: v })}
+                onReset={entryInherited ? undefined : () => clearPeak('thinking', 'entrySpeed')}
+              />
+              <PeakSliderRow
+                label="Pulse Speed (thin↔thick)"
+                value={pulseEff}
+                min={0.1}
+                max={4.0}
+                step={0.02}
+                unit="s"
+                inherited={pulseInherited}
+                onChange={(v) => setPeak('thinking', { thickenSpeed: v })}
+                onReset={pulseInherited ? undefined : () => clearPeak('thinking', 'thickenSpeed')}
+              />
             </div>
           );
         }
-        // talking: italic note in place of Peak Radius row.
-        // Settle Speed on talking is a *talking-specific* override
-        // (talking.settleSpeed), not shared base.thickenSpeed —
-        // editing it here doesn't affect idle/listening's settle.
+
+        // talking: italic note in place of Peak Radius row, then
+        // talking-specific Settle (exit) and Morph (entry) sliders.
+        // Both override-able; both inherit base.thickenSpeed when
+        // unset (greyed label, no reset arrow).
         const settleInherited = !peakHas('talking', 'settleSpeed');
         const settleEff = (profile.talking.settleSpeed ?? profile.base.thickenSpeed) as number;
+        const morphInherited = !peakHas('talking', 'thickenSpeed');
+        const morphEff = (profile.talking.thickenSpeed ?? profile.base.thickenSpeed) as number;
         return (
           <div className="space-y-3">
             {thinRest}
@@ -1320,7 +1331,7 @@ export default function RealtimeStates() {
               Geometry pinned to sphere — no peak slider.
             </div>
             <PeakSliderRow
-              label="Settle Speed"
+              label="Settle Speed (talking → idle)"
               value={settleEff}
               min={0.1}
               max={4.0}
@@ -1330,7 +1341,17 @@ export default function RealtimeStates() {
               onChange={(v) => setPeak('talking', { settleSpeed: v })}
               onReset={settleInherited ? undefined : () => clearPeak('talking', 'settleSpeed')}
             />
-            {speedPeak}
+            <PeakSliderRow
+              label="Morph Speed (→ talking)"
+              value={morphEff}
+              min={0.1}
+              max={4.0}
+              step={0.02}
+              unit="s"
+              inherited={morphInherited}
+              onChange={(v) => setPeak('talking', { thickenSpeed: v })}
+              onReset={morphInherited ? undefined : () => clearPeak('talking', 'thickenSpeed')}
+            />
           </div>
         );
       }

@@ -26,7 +26,15 @@ export interface BaseSettings {
 export interface PeakOverrides {
   scale?: number;
   thickRadius?: number;
+  /** For thinking: pulse cycle rate (thin↔thick period).
+   *  For talking: morph rate (entering talking). */
   thickenSpeed?: number;
+  /** Per-state override for the *entry* tau (current → target).
+   *  Only honored for the thinking peak today. Decouples how fast
+   *  the orb enters thinking from how fast the pulse cycles —
+   *  drop it low to make listening→thinking nearly instant
+   *  without speeding up the pulse itself. */
+  entrySpeed?: number;
   /** Per-state override for the *exit* tau used when transitioning
    *  AWAY from this state back toward base. Currently only honored
    *  for the talking peak — lets talking morph back to idle on its
@@ -209,12 +217,19 @@ export function useLinkedProfileAnimator(
       };
 
       let target: RenderValues;
+      let stateTauSpeed: number;
       if (s === 'idle' || s === 'listening') {
         target = baseR;
+        stateTauSpeed = baseR.thickenSpeed;
       } else if (s === 'talking') {
         target = talkingR;
+        // Morph Speed = talking.thickenSpeed; pickPeak fell back to
+        // base if the user hasn't overridden talking.thickenSpeed,
+        // so talkingR.thickenSpeed is always defined.
+        stateTauSpeed = talkingR.thickenSpeed;
       } else {
         if (!pausedRef.current) {
+          // Pulse cycle rate uses thinkingR.thickenSpeed (Pulse Speed).
           const pulseSpeed = 1 / Math.max(0.05, thinkingR.thickenSpeed);
           pulseRef.current.phase += dt * pulseSpeed * pulseRef.current.dir;
           if (pulseRef.current.phase >= 1) {
@@ -228,12 +243,17 @@ export function useLinkedProfileAnimator(
         const t = pulseRef.current.phase;
         const eased = t * t * (3 - 2 * t);
         target = lerpRender(baseR, thinkingR, eased);
+        // Entry tau (current → target smoothing) uses thinking.entrySpeed
+        // when set, falling back to base.thickenSpeed. Decoupled from
+        // the pulse cycle rate so the user can dial entry near zero
+        // for fast responses without changing pulse rhythm.
+        stateTauSpeed = p.thinking.entrySpeed ?? p.base.thickenSpeed;
       }
 
-      // Active tau speed: talking's exit override if we're mid-
-      // transition away from talking, otherwise the active state's
-      // target speed.
-      const tauSpeed = activeTauOverrideRef.current ?? target.thickenSpeed;
+      // Talking's exit override wins when present (set on
+      // transitions AWAY from talking). Otherwise use the active
+      // state's tau speed computed above.
+      const tauSpeed = activeTauOverrideRef.current ?? stateTauSpeed;
       const tau = Math.max(0.05, tauSpeed) * 0.5;
       const alpha = 1 - Math.exp(-dt / tau);
       const next = lerpRender(cur, target, alpha);
