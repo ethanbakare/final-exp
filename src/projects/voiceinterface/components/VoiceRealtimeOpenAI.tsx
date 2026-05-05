@@ -480,15 +480,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     };
   }, []);
 
-  // Per-profile card background. Coral renders white; Nebularr uses
-  // its actual saved bgColor (fetched above) so the card matches the
-  // orb's environment exactly. Falls back to the fallback profile's
-  // bgColor while the fetch is in flight.
-  const cardBg =
-    profile === 'nebularr'
-      ? (nebularrProfile?.base.bgColor ?? NEBULARR_FALLBACK_PROFILE.base.bgColor)
-      : '#ffffff';
-
+  // Card bg stays at its original --VoiceBoxBg (#F7F6F4) for both
+  // profiles — only the page bg behind the card swaps to white.
   const profileThumbs: { id: RealtimeBlobProfile; src: string; label: string }[] = [
     { id: 'coral', src: '/thumbnails/realtime-production.png', label: 'Coral' },
     { id: 'nebularr', src: '/thumbnails/realtime-states/nebularr.png', label: 'Nebularr' },
@@ -497,7 +490,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   return (
     <>
       <div className="voice-realtime-container">
-        <div className="voice-realtime-card" style={{ background: cardBg }}>
+        <div className="voice-realtime-card">
           {/* Orb + Label Group */}
           <div className="orb-label-group">
             {/* Velvet Orb - Audio-reactive visualization */}

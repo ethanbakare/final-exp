@@ -1246,8 +1246,12 @@ export default function RealtimeStates() {
             onChange={(v) => setBase({ thinRadius: v })}
           />
         );
-        // Thicken Speed has no immediate visible effect on idle/listening
-        // (those states aren't morphing), so show the value but mute it.
+        // Thicken Speed is the global transition tau driver
+        // (animator: tau = target.thickenSpeed * 0.5). Larger value
+        // = slower state-to-state transitions. Editable on every
+        // state because it controls how long it takes to *enter*
+        // that state, even though idle/listening don't morph
+        // visually within themselves.
         const speedRest = (
           <SliderRow
             label={`Thicken Speed${restSuffix}`}
@@ -1256,7 +1260,6 @@ export default function RealtimeStates() {
             max={4.0}
             step={0.1}
             unit="s"
-            disabled={!isPeakState}
             onChange={(v) => setBase({ thickenSpeed: v })}
           />
         );
