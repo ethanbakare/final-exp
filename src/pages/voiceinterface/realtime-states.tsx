@@ -10,7 +10,8 @@
  *
  * Plan: REALTIME_STATES_PLAN.md (v2.4 + patches)
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Canvas } from '@react-three/fiber';
 import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, Pencil } from 'lucide-react';
 import {
@@ -536,6 +537,7 @@ interface ColorPickerButtonProps {
   value: string;
   colorFormat: ColorFormat;
   onChange: (v: string) => void;
+  onColorFormatChange?: (format: ColorFormat) => void;
   title?: string;
   className?: string;
   swatchClassName?: string;
@@ -642,22 +644,54 @@ const ColorPickerButton: React.FC<ColorPickerButtonProps> = ({
   value,
   colorFormat,
   onChange,
+  onColorFormatChange,
   title = 'Open colour picker',
   className = '',
   swatchClassName = 'h-7 w-7 rounded-md',
 }) => {
   const [open, setOpen] = useState(false);
   const [pickerValue, setPickerValue] = useState<Color>(() => parseColor(value).toFormat('hsb'));
-  const pickerRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setPickerValue(parseColor(value).toFormat('hsb'));
   }, [value]);
 
+  // Position the popover relative to the trigger button. Renders into a
+  // portal so parent overflow:auto containers (the bottom-bar tab
+  // popover / expanded drawer) can't clip it.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const popoverWidth = 256; // matches w-64 below
+      const popoverHeight = 320; // estimated; padding + area + slider + fields
+      const top = Math.max(8, rect.top - popoverHeight - 8);
+      const left = Math.max(8, Math.min(window.innerWidth - popoverWidth - 8, rect.right - popoverWidth));
+      setPosition({ left, top });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open]);
+
+  // Outside-click closes the popover. Has to consider both the trigger
+  // button AND the portaled popover (can't use a single ref for both).
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -669,9 +703,68 @@ const ColorPickerButton: React.FC<ColorPickerButtonProps> = ({
     onChange(hsb.toString('hex').toLowerCase());
   };
 
+  const popover = open && position && typeof document !== 'undefined' ? (
+    createPortal(
+      <div
+        ref={popoverRef}
+        className="fixed z-[100] w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-xl"
+        style={{ left: position.left, top: position.top }}
+      >
+        {onColorFormatChange && (
+          <div className="mb-3 flex items-center justify-between border-b border-gray-100 pb-2">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-gray-400 font-semibold">
+              Format
+            </span>
+            <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-0.5">
+              {COLOR_FORMATS.map((format) => (
+                <button
+                  key={format}
+                  onClick={() => onColorFormatChange(format)}
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold uppercase transition-colors ${
+                    colorFormat === format
+                      ? 'bg-white text-gray-700 shadow-sm'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  {format}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <ColorArea
+          aria-label="Saturation and brightness"
+          colorSpace="hsb"
+          xChannel="saturation"
+          yChannel="brightness"
+          value={pickerValue}
+          onChange={commitColor}
+          className="relative h-36 w-full overflow-hidden rounded-md border border-gray-200"
+        >
+          <ColorThumb className="h-4 w-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.55)]" />
+        </ColorArea>
+        <ColorSlider
+          aria-label="Hue"
+          colorSpace="hsb"
+          channel="hue"
+          value={pickerValue}
+          onChange={commitColor}
+          className="mt-3"
+        >
+          <SliderTrack className="relative h-3 rounded-full bg-[linear-gradient(90deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000)]">
+            <ColorThumb className="top-1/2 h-5 w-5 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]" />
+          </SliderTrack>
+        </ColorSlider>
+        <ColorChannelFields value={value} colorFormat={colorFormat} onChange={onChange} />
+      </div>,
+      document.body,
+    )
+  ) : null;
+
   return (
-    <div ref={pickerRef} className={`relative ${className}`}>
+    <div className={`relative ${className}`}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((p) => !p)}
         className={`${swatchClassName} relative shrink-0 overflow-hidden border border-gray-200 shadow-sm cursor-pointer`}
@@ -679,34 +772,7 @@ const ColorPickerButton: React.FC<ColorPickerButtonProps> = ({
       >
         <span className="absolute inset-0" style={{ backgroundColor: value }} />
       </button>
-      {open && (
-        <div className="absolute right-0 bottom-full z-50 mb-2 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-xl">
-          <ColorArea
-            aria-label="Saturation and brightness"
-            colorSpace="hsb"
-            xChannel="saturation"
-            yChannel="brightness"
-            value={pickerValue}
-            onChange={commitColor}
-            className="relative h-36 w-full overflow-hidden rounded-md border border-gray-200"
-          >
-            <ColorThumb className="h-4 w-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.55)]" />
-          </ColorArea>
-          <ColorSlider
-            aria-label="Hue"
-            colorSpace="hsb"
-            channel="hue"
-            value={pickerValue}
-            onChange={commitColor}
-            className="mt-3"
-          >
-            <SliderTrack className="relative h-3 rounded-full bg-[linear-gradient(90deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000)]">
-              <ColorThumb className="top-1/2 h-5 w-5 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]" />
-            </SliderTrack>
-          </ColorSlider>
-          <ColorChannelFields value={value} colorFormat={colorFormat} onChange={onChange} />
-        </div>
-      )}
+      {popover}
     </div>
   );
 };
@@ -716,6 +782,7 @@ interface RealtimeColorRowProps {
   value: string;
   colorFormat: ColorFormat;
   onChange: (v: string) => void;
+  onColorFormatChange?: (format: ColorFormat) => void;
 }
 
 const RealtimeColorRow: React.FC<RealtimeColorRowProps> = ({
@@ -723,12 +790,18 @@ const RealtimeColorRow: React.FC<RealtimeColorRowProps> = ({
   value,
   colorFormat,
   onChange,
+  onColorFormatChange,
 }) => (
   <div className="flex items-center justify-between">
     <span className="text-sm text-gray-600">{label}</span>
     <div className="flex items-center gap-2">
       <EditableColorValue value={value} colorFormat={colorFormat} onChange={onChange} />
-      <ColorPickerButton value={value} colorFormat={colorFormat} onChange={onChange} />
+      <ColorPickerButton
+        value={value}
+        colorFormat={colorFormat}
+        onChange={onChange}
+        onColorFormatChange={onColorFormatChange}
+      />
     </div>
   </div>
 );
@@ -740,6 +813,7 @@ interface PeakColorRowProps {
   inherited: boolean;
   onChange: (v: string) => void;
   onReset?: () => void;
+  onColorFormatChange?: (format: ColorFormat) => void;
 }
 
 const PeakColorRow: React.FC<PeakColorRowProps> = ({
@@ -749,6 +823,7 @@ const PeakColorRow: React.FC<PeakColorRowProps> = ({
   inherited,
   onChange,
   onReset,
+  onColorFormatChange,
 }) => {
   const labelClass = inherited ? 'text-sm text-gray-400' : 'text-sm text-gray-700';
 
@@ -766,7 +841,12 @@ const PeakColorRow: React.FC<PeakColorRowProps> = ({
             ↺
           </button>
         )}
-        <ColorPickerButton value={value} colorFormat={colorFormat} onChange={onChange} />
+        <ColorPickerButton
+          value={value}
+          colorFormat={colorFormat}
+          onChange={onChange}
+          onColorFormatChange={onColorFormatChange}
+        />
       </div>
     </div>
   );
@@ -1320,24 +1400,28 @@ export default function RealtimeStates() {
               value={profile.base.color1}
               colorFormat={colorFormat}
               onChange={(v) => setBase({ color1: v })}
+              onColorFormatChange={chooseColorFormat}
             />
             <RealtimeColorRow
               label={`Mid Tone${restSuffix}`}
               value={profile.base.color2}
               colorFormat={colorFormat}
               onChange={(v) => setBase({ color2: v })}
+              onColorFormatChange={chooseColorFormat}
             />
             <RealtimeColorRow
               label={`Edge${restSuffix}`}
               value={profile.base.color3}
               colorFormat={colorFormat}
               onChange={(v) => setBase({ color3: v })}
+              onColorFormatChange={chooseColorFormat}
             />
             <RealtimeColorRow
               label={`Background${restSuffix}`}
               value={profile.base.bgColor}
               colorFormat={colorFormat}
               onChange={(v) => setBase({ bgColor: v })}
+              onColorFormatChange={chooseColorFormat}
             />
           </>
         );
@@ -1358,6 +1442,7 @@ export default function RealtimeStates() {
               inherited={c1Inh}
               onChange={(v) => setPeak(peakScope, { color1: v })}
               onReset={c1Inh ? undefined : () => clearPeak(peakScope, 'color1')}
+              onColorFormatChange={chooseColorFormat}
             />
             <PeakColorRow
               label="Mid Tone (Peak)"
@@ -1366,6 +1451,7 @@ export default function RealtimeStates() {
               inherited={c2Inh}
               onChange={(v) => setPeak(peakScope, { color2: v })}
               onReset={c2Inh ? undefined : () => clearPeak(peakScope, 'color2')}
+              onColorFormatChange={chooseColorFormat}
             />
             <PeakColorRow
               label="Edge (Peak)"
@@ -1374,6 +1460,7 @@ export default function RealtimeStates() {
               inherited={c3Inh}
               onChange={(v) => setPeak(peakScope, { color3: v })}
               onReset={c3Inh ? undefined : () => clearPeak(peakScope, 'color3')}
+              onColorFormatChange={chooseColorFormat}
             />
           </div>
         );
