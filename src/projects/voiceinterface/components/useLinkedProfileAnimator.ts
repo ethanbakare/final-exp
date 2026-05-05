@@ -252,9 +252,12 @@ export function useLinkedProfileAnimator(
 
       // Talking's exit override wins when present (set on
       // transitions AWAY from talking). Otherwise use the active
-      // state's tau speed computed above.
+      // state's tau speed computed above. A tiny floor (0.001)
+      // keeps the math safe when the user dials a slider all the
+      // way to 0 — alpha collapses to 1 and current snaps to
+      // target instantly, which is what "instant transition" means.
       const tauSpeed = activeTauOverrideRef.current ?? stateTauSpeed;
-      const tau = Math.max(0.05, tauSpeed) * 0.5;
+      const tau = Math.max(0.001, tauSpeed) * 0.5;
       const alpha = 1 - Math.exp(-dt / tau);
       const next = lerpRender(cur, target, alpha);
       setRender(next);

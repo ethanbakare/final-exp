@@ -1256,7 +1256,7 @@ export default function RealtimeStates() {
               <SliderRow
                 label="Settle Speed (→ idle)"
                 value={profile.base.thickenSpeed}
-                min={0.1}
+                min={0}
                 max={4.0}
                 step={0.02}
                 unit="s"
@@ -1293,7 +1293,7 @@ export default function RealtimeStates() {
               <PeakSliderRow
                 label="Entry Speed (→ thinking)"
                 value={entryEff}
-                min={0.1}
+                min={0}
                 max={4.0}
                 step={0.02}
                 unit="s"
@@ -1304,7 +1304,7 @@ export default function RealtimeStates() {
               <PeakSliderRow
                 label="Pulse Speed (thin↔thick)"
                 value={pulseEff}
-                min={0.1}
+                min={0}
                 max={4.0}
                 step={0.02}
                 unit="s"
@@ -1333,7 +1333,7 @@ export default function RealtimeStates() {
             <PeakSliderRow
               label="Settle Speed (talking → idle)"
               value={settleEff}
-              min={0.1}
+              min={0}
               max={4.0}
               step={0.02}
               unit="s"
@@ -1344,7 +1344,7 @@ export default function RealtimeStates() {
             <PeakSliderRow
               label="Morph Speed (→ talking)"
               value={morphEff}
-              min={0.1}
+              min={0}
               max={4.0}
               step={0.02}
               unit="s"

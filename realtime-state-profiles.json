@@ -34,7 +34,7 @@
       "base": {
         "scale": 1,
         "thinRadius": 0.15,
-        "thickenSpeed": 1.2,
+        "thickenSpeed": 0,
         "waveIntensity": 0.3,
         "waveCount": 4,
         "breathAmp": 0.015,
@@ -45,7 +45,9 @@
         "bgColor": "#fefffa"
       },
       "thinking": {
-        "thickRadius": 0.35000000000000003
+        "thickRadius": 0.35000000000000003,
+        "entrySpeed": 0.1,
+        "thickenSpeed": 1.2
       },
       "talking": {
         "color3": "#949e05",
@@ -56,6 +58,6 @@
         "settleSpeed": 0.6
       }
     },
-    "lastModified": 1778004253988
+    "lastModified": 1778005696809
   }
 ]
