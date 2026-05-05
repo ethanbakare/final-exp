@@ -21,14 +21,17 @@ import {
   CAMERA_FOV,
   type BlobVoiceState,
 } from './blob-studio/blobStudioTypes';
+import { NebularrBlob } from './NebularrBlob';
 
 export type RealtimeVoiceState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking';
+export type RealtimeBlobProfile = 'coral' | 'nebularr';
 
 interface RealtimeBlobProps {
   audioData: AudioData;
   voiceState: RealtimeVoiceState;
   width?: number;
   height?: number;
+  profile?: RealtimeBlobProfile;
 }
 
 // Canvas is sized 30% larger than the blob's visible diameter so the
@@ -52,7 +55,21 @@ export const RealtimeBlob: React.FC<RealtimeBlobProps> = ({
   voiceState,
   width = 328,
   height = 328,
+  profile = 'coral',
 }) => {
+  // Route to the swappable Nebularr (Kyoto-style GentleOrbThicken)
+  // when selected; otherwise the original CoralStoneMorph orb.
+  if (profile === 'nebularr') {
+    return (
+      <NebularrBlob
+        audioData={audioData}
+        voiceState={voiceState}
+        width={width}
+        height={height}
+      />
+    );
+  }
+
   const blobState = STATE_MAP[voiceState];
   const stateSettings = DEFAULT_STATE_SETTINGS[blobState];
   const goal = blobState === 'talking' ? 0 : 1;

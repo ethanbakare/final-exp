@@ -2,7 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { RealtimeAgent, RealtimeSession, OpenAIRealtimeWebRTC } from '@openai/agents-realtime';
 // VelvetOrb is shelved — kept in tree at ./orb/VelvetOrb for revert.
 // Active orb is RealtimeBlob (CoralStoneMorph adapter, matches Figma 252×252).
-import { RealtimeBlob, RealtimeVoiceState as VoiceState } from './RealtimeBlob';
+import {
+  RealtimeBlob,
+  RealtimeVoiceState as VoiceState,
+  type RealtimeBlobProfile,
+} from './RealtimeBlob';
 import { VoiceStateLabel, VoiceStateLabelState } from './ui/VoiceStateLabel';
 import { MorphingRecordWideSimple } from './ui/voicemorphingbuttons';
 import { AudioData } from '../types';
@@ -80,6 +84,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('idle');
   const [error, setError] = useState<string>('');
   const [isConversationActive, setIsConversationActive] = useState<boolean>(false);
+  const [profile, setProfile] = useState<RealtimeBlobProfile>('coral');
 
   // Audio visualization state
   const [audioData, setAudioData] = useState<AudioData>({ bass: 0, mid: 0, treble: 0, rms: 0 });
@@ -448,10 +453,26 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     };
   }, []);
 
+  // Per-profile card background. Coral keeps the original
+  // --VoiceBoxBg variable; Nebularr uses its saved bgColor so the
+  // card matches the orb's environment.
+  const profileBg: Record<RealtimeBlobProfile, string | undefined> = {
+    coral: undefined,
+    nebularr: '#fffafa',
+  };
+
+  const profileThumbs: { id: RealtimeBlobProfile; src: string; label: string }[] = [
+    { id: 'coral', src: '/thumbnails/realtime-production.png', label: 'Coral' },
+    { id: 'nebularr', src: '/thumbnails/realtime-states/nebularr.png', label: 'Nebularr' },
+  ];
+
   return (
     <>
       <div className="voice-realtime-container">
-        <div className="voice-realtime-card">
+        <div
+          className="voice-realtime-card"
+          style={profileBg[profile] ? { background: profileBg[profile] } : undefined}
+        >
           {/* Orb + Label Group */}
           <div className="orb-label-group">
             {/* Velvet Orb - Audio-reactive visualization */}
@@ -459,6 +480,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
               <RealtimeBlob
                 audioData={audioData}
                 voiceState={getVoiceState()}
+                profile={profile}
               />
             </div>
 
@@ -482,16 +504,93 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             <div className="error-message">{error}</div>
           )}
         </div>
+
+        {/* Profile strip — pattern lifted from TraceDemo's
+            showcase-sample-strip. Click a thumb to swap the orb. */}
+        <div className="profile-strip" aria-label="Orb profiles">
+          {profileThumbs.map((thumb) => (
+            <button
+              key={thumb.id}
+              type="button"
+              onClick={() => setProfile(thumb.id)}
+              className={`profile-thumb ${profile === thumb.id ? 'is-active' : ''}`}
+              aria-label={`Switch to ${thumb.label} orb`}
+              aria-pressed={profile === thumb.id}
+            >
+              <img src={thumb.src} alt="" draggable={false} />
+            </button>
+          ))}
+        </div>
       </div>
 
       <style jsx>{`
-        /* Container - Centers card on page */
+        /* Container - Centers card on page, stacks card + profile strip */
         .voice-realtime-container {
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
+          gap: 16px;
           width: 100%;
           padding: 20px;
+        }
+
+        /* Profile strip — sits below the card. Mirrors the trace
+           demo's showcase-sample-strip styling so the two demos
+           feel consistent. */
+        .profile-strip {
+          display: flex;
+          flex-direction: row;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .profile-thumb {
+          width: 44px;
+          height: 44px;
+          padding: 0;
+          border: 1px solid transparent;
+          border-radius: 8px;
+          overflow: hidden;
+          cursor: pointer;
+          background: rgba(255, 255, 255, 0.7);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+          transition:
+            border-color 200ms cubic-bezier(0.23, 1, 0.32, 1),
+            box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1),
+            transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .profile-thumb.is-active {
+          border-color: #333;
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+          .profile-thumb:hover {
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
+            transform: translateY(-1px);
+          }
+        }
+
+        .profile-thumb:active {
+          transform: scale(0.97);
+        }
+
+        .profile-thumb img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          user-select: none;
+          -webkit-user-drag: none;
+        }
+
+        @media (max-width: 768px) {
+          .profile-thumb {
+            width: 38px;
+            height: 38px;
+          }
         }
 
         /* Card - Landscape layout with orb, label, button */
