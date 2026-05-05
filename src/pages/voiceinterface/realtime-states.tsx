@@ -1211,7 +1211,7 @@ export default function RealtimeStates() {
               label={`Scale (Peak) (~${approxPixelDia(eff, 328)}px)`}
               value={eff}
               min={0.05}
-              max={0.72}
+              max={1.5}
               step={0.01}
               unit="x"
               inherited={inherited}
