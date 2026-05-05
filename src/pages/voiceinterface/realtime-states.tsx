@@ -911,6 +911,12 @@ export default function RealtimeStates() {
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(thinkingPaused);
   pausedRef.current = thinkingPaused;
+  // Talking-exit tau override (mirrors useLinkedProfileAnimator). Set
+  // when the previous state was 'talking' and the new state isn't —
+  // lets talking → idle settle on talking.settleSpeed instead of the
+  // target's own thickenSpeed (which for Nebularr is 0 → instant snap).
+  const previousStateRef = useRef<PreviewState>(state);
+  const activeTauOverrideRef = useRef<number | null>(null);
 
   profileRef.current = profile;
   stateRef.current = state;
@@ -926,6 +932,17 @@ export default function RealtimeStates() {
     pulseRef.current = { phase: 0, dir: 1 };
     setAutoLoop(false);
     setThinkingPaused(false);
+    // Replay seeds talking values into render with state=idle, so the
+    // settle back to base must use talking.settleSpeed (with
+    // base.thickenSpeed as fallback). Arm the override directly so it
+    // is in effect even when setState('idle') is a no-op (state
+    // already idle). When state IS changing, lie that previousState
+    // was 'talking' so the state-effect re-arms instead of clearing.
+    activeTauOverrideRef.current =
+      nextProfile.talking.settleSpeed ?? nextProfile.base.thickenSpeed;
+    if (stateRef.current !== 'idle') {
+      previousStateRef.current = 'talking';
+    }
     setState('idle');
     setRenderNow(talkingRenderForProfile(nextProfile));
   };
@@ -1009,6 +1026,19 @@ export default function RealtimeStates() {
     if (state !== 'thinking') setThinkingPaused(false);
   }, [state]);
 
+  // Talking-exit tau override (mirrors useLinkedProfileAnimator).
+  useEffect(() => {
+    const prev = previousStateRef.current;
+    const p = profileRef.current;
+    if (prev === 'talking' && state !== 'talking') {
+      activeTauOverrideRef.current =
+        p.talking.settleSpeed ?? p.base.thickenSpeed;
+    } else {
+      activeTauOverrideRef.current = null;
+    }
+    previousStateRef.current = state;
+  }, [state]);
+
   // Profile dropdown outside-click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -1066,7 +1096,11 @@ export default function RealtimeStates() {
         pulseRef.current.dir = 1;
       }
 
-      const tau = Math.max(0.05, target.thickenSpeed) * 0.5;
+      // Override (when armed) wins over target.thickenSpeed so the
+      // talking → idle settle uses talking.settleSpeed instead of
+      // base.thickenSpeed (which on Nebularr is 0 → instant snap).
+      const tauSpeed = activeTauOverrideRef.current ?? target.thickenSpeed;
+      const tau = Math.max(0.05, tauSpeed) * 0.5;
       const alpha = 1 - Math.exp(-dt / tau);
       const next = lerpRender(cur, target, alpha);
 
