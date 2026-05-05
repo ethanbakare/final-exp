@@ -4,7 +4,7 @@
     "name": "Kyoto Realtime",
     "settings": {
       "base": {
-        "scale": 0.55,
+        "scale": 1,
         "thinRadius": 0.15,
         "thickenSpeed": 1.2,
         "waveIntensity": 0.18,
@@ -21,10 +21,10 @@
       },
       "talking": {
         "color3": "#949e05",
-        "scale": 0.5,
+        "scale": 0.72,
         "waveCount": 14
       }
     },
-    "lastModified": 1777940601597
+    "lastModified": 1777943901079
   }
 ]
