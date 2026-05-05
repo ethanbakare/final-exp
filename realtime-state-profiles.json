@@ -42,7 +42,7 @@
         "color1": "#080602",
         "color2": "#efff08",
         "color3": "#4f5715",
-        "bgColor": "#fffafa"
+        "bgColor": "#fefffa"
       },
       "thinking": {
         "thickRadius": 0.35000000000000003
@@ -54,6 +54,6 @@
         "waveIntensity": 0.4
       }
     },
-    "lastModified": 1777945507172
+    "lastModified": 1777946487477
   }
 ]
