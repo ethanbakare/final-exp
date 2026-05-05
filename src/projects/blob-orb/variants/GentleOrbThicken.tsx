@@ -14,7 +14,36 @@ import * as THREE from "three";
 import { fragmentShader } from "../shaders/fragmentShader";
 import { AudioData } from "../types";
 
-const NUM_WAVES = 8;
+const NUM_WAVES = 24;
+
+const LEGACY_DIRECTIONS: [number, number, number][] = [
+  [1, 0, 0],
+  [0, 1, 0],
+  [0, 0, 1],
+  [1, 1, 0],
+  [1, 0, 1],
+  [0, 1, 1],
+  [1, -1, 0],
+  [-1, 0, 1],
+];
+
+const EXTRA_DIRECTIONS: [number, number, number][] = [];
+for (let i = LEGACY_DIRECTIONS.length; i < NUM_WAVES; i++) {
+  const golden = (1 + Math.sqrt(5)) / 2;
+  const theta = Math.acos(1 - (2 * (i + 0.5)) / NUM_WAVES);
+  const phi = (2 * Math.PI * i) / golden;
+  EXTRA_DIRECTIONS.push([
+    Math.sin(theta) * Math.cos(phi),
+    Math.sin(theta) * Math.sin(phi),
+    Math.cos(theta),
+  ]);
+}
+
+const WAVE_DIRECTIONS = [...LEGACY_DIRECTIONS, ...EXTRA_DIRECTIONS];
+const dirGlsl = WAVE_DIRECTIONS.map(
+  (d, i) =>
+    `    if (idx == ${i}) return normalize(vec3(${d[0].toFixed(4)}, ${d[1].toFixed(4)}, ${d[2].toFixed(4)}));`
+).join("\n");
 
 const vertexShader = `
   varying vec2 vUv;
@@ -31,19 +60,14 @@ const vertexShader = `
   uniform float uOrigr;
   uniform float uThickR;
   uniform float uThickr;
+  uniform float uWaveCount;
   uniform float uWaveAmps[${NUM_WAVES}];
   uniform float uWaveFreqs[${NUM_WAVES}];
   uniform float uWavePhases[${NUM_WAVES}];
 
   vec3 getWaveDir(int idx) {
-    if (idx == 0) return normalize(vec3(1.0, 0.0, 0.0));
-    if (idx == 1) return normalize(vec3(0.0, 1.0, 0.0));
-    if (idx == 2) return normalize(vec3(0.0, 0.0, 1.0));
-    if (idx == 3) return normalize(vec3(1.0, 1.0, 0.0));
-    if (idx == 4) return normalize(vec3(1.0, 0.0, 1.0));
-    if (idx == 5) return normalize(vec3(0.0, 1.0, 1.0));
-    if (idx == 6) return normalize(vec3(1.0, -1.0, 0.0));
-    return normalize(vec3(-1.0, 0.0, 1.0));
+${dirGlsl}
+    return normalize(vec3(1.0, 0.0, 0.0));
   }
 
   void main() {
@@ -73,7 +97,8 @@ const vertexShader = `
     for (int i = 0; i < ${NUM_WAVES}; i++) {
       vec3 dir = getWaveDir(i);
       float projection = dot(n, dir);
-      displacement += uWaveAmps[i] * sin(projection * uWaveFreqs[i] + uWavePhases[i]);
+      float waveActive = clamp(uWaveCount - float(i), 0.0, 1.0);
+      displacement += waveActive * uWaveAmps[i] * sin(projection * uWaveFreqs[i] + uWavePhases[i]);
     }
 
     displacement = clamp(displacement, -uMaxDisp, uMaxDisp);
@@ -99,6 +124,7 @@ export interface ThickenProps {
   thickRadius: number;
   thickenSpeed: number;
   waveIntensity: number;
+  waveCount?: number;
   breathAmp: number;
   idleAmp: number;
   color1: string;
@@ -114,6 +140,7 @@ const GentleOrbThicken: React.FC<ThickenProps> = ({
   thickRadius,
   thickenSpeed,
   waveIntensity,
+  waveCount = 8,
   breathAmp,
   idleAmp,
   color1,
@@ -130,7 +157,14 @@ const GentleOrbThicken: React.FC<ThickenProps> = ({
   const majorThin = outerEdge - thinRadius;
   const majorThick = outerEdge - thickRadius;
 
-  const baseFreqs = useMemo(() => [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0], []);
+  const baseFreqs = useMemo(() => {
+    const legacy = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0];
+    const freqs = new Float32Array(NUM_WAVES);
+    for (let i = 0; i < NUM_WAVES; i++) {
+      freqs[i] = legacy[i] ?? 6.0 + i * 0.7;
+    }
+    return freqs;
+  }, []);
 
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -144,8 +178,9 @@ const GentleOrbThicken: React.FC<ThickenProps> = ({
     uOrigr: { value: thinRadius },
     uThickR: { value: majorThick },
     uThickr: { value: thickRadius },
+    uWaveCount: { value: waveCount },
     uWaveAmps: { value: new Float32Array(NUM_WAVES) },
-    uWaveFreqs: { value: new Float32Array(baseFreqs) },
+    uWaveFreqs: { value: baseFreqs },
     uWavePhases: { value: new Float32Array(NUM_WAVES) },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []);
@@ -160,6 +195,7 @@ const GentleOrbThicken: React.FC<ThickenProps> = ({
     materialRef.current.uniforms.uOrigr.value = thinRadius;
     materialRef.current.uniforms.uThickR.value = majorThick;
     materialRef.current.uniforms.uThickr.value = thickRadius;
+    materialRef.current.uniforms.uWaveCount.value = Math.max(1, Math.min(NUM_WAVES, waveCount));
     materialRef.current.uniforms.uColor1.value.set(color1);
     materialRef.current.uniforms.uColor2.value.set(color2);
     materialRef.current.uniforms.uColor3.value.set(color3);
@@ -194,6 +230,16 @@ const GentleOrbThicken: React.FC<ThickenProps> = ({
     targets[5] = idle + m * maxD * 0.125;
     targets[6] = idle + tr * maxD * 0.1;
     targets[7] = idle + tr * maxD * 0.075;
+
+    for (let i = 8; i < NUM_WAVES; i++) {
+      if (i < 13) {
+        targets[i] = idle + b * maxD * (0.11 - (i - 8) * 0.01);
+      } else if (i < 20) {
+        targets[i] = idle + m * maxD * (0.11 - (i - 13) * 0.006);
+      } else {
+        targets[i] = idle + tr * maxD * (0.065 - (i - 20) * 0.008);
+      }
+    }
 
     for (let i = 0; i < NUM_WAVES; i++) {
       const rate = targets[i] > smoothedAmps.current[i] ? 0.15 : 0.02;

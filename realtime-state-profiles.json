@@ -1,25 +1,30 @@
 [
   {
     "id": "rt-kyoto",
-    "name": "Kyoto",
+    "name": "Kyoto Realtime",
     "settings": {
       "base": {
         "scale": 0.55,
         "thinRadius": 0.15,
         "thickenSpeed": 1.2,
         "waveIntensity": 0.18,
+        "waveCount": 8,
         "breathAmp": 0.015,
         "idleAmp": 0.04,
         "color1": "#080602",
         "color2": "#efff08",
-        "color3": "#949e05",
+        "color3": "#693a22",
         "bgColor": "#fffafa"
       },
       "thinking": {
-        "thickRadius": 0.25
+        "thickRadius": 0.35000000000000003
       },
-      "talking": {}
+      "talking": {
+        "color3": "#949e05",
+        "scale": 0.5,
+        "waveCount": 14
+      }
     },
-    "lastModified": 1777938040269
+    "lastModified": 1777940601597
   }
 ]

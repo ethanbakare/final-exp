@@ -6,19 +6,27 @@
  * overrides that diverge only at peak. JS animator owns all motion so
  * state changes (and thinking pulses) glide smoothly with no shader
  * snap. Persists via /api/studio-profiles?variant=realtime-state, with
- * realtime-state-profiles.json at repo root pre-seeded with Kyoto.
+ * realtime-state-profiles.json at repo root pre-seeded with Kyoto Realtime.
  *
  * Plan: REALTIME_STATES_PLAN.md (v2.4 + patches)
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw } from 'lucide-react';
+import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, Pencil } from 'lucide-react';
+import {
+  ColorArea,
+  ColorSlider,
+  ColorThumb,
+  SliderTrack,
+  parseColor,
+  type Color,
+} from 'react-aria-components';
 import GentleOrbThicken from '@/projects/blob-orb/variants/GentleOrbThicken';
 import GalleryAudioControls from '@/projects/blob-orb/components/GalleryAudioControls';
 import SliderRow from '@/projects/blob-orb/components/shared/SliderRow';
-import ColorRow from '@/projects/blob-orb/components/shared/ColorRow';
 import { Slider } from '@/components/ui/slider';
 import { audioService } from '@/projects/blob-orb/services/audioService';
+import { CURATED_NAMES, GALLERY_API_KEYS } from '@/projects/blob-orb/galleryTypes';
 import type { AudioData } from '@/projects/voiceinterface/types';
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -26,12 +34,14 @@ import type { AudioData } from '@/projects/voiceinterface/types';
 type PreviewState = 'idle' | 'listening' | 'thinking' | 'talking';
 type PeakScope = 'thinking' | 'talking';
 type ControlTab = 'size' | 'thickness' | 'motion' | 'colours';
+type ColorFormat = 'hex' | 'rgb' | 'hsl' | 'hsb';
 
 interface BaseSettings {
   scale: number;
   thinRadius: number;
   thickenSpeed: number;
   waveIntensity: number;
+  waveCount: number;
   breathAmp: number;
   idleAmp: number;
   color1: string;
@@ -45,6 +55,7 @@ interface PeakOverrides {
   thickRadius?: number;
   thickenSpeed?: number;
   waveIntensity?: number;
+  waveCount?: number;
   breathAmp?: number;
   idleAmp?: number;
   color1?: string;
@@ -70,6 +81,7 @@ interface RenderValues {
   thickRadius: number;
   thickenSpeed: number; // animator bookkeeping; not passed to shader
   waveIntensity: number;
+  waveCount: number;
   breathAmp: number;
   idleAmp: number;
   color1: string;
@@ -81,10 +93,11 @@ interface RenderValues {
 
 const KYOTO_SEED: LinkedProfile = {
   base: {
-    scale: 0.5,
+    scale: 0.55,
     thinRadius: 0.15,
     thickenSpeed: 1.2,
     waveIntensity: 0.18,
+    waveCount: 8,
     breathAmp: 0.015,
     idleAmp: 0.04,
     color1: '#080602',
@@ -93,13 +106,14 @@ const KYOTO_SEED: LinkedProfile = {
     bgColor: '#fffafa',
   },
   thinking: { thickRadius: 0.25 },
-  talking: {},
+  talking: { color3: '#949e05', waveCount: 16 },
 };
 
 const STATES: PreviewState[] = ['idle', 'listening', 'thinking', 'talking'];
 const TALKING_GEOMETRY = 1.0;
 const SILENT: AudioData = { bass: 0, mid: 0, treble: 0, rms: 0 };
 const API = '/api/studio-profiles?variant=realtime-state';
+const REALTIME_SEED_NAME = 'Kyoto Realtime';
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -108,6 +122,18 @@ async function fetchProfiles(): Promise<SavedProfile[]> {
     const r = await fetch(API);
     const j = await r.json();
     return Array.isArray(j) ? j : [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchProfileNames(variant: string): Promise<string[]> {
+  try {
+    const r = await fetch(`/api/studio-profiles?variant=${variant}`);
+    const j = await r.json();
+    return Array.isArray(j)
+      ? j.map((p) => (typeof p?.name === 'string' ? p.name : '')).filter(Boolean)
+      : [];
   } catch {
     return [];
   }
@@ -127,6 +153,165 @@ async function persistProfiles(arr: SavedProfile[]) {
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
+}
+
+function normalizeProfileName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
+}
+
+function rgbToHex(r: number, g: number, b: number) {
+  const toHex = (n: number) => Math.round(clampNumber(n, 0, 255)).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const delta = max - min;
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+
+  if (delta !== 0) {
+    s = delta / (1 - Math.abs(2 * l - 1));
+    if (max === rn) h = ((gn - bn) / delta) % 6;
+    else if (max === gn) h = (bn - rn) / delta + 2;
+    else h = (rn - gn) / delta + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+
+  return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+}
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  const hue = (((h % 360) + 360) % 360) / 60;
+  const sat = clampNumber(s, 0, 100) / 100;
+  const light = clampNumber(l, 0, 100) / 100;
+  const c = (1 - Math.abs(2 * light - 1)) * sat;
+  const x = c * (1 - Math.abs((hue % 2) - 1));
+  const m = light - c / 2;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (hue < 1) [r, g, b] = [c, x, 0];
+  else if (hue < 2) [r, g, b] = [x, c, 0];
+  else if (hue < 3) [r, g, b] = [0, c, x];
+  else if (hue < 4) [r, g, b] = [0, x, c];
+  else if (hue < 5) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+
+  return [
+    Math.round((r + m) * 255),
+    Math.round((g + m) * 255),
+    Math.round((b + m) * 255),
+  ];
+}
+
+function rgbToHsb(r: number, g: number, b: number): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const delta = max - min;
+  let h = 0;
+
+  if (delta !== 0) {
+    if (max === rn) h = ((gn - bn) / delta) % 6;
+    else if (max === gn) h = (bn - rn) / delta + 2;
+    else h = (rn - gn) / delta + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+
+  return [Math.round(h), Math.round(max === 0 ? 0 : (delta / max) * 100), Math.round(max * 100)];
+}
+
+function hsbToRgb(h: number, s: number, b: number): [number, number, number] {
+  const hue = (((h % 360) + 360) % 360) / 60;
+  const sat = clampNumber(s, 0, 100) / 100;
+  const bright = clampNumber(b, 0, 100) / 100;
+  const c = bright * sat;
+  const x = c * (1 - Math.abs((hue % 2) - 1));
+  const m = bright - c;
+  let r = 0;
+  let g = 0;
+  let bl = 0;
+
+  if (hue < 1) [r, g, bl] = [c, x, 0];
+  else if (hue < 2) [r, g, bl] = [x, c, 0];
+  else if (hue < 3) [r, g, bl] = [0, c, x];
+  else if (hue < 4) [r, g, bl] = [0, x, c];
+  else if (hue < 5) [r, g, bl] = [x, 0, c];
+  else [r, g, bl] = [c, 0, x];
+
+  return [
+    Math.round((r + m) * 255),
+    Math.round((g + m) * 255),
+    Math.round((bl + m) * 255),
+  ];
+}
+
+function readColorNumbers(value: string) {
+  return value.match(/-?\d+(\.\d+)?/g)?.map(Number) ?? [];
+}
+
+function parseHexColor(value: string) {
+  let hex = value.trim();
+  if (!hex) return null;
+  if (!hex.startsWith('#')) hex = `#${hex}`;
+  if (/^#[0-9a-fA-F]{6}$/.test(hex)) return hex.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(hex)) {
+    const r = hex[1];
+    const g = hex[2];
+    const b = hex[3];
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  return null;
+}
+
+function formatColorValue(hex: string, format: ColorFormat) {
+  const [r, g, b] = hexToRgb(hex);
+  if (format === 'rgb') return `rgb(${r}, ${g}, ${b})`;
+  if (format === 'hsl') {
+    const [h, s, l] = rgbToHsl(r, g, b);
+    return `hsl(${h}, ${s}%, ${l}%)`;
+  }
+  if (format === 'hsb') {
+    const [h, s, br] = rgbToHsb(r, g, b);
+    return `hsb(${h}, ${s}%, ${br}%)`;
+  }
+  return hex;
+}
+
+function parseColorValue(value: string, format: ColorFormat) {
+  const hex = parseHexColor(value);
+  if (hex) return hex;
+  const numbers = readColorNumbers(value);
+  if (numbers.length < 3) return null;
+  const [a, b, c] = numbers;
+
+  if (format === 'rgb') return rgbToHex(a, b, c);
+  if (format === 'hsl') return rgbToHex(...hslToRgb(a, b, c));
+  if (format === 'hsb') return rgbToHex(...hsbToRgb(a, b, c));
+  return null;
 }
 
 function lerpHex(a: string, b: string, t: number): string {
@@ -149,6 +334,7 @@ function pickPeak(scope: PeakOverrides, base: BaseSettings): RenderValues {
     thickRadius: scope.thickRadius ?? base.thinRadius,
     thickenSpeed: scope.thickenSpeed ?? base.thickenSpeed,
     waveIntensity: scope.waveIntensity ?? base.waveIntensity,
+    waveCount: scope.waveCount ?? base.waveCount ?? 8,
     breathAmp: scope.breathAmp ?? base.breathAmp,
     idleAmp: scope.idleAmp ?? base.idleAmp,
     color1: scope.color1 ?? base.color1,
@@ -163,6 +349,7 @@ function baseRender(base: BaseSettings): RenderValues {
     thickRadius: base.thinRadius,
     thickenSpeed: base.thickenSpeed,
     waveIntensity: base.waveIntensity,
+    waveCount: base.waveCount ?? 8,
     breathAmp: base.breathAmp,
     idleAmp: base.idleAmp,
     color1: base.color1,
@@ -177,6 +364,7 @@ function lerpRender(a: RenderValues, b: RenderValues, t: number): RenderValues {
     thickRadius: lerp(a.thickRadius, b.thickRadius, t),
     thickenSpeed: lerp(a.thickenSpeed, b.thickenSpeed, t),
     waveIntensity: lerp(a.waveIntensity, b.waveIntensity, t),
+    waveCount: lerp(a.waveCount, b.waveCount, t),
     breathAmp: lerp(a.breathAmp, b.breathAmp, t),
     idleAmp: lerp(a.idleAmp, b.idleAmp, t),
     color1: lerpHex(a.color1, b.color1, t),
@@ -269,11 +457,286 @@ const PeakSliderRow: React.FC<PeakSliderRowProps> = ({
   );
 };
 
-// ── Local PeakColorRow ───────────────────────────────────────────
+// ── Local colour rows ───────────────────────────────────────────
+
+const COLOR_FORMATS: ColorFormat[] = ['hex', 'rgb', 'hsl', 'hsb'];
+
+interface ColorFormatControlProps {
+  value: ColorFormat;
+  onChange: (format: ColorFormat) => void;
+}
+
+const ColorFormatControl: React.FC<ColorFormatControlProps> = ({ value, onChange }) => (
+  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+    <span className="text-[11px] uppercase tracking-[0.16em] text-gray-400 font-semibold">
+      Format
+    </span>
+    <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-0.5">
+      {COLOR_FORMATS.map((format) => (
+        <button
+          key={format}
+          onClick={() => onChange(format)}
+          className={`px-2 py-1 rounded-md text-[10px] font-semibold uppercase transition-colors ${
+            value === format
+              ? 'bg-white text-gray-700 shadow-sm'
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          {format}
+        </button>
+      ))}
+    </div>
+  </div>
+);
+
+interface EditableColorValueProps {
+  value: string;
+  colorFormat: ColorFormat;
+  onChange: (v: string) => void;
+}
+
+const EditableColorValue: React.FC<EditableColorValueProps> = ({ value, colorFormat, onChange }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const display = formatColorValue(value, colorFormat);
+
+  const commit = () => {
+    setEditing(false);
+    const next = parseColorValue(draft, colorFormat);
+    if (next) onChange(next);
+  };
+
+  return editing ? (
+    <input
+      type="text"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') commit();
+        if (e.key === 'Escape') setEditing(false);
+      }}
+      className="w-32 text-right text-xs text-gray-600 tabular-nums bg-gray-100 rounded px-1 outline-none"
+      autoFocus
+    />
+  ) : (
+    <span
+      className="text-xs text-gray-400 tabular-nums cursor-pointer hover:text-gray-600 transition-colors"
+      onClick={() => {
+        setDraft(display);
+        setEditing(true);
+      }}
+    >
+      {display}
+    </span>
+  );
+};
+
+interface ColorPickerButtonProps {
+  value: string;
+  colorFormat: ColorFormat;
+  onChange: (v: string) => void;
+  title?: string;
+  className?: string;
+  swatchClassName?: string;
+}
+
+interface ColorChannelFieldsProps {
+  value: string;
+  colorFormat: ColorFormat;
+  onChange: (v: string) => void;
+}
+
+function colorFieldValues(hex: string, format: ColorFormat) {
+  const [r, g, b] = hexToRgb(hex);
+  if (format === 'rgb') {
+    return [
+      { label: 'R', value: String(r) },
+      { label: 'G', value: String(g) },
+      { label: 'B', value: String(b) },
+    ];
+  }
+  if (format === 'hsl') {
+    const [h, s, l] = rgbToHsl(r, g, b);
+    return [
+      { label: 'H', value: String(h) },
+      { label: 'S', value: String(s) },
+      { label: 'L', value: String(l) },
+    ];
+  }
+  if (format === 'hsb') {
+    const [h, s, br] = rgbToHsb(r, g, b);
+    return [
+      { label: 'H', value: String(h) },
+      { label: 'S', value: String(s) },
+      { label: 'B', value: String(br) },
+    ];
+  }
+  return [{ label: 'HEX', value: hex.toUpperCase() }];
+}
+
+function colorDraftsToHex(format: ColorFormat, drafts: string[]) {
+  if (format === 'hex') return parseHexColor(drafts[0] ?? '');
+  if (drafts.length < 3) return null;
+
+  const numbers = drafts.map((draft) => Number(draft));
+  if (numbers.some((n) => !Number.isFinite(n))) return null;
+  const [a, b, c] = numbers;
+
+  if (format === 'rgb') return rgbToHex(a, b, c);
+  if (format === 'hsl') return rgbToHex(...hslToRgb(a, b, c));
+  if (format === 'hsb') return rgbToHex(...hsbToRgb(a, b, c));
+  return null;
+}
+
+const ColorChannelFields: React.FC<ColorChannelFieldsProps> = ({ value, colorFormat, onChange }) => {
+  const fields = colorFieldValues(value, colorFormat);
+  const [drafts, setDrafts] = useState<string[]>(() => fields.map((field) => field.value));
+
+  useEffect(() => {
+    setDrafts(colorFieldValues(value, colorFormat).map((field) => field.value));
+  }, [value, colorFormat]);
+
+  const commit = () => {
+    const next = colorDraftsToHex(colorFormat, drafts);
+    if (next) onChange(next);
+    else setDrafts(colorFieldValues(value, colorFormat).map((field) => field.value));
+  };
+
+  return (
+    <div className={`mt-3 grid gap-2 text-center ${colorFormat === 'hex' ? 'grid-cols-1' : 'grid-cols-3'}`}>
+      {fields.map((field, i) => (
+        <label key={field.label} className="block">
+          <input
+            type="text"
+            value={drafts[i] ?? ''}
+            onChange={(e) => {
+              const next = [...drafts];
+              next[i] = e.target.value;
+              setDrafts(next);
+            }}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                commit();
+                e.currentTarget.blur();
+              }
+              if (e.key === 'Escape') {
+                setDrafts(colorFieldValues(value, colorFormat).map((item) => item.value));
+                e.currentTarget.blur();
+              }
+            }}
+            className="w-full rounded-md border border-gray-200 px-2 py-1 text-center text-sm tabular-nums text-gray-700 outline-none transition-colors focus:border-gray-400"
+          />
+          <span className="mt-1 block text-[10px] font-medium uppercase text-gray-400">
+            {field.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+};
+
+const ColorPickerButton: React.FC<ColorPickerButtonProps> = ({
+  value,
+  colorFormat,
+  onChange,
+  title = 'Open colour picker',
+  className = '',
+  swatchClassName = 'h-7 w-7 rounded-md',
+}) => {
+  const [open, setOpen] = useState(false);
+  const [pickerValue, setPickerValue] = useState<Color>(() => parseColor(value).toFormat('hsb'));
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setPickerValue(parseColor(value).toFormat('hsb'));
+  }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const commitColor = (next: Color) => {
+    const hsb = next.toFormat('hsb');
+    setPickerValue(hsb);
+    onChange(hsb.toString('hex').toLowerCase());
+  };
+
+  return (
+    <div ref={pickerRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        className={`${swatchClassName} relative shrink-0 overflow-hidden border border-gray-200 shadow-sm cursor-pointer`}
+        title={title}
+      >
+        <span className="absolute inset-0" style={{ backgroundColor: value }} />
+      </button>
+      {open && (
+        <div className="absolute right-0 bottom-full z-50 mb-2 w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-xl">
+          <ColorArea
+            aria-label="Saturation and brightness"
+            colorSpace="hsb"
+            xChannel="saturation"
+            yChannel="brightness"
+            value={pickerValue}
+            onChange={commitColor}
+            className="relative h-36 w-full overflow-hidden rounded-md border border-gray-200"
+          >
+            <ColorThumb className="h-4 w-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.55)]" />
+          </ColorArea>
+          <ColorSlider
+            aria-label="Hue"
+            colorSpace="hsb"
+            channel="hue"
+            value={pickerValue}
+            onChange={commitColor}
+            className="mt-3"
+          >
+            <SliderTrack className="relative h-3 rounded-full bg-[linear-gradient(90deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000)]">
+              <ColorThumb className="top-1/2 h-5 w-5 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]" />
+            </SliderTrack>
+          </ColorSlider>
+          <ColorChannelFields value={value} colorFormat={colorFormat} onChange={onChange} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface RealtimeColorRowProps {
+  label: string;
+  value: string;
+  colorFormat: ColorFormat;
+  onChange: (v: string) => void;
+}
+
+const RealtimeColorRow: React.FC<RealtimeColorRowProps> = ({
+  label,
+  value,
+  colorFormat,
+  onChange,
+}) => (
+  <div className="flex items-center justify-between">
+    <span className="text-sm text-gray-600">{label}</span>
+    <div className="flex items-center gap-2">
+      <EditableColorValue value={value} colorFormat={colorFormat} onChange={onChange} />
+      <ColorPickerButton value={value} colorFormat={colorFormat} onChange={onChange} />
+    </div>
+  </div>
+);
 
 interface PeakColorRowProps {
   label: string;
   value: string;
+  colorFormat: ColorFormat;
   inherited: boolean;
   onChange: (v: string) => void;
   onReset?: () => void;
@@ -282,55 +745,18 @@ interface PeakColorRowProps {
 const PeakColorRow: React.FC<PeakColorRowProps> = ({
   label,
   value,
+  colorFormat,
   inherited,
   onChange,
   onReset,
 }) => {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState('');
   const labelClass = inherited ? 'text-sm text-gray-400' : 'text-sm text-gray-700';
-  const commit = () => {
-    setEditing(false);
-    let hex = draft.trim();
-    if (!hex) return;
-    if (!hex.startsWith('#')) hex = '#' + hex;
-    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
-      onChange(hex.toLowerCase());
-    } else if (/^#[0-9a-fA-F]{3}$/.test(hex)) {
-      const r = hex[1],
-        g = hex[2],
-        b = hex[3];
-      onChange(`#${r}${r}${g}${g}${b}${b}`.toLowerCase());
-    }
-  };
+
   return (
     <div className="flex items-center justify-between">
       <span className={labelClass}>{label}</span>
       <div className="flex items-center gap-2">
-        {editing ? (
-          <input
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commit();
-              if (e.key === 'Escape') setEditing(false);
-            }}
-            className="w-20 text-right text-xs text-gray-600 tabular-nums bg-gray-100 rounded px-1 outline-none"
-            autoFocus
-          />
-        ) : (
-          <span
-            className="text-xs text-gray-400 tabular-nums cursor-pointer hover:text-gray-600 transition-colors"
-            onClick={() => {
-              setDraft(value);
-              setEditing(true);
-            }}
-          >
-            {value}
-          </span>
-        )}
+        <EditableColorValue value={value} colorFormat={colorFormat} onChange={onChange} />
         {!inherited && onReset && (
           <button
             onClick={onReset}
@@ -340,15 +766,7 @@ const PeakColorRow: React.FC<PeakColorRowProps> = ({
             ↺
           </button>
         )}
-        <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-md border border-gray-200 shadow-sm">
-          <div className="absolute inset-0" style={{ backgroundColor: value }} />
-          <input
-            type="color"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          />
-        </div>
+        <ColorPickerButton value={value} colorFormat={colorFormat} onChange={onChange} />
       </div>
     </div>
   );
@@ -371,6 +789,10 @@ export default function RealtimeStates() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const [externalProfileNames, setExternalProfileNames] = useState<Set<string>>(new Set());
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState('');
+  const [colorFormat, setColorFormat] = useState<ColorFormat>('hex');
   const [thinkingPaused, setThinkingPaused] = useState(false);
 
   const profileRef = useRef(profile);
@@ -392,7 +814,7 @@ export default function RealtimeStates() {
       if (arr.length === 0) {
         const seedEntry: SavedProfile = {
           id: 'rt-kyoto',
-          name: 'Kyoto',
+          name: REALTIME_SEED_NAME,
           settings: KYOTO_SEED,
           lastModified: Date.now(),
         };
@@ -411,6 +833,24 @@ export default function RealtimeStates() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    Promise.all(Object.values(GALLERY_API_KEYS).map(fetchProfileNames)).then((groups) => {
+      setExternalProfileNames(new Set(groups.flat().map(normalizeProfileName)));
+    });
+  }, []);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem('realtime-states-color-format');
+    if (stored && COLOR_FORMATS.includes(stored as ColorFormat)) {
+      setColorFormat(stored as ColorFormat);
+    }
+  }, []);
+
+  const chooseColorFormat = (format: ColorFormat) => {
+    setColorFormat(format);
+    window.localStorage.setItem('realtime-states-color-format', format);
+  };
 
   // Audio data polling
   useEffect(() => {
@@ -545,7 +985,31 @@ export default function RealtimeStates() {
   // ── Profile actions ─────────────────────────────────────────
   const isDirty = JSON.stringify(profile) !== JSON.stringify(activeBaseline);
   const activeProfile = profiles.find((p) => p.id === activeId);
-  const activeName = activeProfile?.name ?? 'Kyoto';
+  const activeName = activeProfile?.name ?? REALTIME_SEED_NAME;
+
+  const profileNameExists = (name: string, exceptId?: string) => {
+    const normalized = normalizeProfileName(name);
+    if (!normalized) return false;
+    if (externalProfileNames.has(normalized)) return true;
+    return profiles.some((p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized);
+  };
+
+  const pickRealtimeUnusedName = () => {
+    const used = new Set([
+      ...Array.from(externalProfileNames),
+      ...profiles.map((p) => normalizeProfileName(p.name)),
+    ]);
+    const available = CURATED_NAMES.filter((name) => !used.has(normalizeProfileName(name)));
+    if (available.length > 0) {
+      return available[Math.floor(Math.random() * available.length)];
+    }
+    const base = 'Realtime Profile';
+    let i = profiles.length + 1;
+    while (used.has(normalizeProfileName(`${base} ${i}`))) i += 1;
+    return `${base} ${i}`;
+  };
+
+  const saveNameInvalid = !saveName.trim() || profileNameExists(saveName);
 
   const selectProfile = (id: string) => {
     const found = profiles.find((p) => p.id === id);
@@ -558,7 +1022,7 @@ export default function RealtimeStates() {
 
   const handleSave = async () => {
     const name = saveName.trim();
-    if (!name) return;
+    if (!name || profileNameExists(name)) return;
     const entry: SavedProfile = {
       id: `rt-${crypto.randomUUID()}`,
       name,
@@ -571,6 +1035,27 @@ export default function RealtimeStates() {
     setActiveBaseline(entry.settings);
     setShowSaveDialog(false);
     setSaveName('');
+    await persistProfiles(next);
+  };
+
+  const beginRename = (entry: SavedProfile) => {
+    setRenamingId(entry.id);
+    setRenameDraft(entry.name);
+  };
+
+  const cancelRename = () => {
+    setRenamingId(null);
+    setRenameDraft('');
+  };
+
+  const commitRename = async (id: string, draft: string) => {
+    const name = draft.trim();
+    if (!name || profileNameExists(name, id)) return;
+    const next = profiles.map((pr) =>
+      pr.id === id ? { ...pr, name, lastModified: Date.now() } : pr
+    );
+    setProfiles(next);
+    cancelRename();
     await persistProfiles(next);
   };
 
@@ -611,9 +1096,33 @@ export default function RealtimeStates() {
             onChange={(v) => setBase({ scale: v })}
           />
         );
-        if (!isPeakState) return restRow;
+        const waveRows = (
+          <div className="pt-3 mt-3 border-t border-gray-100 space-y-3">
+            <div className="text-[11px] uppercase tracking-[0.16em] text-gray-400 font-semibold">
+              Wave Count
+            </div>
+            <SliderRow
+              label={`Wave Count${restSuffix}`}
+              value={profile.base.waveCount ?? 8}
+              min={1}
+              max={24}
+              step={1}
+              onChange={(v) => setBase({ waveCount: v })}
+            />
+          </div>
+        );
+        if (!isPeakState) {
+          return (
+            <div className="space-y-3">
+              {restRow}
+              {waveRows}
+            </div>
+          );
+        }
         const inherited = !peakHas(peakScope, 'scale');
         const eff = peakEff(peakScope, 'scale') as number;
+        const wcInh = !peakHas(peakScope, 'waveCount');
+        const wcEff = peakEff(peakScope, 'waveCount') as number;
         return (
           <div className="space-y-3">
             {restRow}
@@ -628,6 +1137,19 @@ export default function RealtimeStates() {
               onChange={(v) => setPeak(peakScope, { scale: v })}
               onReset={inherited ? undefined : () => clearPeak(peakScope, 'scale')}
             />
+            {waveRows}
+            {peakScope === 'talking' && (
+              <PeakSliderRow
+                label="Wave Count (Peak)"
+                value={wcEff}
+                min={1}
+                max={24}
+                step={1}
+                inherited={wcInh}
+                onChange={(v) => setPeak('talking', { waveCount: v })}
+                onReset={wcInh ? undefined : () => clearPeak('talking', 'waveCount')}
+              />
+            )}
           </div>
         );
       }
@@ -792,24 +1314,29 @@ export default function RealtimeStates() {
       case 'colours': {
         const restRows = (
           <>
-            <ColorRow
+            <ColorFormatControl value={colorFormat} onChange={chooseColorFormat} />
+            <RealtimeColorRow
               label={`Highlight${restSuffix}`}
               value={profile.base.color1}
+              colorFormat={colorFormat}
               onChange={(v) => setBase({ color1: v })}
             />
-            <ColorRow
+            <RealtimeColorRow
               label={`Mid Tone${restSuffix}`}
               value={profile.base.color2}
+              colorFormat={colorFormat}
               onChange={(v) => setBase({ color2: v })}
             />
-            <ColorRow
+            <RealtimeColorRow
               label={`Edge${restSuffix}`}
               value={profile.base.color3}
+              colorFormat={colorFormat}
               onChange={(v) => setBase({ color3: v })}
             />
-            <ColorRow
+            <RealtimeColorRow
               label={`Background${restSuffix}`}
               value={profile.base.bgColor}
+              colorFormat={colorFormat}
               onChange={(v) => setBase({ bgColor: v })}
             />
           </>
@@ -827,6 +1354,7 @@ export default function RealtimeStates() {
             <PeakColorRow
               label="Highlight (Peak)"
               value={c1}
+              colorFormat={colorFormat}
               inherited={c1Inh}
               onChange={(v) => setPeak(peakScope, { color1: v })}
               onReset={c1Inh ? undefined : () => clearPeak(peakScope, 'color1')}
@@ -834,6 +1362,7 @@ export default function RealtimeStates() {
             <PeakColorRow
               label="Mid Tone (Peak)"
               value={c2}
+              colorFormat={colorFormat}
               inherited={c2Inh}
               onChange={(v) => setPeak(peakScope, { color2: v })}
               onReset={c2Inh ? undefined : () => clearPeak(peakScope, 'color2')}
@@ -841,6 +1370,7 @@ export default function RealtimeStates() {
             <PeakColorRow
               label="Edge (Peak)"
               value={c3}
+              colorFormat={colorFormat}
               inherited={c3Inh}
               onChange={(v) => setPeak(peakScope, { color3: v })}
               onReset={c3Inh ? undefined : () => clearPeak(peakScope, 'color3')}
@@ -906,6 +1436,7 @@ export default function RealtimeStates() {
             thickRadius={render.thickRadius}
             thickenSpeed={0.05}
             waveIntensity={render.waveIntensity}
+            waveCount={render.waveCount}
             breathAmp={render.breathAmp}
             idleAmp={render.idleAmp}
             color1={render.color1}
@@ -998,17 +1529,79 @@ export default function RealtimeStates() {
               </button>
               {showProfileDropdown && (
                 <div className="absolute bottom-full left-0 mb-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {profiles.map((p) => (
-                    <div
-                      key={p.id}
-                      className={`px-3 py-1.5 text-xs cursor-pointer hover:bg-gray-50 ${
-                        p.id === activeId ? 'font-medium text-gray-700' : 'text-gray-600'
-                      }`}
-                      onClick={() => selectProfile(p.id)}
-                    >
-                      {p.name}
-                    </div>
-                  ))}
+                  {profiles.map((p) => {
+                    const isRenaming = renamingId === p.id;
+                    const renameInvalid = !renameDraft.trim() || profileNameExists(renameDraft, p.id);
+
+                    return (
+                      <div
+                        key={p.id}
+                        className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 ${
+                          p.id === activeId ? 'font-medium text-gray-700' : 'text-gray-600'
+                        } ${isRenaming ? '' : 'cursor-pointer'}`}
+                        onClick={() => {
+                          if (!isRenaming) selectProfile(p.id);
+                        }}
+                      >
+                        {isRenaming ? (
+                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="text"
+                              value={renameDraft}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') commitRename(p.id, renameDraft);
+                                if (e.key === 'Escape') cancelRename();
+                              }}
+                              className={`min-w-0 flex-1 px-2 py-1 text-xs border rounded-md outline-none focus:border-gray-400 ${
+                                renameInvalid ? 'border-red-200' : 'border-gray-200'
+                              }`}
+                              autoFocus
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                commitRename(p.id, renameDraft);
+                              }}
+                              disabled={renameInvalid}
+                              className={`transition-colors ${
+                                renameInvalid
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-gray-500 hover:text-green-600 cursor-pointer'
+                              }`}
+                              title="Save name"
+                            >
+                              <Check size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelRename();
+                              }}
+                              className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                              title="Cancel rename"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                beginRename(p);
+                              }}
+                              className="shrink-0 text-gray-300 hover:text-gray-600 transition-colors cursor-pointer"
+                              title="Rename profile"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1035,19 +1628,14 @@ export default function RealtimeStates() {
             {/* Bottom swatches (state-aware Rest vs Peak per §4.6) */}
             <div className="flex items-center gap-1 ml-2">
               {([0, 1, 2] as const).map((i) => (
-                <div
+                <ColorPickerButton
                   key={i}
-                  className="relative h-6 w-6 rounded-full border border-gray-200 overflow-hidden shrink-0"
-                  style={{ backgroundColor: swatchValue(i) }}
+                  value={swatchValue(i)}
+                  colorFormat={colorFormat}
+                  onChange={(v) => swatchSet(i, v)}
                   title={state === 'idle' || state === 'listening' ? 'Rest' : 'Peak'}
-                >
-                  <input
-                    type="color"
-                    value={swatchValue(i)}
-                    onChange={(e) => swatchSet(i, e.target.value)}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                </div>
+                  swatchClassName="h-6 w-6 rounded-full"
+                />
               ))}
             </div>
 
@@ -1116,12 +1704,19 @@ export default function RealtimeStates() {
                     }
                   }}
                   placeholder="Profile name"
-                  className="w-28 px-2 py-1 text-xs border border-gray-200 rounded-lg outline-none focus:border-gray-400"
+                  className={`w-28 px-2 py-1 text-xs border rounded-lg outline-none focus:border-gray-400 ${
+                    saveNameInvalid ? 'border-red-200' : 'border-gray-200'
+                  }`}
                   autoFocus
                 />
                 <button
                   onClick={handleSave}
-                  className="text-gray-500 hover:text-green-600 transition-colors cursor-pointer"
+                  disabled={saveNameInvalid}
+                  className={`transition-colors ${
+                    saveNameInvalid
+                      ? 'text-gray-300 cursor-not-allowed'
+                      : 'text-gray-500 hover:text-green-600 cursor-pointer'
+                  }`}
                 >
                   <Check size={14} />
                 </button>
@@ -1138,7 +1733,7 @@ export default function RealtimeStates() {
             ) : (
               <button
                 onClick={() => {
-                  setSaveName('');
+                  setSaveName(pickRealtimeUnusedName());
                   setShowSaveDialog(true);
                 }}
                 className="p-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
