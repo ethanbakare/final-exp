@@ -518,7 +518,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          border: 0.5px solid orange; /* DEBUG */
+          /* border: 0.5px solid orange; */ /* DEBUG */
         }
 
         /* Orb Container — sized 30% larger than the visible blob so
@@ -529,7 +529,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           flex-shrink: 0;
           width: 328px;
           height: 328px;
-          border: 0.5px solid red; /* DEBUG */
+          /* border: 0.5px solid red; */ /* DEBUG */
         }
 
         /* State Label Container */
@@ -538,7 +538,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           width: 100%;
           text-align: center;
           padding: 0 20px;
-          border: 0.5px solid blue; /* DEBUG */
+          /* border: 0.5px solid blue; */ /* DEBUG */
         }
 
         /* Button Container */
@@ -550,7 +550,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           height: 44px;
           padding: 0 12px;
           margin-top: 10px;
-          border: 0.5px solid green; /* DEBUG */
+          /* border: 0.5px solid green; */ /* DEBUG */
         }
 
         /* Error Message */

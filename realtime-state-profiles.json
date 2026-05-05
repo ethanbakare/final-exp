@@ -49,11 +49,11 @@
       },
       "talking": {
         "color3": "#949e05",
-        "scale": 0.72,
-        "waveCount": 14,
-        "waveIntensity": 0.18
+        "scale": 0.75,
+        "waveCount": 9,
+        "waveIntensity": 0.4
       }
     },
-    "lastModified": 1777944694941
+    "lastModified": 1777945507172
   }
 ]
