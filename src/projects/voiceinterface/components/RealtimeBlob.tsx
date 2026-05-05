@@ -22,6 +22,7 @@ import {
   type BlobVoiceState,
 } from './blob-studio/blobStudioTypes';
 import { NebularrBlob } from './NebularrBlob';
+import type { LinkedProfile } from './useLinkedProfileAnimator';
 
 export type RealtimeVoiceState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking';
 export type RealtimeBlobProfile = 'coral' | 'nebularr';
@@ -32,6 +33,9 @@ interface RealtimeBlobProps {
   width?: number;
   height?: number;
   profile?: RealtimeBlobProfile;
+  /** Required when profile === 'nebularr'. Loaded by the parent so
+   *  the parent can also use the profile's bgColor for theming. */
+  nebularrProfile?: LinkedProfile | null;
 }
 
 // Canvas is sized 30% larger than the blob's visible diameter so the
@@ -56,6 +60,7 @@ export const RealtimeBlob: React.FC<RealtimeBlobProps> = ({
   width = 328,
   height = 328,
   profile = 'coral',
+  nebularrProfile,
 }) => {
   // Route to the swappable Nebularr (Kyoto-style GentleOrbThicken)
   // when selected; otherwise the original CoralStoneMorph orb.
@@ -64,6 +69,7 @@ export const RealtimeBlob: React.FC<RealtimeBlobProps> = ({
       <NebularrBlob
         audioData={audioData}
         voiceState={voiceState}
+        profile={nebularrProfile ?? null}
         width={width}
         height={height}
       />

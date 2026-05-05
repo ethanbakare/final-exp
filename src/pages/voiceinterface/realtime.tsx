@@ -23,7 +23,7 @@ export default function VoiceRealtimePage() {
           justify-content: center;
           align-items: center;
           padding: 20px;
-          background: #fafafa;
+          background: #ffffff;
           font-family: 'Open Runde', 'Inter', sans-serif;
         }
 

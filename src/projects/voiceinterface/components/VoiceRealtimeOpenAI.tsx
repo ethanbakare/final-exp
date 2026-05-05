@@ -7,6 +7,8 @@ import {
   RealtimeVoiceState as VoiceState,
   type RealtimeBlobProfile,
 } from './RealtimeBlob';
+import { NEBULARR_FALLBACK_PROFILE } from './NebularrBlob';
+import type { LinkedProfile } from './useLinkedProfileAnimator';
 import { VoiceStateLabel, VoiceStateLabelState } from './ui/VoiceStateLabel';
 import { MorphingRecordWideSimple } from './ui/voicemorphingbuttons';
 import { AudioData } from '../types';
@@ -85,6 +87,31 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [isConversationActive, setIsConversationActive] = useState<boolean>(false);
   const [profile, setProfile] = useState<RealtimeBlobProfile>('coral');
+  const [nebularrProfile, setNebularrProfile] = useState<LinkedProfile | null>(null);
+
+  // Fetch the saved Nebularr profile on mount so its bgColor (and
+  // animator targets) are available to the page when the user picks
+  // the Nebularr orb. Falls back to a hardcoded snapshot if the
+  // fetch fails or the profile has been renamed/removed.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/studio-profiles?variant=realtime-state');
+        const arr = await r.json();
+        if (cancelled) return;
+        const found = Array.isArray(arr)
+          ? arr.find((p) => typeof p?.name === 'string' && p.name.toLowerCase() === 'nebularr')
+          : null;
+        setNebularrProfile((found?.settings as LinkedProfile) ?? NEBULARR_FALLBACK_PROFILE);
+      } catch {
+        if (!cancelled) setNebularrProfile(NEBULARR_FALLBACK_PROFILE);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Audio visualization state
   const [audioData, setAudioData] = useState<AudioData>({ bass: 0, mid: 0, treble: 0, rms: 0 });
@@ -453,13 +480,14 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     };
   }, []);
 
-  // Per-profile card background. Coral keeps the original
-  // --VoiceBoxBg variable; Nebularr uses its saved bgColor so the
-  // card matches the orb's environment.
-  const profileBg: Record<RealtimeBlobProfile, string | undefined> = {
-    coral: undefined,
-    nebularr: '#fffafa',
-  };
+  // Per-profile card background. Coral renders white; Nebularr uses
+  // its actual saved bgColor (fetched above) so the card matches the
+  // orb's environment exactly. Falls back to the fallback profile's
+  // bgColor while the fetch is in flight.
+  const cardBg =
+    profile === 'nebularr'
+      ? (nebularrProfile?.base.bgColor ?? NEBULARR_FALLBACK_PROFILE.base.bgColor)
+      : '#ffffff';
 
   const profileThumbs: { id: RealtimeBlobProfile; src: string; label: string }[] = [
     { id: 'coral', src: '/thumbnails/realtime-production.png', label: 'Coral' },
@@ -469,10 +497,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   return (
     <>
       <div className="voice-realtime-container">
-        <div
-          className="voice-realtime-card"
-          style={profileBg[profile] ? { background: profileBg[profile] } : undefined}
-        >
+        <div className="voice-realtime-card" style={{ background: cardBg }}>
           {/* Orb + Label Group */}
           <div className="orb-label-group">
             {/* Velvet Orb - Audio-reactive visualization */}
@@ -481,6 +506,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
                 audioData={audioData}
                 voiceState={getVoiceState()}
                 profile={profile}
+                nebularrProfile={nebularrProfile}
               />
             </div>
 
@@ -549,26 +575,32 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           width: 44px;
           height: 44px;
           padding: 0;
-          border: 1px solid transparent;
+          border: 2px solid transparent;
           border-radius: 8px;
           overflow: hidden;
           cursor: pointer;
-          background: rgba(255, 255, 255, 0.7);
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+          background: transparent;
+          /* No drop shadow — flat by request. */
+          opacity: 0.5;
           transition:
             border-color 200ms cubic-bezier(0.23, 1, 0.32, 1),
             box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1),
+            opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
             transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
         }
 
+        /* Active thumb: a 2px white inner ring (border) + a 2px black
+           outer ring (box-shadow as a stroke). The two rings sit
+           outside the image so the thumbnail itself isn't touched. */
         .profile-thumb.is-active {
-          border-color: #333;
-          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+          opacity: 1;
+          border-color: #ffffff;
+          box-shadow: 0 0 0 2px #1a1a1a;
         }
 
         @media (hover: hover) and (pointer: fine) {
           .profile-thumb:hover {
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
+            opacity: 1;
             transform: translateY(-1px);
           }
         }
