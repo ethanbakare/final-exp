@@ -27,7 +27,7 @@ import GalleryAudioControls from '@/projects/blob-orb/components/GalleryAudioCon
 import SliderRow from '@/projects/blob-orb/components/shared/SliderRow';
 import { Slider } from '@/components/ui/slider';
 import { audioService } from '@/projects/blob-orb/services/audioService';
-import { CURATED_NAMES, GALLERY_API_KEYS } from '@/projects/blob-orb/galleryTypes';
+import { CURATED_NAMES, GALLERY_API_KEYS, approxPixelDia } from '@/projects/blob-orb/galleryTypes';
 import type { AudioData } from '@/projects/voiceinterface/types';
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -1162,12 +1162,13 @@ export default function RealtimeStates() {
     const peakScope: PeakScope = state === 'thinking' ? 'thinking' : 'talking';
 
     const restSuffix = isPeakState ? ' (Rest)' : '';
+    const restPx = approxPixelDia(profile.base.scale, 328);
 
     switch (tab) {
       case 'size': {
         const restRow = (
           <SliderRow
-            label={`Scale${restSuffix}`}
+            label={`Scale${restSuffix} (~${restPx}px)`}
             value={profile.base.scale}
             min={0.05}
             max={0.72}
@@ -1207,7 +1208,7 @@ export default function RealtimeStates() {
           <div className="space-y-3">
             {restRow}
             <PeakSliderRow
-              label="Scale (Peak)"
+              label={`Scale (Peak) (~${approxPixelDia(eff, 328)}px)`}
               value={eff}
               min={0.05}
               max={0.72}
@@ -1507,7 +1508,8 @@ export default function RealtimeStates() {
     >
       <GalleryAudioControls onAudioActive={setAudioActive} />
 
-      <div style={{ width: 400, height: 400 }}>
+      {/* Canvas size matches production /voiceinterface/realtime (RealtimeBlob.tsx:53) */}
+      <div style={{ width: 328, height: 328 }}>
         <Canvas
           camera={{ position: [0, 0, 3.5], fov: 45 }}
           dpr={[1, 1.5]}
