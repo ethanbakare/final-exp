@@ -151,7 +151,7 @@ const GentleOrbThicken: React.FC<ThickenProps> = ({
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const smoothedAmps = useRef(new Float32Array(NUM_WAVES));
   const phases = useRef(new Float32Array(NUM_WAVES));
-  const thickenRef = useRef(0);
+  const thickenRef = useRef(goal);
 
   const outerEdge = 1.0;
   const majorThin = outerEdge - thinRadius;

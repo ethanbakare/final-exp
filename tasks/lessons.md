@@ -112,3 +112,15 @@
 - `root_cause`: Followed the review-output pattern mechanically instead of adapting to the user's explicit packaging requirement.
 - `rule`: When the user asks for feedback in a single block, put all actionable feedback inside one copyable fenced block unless they later ask otherwise.
 - `prevention_check`: Before sending review feedback, check the latest user message for output packaging instructions and make the format match exactly.
+
+### 20) Put previewable animation behavior in the preview/source page
+- `mistake`: Implemented the first-load blob-to-torus intro only in the production realtime component while the user expected realtime-states to own and replay it.
+- `root_cause`: Treated `/voiceinterface/realtime` as the target surface instead of recognizing `/voiceinterface/realtime-states` as the source-of-truth editor/preview for profile behavior.
+- `rule`: For profile-driven shader behavior, wire the editable preview page first, then consume that behavior from production surfaces.
+- `prevention_check`: Before patching animation/profile behavior, identify which page is the source of truth and verify it has replay/inspection controls.
+
+### 21) Reuse the proven live transition path before adding topology layers
+- `mistake`: Added a separate sphere-to-torus `shapeMorph` path when the user wanted the exact visual produced by manually switching talking → idle.
+- `root_cause`: Solved the phrase “no-hole blob” abstractly instead of matching the working in-app transition the user had already validated.
+- `rule`: If the user says a manual UI transition already looks correct, reproduce that same state/render path; do not add a second shader topology layer.
+- `prevention_check`: Before adding shader geometry controls, verify whether seeding the existing animator from the source state already produces the requested visual.

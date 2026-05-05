@@ -582,19 +582,19 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
         }
 
-        /* Active thumb: a 2px white inner ring (border) + a 2px black
+        /* Active thumb: a 2px white inner ring (border) + a soft dark
            outer ring (box-shadow as a stroke). The two rings sit
            outside the image so the thumbnail itself isn't touched. */
         .profile-thumb.is-active {
           opacity: 1;
           border-color: #ffffff;
-          box-shadow: 0 0 0 2px #1a1a1a;
+          box-shadow: 0 0 0 2px var(--VoiceDarkGrey_30, rgba(38, 36, 36, 0.3));
         }
 
         @media (hover: hover) and (pointer: fine) {
-          .profile-thumb:hover {
-            opacity: 1;
-            transform: translateY(-1px);
+          .profile-thumb:not(.is-active):hover {
+            opacity: 0.8;
+            box-shadow: 0 0 0 2px var(--VoiceDarkGrey_10, rgba(38, 36, 36, 0.1));
           }
         }
 

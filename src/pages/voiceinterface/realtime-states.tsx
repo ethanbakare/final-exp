@@ -55,6 +55,8 @@ interface PeakOverrides {
   scale?: number;
   thickRadius?: number;
   thickenSpeed?: number;
+  entrySpeed?: number;
+  settleSpeed?: number;
   waveIntensity?: number;
   waveCount?: number;
   breathAmp?: number;
@@ -356,6 +358,13 @@ function baseRender(base: BaseSettings): RenderValues {
     color1: base.color1,
     color2: base.color2,
     color3: base.color3,
+  };
+}
+
+function talkingRenderForProfile(profile: LinkedProfile): RenderValues {
+  return {
+    ...pickPeak(profile.talking, profile.base),
+    thickRadius: TALKING_GEOMETRY,
   };
 }
 
@@ -668,20 +677,33 @@ const ColorPickerButton: React.FC<ColorPickerButtonProps> = ({
       const btn = buttonRef.current;
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
-      const popoverWidth = 256; // matches w-64 below
-      const popoverHeight = 320; // estimated; padding + area + slider + fields
-      const top = Math.max(8, rect.top - popoverHeight - 8);
-      const left = Math.max(8, Math.min(window.innerWidth - popoverWidth - 8, rect.right - popoverWidth));
+      const popoverWidth = popoverRef.current?.offsetWidth ?? 256;
+      const popoverHeight = popoverRef.current?.offsetHeight ?? 360;
+      const gap = 8;
+      const maxLeft = window.innerWidth - popoverWidth - gap;
+      const maxTop = window.innerHeight - popoverHeight - gap;
+      const aboveTop = rect.top - popoverHeight - gap;
+      const belowTop = rect.bottom + gap;
+      const fitsAbove = aboveTop >= gap;
+      const fitsBelow = belowTop + popoverHeight <= window.innerHeight - gap;
+      const top = fitsAbove
+        ? aboveTop
+        : fitsBelow
+          ? belowTop
+          : Math.max(gap, Math.min(maxTop, aboveTop));
+      const left = Math.max(gap, Math.min(maxLeft, rect.right - popoverWidth));
       setPosition({ left, top });
     };
     place();
+    const frame = requestAnimationFrame(place);
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
     };
-  }, [open]);
+  }, [open, colorFormat]);
 
   // Outside-click closes the popover. Has to consider both the trigger
   // button AND the portaled popover (can't use a single ref for both).
@@ -703,24 +725,30 @@ const ColorPickerButton: React.FC<ColorPickerButtonProps> = ({
     onChange(hsb.toString('hex').toLowerCase());
   };
 
-  const popover = open && position && typeof document !== 'undefined' ? (
+  const popover = open && typeof document !== 'undefined' ? (
     createPortal(
       <div
         ref={popoverRef}
-        className="fixed z-[100] w-64 rounded-lg border border-gray-200 bg-white p-3 shadow-xl"
-        style={{ left: position.left, top: position.top }}
+        onMouseDown={(e) => e.stopPropagation()}
+        className="fixed z-[100] w-72 rounded-lg border border-gray-200 bg-white p-3 shadow-xl"
+        style={{
+          left: position?.left ?? -9999,
+          top: position?.top ?? 8,
+          visibility: position ? 'visible' : 'hidden',
+        }}
       >
         {onColorFormatChange && (
-          <div className="mb-3 flex items-center justify-between border-b border-gray-100 pb-2">
+          <div className="mb-3 space-y-2 border-b border-gray-100 pb-2">
             <span className="text-[10px] uppercase tracking-[0.16em] text-gray-400 font-semibold">
               Format
             </span>
-            <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-0.5">
+            <div className="grid grid-cols-4 gap-1 rounded-lg bg-gray-100 p-0.5">
               {COLOR_FORMATS.map((format) => (
                 <button
                   key={format}
+                  type="button"
                   onClick={() => onColorFormatChange(format)}
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold uppercase transition-colors ${
+                  className={`rounded-md px-2 py-1 text-[10px] font-semibold uppercase transition-colors ${
                     colorFormat === format
                       ? 'bg-white text-gray-700 shadow-sm'
                       : 'text-gray-400 hover:text-gray-600'
@@ -863,7 +891,7 @@ export default function RealtimeStates() {
   const [autoLoop, setAutoLoop] = useState(false);
   const [audioActive, setAudioActive] = useState(false);
   const [audioData, setAudioData] = useState<AudioData>(SILENT);
-  const [render, setRender] = useState<RenderValues>(() => baseRender(KYOTO_SEED.base));
+  const [render, setRender] = useState<RenderValues>(() => talkingRenderForProfile(KYOTO_SEED));
   const [activeTab, setActiveTab] = useState<ControlTab | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -888,6 +916,20 @@ export default function RealtimeStates() {
   stateRef.current = state;
   renderRef.current = render;
 
+  const setRenderNow = (next: RenderValues) => {
+    renderRef.current = next;
+    setRender(next);
+  };
+
+  const restartIntro = (nextProfile = profileRef.current) => {
+    lastTsRef.current = performance.now();
+    pulseRef.current = { phase: 0, dir: 1 };
+    setAutoLoop(false);
+    setThinkingPaused(false);
+    setState('idle');
+    setRenderNow(talkingRenderForProfile(nextProfile));
+  };
+
   // ── First-load: fetch + defensive recreate (§10.2) ───────────
   useEffect(() => {
     fetchProfiles().then(async (arr) => {
@@ -904,12 +946,14 @@ export default function RealtimeStates() {
         setActiveId(seedEntry.id);
         setProfile(seedEntry.settings);
         setActiveBaseline(seedEntry.settings);
+        restartIntro(seedEntry.settings);
       } else {
         setProfiles(arr);
         const first = arr[0];
         setActiveId(first.id);
         setProfile(first.settings);
         setActiveBaseline(first.settings);
+        restartIntro(first.settings);
       }
     });
   }, []);
@@ -988,10 +1032,7 @@ export default function RealtimeStates() {
 
       const baseR = baseRender(p.base);
       const thinkingR = pickPeak(p.thinking, p.base);
-      const talkingR = {
-        ...pickPeak(p.talking, p.base),
-        thickRadius: TALKING_GEOMETRY,
-      };
+      const talkingR = talkingRenderForProfile(p);
 
       let target: RenderValues;
       if (s === 'idle' || s === 'listening') {
@@ -1097,6 +1138,7 @@ export default function RealtimeStates() {
     setActiveId(id);
     setProfile(found.settings);
     setActiveBaseline(found.settings);
+    restartIntro(found.settings);
     setShowProfileDropdown(false);
   };
 
@@ -1781,6 +1823,15 @@ export default function RealtimeStates() {
                 {thinkingPaused ? <Play size={14} /> : <Pause size={14} />}
               </button>
             )}
+
+            {/* Replay first-load talking → idle intro for the active profile */}
+            <button
+              onClick={() => restartIntro()}
+              className="p-1.5 rounded-lg transition-colors cursor-pointer ml-2 bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+              title="Replay talking-to-idle intro"
+            >
+              <RotateCcw size={14} />
+            </button>
 
             {/* Auto-loop through states (idle → listening → thinking → talking, every 2.5s) */}
             <button

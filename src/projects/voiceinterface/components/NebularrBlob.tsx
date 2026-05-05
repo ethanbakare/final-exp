@@ -65,11 +65,11 @@ export const NebularrBlob: React.FC<NebularrBlobProps> = ({
   height = 328,
 }) => {
   const linkedState = STATE_MAP[voiceState];
-  const render = useLinkedProfileAnimator(profile, linkedState);
+  const activeProfile = profile ?? NEBULARR_FALLBACK_PROFILE;
+  const render = useLinkedProfileAnimator(activeProfile, linkedState);
 
   // Until the first animator frame lands, render the seed values
   // directly so we don't pop on mount.
-  const activeProfile = profile ?? NEBULARR_FALLBACK_PROFILE;
   const display = render ?? baseRender(activeProfile.base);
 
   return (

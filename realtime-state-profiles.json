@@ -55,9 +55,9 @@
         "waveCount": 9,
         "waveIntensity": 0.4,
         "thickenSpeed": 0.56,
-        "settleSpeed": 0.6
+        "settleSpeed": 1.2
       }
     },
-    "lastModified": 1778005752464
+    "lastModified": 1778015679721
   }
 ]
