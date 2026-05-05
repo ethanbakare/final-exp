@@ -1246,17 +1246,15 @@ export default function RealtimeStates() {
             onChange={(v) => setBase({ thinRadius: v })}
           />
         );
-        // Transition Speed is the global transition tau driver
-        // (animator: tau = target.thickenSpeed * 0.5). Larger value
-        // = slower state-to-state transitions. Editable on every
-        // state because it controls how long it takes to *enter*
-        // that state, even though idle/listening don't morph
-        // visually within themselves. (Underlying field is still
-        // called thickenSpeed for compatibility with the gallery's
-        // shared profile shape.)
+        // Settle Speed = base.thickenSpeed. Drives the animator's
+        // tau when settling toward base values (idle/listening, and
+        // returning to either from talking or thinking). Shared
+        // across all pills — editing on one updates everywhere.
+        // (Underlying field stays thickenSpeed for compatibility
+        // with the gallery's shared profile shape.)
         const speedRest = (
           <SliderRow
-            label={`Transition Speed${restSuffix}`}
+            label="Settle Speed"
             value={profile.base.thickenSpeed}
             min={0.1}
             max={4.0}
@@ -1277,7 +1275,7 @@ export default function RealtimeStates() {
         const speedEff = peakEff(peakScope, 'thickenSpeed') as number;
         const speedPeak = (
           <PeakSliderRow
-            label="Transition Speed (Peak)"
+            label={state === 'thinking' ? 'Pulse Speed' : 'Morph Speed'}
             value={speedEff}
             min={0.1}
             max={4.0}
@@ -1309,14 +1307,29 @@ export default function RealtimeStates() {
             </div>
           );
         }
-        // talking: italic note in place of Peak Radius row
+        // talking: italic note in place of Peak Radius row.
+        // Settle Speed on talking is a *talking-specific* override
+        // (talking.settleSpeed), not shared base.thickenSpeed —
+        // editing it here doesn't affect idle/listening's settle.
+        const settleInherited = !peakHas('talking', 'settleSpeed');
+        const settleEff = (profile.talking.settleSpeed ?? profile.base.thickenSpeed) as number;
         return (
           <div className="space-y-3">
             {thinRest}
             <div className="text-xs text-gray-400 italic">
               Geometry pinned to sphere — no peak slider.
             </div>
-            {speedRest}
+            <PeakSliderRow
+              label="Settle Speed"
+              value={settleEff}
+              min={0.1}
+              max={4.0}
+              step={0.02}
+              unit="s"
+              inherited={settleInherited}
+              onChange={(v) => setPeak('talking', { settleSpeed: v })}
+              onReset={settleInherited ? undefined : () => clearPeak('talking', 'settleSpeed')}
+            />
             {speedPeak}
           </div>
         );

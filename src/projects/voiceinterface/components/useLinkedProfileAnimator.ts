@@ -27,6 +27,12 @@ export interface PeakOverrides {
   scale?: number;
   thickRadius?: number;
   thickenSpeed?: number;
+  /** Per-state override for the *exit* tau used when transitioning
+   *  AWAY from this state back toward base. Currently only honored
+   *  for the talking peak — lets talking morph back to idle on its
+   *  own clock without changing base.thickenSpeed (which would also
+   *  affect idle/listening). */
+  settleSpeed?: number;
   waveIntensity?: number;
   waveCount?: number;
   breathAmp?: number;
@@ -161,6 +167,27 @@ export function useLinkedProfileAnimator(
     }
   }, [state]);
 
+  // Talking-specific exit-tau handling. When state transitions away
+  // from talking, capture talking.settleSpeed (with base.thickenSpeed
+  // as fallback) into activeTauOverrideRef. The animator reads this
+  // ref each frame and prefers it over target.thickenSpeed. On any
+  // other state change the override is cleared so idle / listening /
+  // thinking transitions resume using their own target speeds.
+  const previousStateRef = useRef<LinkedState>(state);
+  const activeTauOverrideRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const prev = previousStateRef.current;
+    if (prev === 'talking' && state !== 'talking') {
+      const p = profileRef.current;
+      activeTauOverrideRef.current =
+        p?.talking.settleSpeed ?? p?.base.thickenSpeed ?? null;
+    } else {
+      activeTauOverrideRef.current = null;
+    }
+    previousStateRef.current = state;
+  }, [state]);
+
   useEffect(() => {
     let raf = 0;
     const animate = (ts: number) => {
@@ -203,7 +230,11 @@ export function useLinkedProfileAnimator(
         target = lerpRender(baseR, thinkingR, eased);
       }
 
-      const tau = Math.max(0.05, target.thickenSpeed) * 0.5;
+      // Active tau speed: talking's exit override if we're mid-
+      // transition away from talking, otherwise the active state's
+      // target speed.
+      const tauSpeed = activeTauOverrideRef.current ?? target.thickenSpeed;
+      const tau = Math.max(0.05, tauSpeed) * 0.5;
       const alpha = 1 - Math.exp(-dt / tau);
       const next = lerpRender(cur, target, alpha);
       setRender(next);
