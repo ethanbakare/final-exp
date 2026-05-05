@@ -1246,19 +1246,21 @@ export default function RealtimeStates() {
             onChange={(v) => setBase({ thinRadius: v })}
           />
         );
-        // Thicken Speed is the global transition tau driver
+        // Transition Speed is the global transition tau driver
         // (animator: tau = target.thickenSpeed * 0.5). Larger value
         // = slower state-to-state transitions. Editable on every
         // state because it controls how long it takes to *enter*
         // that state, even though idle/listening don't morph
-        // visually within themselves.
+        // visually within themselves. (Underlying field is still
+        // called thickenSpeed for compatibility with the gallery's
+        // shared profile shape.)
         const speedRest = (
           <SliderRow
-            label={`Thicken Speed${restSuffix}`}
+            label={`Transition Speed${restSuffix}`}
             value={profile.base.thickenSpeed}
-            min={0.3}
+            min={0.1}
             max={4.0}
-            step={0.1}
+            step={0.02}
             unit="s"
             onChange={(v) => setBase({ thickenSpeed: v })}
           />
@@ -1275,11 +1277,11 @@ export default function RealtimeStates() {
         const speedEff = peakEff(peakScope, 'thickenSpeed') as number;
         const speedPeak = (
           <PeakSliderRow
-            label="Thicken Speed (Peak)"
+            label="Transition Speed (Peak)"
             value={speedEff}
-            min={0.3}
+            min={0.1}
             max={4.0}
-            step={0.1}
+            step={0.02}
             unit="s"
             inherited={speedInherited}
             onChange={(v) => setPeak(peakScope, { thickenSpeed: v })}

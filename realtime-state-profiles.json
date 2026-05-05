@@ -51,7 +51,8 @@
         "color3": "#949e05",
         "scale": 0.75,
         "waveCount": 9,
-        "waveIntensity": 0.4
+        "waveIntensity": 0.4,
+        "thickenSpeed": 0.36
       }
     },
     "lastModified": 1777946487477
