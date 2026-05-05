@@ -1171,7 +1171,7 @@ export default function RealtimeStates() {
             label={`Scale${restSuffix} (~${restPx}px)`}
             value={profile.base.scale}
             min={0.05}
-            max={0.72}
+            max={1.5}
             step={0.01}
             unit="x"
             onChange={(v) => setBase({ scale: v })}
