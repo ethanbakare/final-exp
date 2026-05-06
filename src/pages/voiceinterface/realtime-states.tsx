@@ -30,7 +30,7 @@ import { Slider } from '@/components/ui/slider';
 import { audioService } from '@/projects/blob-orb/services/audioService';
 import { CURATED_NAMES, GALLERY_API_KEYS, approxPixelDia } from '@/projects/blob-orb/galleryTypes';
 import type { AudioData } from '@/projects/voiceinterface/types';
-import { CORAL_FALLBACK_PROFILE, type CoralRealtimeSettings } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
+import { CORAL_FALLBACK_PROFILE, CORAL_PULSE_DEFAULTS, useCoralThinkingPulse, type CoralRealtimeSettings } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -1585,6 +1585,20 @@ export default function RealtimeStates() {
   const activeCoralSettings: CoralRealtimeSettings | null =
     activeOrb?.shader === 'coral' ? activeOrb.settings : null;
 
+  // Phase 4B — Coral thinking-pulse RAF, sourced from the same hook
+  // that CoralRealtimeBlob uses on the live page. Returns a number
+  // while previewState === 'thinking', null otherwise. The editor
+  // canvas's Coral branch overrides its static torusRadius prop with
+  // this pulse value during thinking. Hook is gated on `isThinking`
+  // internally — when activeCoralSettings is null (Tube active), the
+  // RAF doesn't run (no allocation, no work).
+  const coralPulse = useCoralThinkingPulse({
+    isThinking: activeOrb?.shader === 'coral' && state === 'thinking',
+    thinRadius: activeCoralSettings?.base.torusRadius ?? 0.275,
+    thickRadius: activeCoralSettings?.base.thickRadius,
+    pulseSpeed: activeCoralSettings?.base.pulseSpeed,
+  });
+
   const handleSave = async () => {
     const name = saveName.trim();
     if (!name || profileNameExists(name)) return;
@@ -2420,7 +2434,7 @@ export default function RealtimeStates() {
                   goal={isTalking ? 0 : 1}
                   scale={effScale}
                   morphSpeed={Math.max(0.001, effMorphSpeed)}
-                  torusRadius={baseS.torusRadius}
+                  torusRadius={coralPulse ?? baseS.torusRadius}
                   waveIntensity={effWaveIntensity}
                   breathAmp={baseS.breathAmp}
                   idleAmp={baseS.idleAmp}

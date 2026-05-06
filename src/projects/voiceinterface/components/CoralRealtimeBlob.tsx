@@ -15,7 +15,7 @@
  * Replay button uses a key={replayCounter} prop on the editor canvas
  * to force remount within the same shader.
  */
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import CoralStoneMorph from '@/projects/blob-orb/variants/CoralStoneMorph';
 import type { AudioData } from '@/projects/voiceinterface/types';
@@ -103,6 +103,71 @@ export const CORAL_FALLBACK_PROFILE: CoralRealtimeSettings = {
   },
 };
 
+/**
+ * Plan v8 Phase 4B — Coral thinking pulse hook.
+ *
+ * Lifted from LoopingBlob.tsx:200-213's setPulseRadius RAF mechanism,
+ * generalized over a plain `isThinking` boolean so both the realtime
+ * page (this file's CoralRealtimeBlob) and the editor's canvas
+ * dispatch (realtime-states.tsx) can consume the same code path.
+ *
+ * Returns a pulse value (number) while `isThinking` is true, or `null`
+ * otherwise. Consumers do `effectiveTorusRadius = pulse ?? thinRadius`
+ * — the static torusRadius applies in non-thinking states; the pulse
+ * overrides it during thinking.
+ *
+ * Triangle wave: `phase = thin → thick → thin → thick → ...`. Each
+ * thin → thick edge takes `pulseSpeed` seconds (half-cycle). A full
+ * cycle is `pulseSpeed * 2` seconds. Half-cycle semantics match
+ * LoopingBlob exactly; the slider label reads "Pulse Speed (thin → thick)"
+ * to make this concrete in the editor.
+ *
+ * RAF cleanup is handled by the useEffect's return; switching out of
+ * thinking cancels the running animation within ~1 frame.
+ */
+export function useCoralThinkingPulse(args: {
+  isThinking: boolean;
+  thinRadius: number;
+  thickRadius?: number;
+  pulseSpeed?: number;
+}): number | null {
+  const { isThinking, thinRadius } = args;
+  const thickRadius = args.thickRadius ?? CORAL_PULSE_DEFAULTS.thickRadius;
+  const pulseSpeed = args.pulseSpeed ?? CORAL_PULSE_DEFAULTS.pulseSpeed;
+  const [pulseRadius, setPulseRadius] = useState<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isThinking) {
+      setPulseRadius(null);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      return;
+    }
+    const startTime = performance.now();
+    const halfCycle = Math.max(0.05, pulseSpeed); // floor against 0 to avoid div-by-zero
+    const animate = () => {
+      const elapsed = (performance.now() - startTime) / 1000;
+      const cycleCount = elapsed / halfCycle;
+      const t = cycleCount % 2;             // 0..2 oscillation
+      const phase = t < 1 ? t : 2 - t;       // triangle wave 0..1..0
+      setPulseRadius(thinRadius + phase * (thickRadius - thinRadius));
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [isThinking, thinRadius, thickRadius, pulseSpeed]);
+
+  return pulseRadius;
+}
+
 export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   audioData,
   voiceState,
@@ -112,9 +177,21 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
 }) => {
   const active = profile ?? CORAL_FALLBACK_PROFILE;
   const isTalking = voiceState === 'ai_speaking';
+  const isThinking = voiceState === 'ai_thinking';
 
   // Coral's morph axis: 0 = sphere (talking shape), 1 = torus (idle/listening/thinking).
   const goal = isTalking ? 0 : 1;
+
+  // Phase 4B — thinking pulse on torusRadius. `pulse` is a number while
+  // thinking, null otherwise; non-thinking states use the static
+  // base.torusRadius.
+  const pulse = useCoralThinkingPulse({
+    isThinking,
+    thinRadius: active.base.torusRadius,
+    thickRadius: active.base.thickRadius,
+    pulseSpeed: active.base.pulseSpeed,
+  });
+  const effectiveTorusRadius = pulse ?? active.base.torusRadius;
 
   // Per-state effective values. Coral only differentiates talking today;
   // idle/listening/thinking all use base values.
@@ -151,7 +228,7 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
           goal={goal}
           scale={effectiveScale}
           morphSpeed={safeMorphSpeed}
-          torusRadius={active.base.torusRadius}
+          torusRadius={effectiveTorusRadius}
           waveIntensity={effectiveWaveIntensity}
           breathAmp={active.base.breathAmp}
           idleAmp={active.base.idleAmp}
