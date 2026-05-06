@@ -25,7 +25,9 @@
 >   does `setKyotoProfiles(arr.map(p => p.id === activeId ? { ...p,
 >   settings: { ...p.settings, base: { ...p.settings.base, scale: v
 >   }}} : p))` style updates — no nested mutation. Baseline captured
->   via `structuredClone` at selection / Save / Discard. Without this,
+>   via `structuredClone` at **selection and successful Save only**;
+>   **Discard runs the inverse** (clones `baseline.settings` back into
+>   active, leaves baseline untouched). Without immutable updates,
 >   `activeOrb.settings` and `baseline.settings` can share nested
 >   references and dirty silently returns false after edits.
 > - **F5 (P3).** Round-6 commit hash (`c5a2d00`) filled in; new row
@@ -185,7 +187,7 @@ What has shipped, what's next in line, and what changed during implementation vs
 | **v8 patch — F1 + F3 corrections (round 5)** | (a) F1: same-shader Coral switch no longer remounts (see Phase 3c row above). (b) F3: `profileNameExists` now checks the Coral source array too — previously two Coral entries could be renamed into the same name. | `f22c0cc` |
 | **v8 polish (round 5 self-review)** | Phase numbering standardized (3D-0 / 3D-1 / 3E / 3F); F8 swatch note moved out of Motion-tab row; 3D-0 contract expanded with Removed-vs-derived table + 6-step migration order + pre-mortem checks. Plan-only, no code. | `b0d0c4a` |
 | **v8 patch — round 6 polish** | (F1 round 6) `pinned` documented in schema / `LoadedOrb` / fallback orbs / fetchVariant mapping — closes the loophole where Save round-trip could drop the field. (F2) `pickRealtimeUnusedName` extended to include `coralProfiles`. (F3) commit hashes filled in. (F4) one-line `previewState` ↔ `state` alias note added near the canvas pseudocode. (F5) live-page strip descriptions updated to mention the `pinned` filter. | `c5a2d00` |
-| **v8 patch — round 7 polish (plan-only)** | (F1 round 7) `BaselineSnapshot` type replaces the old `LoadedOrb \| null` baseline shape — narrow contract (`{ key, shader, settings }`) prevents bookmark/rename/Save from spuriously marking the editor dirty. (F2) Canonical-truth rule for the bridge state: `activeOrbKey` + source arrays are the single source of truth from step 1; old vars are read-compat mirrors only; bridge is removed before 3D-0 is "done." (F3) Default-selection cascade keeps "Kyoto Realtime" first-fallback until 3D-1 ships Coral controls. (F4) Immutability rule for slider setters + deep-clone rule for baseline capture, so `activeOrb.settings` and `baseline.settings` cannot share nested references. (F5) Round-6 commit hash filled in. | (this commit) |
+| **v8 patch — round 7 polish (plan-only)** | (F1 round 7) `BaselineSnapshot` type replaces the old `LoadedOrb \| null` baseline shape — narrow contract (`{ key, shader, settings }`) prevents bookmark/rename/Save from spuriously marking the editor dirty. (F2) Canonical-truth rule for the bridge state: `activeOrbKey` + source arrays are the single source of truth from step 1; old vars are read-compat mirrors only; bridge is removed before 3D-0 is "done." (F3) Default-selection cascade keeps "Kyoto Realtime" first-fallback until 3D-1 ships Coral controls. (F4) Immutability rule for slider setters + deep-clone rule for baseline capture (selection + successful Save only; Discard runs the inverse). (F5) Round-6 commit hash filled in. | `90eca16` + `21e3fe1` |
 
 ### Next in line (NOT yet shipped — remaining Phase 3 items, reorganized in v8)
 
