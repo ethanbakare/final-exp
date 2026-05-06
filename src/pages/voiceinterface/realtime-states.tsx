@@ -1002,38 +1002,25 @@ export default function RealtimeStates() {
   // on which fetch resolved first. (Round-7 round-3 race fix.)
   const [kyotoLoaded, setKyotoLoaded] = useState(false);
   const [coralLoaded, setCoralLoaded] = useState(false);
-  const [activeId, setActiveId] = useState<string>('rt-kyoto');
-  // Editor-active shader. 'kyoto' uses the existing JS animator + tube
-  // controls; 'coral' renders a Coral preview from the active Coral
-  // profile's settings (controls are read-only in this phase).
-  const [activeShader, setActiveShader] = useState<'kyoto' | 'coral'>('kyoto');
-  const [activeCoralId, setActiveCoralId] = useState<string | null>(null);
   // Replay counter for Coral (forces canvas remount → morphRef resets
   // to 0 → sphere → torus intro replays).
   const [replayCounter, setReplayCounter] = useState(0);
-  const [profile, setProfile] = useState<LinkedProfile>(KYOTO_SEED);
-  // Plan v8 (3D-0 step 4 + round-7 F1) — BaselineSnapshot replaces the
-  // old LinkedProfile shape. Inspects only `settings` for dirty
-  // comparison — `name` / `pinned` / `lastModified` / `sourceVariant`
-  // changes do NOT mark the editor dirty.
+  // Plan v8 (3D-0 step 4 + round-7 F1) — BaselineSnapshot. Inspects
+  // only `settings` for dirty comparison — `name` / `pinned` /
+  // `lastModified` / `sourceVariant` changes do NOT mark the editor
+  // dirty.
   const [activeBaseline, setActiveBaseline] = useState<BaselineSnapshot | null>(null);
 
-  // ── Plan v8 (3D-0 step 1) — canonical state alongside mirrors ──────
+  // ── Plan v8 (3D-0) — canonical state ──────────────────────────────
   //
-  // Introduced now: `activeOrbKey` (composite-keyed selection) plus
-  // derived `orbs` and `activeOrb`. Mirrors (`activeId`, `activeShader`,
-  // `activeCoralId`, `profile`, `activeBaseline`) stay authoritative
-  // until step 3 migrates read sites. During step 1 the canonical key
-  // is sync'd FROM mirrors so callers can start reading `activeOrb`
-  // without contracts changing.
-  //
-  // Step 3 will flip the direction: bridge becomes canonical → mirror,
-  // and old setters get demoted to no-ops as their write sites migrate
-  // to immutable shader-aware helpers (step 4).
-  //
-  // Canonical-truth rule (F2 round 7): no NEW code path written from
-  // step 3 onward calls the old mirror setters. Existing call sites
-  // are migrated in steps 3-4; the bridge is removed in step 5.
+  // `activeOrbKey` (composite `${sourceVariant}:${id}`) is the single
+  // source of truth for selection. `orbs` is the unified discriminated
+  // union over both source files (kyotoProfiles + coralProfiles).
+  // `activeOrb` resolves the key against orbs. `profile` is kept as a
+  // derived useMemo for the Tube tab renderer's existing `profile.X`
+  // bindings — falls back to KYOTO_SEED when no Kyoto orb is active.
+  // No more mirror state (activeId / activeShader / activeCoralId /
+  // profile-as-state) — those were removed in step 5.
   const [activeOrbKey, setActiveOrbKey] = useState<string | null>(
     () => `realtime-state:rt-kyoto`,
   );
@@ -1058,7 +1045,11 @@ export default function RealtimeStates() {
   const [colorFormat, setColorFormat] = useState<ColorFormat>('hex');
   const [thinkingPaused, setThinkingPaused] = useState(false);
 
-  const profileRef = useRef(profile);
+  // profileRef initialized to KYOTO_SEED; the per-render assignment
+  // below syncs it to the derived `profile` value. Step 5 — `profile`
+  // moved from useState to useMemo, so the ref initializer + sync had
+  // to move below the useMemo declaration.
+  const profileRef = useRef<LinkedProfile>(KYOTO_SEED);
   const stateRef = useRef(state);
   const renderRef = useRef(render);
   const pulseRef = useRef({ phase: 0, dir: 1 });
@@ -1073,7 +1064,6 @@ export default function RealtimeStates() {
   const previousStateRef = useRef<PreviewState>(state);
   const activeTauOverrideRef = useRef<number | null>(null);
 
-  profileRef.current = profile;
   stateRef.current = state;
   renderRef.current = render;
 
@@ -1110,23 +1100,19 @@ export default function RealtimeStates() {
     return orbs.find((o) => compositeKey(o) === activeOrbKey) ?? null;
   }, [orbs, activeOrbKey]);
 
-  // ── Mirror → canonical sync (step 1 only) ─────────────────────────
-  //
-  // During step 1, mirrors (activeId/activeShader/activeCoralId) are
-  // still authoritative — existing select handlers write to them. This
-  // effect shadows their value into `activeOrbKey` so any code that
-  // wants to read canonical (introduced in step 3) sees fresh data.
-  //
-  // Step 3 inverts this: canonical becomes authoritative, this effect
-  // is removed, and a new bridge runs canonical → mirror to keep
-  // not-yet-migrated read sites alive until step 5 deletes them.
-  useEffect(() => {
-    const next =
-      activeShader === 'coral' && activeCoralId
-        ? `realtime-coral:${activeCoralId}`
-        : `realtime-state:${activeId}`;
-    if (next !== activeOrbKey) setActiveOrbKey(next);
-  }, [activeId, activeShader, activeCoralId, activeOrbKey]);
+  // Plan v8 (3D-0 step 5) — `profile` is now derived from activeOrb,
+  // not its own state. Tube tab renderer reads `profile.base.X` etc.;
+  // this useMemo keeps those bindings working without rewriting them.
+  // Falls back to KYOTO_SEED when activeOrb is null or shader is
+  // 'coral' (Tube renderer is gated and won't read profile in that
+  // case anyway, but the fallback prevents crashes).
+  const profile = useMemo<LinkedProfile>(() => {
+    return activeOrb?.shader === 'kyoto' ? activeOrb.settings : KYOTO_SEED;
+  }, [activeOrb]);
+
+  // Sync profileRef to the derived `profile` each render so the
+  // animator + restartIntro callers see the latest Kyoto settings.
+  profileRef.current = profile;
 
   const setRenderNow = (next: RenderValues) => {
     renderRef.current = next;
@@ -1242,14 +1228,10 @@ export default function RealtimeStates() {
 
     const targetKey = compositeKey(fallback);
 
-    // Canonical write
+    // Canonical write — `profile` is derived from activeOrb so no
+    // mirror dual-write needed. Just snapshot baseline + intro.
     setActiveOrbKey(targetKey);
-    // Mirror dual-write + BaselineSnapshot capture (round-7 F1 + F4).
     if (fallback.shader === 'kyoto') {
-      setActiveShader('kyoto');
-      setActiveId(fallback.id);
-      setActiveCoralId(null);
-      setProfile(fallback.settings);
       setActiveBaseline({
         key: targetKey,
         shader: 'kyoto',
@@ -1257,8 +1239,6 @@ export default function RealtimeStates() {
       });
       restartIntro(fallback.settings);
     } else {
-      setActiveShader('coral');
-      setActiveCoralId(fallback.id);
       setActiveBaseline({
         key: targetKey,
         shader: 'coral',
@@ -1415,7 +1395,9 @@ export default function RealtimeStates() {
   // updates only — no nested in-place mutation.
   const updateActiveKyotoSettings = (mutate: (s: LinkedProfile) => LinkedProfile) => {
     if (activeOrb?.shader !== 'kyoto') return;
-    setProfile(mutate);
+    // Step 5 — profile is derived; only the source array needs an
+    // immutable update. profile useMemo will recompute from the new
+    // kyotoProfiles[i].settings on the next render.
     setKyotoProfiles((arr) =>
       arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: mutate(pr.settings) } : pr)),
     );
@@ -1567,15 +1549,10 @@ export default function RealtimeStates() {
   const selectProfile = (id: string) => {
     const found = kyotoProfiles.find((p) => p.id === id);
     if (!found) return;
-    setActiveShader('kyoto');
-    setActiveCoralId(null);
-    setActiveId(id);
-    setProfile(found.settings);
-    // Plan v8 round-7 F1 + F4 — capture BaselineSnapshot via
-    // structuredClone so active and baseline never share nested
-    // references. Slider edits update kyotoProfiles immutably; baseline
-    // stays pinned to the just-selected snapshot until Save or
-    // re-selection.
+    // Step 5 — single canonical write. activeOrb / profile / etc. all
+    // derive from activeOrbKey + source arrays. BaselineSnapshot
+    // captured via structuredClone (round-7 F1 + F4).
+    setActiveOrbKey(`realtime-state:${id}`);
     setActiveBaseline({
       key: `realtime-state:${id}`,
       shader: 'kyoto',
@@ -1588,12 +1565,7 @@ export default function RealtimeStates() {
   const selectCoralProfile = (id: string) => {
     const found = coralProfiles.find((p) => p.id === id);
     if (!found) return;
-    setActiveShader('coral');
-    setActiveCoralId(id);
-    // Plan v8 round-7 F1 — capture BaselineSnapshot for Coral too. Coral
-    // controls aren't editable yet (3D-1 ships them), but capturing
-    // baseline now means the dirty contract is consistent across
-    // shaders from the moment 3D-1 lands.
+    setActiveOrbKey(`realtime-coral:${id}`);
     setActiveBaseline({
       key: `realtime-coral:${id}`,
       shader: 'coral',
@@ -1635,10 +1607,7 @@ export default function RealtimeStates() {
       };
       const next = [...kyotoProfiles, entry];
       setKyotoProfiles(next);
-      setActiveShader('kyoto');
-      setActiveCoralId(null);
-      setActiveId(entry.id);
-      setProfile(settings);
+      setActiveOrbKey(`realtime-state:${entry.id}`);
       setActiveBaseline({
         key: `realtime-state:${entry.id}`,
         shader: 'kyoto',
@@ -1663,8 +1632,7 @@ export default function RealtimeStates() {
     };
     const nextCoral = [...coralProfiles, coralEntry];
     setCoralProfiles(nextCoral);
-    setActiveShader('coral');
-    setActiveCoralId(coralEntry.id);
+    setActiveOrbKey(`realtime-coral:${coralEntry.id}`);
     setActiveBaseline({
       key: `realtime-coral:${coralEntry.id}`,
       shader: 'coral',
@@ -2414,7 +2382,7 @@ export default function RealtimeStates() {
       <GalleryAudioControls onAudioActive={setAudioActive} />
 
       {/* Canvas size matches production /voiceinterface/realtime (RealtimeBlob.tsx:53).
-          Dispatches by activeShader: GentleOrbThicken for Tube/Kyoto
+          Dispatches by activeOrb.shader: GentleOrbThicken for Tube/Kyoto
           (driven by the existing JS animator's `render` state), or
           CoralStoneMorph for Coral D (driven by its native morph
           animator with state-aware effective values). */}
@@ -2899,7 +2867,9 @@ export default function RealtimeStates() {
                     if (activeOrb.shader !== activeBaseline.shader) return;
                     if (activeOrb.shader === 'kyoto' && activeBaseline.shader === 'kyoto') {
                       const reverted = structuredClone(activeBaseline.settings);
-                      setProfile(reverted);
+                      // profile is derived; only the source array
+                      // needs to be updated. profile useMemo will
+                      // recompute on next render.
                       setKyotoProfiles((arr) =>
                         arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: reverted } : pr)),
                       );
