@@ -954,6 +954,7 @@ End-of-implementation:
   - Output naming continues to use the slug rule; no path change.
   This is real work, not a config tweak. Out of scope for this plan.
 - **A new shader joining the realtime page** (e.g., `radial-inward`). Same pattern: new file, new dispatch branch, new shader-aware controls. The plan above is structured so additional shaders are additive.
+- **Per-profile "force intro on selection" toggle (round 7 testing feedback).** Currently the plan's contract is: same-shader switch = prop-only, no intro; cross-shader switch = component swap, intro plays. On the live page, switching between two Tube-shader profiles (Kyoto Realtime ↔ Nebularr) therefore does NOT play the sphere → torus intro, while switching Coral → Tube or Tube → Coral does. User feedback during 3D-0 step-3 testing: they want an opt-in override. Proposed shape: a per-profile `forceIntroOnSelect: boolean` field on the persisted record (same level as `pinned`), defaulting to `false`. When `true`, clicking that profile's thumbnail on the live page (or selecting it in the editor) forces a remount via a counter on the shader's React key — the same mechanism the editor's Replay button uses. UI surface: a small toggle next to the bookmark icon in the editor's profile row, plus the schema bump on both `realtime-state-profiles.json` and `realtime-coral-profiles.json`. Out of scope for 3D-0; revisit after 3D-1/3E land so the field round-trips through the same Save path as `pinned`.
 
 ## Note on plan-review limits (lessons from v4 → v5)
 

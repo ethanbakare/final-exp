@@ -1233,6 +1233,14 @@ export default function RealtimeStates() {
   }, [orbs, activeOrbKey]);
 
   useEffect(() => {
+    // Bug-fix (round 7 testing feedback): the persist effect must NOT
+    // run before the cascade has had a chance to read localStorage.
+    // Otherwise the default activeOrbKey ('realtime-state:rt-kyoto')
+    // gets written on mount, blowing away the user's previous selection
+    // before the cascade can pick it up. Gate on cascadeAppliedRef so
+    // persist only kicks in once the cascade has finished its
+    // first-resolution pass.
+    if (!cascadeAppliedRef.current) return;
     if (!activeOrbKey) return;
     window.localStorage.setItem('realtime-states-active-orb-key', activeOrbKey);
   }, [activeOrbKey]);
