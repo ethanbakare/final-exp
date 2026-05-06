@@ -46,7 +46,14 @@ export interface CoralRealtimeSettings {
     pulseSpeed?: number;
   };
   talking?: {
+    /** Speed of the torus → sphere morph when entering talking. */
     morphSpeed?: number;
+    /** Speed of the sphere → torus morph when leaving talking back
+     *  to idle/listening. Mirrors Tube's `talking.settleSpeed` —
+     *  when set, takes precedence over `base.morphSpeed` for the
+     *  duration of the settle morph. Optional with renderer
+     *  fallback to `base.morphSpeed`. */
+    settleSpeed?: number;
     scale?: number;
     waveIntensity?: number;
     color3?: string;
@@ -364,8 +371,30 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   // for the easing hooks below — actual prop values flow through
   // useEasedNumber / useEasedColor so transitions feel coherent with
   // the geometric morph instead of snapping.
-  const targetMorphSpeed =
-    isTalking ? (active.talking?.morphSpeed ?? active.base.morphSpeed) : active.base.morphSpeed;
+  //
+  // morphSpeed is direction-aware via prevVoiceStateRef:
+  // - Entering talking (→ sphere): use talking.morphSpeed.
+  // - Leaving talking (→ torus): use talking.settleSpeed if set,
+  //   else fall back to base.morphSpeed. Mirrors Tube's settle
+  //   override pattern.
+  // - Otherwise (e.g., initial mount, idle ↔ listening): base.morphSpeed.
+  // activeMorphSpeed is held in state so the override persists for
+  // the duration of the morph; only changes again on the NEXT
+  // talking-related transition.
+  const prevVoiceStateRef = useRef(voiceState);
+  const [activeMorphSpeed, setActiveMorphSpeed] = useState<number>(
+    () => active.base.morphSpeed,
+  );
+  useEffect(() => {
+    const wasTalking = prevVoiceStateRef.current === 'ai_speaking';
+    const isCurrentlyTalking = voiceState === 'ai_speaking';
+    if (isCurrentlyTalking) {
+      setActiveMorphSpeed(active.talking?.morphSpeed ?? active.base.morphSpeed);
+    } else if (wasTalking) {
+      setActiveMorphSpeed(active.talking?.settleSpeed ?? active.base.morphSpeed);
+    }
+    prevVoiceStateRef.current = voiceState;
+  }, [voiceState, active.talking?.morphSpeed, active.talking?.settleSpeed, active.base.morphSpeed]);
   const targetScale =
     isTalking ? (active.talking?.scale ?? active.base.scale) : active.base.scale;
   const targetWaveIntensity =
@@ -375,13 +404,11 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   const targetColor3 =
     isTalking ? (active.talking?.color3 ?? active.base.color3) : active.base.color3;
 
-  // Easing duration matches the geometric morph: `talking.morphSpeed`
-  // going INTO talking (sphere collapse), `base.morphSpeed` coming
-  // OUT (torus restore). Scale / waveIntensity / color3 lerp over the
-  // same window so the visual transition feels unified.
-  const transitionDuration = isTalking
-    ? (active.talking?.morphSpeed ?? active.base.morphSpeed)
-    : active.base.morphSpeed;
+  // Easing duration matches the geometric morph. activeMorphSpeed is
+  // already direction-aware (talking.morphSpeed entering, settleSpeed
+  // exiting, base.morphSpeed otherwise), so the eased visual props
+  // and the geometric morph land on the same beat.
+  const transitionDuration = activeMorphSpeed;
 
   // startValue mounts the eased values at the TALKING profile's
   // values. CoralStoneMorph initializes morphRef=0 (sphere = talking
@@ -398,10 +425,9 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   const effectiveWaveIntensity = useEasedNumber(targetWaveIntensity, transitionDuration, { startValue: startWave });
   const effectiveColor3 = useEasedColor(targetColor3, transitionDuration, { startValue: startColor3 });
 
-  // morphSpeed is the duration parameter for CoralStoneMorph's internal
-  // morph animation — snapping is fine (and actually correct, since
-  // changing it mid-morph would shift the active animation's clock).
-  const effectiveMorphSpeed = targetMorphSpeed;
+  // morphSpeed is the duration parameter for CoralStoneMorph's
+  // internal morph animation — direction-aware via activeMorphSpeed.
+  const effectiveMorphSpeed = activeMorphSpeed;
 
   // Math safety: CoralStoneMorph computes `delta / morphSpeed`. With both
   // delta and morphSpeed at 0 (rare but possible on the first frame after

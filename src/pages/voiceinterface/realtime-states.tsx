@@ -1615,9 +1615,38 @@ export default function RealtimeStates() {
   const coralTargetColor3 = coralIsTalking
     ? (activeCoralSettings?.talking?.color3 ?? activeCoralSettings?.base.color3 ?? CORAL_FALLBACK_PROFILE.base.color3)
     : (activeCoralSettings?.base.color3 ?? CORAL_FALLBACK_PROFILE.base.color3);
-  const coralTransitionDuration = coralIsTalking
-    ? (activeCoralSettings?.talking?.morphSpeed ?? activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed)
-    : (activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed);
+  // morphSpeed is direction-aware — mirrors the live page's
+  // activeMorphSpeed pattern. Track previous editor state so that
+  // when the user clicks the Idle pill from the Talking pill, the
+  // morph back to torus uses talking.settleSpeed if set (parity with
+  // Tube's settle override pattern).
+  const prevCoralStateRef = useRef(state);
+  const [coralActiveMorphSpeed, setCoralActiveMorphSpeed] = useState<number>(
+    () => activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed,
+  );
+  useEffect(() => {
+    if (activeOrb?.shader !== 'coral') {
+      // Tube active — morphSpeed isn't used. Don't update.
+      prevCoralStateRef.current = state;
+      return;
+    }
+    const wasTalking = prevCoralStateRef.current === 'talking';
+    const isCurrentlyTalking = state === 'talking';
+    const baseSpeed = activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed;
+    if (isCurrentlyTalking) {
+      setCoralActiveMorphSpeed(activeCoralSettings?.talking?.morphSpeed ?? baseSpeed);
+    } else if (wasTalking) {
+      setCoralActiveMorphSpeed(activeCoralSettings?.talking?.settleSpeed ?? baseSpeed);
+    }
+    prevCoralStateRef.current = state;
+  }, [
+    state,
+    activeOrb?.shader,
+    activeCoralSettings?.talking?.morphSpeed,
+    activeCoralSettings?.talking?.settleSpeed,
+    activeCoralSettings?.base.morphSpeed,
+  ]);
+  const coralTransitionDuration = coralActiveMorphSpeed;
 
   // startValue mounts the eased values at the TALKING profile's
   // values so the editor's Coral intro shows the same talking →
@@ -2216,12 +2245,9 @@ export default function RealtimeStates() {
         }
         const sInh = !coralPeakHas('scale');
         const sEff = (coralPeakEff('scale') as number) ?? baseS.scale;
-        // Torus Radius is intentionally HIDDEN on the talking pill —
-        // the orb is a sphere during talking, so editing torus radius
-        // produces no visible change and creates a false-broken UX
-        // signal. The field is still editable from idle/listening/
-        // thinking pills where the orb is a torus. This mirrors Tube's
-        // "Geometry pinned to sphere — no peak slider" pattern.
+        // Torus Radius is hidden on Talking — the orb is a sphere there
+        // so editing it produces no visible change. Editable from the
+        // other three pills where the orb is a torus.
         return (
           <div className="space-y-3">
             {restRow}
@@ -2236,10 +2262,6 @@ export default function RealtimeStates() {
               onChange={(v) => coralSetPeak({ scale: v })}
               onReset={sInh ? undefined : () => coralClearPeak('scale')}
             />
-            <div className="text-xs text-gray-400 italic">
-              Torus Radius hidden — orb is a sphere during talking. Edit
-              it from Idle, Listening, or Thinking.
-            </div>
           </div>
         );
       }
@@ -2283,10 +2305,30 @@ export default function RealtimeStates() {
           );
         }
         if (isTalking) {
+          // Two peak sliders mirror Tube's Talking Thickness tab:
+          // - Settle Speed (talking → idle): peak override for going
+          //   OUT of talking back to torus. Inherits base.morphSpeed
+          //   when unset.
+          // - Morph Speed (→ talking): speed of going INTO talking
+          //   from any other state. Inherits base.morphSpeed when
+          //   unset.
+          const settleInh = !coralPeakHas('settleSpeed');
+          const settleEff = (coralPeakEff('settleSpeed') as number | undefined) ?? baseS.morphSpeed;
           const mInh = !coralPeakHas('morphSpeed');
           const mEff = (coralPeakEff('morphSpeed') as number) ?? baseS.morphSpeed;
           return (
             <div className="space-y-3">
+              <PeakSliderRow
+                label="Settle Speed (talking → idle)"
+                value={settleEff}
+                min={0}
+                max={4.0}
+                step={0.02}
+                unit="s"
+                inherited={settleInh}
+                onChange={(v) => coralSetPeak({ settleSpeed: v })}
+                onReset={settleInh ? undefined : () => coralClearPeak('settleSpeed')}
+              />
               <PeakSliderRow
                 label="Morph Speed (→ talking)"
                 value={mEff}
@@ -2301,11 +2343,13 @@ export default function RealtimeStates() {
             </div>
           );
         }
-        // idle / listening
+        // idle / listening — base.morphSpeed is the default for ANY
+        // morph that returns the orb to the torus shape (talking →
+        // idle, plus the first-mount intro). Direction-clarified label.
         return (
           <div className="space-y-3">
             <SliderRow
-              label="Settle Speed"
+              label="Settle Speed (→ idle)"
               value={baseS.morphSpeed}
               min={0}
               max={4.0}
@@ -2384,21 +2428,21 @@ export default function RealtimeStates() {
           <>
             <ColorFormatControl value={colorFormat} onChange={chooseColorFormat} />
             <RealtimeColorRow
-              label={`Color 1${restSuffix}`}
+              label={`Highlight${restSuffix}`}
               value={baseS.color1}
               colorFormat={colorFormat}
               onChange={(v) => coralSetBase({ color1: v })}
               onColorFormatChange={chooseColorFormat}
             />
             <RealtimeColorRow
-              label={`Color 2${restSuffix}`}
+              label={`Mid Tone${restSuffix}`}
               value={baseS.color2}
               colorFormat={colorFormat}
               onChange={(v) => coralSetBase({ color2: v })}
               onColorFormatChange={chooseColorFormat}
             />
             <RealtimeColorRow
-              label={`Color 3${restSuffix}`}
+              label={`Edge${restSuffix}`}
               value={baseS.color3}
               colorFormat={colorFormat}
               onChange={(v) => coralSetBase({ color3: v })}
@@ -2420,7 +2464,7 @@ export default function RealtimeStates() {
           <div className="space-y-3">
             {restRows}
             <PeakColorRow
-              label="Color 3 (Peak)"
+              label="Edge (Peak)"
               value={c3Eff}
               colorFormat={colorFormat}
               inherited={c3Inh}
@@ -2500,13 +2544,13 @@ export default function RealtimeStates() {
             (() => {
               const isTalking = state === 'talking';
               const baseS = activeCoralSettings.base;
-              const tlk = activeCoralSettings.talking;
-              // morphSpeed is the duration parameter for CoralStoneMorph's
-              // internal morph — snapping is correct (changing it mid-morph
-              // would shift the active animation's clock). All other
-              // visible props use the eased values from the hooks at
-              // top of component scope.
-              const effMorphSpeed = isTalking ? tlk?.morphSpeed ?? baseS.morphSpeed : baseS.morphSpeed;
+              // effMorphSpeed comes from coralActiveMorphSpeed at top
+              // of component scope — direction-aware (talking.morphSpeed
+              // entering, talking.settleSpeed exiting, base.morphSpeed
+              // otherwise). Mirrors CoralRealtimeBlob's logic on the
+              // live page so editor preview matches production
+              // behavior.
+              const effMorphSpeed = coralActiveMorphSpeed;
               return (
                 <CoralStoneMorph
                   // Plan v8 (F1): key is replayCounter only — NOT
