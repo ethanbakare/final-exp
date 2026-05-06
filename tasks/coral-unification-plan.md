@@ -1,6 +1,19 @@
-# Coral Unification Plan (v3)
+# Coral Unification Plan (v4)
 
-> v3 incorporates a second round of review feedback. v1 → v2 changelog kept below for context; v3 changes:
+> v4 incorporates findings from a self-run plan-review pass on v3. v1 → v3 changelogs kept below for context; v4 changes:
+> - **Symbol-based references** replace stale numeric line refs throughout (line numbers rot; symbols don't).
+> - **`activeOrbKey` / `setActiveOrbKey` naming** consistent in pseudocode (v3's snippet had a setter mismatch).
+> - **Editor state-model migration** documented explicitly: the JS animator at the existing `restartIntro`/animator effect is skipped for Coral profiles; `peakHas`/`peakEff`/`setPeak`/`clearPeak` need shader-aware variants for Coral's `PeakOverrides` shape; `profile: LinkedProfile` editor state evolves to `activeOrb: LoadedOrb | null`.
+> - **Phase 4 removed.** Cleanup happens inline in Phase 2/3 (v3's Phase 4 duplicated work already done in earlier phases).
+> - **`CORAL_FALLBACK_ORB` / `NEBULARR_FALLBACK_ORB` shapes specified** (id, name, lastModified all explicit).
+> - **localStorage keys aligned** across live page and editor (both use composite-key format).
+> - **`LoadedOrb` → `RealtimeOrb` conversion** explicit: derived in `VoiceRealtimeOpenAI` via `useMemo`.
+> - **`restartIntro` shader-branch** shown as explicit code (not just "branch by shader").
+> - **Verification additions** for both-files-fail, mid-conversation editor switches, mid-intro same-thumb clicks.
+> - **Default lucide glyph choices** picked (`Circle` for Coral, `Disc` for Tube) so implementer isn't blocked.
+> - **R3F `key` remount note** added — `<CoralStoneMorph key={...}>` inside `<Canvas>` should trigger Three.js mesh recreation; verify during implementation.
+>
+> v2 → v3 changelog (kept for reference):
 > - Seed `torusRadius` corrected to `0.275` (matches today's live `REALTIME_BASE.thinRadius` prop, not `WHIMSY_BASE.torusRadius`).
 > - Seed values rewritten to reflect today's live `RealtimeBlob` Coral props (REALTIME_BASE adjustments + `morphSpeed × 1.08`), not raw studio constants.
 > - Coral replay forces `previewState='idle'` before incrementing the replay key (otherwise replay-from-talking-pill remounts to a static sphere).
@@ -125,12 +138,12 @@ These values mirror **today's live `RealtimeBlob` Coral props**, not the raw stu
 
 | Field | Source | Note |
 |---|---|---|
-| `scale` | `REALTIME_BASE.scale = 1.04` | RealtimeBlob.tsx line 47 — overrides `WHIMSY_BASE.scale = 0.55` |
-| `torusRadius` | `REALTIME_BASE.thinRadius = 0.275` | RealtimeBlob.tsx line 99 passes `thinRadius` as the `torusRadius` prop. **Not** `WHIMSY_BASE.torusRadius = 0.3`. |
+| `scale` | `REALTIME_BASE.scale = 1.04` | `RealtimeBlob.tsx` `REALTIME_BASE` constant overrides `WHIMSY_BASE.scale = 0.55` |
+| `torusRadius` | `REALTIME_BASE.thinRadius = 0.275` | `RealtimeBlob.tsx`'s `<CoralStoneMorph>` prop binding passes `thinRadius` as the `torusRadius` prop. **Not** `WHIMSY_BASE.torusRadius = 0.3`. |
 | `waveIntensity` | `DEFAULT_STATE_SETTINGS.idle.waveIntensity = 0.18` | base value (talking overrides to 0.20) |
 | `breathAmp` | `DEFAULT_STATE_SETTINGS.idle.breathAmp = 0.03` | |
 | `idleAmp` | `DEFAULT_STATE_SETTINGS.idle.idleAmp = 0.02` | |
-| `morphSpeed` (base) | `DEFAULT_STATE_SETTINGS.idle.thickenSpeed × 1.08 = 1.296` | RealtimeBlob.tsx line 82 multiplies by `1.08` |
+| `morphSpeed` (base) | `DEFAULT_STATE_SETTINGS.idle.thickenSpeed × 1.08 = 1.296` | `RealtimeBlob.tsx` multiplies the picked-up `thickenSpeed` by `1.08` (the `morphSpeed = stateSettings.thickenSpeed * 1.08` line) |
 | `morphSpeed` (talking) | `DEFAULT_STATE_SETTINGS.talking.thickenSpeed × 1.08 = 0.54` | same multiplier |
 | `talking.waveIntensity` | `DEFAULT_STATE_SETTINGS.talking.waveIntensity = 0.20` | |
 | `color1/2/3`, `bgColor` | `WHIMSY_BASE.*` | unchanged in REALTIME_BASE |
@@ -242,10 +255,12 @@ Owns fetching of BOTH profile files. Replaces the hardcoded `profileThumbs` arra
 
 ```ts
 const [orbs, setOrbs] = useState<LoadedOrb[]>([]);
-const [activeOrbId, setActiveOrbId] = useState<string | null>(null);
+const [activeOrbKey, setActiveOrbKey] = useState<string | null>(null);
+
+const composite = (o: LoadedOrb) => `${o.sourceVariant}:${o.id}`;
 
 useEffect(() => {
-  const fetchVariant = async <T,>(variant: string, shader: 'coral' | 'kyoto'): Promise<LoadedOrb[]> => {
+  const fetchVariant = async (variant: 'realtime-coral' | 'realtime-state', shader: 'coral' | 'kyoto'): Promise<LoadedOrb[]> => {
     try {
       const r = await fetch(`/api/studio-profiles?variant=${variant}`);
       const arr = await r.json();
@@ -256,7 +271,7 @@ useEffect(() => {
         name: p.name,
         settings: p.settings,
         lastModified: p.lastModified,
-      })) : [];
+      })) as LoadedOrb[] : [];
     } catch {
       return [];
     }
@@ -278,18 +293,59 @@ useEffect(() => {
     // Default selection: localStorage → "Coral Realtime" → first available.
     // Use a composite key (sourceVariant:id) because ids are scoped per file
     // and could collide across files (especially user-created profiles).
-    const composite = (o: LoadedOrb) => `${o.sourceVariant}:${o.id}`;
     const persisted = window.localStorage.getItem('realtime-active-orb-key');
     const persistedExists = persisted && merged.find(o => composite(o) === persisted);
     const coralDefault = merged.find(o => o.name === 'Coral Realtime');
-    setActiveOrbKey(persistedExists ? persisted : (coralDefault ? composite(coralDefault) : (merged[0] ? composite(merged[0]) : null)));
+    const fallbackKey = coralDefault ? composite(coralDefault) : (merged[0] ? composite(merged[0]) : null);
+    setActiveOrbKey(persistedExists ? persisted : fallbackKey);
   });
 }, []);
+
+// Persist on change.
+useEffect(() => {
+  if (activeOrbKey) window.localStorage.setItem('realtime-active-orb-key', activeOrbKey);
+}, [activeOrbKey]);
+
+// Derive the active orb + the props passed to RealtimeBlob.
+const activeOrb = useMemo(
+  () => orbs.find(o => composite(o) === activeOrbKey) ?? null,
+  [orbs, activeOrbKey],
+);
+const realtimeOrbProp: RealtimeOrb | null = useMemo(
+  () => (activeOrb ? { shader: activeOrb.shader, profile: activeOrb.settings } : null),
+  [activeOrb],
+);
 ```
 
-`activeOrbKey` is the composite `${sourceVariant}:${id}` string used everywhere as the React key, dropdown selection, localStorage value, and source-list lookup. The same composite-key convention applies in the editor.
+`activeOrbKey` is the composite `${sourceVariant}:${id}` string used everywhere as the React key, dropdown selection, localStorage value, and source-list lookup. The same composite-key convention applies in the editor (key: `realtime-states-active-orb-key`).
 
-`CORAL_FALLBACK_ORB` and `NEBULARR_FALLBACK_ORB` are hardcoded constants in this file (or imported from each shader's wrapper).
+The `RealtimeOrb` shape (used by `RealtimeBlob`) is derived from `LoadedOrb` (used everywhere else) via the `useMemo` above. Conversion is a one-line projection: `{ shader, profile: settings }`. This boundary is the only place the two unions meet.
+
+### Fallback orb shapes (`CORAL_FALLBACK_ORB`, `NEBULARR_FALLBACK_ORB`)
+
+Hardcoded constants used only when API fetch fails AND the file is missing/empty. Shapes specified explicitly so the implementer doesn't guess:
+
+```ts
+const CORAL_FALLBACK_ORB: LoadedOrb = {
+  shader: 'coral',
+  sourceVariant: 'realtime-coral',
+  id: 'rt-coral-fallback',                 // distinct from the seed's 'rt-coral-default'
+  name: 'Coral',                           // distinct from "Coral Realtime" so the seed wins when both load
+  settings: { /* values from the seed table above */ },
+  lastModified: 0,                         // 0 = "never persisted"
+};
+
+const NEBULARR_FALLBACK_ORB: LoadedOrb = {
+  shader: 'kyoto',
+  sourceVariant: 'realtime-state',
+  id: 'rt-nebularr-fallback',
+  name: 'Nebularr',                        // matches the existing realtime-state-profiles.json entry name
+  settings: { /* values from current NEBULARR_FALLBACK_PROFILE in NebularrBlob.tsx */ },
+  lastModified: 0,
+};
+```
+
+Defining `name` distinct from the seed (`'Coral'` vs `'Coral Realtime'`) prevents collision when both load — the seed entry wins via name match in the default-selection rule. `lastModified: 0` makes any saved entry preferred in any sort-by-recency UI.
 
 **Thumbnail strip:** iterates `orbs`. Each thumb's image src derived from a slug rule:
 
@@ -336,24 +392,122 @@ Today the canvas in `realtime-states.tsx` is hardwired to `<GentleOrbThicken>`. 
 The editor's existing `restartIntro` action stays, but branches by shader:
 
 - **Kyoto:** existing path — seeds `render` via `introRender(profile)`, sets `state='idle'`, lets the JS animator settle. Unchanged.
-- **Coral:** **first** sets `previewState='idle'`, **then** increments `replayCounter`. Both are required: the canvas pseudocode binds `goal = previewState === 'talking' ? 0 : 1`, so if the user is on the Talking pill and presses Replay, the remounted `CoralStoneMorph` would start at `morphRef=0` AND `goal=0` — nothing would morph. Forcing idle first ensures the remount lands with `goal=1`, so `morphRef` advances `0 → 1` and the sphere → torus intro plays. (Mirrors what Kyoto's restartIntro already does at line 929 of today's editor.)
+- **Coral:** **first** sets `previewState='idle'`, **then** increments `replayCounter`. Both are required: the canvas pseudocode binds `goal = previewState === 'talking' ? 0 : 1`, so if the user is on the Talking pill and presses Replay, the remounted `CoralStoneMorph` would start at `morphRef=0` AND `goal=0` — nothing would morph. Forcing idle first ensures the remount lands with `goal=1`, so `morphRef` advances `0 → 1` and the sphere → torus intro plays. (Mirrors what Kyoto's existing `restartIntro` function already does — it calls `setState('idle')` before its other resets.)
 
 ## Editor changes (`/voiceinterface/realtime-states`)
 
-### Profile dropdown — combined list with shader glyphs
+### Editor state-model migration (read this first)
 
-The profile menu (currently around line 1734) lists entries from both files via the same `Promise.allSettled` pattern as the live page. Each row has a leading glyph:
+The editor today is ~1900 lines and its entire state machine assumes a Tube/Kyoto profile (`profile: LinkedProfile`). Before any UI work, the underlying state model has to evolve. This is the largest implementation risk in the plan; treat this subsection as the contract.
 
-- **Coral** entries: a small `Circle` lucide icon, or a 1-character chip `C`, in Coral's signature peach color.
-- **Tube/Kyoto** entries: a small `Disc` lucide icon, or a 1-character chip `T`, in Kyoto's olive color.
+**State variables that change:**
 
-Final glyph TBD when seen rendered. Both options use lucide icons already imported in this file.
+| Today | After unification |
+|---|---|
+| `profile: LinkedProfile` (single state) | `coralProfiles: SavedCoralProfile[]` + `kyotoProfiles: SavedKyotoProfile[]` (two source arrays) + `activeOrbKey: string \| null` (composite key) |
+| `activeId: string` | replaced by `activeOrbKey` (composite-keyed) |
+| `activeBaseline: LinkedProfile` (for dirty detection) | becomes `activeBaseline: LoadedOrb \| null`; dirty check compares the active settings against the baseline of the same shader |
+| (none) | `replayCounter: number` (Coral remount trigger) |
+
+The combined `orbs` list is a derived view (`useMemo`) over the two source arrays, exactly as in `VoiceRealtimeOpenAI`. `activeOrb` is derived from `activeOrbKey + orbs`.
+
+**The JS animator (Kyoto's exponential lerp) is SKIPPED for Coral profiles.**
+
+The existing animator effect (the `useEffect` containing the `requestAnimationFrame` loop with `lerpRender(cur, target, alpha)`) is Tube-specific. For Coral profiles:
+
+- The animator's `setRender(next)` calls produce a `RenderValues` object that is **not consumed by the canvas** (the canvas dispatches to `<CoralStoneMorph>`, which uses its own native morph state). The animator can either:
+  1. Early-return at the top of each tick when `activeOrb.shader === 'coral'` (cleanest — no wasted compute, no stale state).
+  2. Keep running but ignore its output (wasteful but lower-risk if the animator state is referenced elsewhere).
+- Choose option 1. Add `if (activeOrbRef.current?.shader !== 'kyoto') { raf = requestAnimationFrame(animate); return; }` at the top of the animate function (where `activeOrbRef` is the standard ref-mirror of `activeOrb`).
+- The talking-exit override mechanism (`activeTauOverrideRef`) and `previousStateRef` also become Tube-only by the same gate.
+
+**`peakHas` / `peakEff` / `setPeak` / `clearPeak` become shader-aware.**
+
+These helpers today operate on `LinkedProfile`'s `PeakOverrides` shape. Coral's `talking` shape is different (no `thickRadius`/`waveCount`/`thickenSpeed`/`entrySpeed`/`settleSpeed`; has `morphSpeed`/`scale`/`waveIntensity`/`color3` only).
+
+Rather than make these helpers handle a union, **introduce parallel helpers for Coral**:
+
+```ts
+// Existing (rename to make Tube-specific):
+const kyotoPeakHas = (scope: 'thinking' | 'talking', field: keyof PeakOverrides) => ...;
+const kyotoPeakEff = ...;
+const kyotoSetPeak = ...;
+const kyotoClearPeak = ...;
+
+// New (parallel set, Coral's talking-only peak shape):
+type CoralTalkingOverride = NonNullable<CoralRealtimeProfile['settings']['talking']>;
+const coralPeakHas = (field: keyof CoralTalkingOverride) => ...;
+const coralPeakEff = ...;
+const coralSetPeak = ...;
+const coralClearPeak = ...;
+```
+
+Editor controls call the appropriate helper based on `activeOrb.shader`. Each helper writes back to its own source array (`kyoto*` writes to `kyotoProfiles`, `coral*` writes to `coralProfiles`).
+
+**Existing `restartIntro` becomes the explicit branch shown below.**
+
+**The audio-active-jump-to-talking effect** (today: `if (audioActive) { setAutoLoop(false); setState('talking'); }`) stays unchanged — it operates on `state` only, not on profile shape, so it works for both shaders. For Coral, `state='talking'` flows through the canvas-dispatch's `goal = previewState === 'talking' ? 0 : 1` and triggers Coral's morph. ✓
+
+**The auto-loop interval** (today: `setState((p) => STATES[(STATES.indexOf(p) + 1) % STATES.length])`) stays unchanged — same reason.
+
+**Effects that don't apply to Coral** (idle/listening/thinking are visually identical, no thinking-pulse):
+
+- The `pulseRef` reset on `state !== 'thinking'` — harmless to leave running for Coral; pulseRef just stays at `{phase:0, dir:1}`.
+- The `thinkingPaused` flag — same.
+
+These can stay as-is; they're cheap and Tube-specific behavior simply isn't visible on Coral because the canvas isn't reading from `render`.
+
+### `restartIntro` — explicit shader branch
+
+```ts
+const restartIntro = (orb: LoadedOrb | null = activeOrb) => {
+  // Universal resets (apply to both shaders).
+  setAutoLoop(false);
+  setThinkingPaused(false);
+  setPreviewState('idle');
+
+  if (!orb) return;
+
+  if (orb.shader === 'coral') {
+    // Coral's intro is the natural fresh-mount morph: morphRef = 0 → goal = 1.
+    // We force a remount via the replay key; previewState is already 'idle'
+    // above, which guarantees goal === 1 on the next render.
+    setReplayCounter(c => c + 1);
+    return;
+  }
+
+  // Kyoto path (existing logic).
+  lastTsRef.current = performance.now();
+  pulseRef.current = { phase: 0, dir: 1 };
+  activeTauOverrideRef.current =
+    orb.settings.talking.settleSpeed ?? orb.settings.base.thickenSpeed;
+  if (stateRef.current !== 'idle') {
+    previousStateRef.current = 'talking';
+  }
+  setRenderNow(talkingRenderForProfile(orb.settings));
+};
+```
+
+Order matters: `setPreviewState('idle')` runs first so React has time to commit the state change before the next render — Coral's canvas then reads `previewState === 'idle'` → `goal = 1`. Tube's path doesn't depend on this timing because its tau override is set synchronously in the same handler.
+
+**R3F `key` remount note:** `<CoralStoneMorph key={`coral-${replayCounter}`}>` inside `<Canvas>` should trigger Three.js mesh recreation when the key changes — R3F's reconciler treats child components like a normal React tree. Verify during implementation that the morphRef does reset to 0 (could be a one-line console assertion in `CoralStoneMorph`'s `useFrame` when env is dev).
+
+
+
+The profile menu (the `<div ref={profileMenuRef}>` block in `realtime-states.tsx`) lists entries from both files via the same `Promise.allSettled` pattern as the live page. Each row has a leading glyph.
+
+**Default glyph picks** (so the implementer isn't blocked):
+
+- **Coral** entries: lucide `Circle` icon, 14×14, color tinted to Coral's peach (`var(--VoiceCoral, #ffa279)` or close).
+- **Tube/Kyoto** entries: lucide `Disc` icon, 14×14, color tinted to Kyoto's olive (`#949e05` or close).
+
+Both icons are available from the `lucide-react` package already used elsewhere in the editor. Final swap to letter-chips or other glyphs is a 1-line change at implementation review time if these don't read well.
 
 Rows show: `[glyph] [name]` with rename action to the right (no delete in this pass).
 
 ### Default selection on load
 
-Same rule as live page: localStorage `realtime-states-active-id` → "Coral Realtime" entry → first available.
+Same rule and same composite-key format as the live page: localStorage `realtime-states-active-orb-key` (composite `${sourceVariant}:${id}`) → "Coral Realtime" entry → first available. The two pages use different localStorage keys (`realtime-active-orb-key` for the live page; `realtime-states-active-orb-key` for the editor) so each surface can remember its own last selection independently.
 
 ### Dirty-edit behavior on switch
 
@@ -411,13 +565,13 @@ The new entry is added to the relevant source array, then immediately set as act
 
 ### Name collision rules (across all three sources)
 
-The existing editor already fetches gallery profile names into `externalProfileNames` to prevent cross-surface collisions (lines 962-965 of today's `realtime-states.tsx`). This unification adds two more sources to check:
+The existing editor already fetches gallery profile names into the `externalProfileNames` state via the `Promise.all(Object.values(GALLERY_API_KEYS).map(fetchProfileNames))` effect to prevent cross-surface collisions. This unification adds two more sources to check:
 
 - `realtime-coral` (this plan's new file).
 - `realtime-state` (existing).
-- All gallery variant files (existing check).
+- All gallery variant files (existing check, unchanged).
 
-Save and rename normalize the candidate name (lowercase, trim) and reject if it collides with ANY name across all three source groups. The error UI is the existing rename-validation pattern (red border + disabled save button). New-profile modal applies the same check before allowing creation.
+Save and rename normalize the candidate name (lowercase, trim) and reject if it collides with ANY name across all three source groups. The error UI is the existing rename-validation pattern (red border + disabled save button), already used by the `profileNameExists` helper. New-profile modal applies the same check before allowing creation.
 
 ## Live page changes (`/voiceinterface/realtime`)
 
@@ -429,7 +583,7 @@ Already covered under `VoiceRealtimeOpenAI.tsx`. Net effect:
 - Dispatch by `shader` inside `RealtimeBlob`.
 - localStorage persistence of last-selected orb.
 
-## Migration ordering (4 phases, each independently revertable)
+## Migration ordering (3 phases, each independently revertable)
 
 ### Phase 1 — Data + API (no UI changes, no visual changes)
 
@@ -464,10 +618,11 @@ Already covered under `VoiceRealtimeOpenAI.tsx`. Net effect:
 
 **Rollback:** revert the editor changes; editor falls back to Tube-only.
 
-### Phase 4 — Cleanup (after ~1 week of confidence)
+**Phase 4 (cleanup) was removed.** v3 had a separate cleanup phase that duplicated work already completed in Phase 2:
+- "Remove `WHIMSY_BASE`/`REALTIME_BASE` imports from `RealtimeBlob.tsx`" — already done in Phase 2 step 5.
+- "`CORAL_FALLBACK_PROFILE` becomes the only path referencing studio constants" — already true after Phase 2 step 4 (the fallback IS where the constants land).
 
-19. Inside `CoralRealtimeBlob`, the `CORAL_FALLBACK_PROFILE` constant becomes the *only* path that references `WHIMSY_BASE` / `DEFAULT_STATE_SETTINGS` (and only on API failure). Remove unused imports of these constants from `RealtimeBlob.tsx` if no longer referenced.
-20. The original constants stay defined in `blobStudioTypes.ts` because the gallery and other surfaces may still consume them. Don't delete at the source.
+The original `WHIMSY_BASE` + `DEFAULT_STATE_SETTINGS` constants stay defined in `blobStudioTypes.ts` because the gallery and other surfaces may still consume them. Don't delete at the source. This is a non-event, not a phase.
 
 ## Verification checklist
 
@@ -488,6 +643,10 @@ End-of-implementation:
 - Editor: rename UI rejects names that collide with any existing profile name across `realtime-coral`, `realtime-state`, and gallery variants (normalized comparison).
 - Editor: Replay button on Coral fresh-mounts the canvas and plays the intro **even when previewState was 'talking' before the click** (replay forces idle first); on Kyoto, existing seed-render behavior.
 - Editor: ids that collide across files (e.g., both files have `rt-default`) don't break dropdown selection — composite keys disambiguate.
+- Live + Editor: clicking the **same** thumb twice in rapid succession while an intro is mid-flight does NOT remount or restart — the second click is a no-op (same component type, same key). Intro continues uninterrupted.
+- Live: if **both** profile API endpoints fail (both files missing or corrupted), the strip still shows two thumbs (Coral fallback + Nebularr fallback) and clicking each renders the corresponding orb using the hardcoded fallback settings.
+- Editor: if the active profile's source file is deleted mid-session and the user clicks Save, the file is recreated with the in-memory array (the API endpoint creates new files on POST).
+- Editor: when audio-active triggers `setState('talking')` on a Coral profile, the canvas's Coral renderer morphs to sphere (`goal=0`) using `talking.morphSpeed`. Confirms the `state` machine drives Coral's canvas dispatch even when the JS animator is gated off.
 - TypeScript: `npx tsc --noEmit` clean.
 - API: `/api/studio-profiles?variant=realtime-coral` returns the Coral list; `?variant=realtime-state` returns the Kyoto/Tube list (unchanged).
 
@@ -532,7 +691,6 @@ End-of-implementation:
 
 - Phase 1: ~15 min (file + API line + verification).
 - Phase 2: ~75 min (`CoralRealtimeBlob`, `RealtimeBlob` refactor, `VoiceRealtimeOpenAI` dual-fetch + strip + localStorage, thumbnail re-save).
-- Phase 3: ~90 min (combined dropdown, shader-aware canvas dispatch, Coral controls per the table, replay counter, new-profile modal, save routing).
-- Phase 4: ~10 min (cleanup after verification window).
+- Phase 3: ~120 min (editor state-model migration, parallel Coral peak helpers, JS animator gating, combined dropdown, shader-aware canvas dispatch, Coral controls per the table, replay counter + restartIntro branch, new-profile modal, save routing). Bumped from v3's 90 min after the state-model migration was made explicit.
 
 Plus verification time at each phase boundary.
