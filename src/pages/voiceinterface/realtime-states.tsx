@@ -1768,11 +1768,18 @@ export default function RealtimeStates() {
 
   const blobAudioData = audioActive && state !== 'idle' ? audioData : SILENT;
 
+  // Page bg sources from the active shader's profile so swapping a
+  // Coral entry tints the whole editor with its bgColor.
+  const activeBgColor =
+    activeShader === 'coral' && activeCoralSettings
+      ? activeCoralSettings.base.bgColor
+      : profile.base.bgColor;
+
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: profile.base.bgColor,
+        background: activeBgColor,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -1783,30 +1790,71 @@ export default function RealtimeStates() {
     >
       <GalleryAudioControls onAudioActive={setAudioActive} />
 
-      {/* Canvas size matches production /voiceinterface/realtime (RealtimeBlob.tsx:53) */}
+      {/* Canvas size matches production /voiceinterface/realtime (RealtimeBlob.tsx:53).
+          Dispatches by activeShader: GentleOrbThicken for Tube/Kyoto
+          (driven by the existing JS animator's `render` state), or
+          CoralStoneMorph for Coral D (driven by its native morph
+          animator with state-aware effective values). */}
       <div style={{ width: 328, height: 328 }}>
         <Canvas
           camera={{ position: [0, 0, 3.5], fov: 45 }}
           dpr={[1, 1.5]}
           gl={{ antialias: true }}
         >
-          <color attach="background" args={[profile.base.bgColor]} />
-          <ambientLight intensity={0.5} />
-          <GentleOrbThicken
-            audioData={blobAudioData}
-            goal={1}
-            scale={render.scale}
-            thinRadius={profile.base.thinRadius}
-            thickRadius={render.thickRadius}
-            thickenSpeed={0.05}
-            waveIntensity={render.waveIntensity}
-            waveCount={render.waveCount}
-            breathAmp={render.breathAmp}
-            idleAmp={render.idleAmp}
-            color1={render.color1}
-            color2={render.color2}
-            color3={render.color3}
+          <color
+            attach="background"
+            args={[
+              activeShader === 'coral' && activeCoralSettings
+                ? activeCoralSettings.base.bgColor
+                : profile.base.bgColor,
+            ]}
           />
+          <ambientLight intensity={0.5} />
+          {activeShader === 'coral' && activeCoralSettings ? (
+            (() => {
+              const isTalking = state === 'talking';
+              const baseS = activeCoralSettings.base;
+              const tlk = activeCoralSettings.talking;
+              const effMorphSpeed = isTalking ? tlk?.morphSpeed ?? baseS.morphSpeed : baseS.morphSpeed;
+              const effScale = isTalking ? tlk?.scale ?? baseS.scale : baseS.scale;
+              const effWaveIntensity = isTalking
+                ? tlk?.waveIntensity ?? baseS.waveIntensity
+                : baseS.waveIntensity;
+              const effColor3 = isTalking ? tlk?.color3 ?? baseS.color3 : baseS.color3;
+              return (
+                <CoralStoneMorph
+                  key={`coral-${activeCoralId}-${replayCounter}`}
+                  audioData={blobAudioData}
+                  goal={isTalking ? 0 : 1}
+                  scale={effScale}
+                  morphSpeed={Math.max(0.001, effMorphSpeed)}
+                  torusRadius={baseS.torusRadius}
+                  waveIntensity={effWaveIntensity}
+                  breathAmp={baseS.breathAmp}
+                  idleAmp={baseS.idleAmp}
+                  color1={baseS.color1}
+                  color2={baseS.color2}
+                  color3={effColor3}
+                />
+              );
+            })()
+          ) : (
+            <GentleOrbThicken
+              audioData={blobAudioData}
+              goal={1}
+              scale={render.scale}
+              thinRadius={profile.base.thinRadius}
+              thickRadius={render.thickRadius}
+              thickenSpeed={0.05}
+              waveIntensity={render.waveIntensity}
+              waveCount={render.waveCount}
+              breathAmp={render.breathAmp}
+              idleAmp={render.idleAmp}
+              color1={render.color1}
+              color2={render.color2}
+              color3={render.color3}
+            />
+          )}
         </Canvas>
       </div>
 
@@ -2161,9 +2209,21 @@ export default function RealtimeStates() {
               <Bookmark size={14} fill={activePinned ? 'currentColor' : 'none'} />
             </button>
 
-            {/* Replay first-load talking → idle intro for the active profile */}
+            {/* Replay first-load talking → idle intro for the active
+                profile. Branches by shader: Tube uses the existing JS
+                animator's seed-render trick; Coral forces previewState
+                to idle (so goal=1) and bumps replayCounter to remount
+                the canvas → morphRef resets to 0 → sphere → torus
+                intro plays via Coral's native animator. */}
             <button
-              onClick={() => restartIntro()}
+              onClick={() => {
+                if (activeShader === 'coral') {
+                  setState('idle');
+                  setReplayCounter((c) => c + 1);
+                } else {
+                  restartIntro();
+                }
+              }}
               className="p-1.5 rounded-lg transition-colors cursor-pointer ml-2 bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
               title="Replay talking-to-idle intro"
             >
