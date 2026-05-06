@@ -1,17 +1,25 @@
-# Coral Unification Plan (v4)
+# Coral Unification Plan (v5)
 
-> v4 incorporates findings from a self-run plan-review pass on v3. v1 → v3 changelogs kept below for context; v4 changes:
-> - **Symbol-based references** replace stale numeric line refs throughout (line numbers rot; symbols don't).
-> - **`activeOrbKey` / `setActiveOrbKey` naming** consistent in pseudocode (v3's snippet had a setter mismatch).
-> - **Editor state-model migration** documented explicitly: the JS animator at the existing `restartIntro`/animator effect is skipped for Coral profiles; `peakHas`/`peakEff`/`setPeak`/`clearPeak` need shader-aware variants for Coral's `PeakOverrides` shape; `profile: LinkedProfile` editor state evolves to `activeOrb: LoadedOrb | null`.
-> - **Phase 4 removed.** Cleanup happens inline in Phase 2/3 (v3's Phase 4 duplicated work already done in earlier phases).
-> - **`CORAL_FALLBACK_ORB` / `NEBULARR_FALLBACK_ORB` shapes specified** (id, name, lastModified all explicit).
-> - **localStorage keys aligned** across live page and editor (both use composite-key format).
-> - **`LoadedOrb` → `RealtimeOrb` conversion** explicit: derived in `VoiceRealtimeOpenAI` via `useMemo`.
-> - **`restartIntro` shader-branch** shown as explicit code (not just "branch by shader").
-> - **Verification additions** for both-files-fail, mid-conversation editor switches, mid-intro same-thumb clicks.
-> - **Default lucide glyph choices** picked (`Circle` for Coral, `Disc` for Tube) so implementer isn't blocked.
-> - **R3F `key` remount note** added — `<CoralStoneMorph key={...}>` inside `<Canvas>` should trigger Three.js mesh recreation; verify during implementation.
+> v5 incorporates a third round of human-reviewer feedback on v4. The findings in this round point to gaps the self-run plan-review missed; that miss-analysis is in `## Note on plan-review limits` near the bottom of this doc. v1–v4 changelogs kept below; v5 changes:
+> - **Coral canvas uses `blobAudioData`** (the existing `audioActive && state !== 'idle' ? audioData : SILENT` gate), not raw `audioData`. Both shaders' previews now share the idle/listening audio contract.
+> - **`CORAL_FALLBACK_ORB.name` = `'Coral Realtime'`** (was `'Coral'`). Removes the verification-vs-implementation contradiction; collision risk is not real because the fallback only loads when the seed file is absent.
+> - **Same-shader profile-switch intro rule made explicit.** `activeOrbKey` is NOT the React reconciliation key on the renderer — only the shader change triggers a component swap (and thus a remount/intro). Same-shader profile A → B is just prop changes; no intro. Editor's Replay button is the only way to re-trigger the intro within a single shader.
+> - **`morphSpeed = 0` made strictly safe.** `CoralRealtimeBlob` floors `effectiveMorphSpeed` to `Math.max(0.001, ...)` before passing to `CoralStoneMorph`. UI slider can still go to `0` (shows as "instant" / 0.00s); the floor only protects the `delta / morphSpeed` math from `0/0 → NaN`.
+> - **Editor background sourcing** added to the state-model migration: `activeOrb.settings.base.bgColor` for both shaders.
+> - **CRUD-verb precision.** Name validation only applies to Rename and New-profile (which have a candidate name). Save (settings update on active profile) does NOT re-validate the name — the active profile's existing name is already valid.
+>
+> v3 → v4 changelog (kept for reference):
+> - Symbol-based references replace stale numeric line refs throughout (line numbers rot; symbols don't).
+> - `activeOrbKey` / `setActiveOrbKey` naming consistent in pseudocode (v3's snippet had a setter mismatch).
+> - Editor state-model migration documented explicitly: the JS animator at the existing `restartIntro`/animator effect is skipped for Coral profiles; `peakHas`/`peakEff`/`setPeak`/`clearPeak` need shader-aware variants for Coral's `PeakOverrides` shape; `profile: LinkedProfile` editor state evolves to `activeOrb: LoadedOrb | null`.
+> - Phase 4 removed. Cleanup happens inline in Phase 2/3 (v3's Phase 4 duplicated work already done in earlier phases).
+> - `CORAL_FALLBACK_ORB` / `NEBULARR_FALLBACK_ORB` shapes specified (id, name, lastModified all explicit).
+> - localStorage keys aligned across live page and editor (both use composite-key format).
+> - `LoadedOrb` → `RealtimeOrb` conversion explicit: derived in `VoiceRealtimeOpenAI` via `useMemo`.
+> - `restartIntro` shader-branch shown as explicit code (not just "branch by shader").
+> - Verification additions for both-files-fail, mid-conversation editor switches, mid-intro same-thumb clicks.
+> - Default lucide glyph choices picked (`Circle` for Coral, `Disc` for Tube) so implementer isn't blocked.
+> - R3F `key` remount note added.
 >
 > v2 → v3 changelog (kept for reference):
 > - Seed `torusRadius` corrected to `0.275` (matches today's live `REALTIME_BASE.thinRadius` prop, not `WHIMSY_BASE.torusRadius`).
@@ -208,13 +216,22 @@ Pure renderer. Mirrors `NebularrBlob.tsx` in structure but uses Coral's native a
   - `effectiveWaveIntensity = voiceState === 'ai_speaking' ? (talking.waveIntensity ?? base.waveIntensity) : base.waveIntensity`
   - `effectiveColor3 = voiceState === 'ai_speaking' ? (talking.color3 ?? base.color3) : base.color3`
   - `breathAmp`, `idleAmp`, `color1`, `color2`, `torusRadius`: base only.
-- **Renders** `<CoralStoneMorph audioData goal morphSpeed scale torusRadius waveIntensity breathAmp idleAmp color1 color2 color3 />` with the effective values above.
+- **Renders** `<CoralStoneMorph audioData goal morphSpeed={Math.max(0.001, effectiveMorphSpeed)} scale torusRadius waveIntensity breathAmp idleAmp color1 color2 color3 />` with the effective values above. The `Math.max(0.001, ...)` floor on `morphSpeed` is required because `CoralStoneMorph` computes `delta / morphSpeed`; with both `delta` and `morphSpeed` at `0` (rare but possible on the first frame after mount), the result is `NaN` and propagates into `morphRef` permanently. The floor is small enough that `0` on the user-facing slider still produces a near-instant transition (one frame at the floor moves `morphRef` by `delta / 0.0005`, far beyond the 0–1 clamp range).
 
 **Intro behavior (no extra code needed):**
 
 When the user clicks the Coral thumbnail on the live page, `RealtimeBlob` swaps from `<NebularrBlob>` to `<CoralRealtimeBlob>` — different component types, so React unmounts the old and mounts the new fresh. `CoralRealtimeBlob` mounts → `CoralStoneMorph` mounts → `morphRef = 0` (sphere). If the default `voiceState` is `idle`, `goal = 1` → native animator advances `morph: 0 → 1` over `base.morphSpeed` seconds. That IS the intro.
 
-Switching from one Coral profile to another (e.g., editor swapping between two Coral entries) does NOT trigger an intro because `CoralRealtimeBlob` stays mounted; only props change. For the editor's Replay button, we use a `key={replayCounter}` prop on `CoralStoneMorph` (or on `CoralRealtimeBlob`) that increments on click → forces a remount → intro plays.
+**Same-shader profile switch — no intro by default.** Switching Coral A → Coral B (or Tube A → Tube B) in either the live page or the editor does NOT trigger an intro. The reasoning: `activeOrbKey` is the logical identity used for dropdown selection, localStorage, and source-list lookup, but it is **not** used as a React reconciliation `key` on the renderer. Only the *shader* change triggers a component swap (`<CoralRealtimeBlob>` ↔ `<NebularrBlob>` are different component types, so React unmounts + remounts naturally). Same-shader profile A → B is just prop changes flowing into the already-mounted renderer.
+
+Concrete consequence:
+
+- Live page: clicking a different Coral thumb when Coral is active → strip selection updates, profile prop changes, orb smoothly transitions to the new profile's values (no intro).
+- Live page: clicking a Tube thumb when Coral is active → component swap, intro plays.
+- Editor: clicking a different Coral entry in the dropdown when Coral is active → controls + canvas update, no intro. The user can press the Replay button (which increments `replayCounter` and is keyed on the canvas's Coral renderer) to manually re-trigger the intro within the same shader.
+- Editor: clicking a Tube entry when Coral is active → canvas dispatch swaps from Coral renderer to Tube renderer, fresh-mount intro plays.
+
+If a future requirement is "intro on every profile switch", the implementation knob is to add `activeOrb.id` (or `activeOrbKey`) to the `key` prop of the renderer. Out of scope for this plan.
 
 **Intro during active voice states:**
 
@@ -330,7 +347,7 @@ const CORAL_FALLBACK_ORB: LoadedOrb = {
   shader: 'coral',
   sourceVariant: 'realtime-coral',
   id: 'rt-coral-fallback',                 // distinct from the seed's 'rt-coral-default'
-  name: 'Coral',                           // distinct from "Coral Realtime" so the seed wins when both load
+  name: 'Coral Realtime',                  // matches the seed name; only loads when seed is absent, so no collision
   settings: { /* values from the seed table above */ },
   lastModified: 0,                         // 0 = "never persisted"
 };
@@ -345,7 +362,7 @@ const NEBULARR_FALLBACK_ORB: LoadedOrb = {
 };
 ```
 
-Defining `name` distinct from the seed (`'Coral'` vs `'Coral Realtime'`) prevents collision when both load — the seed entry wins via name match in the default-selection rule. `lastModified: 0` makes any saved entry preferred in any sort-by-recency UI.
+The fallback orb only loads when the file fetch returns nothing (missing file, malformed JSON, or empty array). In that case, no real entry exists with the same `name`, so collision is not a real risk. Using `'Coral Realtime'` matches the verification checklist's expectation ("the strip still includes a 'Coral Realtime' entry") and keeps default-selection lookup uniform whether or not the file is present. `lastModified: 0` makes any saved entry preferred in any sort-by-recency UI.
 
 **Thumbnail strip:** iterates `orbs`. Each thumb's image src derived from a slug rule:
 
@@ -371,9 +388,9 @@ Today the canvas in `realtime-states.tsx` is hardwired to `<GentleOrbThicken>`. 
   {activeShader === 'coral' ? (
     <CoralStoneMorph
       key={`coral-${replayCounter}`}     // remount on Replay
-      audioData={audioData}
+      audioData={blobAudioData}          // gated, not raw
       goal={previewState === 'talking' ? 0 : 1}
-      morphSpeed={effectiveCoralMorphSpeed}
+      morphSpeed={Math.max(0.001, effectiveCoralMorphSpeed)} // floor for 0/0 safety
       scale={effectiveCoralScale}
       torusRadius={profile.base.torusRadius}
       waveIntensity={effectiveCoralWaveIntensity}
@@ -388,6 +405,10 @@ Today the canvas in `realtime-states.tsx` is hardwired to `<GentleOrbThicken>`. 
   )}
 </Canvas>
 ```
+
+**`blobAudioData`, not raw `audioData`.** The existing Tube path uses a gated `blobAudioData = audioActive && state !== 'idle' ? audioData : SILENT` (the existing helper in `realtime-states.tsx`). Coral's preview MUST use the same gate or a Coral profile would visibly react to audio while idle, breaking the existing idle/listening contract. The same `blobAudioData` value flows into both branches.
+
+**`Math.max(0.001, morphSpeed)` floor.** Coral's animator computes `delta / morphSpeed`. With `morphSpeed === 0` and `delta === 0` (rare but possible — first frame after mount, or under throttling), the result is `NaN`, which propagates to `morphRef` and stays there. The floor protects the math without changing the user-facing slider semantics: the slider can still show `0.00s` and feel instant (`tau = 0.0005` → `delta / 0.0005` is huge → `morphRef` reaches its bound in one frame). Apply the same floor inside `CoralRealtimeBlob` for the live page.
 
 The editor's existing `restartIntro` action stays, but branches by shader:
 
@@ -447,6 +468,8 @@ Editor controls call the appropriate helper based on `activeOrb.shader`. Each he
 **Existing `restartIntro` becomes the explicit branch shown below.**
 
 **The audio-active-jump-to-talking effect** (today: `if (audioActive) { setAutoLoop(false); setState('talking'); }`) stays unchanged — it operates on `state` only, not on profile shape, so it works for both shaders. For Coral, `state='talking'` flows through the canvas-dispatch's `goal = previewState === 'talking' ? 0 : 1` and triggers Coral's morph. ✓
+
+**Editor background sourcing.** The page bg and Canvas bg today read `profile.base.bgColor`. After the migration, both shader profiles' settings types still expose `base.bgColor` at the same path, so the source becomes `activeOrb.settings.base.bgColor` for both shaders. No conditional needed; the field name and shape are identical between schemas by intent. Stated explicitly so the implementer doesn't conditionalize this unnecessarily.
 
 **The auto-loop interval** (today: `setState((p) => STATES[(STATES.indexOf(p) + 1) % STATES.length])`) stays unchanged — same reason.
 
@@ -549,10 +572,14 @@ Existing slider set unchanged. The `≈ X.XXs visible` hint stays on Tube speed 
 
 **Implementation rule — keep per-source arrays:** the editor maintains two separate state arrays (`coralProfiles: SavedCoralProfile[]` and `kyotoProfiles: SavedKyotoProfile[]`). The combined `orbs` list passed to UI components is **a derived view** computed from these two arrays — never POSTed back. The API endpoint writes the whole array per file, so save MUST update only the relevant source array, not the merged list. Otherwise one file could accidentally receive entries from the other shader.
 
-- **Save:** identifies the active source via `activeOrb.sourceVariant`. Updates the corresponding source array (replace entry by `id`, bump `lastModified`). POSTs that array verbatim to `?variant=<sourceVariant>`. The other source file is NOT touched.
-- **Rename:** same routing as Save. Existing rename UI in the dropdown carries over.
-- **New profile:** a small modal asks "New Tube profile or new Coral profile?" before opening the name input. Each choice writes to the right file with a fresh `id` (`rt-coral-${uuid}` or `rt-${uuid}`). Initial settings depend on whether the chosen shader matches the current active shader — see "New-profile starting settings" below.
+The four CRUD verbs differ in what they validate:
+
+- **Save (Update):** persist the active profile's *current settings* back to its source file. **Does NOT validate the name** — the active profile's name is already valid (it was either a seed entry or a successfully-created/renamed entry). Routing: `activeOrb.sourceVariant` → its source array (replace entry by `id`, bump `lastModified`) → POST to `?variant=<sourceVariant>`. The other source file is NOT touched.
+- **Rename:** change the active profile's name. **Validates the candidate name** (lowercase + trim) against the union of `realtime-coral` + `realtime-state` + gallery-variant names. Same source routing as Save.
+- **New profile:** create a new entry. A small modal first asks "New Tube profile or new Coral profile?", then opens a name input. **Validates the candidate name** the same way Rename does. Each choice writes to the right file with a fresh `id` (`rt-coral-${uuid}` or `rt-${uuid}`). Initial settings depend on whether the chosen shader matches the current active shader — see "New-profile starting settings" below.
 - **Delete:** OUT OF SCOPE for this pass. Today's dropdown has no delete; adding it is a separate UX change.
+
+The distinction matters because Save runs frequently (every settings tweak) and re-running name validation on each Save would be wasted work — and could spuriously block normal updates if the validation logic ever changes to consider the active name "in use."
 
 ### New-profile starting settings
 
@@ -571,7 +598,7 @@ The existing editor already fetches gallery profile names into the `externalProf
 - `realtime-state` (existing).
 - All gallery variant files (existing check, unchanged).
 
-Save and rename normalize the candidate name (lowercase, trim) and reject if it collides with ANY name across all three source groups. The error UI is the existing rename-validation pattern (red border + disabled save button), already used by the `profileNameExists` helper. New-profile modal applies the same check before allowing creation.
+Rename and New-profile (the two CRUD verbs that take a candidate name — see CRUD section above) normalize the candidate name (lowercase, trim) and reject if it collides with ANY name across all three source groups. The error UI is the existing rename-validation pattern (red border + disabled save button), already used by the `profileNameExists` helper. The Save (Update) verb does NOT re-validate the name — the active profile's existing name is already valid by construction.
 
 ## Live page changes (`/voiceinterface/realtime`)
 
@@ -684,6 +711,20 @@ End-of-implementation:
   - Output naming continues to use the slug rule; no path change.
   This is real work, not a config tweak. Out of scope for this plan.
 - **A new shader joining the realtime page** (e.g., `radial-inward`). Same pattern: new file, new dispatch branch, new shader-aware controls. The plan above is structured so additional shaders are additive.
+
+## Note on plan-review limits (lessons from v4 → v5)
+
+A self-run plan-review skill pass was run on v3 to produce v4. The human reviewer of v4 then surfaced six findings the self-run pass had missed. Captured here so the next planner doesn't repeat the gap.
+
+**Three patterns explain the misses:**
+
+1. **Symbols verified, data plumbing not traced.** The self-run pass confirmed that `audioData` flows to the Canvas and `morphSpeed` reaches the shader. It did NOT check whether the existing canvas pre-processes `audioData` (the `blobAudioData = audioActive && state !== 'idle' ? audioData : SILENT` gate) or whether `morphSpeed === 0` is mathematically safe (`delta / 0 → NaN` propagates). Findings 1 and 4 were both this. Lesson: for every prop binding in pseudocode, find the existing real binding and walk the data, not just the name.
+2. **Verification section not cross-checked line-by-line against implementation.** The verification line "the strip still includes a 'Coral Realtime' entry" contradicted the implementation line `name: 'Coral'` for the fallback. The self-run pass treated Dimension 2 (internal consistency) as a vibe check rather than a literal walkthrough. Finding 2. Lesson: read each verification bullet, find the implementation it derives from, confirm equality.
+3. **CRUD-verb conflation.** "Save and rename normalize the candidate name" lumped together verbs with different validation rules. The self-run pass missed this under Dimension 5 (contract clarity). Finding 6. Lesson: enumerate each CRUD verb, name what each one validates, treat verbs with different inputs as distinct.
+
+**One miss that is genuinely harder to catch automatically:** Finding 3 (same-shader profile-switch intro behavior). The plan said "no intro on same-shader switch" in one section and "activeOrbKey used everywhere as the React key" in another, and these weren't logically incompatible (the second statement was loose phrasing). Catching this would require building an internal model of "what changes a React component identity" and walking it. Worth a future plan-review-pattern note.
+
+**Findings 5** (background sourcing) is a polish-completeness item — the plan didn't actually mislead an implementer, just left a gap. Acceptable miss.
 
 ## Scope estimate
 
