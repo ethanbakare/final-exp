@@ -1,4 +1,18 @@
-# Coral Unification Plan (v6)
+# Coral Unification Plan (v7)
+
+> v7 reflects what's actually shipped vs what's next-in-line after the first
+> implementation pass. v1–v6 changelogs kept below for context. v7 changes:
+> - Implementation status table added (top of "Implementation status" section).
+> - Phase 3 split into 3a/3b/3c (shipped) and 3d/3e/3f/3g (next in line).
+> - Interim editor guard: when a Coral profile is active, the Tube-shaped
+>   tabs / expanded panel / Update / Discard buttons are hidden. The user
+>   can Bookmark, Rename, Replay, switch profiles, and use state pills.
+>   Replaces the placeholder text "Coral tuning controls coming next".
+> - The "Note on plan-review limits" gains a fourth round-of-review entry
+>   capturing the user's UX-precision findings (active-shader glyph in
+>   trigger, standalone bookmark, pinned opt-in vs auto-include).
+>
+> v5 → v6 changelog (kept for reference):
 
 > v6 incorporates a fourth round of human-reviewer feedback on v5. Mostly editorial precision after v5's edits introduced a fresh contradiction; one math typo corrected; one unchanged-contract hardened. v1–v5 changelogs kept below; v6 changes:
 > - **Stale "as the React key" sentence fixed.** v5 added the same-shader-no-remount rule but didn't propagate to the earlier `activeOrbKey` description, leaving a direct contradiction. Now consistent: `activeOrbKey` is logical identity (selection/localStorage/lookup), NOT a React reconciliation key on the renderer.
@@ -51,6 +65,38 @@
 > - Delete UI removed from CRUD (current dropdown has no delete).
 > - Temp test route dropped; Phases 2 + 3 merged.
 > - Thumbnail-capture script honestly described as Tube-only (real work to extend).
+
+## Implementation status (as of v7)
+
+What has shipped, what's next in line, and what changed during implementation vs the design.
+
+### Shipped
+
+| Step | Description | Commit |
+|---|---|---|
+| Phase 1 | `realtime-coral-profiles.json` seed at repo root + `?variant=realtime-coral` API mapping. | `3ceeae6` |
+| Phase 2 | `CoralRealtimeBlob.tsx` (pure renderer), shader-aware `RealtimeBlob` dispatch, `VoiceRealtimeOpenAI` parallel fetch + data-driven thumbnail strip + composite-key localStorage default. Thumbnails copied to slug-based path. | `d249de9` |
+| Phase 2.5 (added during impl) | `pinned: boolean` opt-in. Live page strip filters to `pinned===true` so profiles only show on the live page when explicitly pinned. Was originally "auto-show union of both files" in the design — corrected to explicit opt-in after a review round. | `5c4594d` |
+| Phase 3a | Bookmark toggle in editor profile dropdown rows. | `1d92825` |
+| Phase 3b | Coral entries appear in editor dropdown with shader glyphs (`Disc` for Tube/Kyoto in olive, `Circle` for Coral D in peach). Bookmark + rename for Coral entries persist to the Coral file. | `1bb595f` |
+| Phase 3c | Editor preview canvas dispatches by shader (`<CoralStoneMorph>` when Coral active, `<GentleOrbThicken>` when Kyoto). Replay button branches by shader. Coral selection bumps a `replayCounter` keyed on the canvas → morphRef remount → sphere → torus intro. | `3845738` |
+| Standalone UX | Active-shader glyph next to closed-dropdown trigger; standalone bookmark button in bottom bar (next to Replay/Auto-loop). | `a5b9799` |
+| Interim guard | When a Coral profile is active, hide Tube-shaped tabs / expanded panel / Update / Discard buttons. Replace with placeholder text. Prevents accidental edits to Tube state while looking at Coral canvas. | (this milestone commit) |
+
+### Next in line (NOT yet shipped — these are the remaining Phase 3 items)
+
+| Step | Description |
+|---|---|
+| Phase 3d | **Coral controls panel.** Editor's tabs need shader-aware variants for Coral. Per the plan's earlier table: `Scale (base + talking peak)`, `Torus Radius (base)`, `Settle Speed = base.morphSpeed`, `Morph Speed = talking.morphSpeed`, `Wave Intensity (base + talking peak)`, `Breath Amp (base)`, `Idle Amp (base)`, color1/2/3 + bgColor (base) and `color3 (talking peak)`. Slider ranges per the explicit table further below. Today the tabs are simply hidden when Coral is active. |
+| Phase 3e | **Save (Update) routing for Coral edits.** Once Coral controls exist, an `isDirtyCoral` signal compares the active Coral settings against `activeCoralBaseline`. The Update button writes via `persistCoralProfiles` to `realtime-coral-profiles.json`. Discard reverts to baseline. Currently Update/Discard are gated on `activeShader === 'kyoto'`. |
+| Phase 3f | **New-profile shader-choice modal.** "Save current state to new profile" should ask which shader (Tube or Coral) before opening the name input. Same-shader = clone active settings; different-shader = start from that shader's fallback. Today the existing save dialog only creates Tube profiles. |
+| Phase 3g | **Cross-source name-collision validation.** `profileNameExists` currently checks Tube + gallery names; needs to also check Coral entries. Trivial change once 3d/3e land. |
+
+### Known limitations of the current shipped state (until 3d–3g land)
+
+- Coral profile is **viewable** but not **tunable** in the editor — selecting a Coral entry shows the canvas + bookmark + rename, but no slider edits are possible.
+- A user with a saved Coral profile can edit its values directly via JSON file (`realtime-coral-profiles.json`) and refresh; the editor will pick up the change in the dropdown and on the canvas.
+- The live realtime page is fully functional regardless — pin/unpin via the editor, both shaders render correctly, intros play on shader switch.
 
 ## What we're trying to achieve
 

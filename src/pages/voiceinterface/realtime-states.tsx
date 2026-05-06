@@ -1860,8 +1860,10 @@ export default function RealtimeStates() {
 
       {/* Bottom bar (mirrors GalleryNavBar) */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
-        {/* Single-tab popover */}
-        {!expanded && activeTab && (
+        {/* Single-tab popover — Tube-only. The tab buttons themselves
+            are hidden when Coral is active so this branch can't fire,
+            but we add the activeShader gate defensively. */}
+        {activeShader === 'kyoto' && !expanded && activeTab && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[50vh] overflow-y-auto">
             <div className="max-w-3xl mx-auto p-4">
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
@@ -1872,8 +1874,8 @@ export default function RealtimeStates() {
           </div>
         )}
 
-        {/* Expanded 4-column drawer */}
-        {expanded && (
+        {/* Expanded 4-column drawer — Tube-only for the same reason. */}
+        {activeShader === 'kyoto' && expanded && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[60vh] overflow-y-auto">
             <div className="max-w-6xl mx-auto p-4">
               <div className="text-[11px] uppercase tracking-wider text-gray-400 mb-2">
@@ -2148,36 +2150,49 @@ export default function RealtimeStates() {
 
             <div className="w-px h-6 bg-gray-200" />
 
-            {/* Tab buttons */}
-            <div className="flex items-center gap-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => toggleTab(tab.key)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                    activeTab === tab.key
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            {/* Tab buttons + bottom swatches — Tube-shaped today.
+                When a Coral profile is active they would mutate the
+                Tube `profile` state instead of the active Coral
+                settings, so we hide them entirely until Coral
+                controls land. The user can still Bookmark, Rename,
+                Replay, switch profiles, and use state pills. */}
+            {activeShader === 'coral' ? (
+              <div className="flex items-center gap-1 ml-2 text-xs text-gray-400 italic">
+                Coral tuning controls coming next
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-1">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => toggleTab(tab.key)}
+                      className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                        activeTab === tab.key
+                          ? 'bg-gray-100 text-gray-800'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
 
-            {/* Bottom swatches (state-aware Rest vs Peak per §4.6) */}
-            <div className="flex items-center gap-1 ml-2">
-              {([0, 1, 2] as const).map((i) => (
-                <ColorPickerButton
-                  key={i}
-                  value={swatchValue(i)}
-                  colorFormat={colorFormat}
-                  onChange={(v) => swatchSet(i, v)}
-                  title={state === 'idle' || state === 'listening' ? 'Rest' : 'Peak'}
-                  swatchClassName="h-6 w-6 rounded-full"
-                />
-              ))}
-            </div>
+                {/* Bottom swatches (state-aware Rest vs Peak per §4.6) */}
+                <div className="flex items-center gap-1 ml-2">
+                  {([0, 1, 2] as const).map((i) => (
+                    <ColorPickerButton
+                      key={i}
+                      value={swatchValue(i)}
+                      colorFormat={colorFormat}
+                      onChange={(v) => swatchSet(i, v)}
+                      title={state === 'idle' || state === 'listening' ? 'Rest' : 'Peak'}
+                      swatchClassName="h-6 w-6 rounded-full"
+                    />
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Pause / resume thinking pulse — only visible while thinking */}
             {state === 'thinking' && (
@@ -2245,8 +2260,12 @@ export default function RealtimeStates() {
 
             <div className="flex-1" />
 
-            {/* Discard + Update — both visible when isDirty */}
-            {isDirty && (
+            {/* Discard + Update — Tube-only today. Coral has no editable
+                slider state in this phase, so isDirty for Coral can't
+                fire. Gating on activeShader === 'kyoto' keeps any
+                future Coral-related dirty signal from accidentally
+                writing Tube state to the Tube file. */}
+            {activeShader === 'kyoto' && isDirty && (
               <>
                 <button
                   onClick={() => setProfile(activeBaseline)}
