@@ -1,7 +1,18 @@
-# Coral Unification Plan (v2)
+# Coral Unification Plan (v3)
 
-> v2 incorporates feedback from review of v1. See git history for v1; major changes in v2:
-> - Editor's preview canvas now explicitly dispatches by shader (was missing).
+> v3 incorporates a second round of review feedback. v1 → v2 changelog kept below for context; v3 changes:
+> - Seed `torusRadius` corrected to `0.275` (matches today's live `REALTIME_BASE.thinRadius` prop, not `WHIMSY_BASE.torusRadius`).
+> - Seed values rewritten to reflect today's live `RealtimeBlob` Coral props (REALTIME_BASE adjustments + `morphSpeed × 1.08`), not raw studio constants.
+> - Coral replay forces `previewState='idle'` before incrementing the replay key (otherwise replay-from-talking-pill remounts to a static sphere).
+> - Active-orb persistence uses composite key `${sourceVariant}:${id}` (ids aren't globally unique across files).
+> - Save/rename routing maintains separate per-source arrays; combined `orbs` list is a derived view, never POSTed back.
+> - Name collision rules: new/rename normalizes against `realtime-coral`, `realtime-state`, and existing gallery profile names.
+> - New-profile behavior: same-shader = clone active settings; different-shader = start from that shader's fallback values.
+> - Coral slider ranges defined explicitly (with zero-speed behavior documented).
+> - Intro behavior across active voice states documented (intros only morph visibly when `voiceState !== 'ai_speaking'` at mount).
+>
+> v2 → v1 changelog (kept for reference):
+> - Editor's preview canvas dispatches by shader (was missing).
 > - Coral morph direction made explicit (`talking → 0`, otherwise → `1`).
 > - Native morph used; no `morphOverride`/`morphSeed` prop on `CoralStoneMorph`.
 > - Schema includes `talking.scale` + `talking.color3` to match the editor's Peak slots.
@@ -91,7 +102,7 @@ The `talking` block holds Peak overrides for the only state Coral differentiates
   "settings": {
     "base": {
       "scale": 1.04,
-      "torusRadius": 0.3,
+      "torusRadius": 0.275,
       "waveIntensity": 0.18,
       "breathAmp": 0.03,
       "idleAmp": 0.02,
@@ -110,7 +121,21 @@ The `talking` block holds Peak overrides for the only state Coral differentiates
 }
 ```
 
-Values mirror today's `WHIMSY_BASE` + `DEFAULT_STATE_SETTINGS.talking` exactly. Initial migration is a value-preserving copy.
+These values mirror **today's live `RealtimeBlob` Coral props**, not the raw studio constants:
+
+| Field | Source | Note |
+|---|---|---|
+| `scale` | `REALTIME_BASE.scale = 1.04` | RealtimeBlob.tsx line 47 — overrides `WHIMSY_BASE.scale = 0.55` |
+| `torusRadius` | `REALTIME_BASE.thinRadius = 0.275` | RealtimeBlob.tsx line 99 passes `thinRadius` as the `torusRadius` prop. **Not** `WHIMSY_BASE.torusRadius = 0.3`. |
+| `waveIntensity` | `DEFAULT_STATE_SETTINGS.idle.waveIntensity = 0.18` | base value (talking overrides to 0.20) |
+| `breathAmp` | `DEFAULT_STATE_SETTINGS.idle.breathAmp = 0.03` | |
+| `idleAmp` | `DEFAULT_STATE_SETTINGS.idle.idleAmp = 0.02` | |
+| `morphSpeed` (base) | `DEFAULT_STATE_SETTINGS.idle.thickenSpeed × 1.08 = 1.296` | RealtimeBlob.tsx line 82 multiplies by `1.08` |
+| `morphSpeed` (talking) | `DEFAULT_STATE_SETTINGS.talking.thickenSpeed × 1.08 = 0.54` | same multiplier |
+| `talking.waveIntensity` | `DEFAULT_STATE_SETTINGS.talking.waveIntensity = 0.20` | |
+| `color1/2/3`, `bgColor` | `WHIMSY_BASE.*` | unchanged in REALTIME_BASE |
+
+Initial migration is a value-preserving copy of the live page's props. Visual identity is the existing Coral exactly.
 
 ### Runtime UI types (discriminated union, code-only)
 
@@ -177,6 +202,12 @@ Pure renderer. Mirrors `NebularrBlob.tsx` in structure but uses Coral's native a
 When the user clicks the Coral thumbnail on the live page, `RealtimeBlob` swaps from `<NebularrBlob>` to `<CoralRealtimeBlob>` — different component types, so React unmounts the old and mounts the new fresh. `CoralRealtimeBlob` mounts → `CoralStoneMorph` mounts → `morphRef = 0` (sphere). If the default `voiceState` is `idle`, `goal = 1` → native animator advances `morph: 0 → 1` over `base.morphSpeed` seconds. That IS the intro.
 
 Switching from one Coral profile to another (e.g., editor swapping between two Coral entries) does NOT trigger an intro because `CoralRealtimeBlob` stays mounted; only props change. For the editor's Replay button, we use a `key={replayCounter}` prop on `CoralStoneMorph` (or on `CoralRealtimeBlob`) that increments on click → forces a remount → intro plays.
+
+**Intro during active voice states:**
+
+The natural-mount intro only morphs visibly when `voiceState !== 'ai_speaking'` at mount time. If the user clicks the Coral thumbnail mid-conversation while the AI is speaking (`voiceState === 'ai_speaking'`), Coral mounts with `morphRef = 0` AND `goal = 0` — the orb appears as a sphere and stays a sphere until the AI stops, at which point `goal` flips to `1` and it morphs to torus. **This is consistent with the live state semantics, not a bug.**
+
+Nebularr's intro overlay has the same property: when `voiceState === 'ai_speaking'` at mount, the talking-shape seed lerps toward the animator's output, which is also the talking shape — net visible morph is near-zero. Both shaders behave the same way: intros are a flourish for the typical case (user clicks while idle), and they become near-invisible during active conversation. No special-case code needed.
 
 ### `RealtimeBlob.tsx` — shader-aware dispatch
 
@@ -245,13 +276,18 @@ useEffect(() => {
     setOrbs(merged);
 
     // Default selection: localStorage → "Coral Realtime" → first available.
-    const persisted = window.localStorage.getItem('realtime-active-orb-id');
-    const persistedExists = persisted && merged.find(o => o.id === persisted);
+    // Use a composite key (sourceVariant:id) because ids are scoped per file
+    // and could collide across files (especially user-created profiles).
+    const composite = (o: LoadedOrb) => `${o.sourceVariant}:${o.id}`;
+    const persisted = window.localStorage.getItem('realtime-active-orb-key');
+    const persistedExists = persisted && merged.find(o => composite(o) === persisted);
     const coralDefault = merged.find(o => o.name === 'Coral Realtime');
-    setActiveOrbId(persistedExists ? persisted : (coralDefault?.id ?? merged[0]?.id ?? null));
+    setActiveOrbKey(persistedExists ? persisted : (coralDefault ? composite(coralDefault) : (merged[0] ? composite(merged[0]) : null)));
   });
 }, []);
 ```
+
+`activeOrbKey` is the composite `${sourceVariant}:${id}` string used everywhere as the React key, dropdown selection, localStorage value, and source-list lookup. The same composite-key convention applies in the editor.
 
 `CORAL_FALLBACK_ORB` and `NEBULARR_FALLBACK_ORB` are hardcoded constants in this file (or imported from each shader's wrapper).
 
@@ -300,7 +336,7 @@ Today the canvas in `realtime-states.tsx` is hardwired to `<GentleOrbThicken>`. 
 The editor's existing `restartIntro` action stays, but branches by shader:
 
 - **Kyoto:** existing path — seeds `render` via `introRender(profile)`, sets `state='idle'`, lets the JS animator settle. Unchanged.
-- **Coral:** increments `replayCounter`, which forces `<CoralStoneMorph>` to remount → `morphRef` resets to 0 → native animator advances toward `goal=1` → intro plays.
+- **Coral:** **first** sets `previewState='idle'`, **then** increments `replayCounter`. Both are required: the canvas pseudocode binds `goal = previewState === 'talking' ? 0 : 1`, so if the user is on the Talking pill and presses Replay, the remounted `CoralStoneMorph` would start at `morphRef=0` AND `goal=0` — nothing would morph. Forcing idle first ensures the remount lands with `goal=1`, so `morphRef` advances `0 → 1` and the sphere → torus intro plays. (Mirrors what Kyoto's restartIntro already does at line 929 of today's editor.)
 
 ## Editor changes (`/voiceinterface/realtime-states`)
 
@@ -338,16 +374,50 @@ Tabs stay (Size, Thickness, Motion, Colours). Slider set differs by active shade
 
 Thinking and listening pills for Coral don't have meaningful Peak overrides (Coral has no thinking pulse). Their tabs render as if on idle. The thinking pill shows the "no pulse" note in the Thickness tab so the user understands.
 
+#### Coral slider ranges (explicit)
+
+| Field | min | max | step | Notes |
+|---|---|---|---|---|
+| `morphSpeed` (base + talking) | 0 | 4.0 | 0.02 | Literal seconds for full transition. **At `0`, `delta / 0` → Infinity → `morphRef` snaps to `goal` each frame → effectively instant.** Documented behavior; the existing animator handles it gracefully (`Math.min(1, ...)` / `Math.max(0, ...)` clamps the result). Range matches Tube's speed sliders for muscle-memory consistency. |
+| `scale` (base + `talking.scale`) | 0.05 | 1.5 | 0.01 | Same range as Tube's Scale. |
+| `torusRadius` (base) | 0.05 | 0.45 | 0.005 | Coral's "ring tightness" — analogous to Tube's tube thickness range. |
+| `waveIntensity` (base + `talking.waveIntensity`) | 0 | 1.0 | 0.01 | Same range as Tube's Wave Intensity. |
+| `breathAmp` (base) | 0 | 0.1 | 0.005 | Matches Tube's Breath Amp. |
+| `idleAmp` (base) | 0 | 0.1 | 0.005 | Matches Tube's Idle Amp. |
+
+Color sliders aren't numeric — the existing color picker (with format toggle) is reused as-is.
+
 #### Tube/Kyoto (`shader === 'kyoto'`):
 
 Existing slider set unchanged. The `≈ X.XXs visible` hint stays on Tube speed sliders (Tube uses tau coefficients).
 
 ### Save / rename / new-profile CRUD
 
-- **Save:** writes to whichever file the active profile came from, identified by `activeOrb.sourceVariant` (`'realtime-coral'` or `'realtime-state'`).
-- **Rename:** writes to the same file. Existing rename UI in the dropdown carries over unchanged.
-- **New profile:** a small modal asks "New Tube profile or new Coral profile?" before opening the name input. Each choice writes to the right file with a fresh `id` (`rt-coral-${uuid}` or `rt-${uuid}`).
+**Implementation rule — keep per-source arrays:** the editor maintains two separate state arrays (`coralProfiles: SavedCoralProfile[]` and `kyotoProfiles: SavedKyotoProfile[]`). The combined `orbs` list passed to UI components is **a derived view** computed from these two arrays — never POSTed back. The API endpoint writes the whole array per file, so save MUST update only the relevant source array, not the merged list. Otherwise one file could accidentally receive entries from the other shader.
+
+- **Save:** identifies the active source via `activeOrb.sourceVariant`. Updates the corresponding source array (replace entry by `id`, bump `lastModified`). POSTs that array verbatim to `?variant=<sourceVariant>`. The other source file is NOT touched.
+- **Rename:** same routing as Save. Existing rename UI in the dropdown carries over.
+- **New profile:** a small modal asks "New Tube profile or new Coral profile?" before opening the name input. Each choice writes to the right file with a fresh `id` (`rt-coral-${uuid}` or `rt-${uuid}`). Initial settings depend on whether the chosen shader matches the current active shader — see "New-profile starting settings" below.
 - **Delete:** OUT OF SCOPE for this pass. Today's dropdown has no delete; adding it is a separate UX change.
+
+### New-profile starting settings
+
+The new-profile modal's two choices behave differently based on the current active shader:
+
+- **Same shader as active** (e.g., editing a Coral profile and choosing "New Coral"): clone the active profile's settings (Save As semantics). User can immediately tweak from a familiar starting point.
+- **Different shader from active** (e.g., editing Kyoto and choosing "New Coral"): start from the target shader's fallback default values (`CORAL_FALLBACK_PROFILE` or `NEBULARR_FALLBACK_PROFILE`). The active profile's settings are NOT coerced into the new schema — Coral and Kyoto schemas are not interchangeable.
+
+The new entry is added to the relevant source array, then immediately set as active, switching the canvas + controls to the new shader if needed.
+
+### Name collision rules (across all three sources)
+
+The existing editor already fetches gallery profile names into `externalProfileNames` to prevent cross-surface collisions (lines 962-965 of today's `realtime-states.tsx`). This unification adds two more sources to check:
+
+- `realtime-coral` (this plan's new file).
+- `realtime-state` (existing).
+- All gallery variant files (existing check).
+
+Save and rename normalize the candidate name (lowercase, trim) and reject if it collides with ANY name across all three source groups. The error UI is the existing rename-validation pattern (red border + disabled save button). New-profile modal applies the same check before allowing creation.
 
 ## Live page changes (`/voiceinterface/realtime`)
 
@@ -381,21 +451,23 @@ Already covered under `VoiceRealtimeOpenAI.tsx`. Net effect:
 
 ### Phase 3 — Editor wiring
 
-9. Editor: parallel-fetch both files via `Promise.allSettled`. Build combined `orbs` list with `LoadedOrb` discriminated union.
+9. Editor: parallel-fetch both files via `Promise.allSettled`. Maintain TWO state arrays (`coralProfiles`, `kyotoProfiles`); the combined `orbs` list passed to UI is a derived view.
 10. Editor preview canvas: dispatch by `activeOrb.shader` between `<CoralStoneMorph>` and `<GentleOrbThicken>`.
 11. Editor profile dropdown: combined list with leading glyphs.
-12. Editor controls panel: Coral slider set per the table above (gated on `activeOrb.shader === 'coral'`). Tube sliders unchanged.
-13. Editor `restartIntro`: branch by shader. For Coral, increment `replayCounter` (passed as `key` on the canvas's Coral renderer) to force remount.
-14. Editor save / rename / new-profile: route by `activeOrb.sourceVariant`. New-profile modal added.
-15. Default selection: localStorage `realtime-states-active-id` → "Coral Realtime" → first available.
-16. **Verification:** switch to Coral profile in the dropdown; canvas renders Coral. Edit `talking.morphSpeed`. Save. `git diff` shows only `realtime-coral-profiles.json` changed. Refresh the editor and the live page; both pick up the change. Switch back to a Tube profile; everything Tube still works end-to-end.
+12. Editor controls panel: Coral slider set per the table above (gated on `activeOrb.shader === 'coral'`). Tube sliders unchanged. Coral slider ranges per the explicit table.
+13. Editor `restartIntro`: branch by shader. For Coral, **first** `setPreviewState('idle')`, **then** increment `replayCounter` (passed as `key` on the canvas's Coral renderer) to force remount.
+14. Editor save / rename: route by `activeOrb.sourceVariant`. Update only the relevant source array; POST that array to its file. Other file untouched.
+15. Editor new-profile: shader-choice modal. Same-shader = clone active settings; different-shader = start from that shader's fallback. New entry pushed to relevant source array, then activated.
+16. Editor name validation: collision check across `realtime-coral` + `realtime-state` + gallery variant names.
+17. Default selection: composite key persistence via `realtime-states-active-orb-key` localStorage. Fallback chain: persisted → "Coral Realtime" → first available.
+18. **Verification:** switch to Coral profile in the dropdown; canvas renders Coral. Edit `talking.morphSpeed`. Save. `git diff` shows ONLY `realtime-coral-profiles.json` changed. Refresh; both editor and live page pick up the change. Switch to Tube; everything Tube still works. Press Replay while on the Talking pill — Coral resets to idle and plays the sphere → torus morph.
 
 **Rollback:** revert the editor changes; editor falls back to Tube-only.
 
 ### Phase 4 — Cleanup (after ~1 week of confidence)
 
-17. Inside `CoralRealtimeBlob`, the `CORAL_FALLBACK_PROFILE` constant becomes the *only* path that references `WHIMSY_BASE` / `DEFAULT_STATE_SETTINGS` (and only on API failure). Remove unused imports of these constants from `RealtimeBlob.tsx` if no longer referenced.
-18. The original constants stay defined in `blobStudioTypes.ts` because the gallery and other surfaces may still consume them. Don't delete at the source.
+19. Inside `CoralRealtimeBlob`, the `CORAL_FALLBACK_PROFILE` constant becomes the *only* path that references `WHIMSY_BASE` / `DEFAULT_STATE_SETTINGS` (and only on API failure). Remove unused imports of these constants from `RealtimeBlob.tsx` if no longer referenced.
+20. The original constants stay defined in `blobStudioTypes.ts` because the gallery and other surfaces may still consume them. Don't delete at the source.
 
 ## Verification checklist
 
@@ -405,14 +477,17 @@ End-of-implementation:
 - Live: clicking the Nebularr thumb shows Nebularr orb (visually identical to today).
 - Live: switching Coral → Nebularr plays Nebularr's intro.
 - Live: switching Nebularr → Coral plays Coral's natural-mount intro (sphere → torus over `base.morphSpeed`).
-- Live: localStorage persists the last-selected orb across refreshes.
+- Live: localStorage persists the last-selected orb across refreshes (composite key `${sourceVariant}:${id}`, not just `id`).
 - Live: if `realtime-coral-profiles.json` is missing or corrupt, Coral falls back to `CORAL_FALLBACK_PROFILE` and the strip still includes a "Coral Realtime" entry. Same for Kyoto failure.
+- Live: clicking a Coral thumb mid-conversation (during `ai_speaking`) shows Coral as a sphere with no visible morph until the AI stops — then morphs to torus. Same expectation for Nebularr.
 - Editor `/voiceinterface/realtime-states`: dropdown lists both Coral and Tube profiles together with shader glyphs.
 - Editor: clicking a Coral profile swaps both the controls AND the preview canvas to Coral.
-- Editor: editing `talking.morphSpeed` on Coral and saving updates `realtime-coral-profiles.json` (verify via `git diff`).
-- Editor: clicking back to a Tube profile restores Tube's slider set + Tube renderer; Tube editing still works end-to-end.
-- Editor: creating a new profile opens the shader-choice modal; saving writes to the correct file.
-- Editor: Replay button on Coral fresh-mounts the canvas and plays the intro; on Kyoto, existing seed-render behavior.
+- Editor: editing `talking.morphSpeed` on Coral and saving updates `realtime-coral-profiles.json` (verify via `git diff` — `realtime-state-profiles.json` must be untouched).
+- Editor: clicking back to a Tube profile restores Tube's slider set + Tube renderer; Tube editing still works end-to-end. Saving a Tube profile writes only to `realtime-state-profiles.json`.
+- Editor: creating a new profile opens the shader-choice modal; saving writes to the correct file. Same-shader new = clones active settings; different-shader new = starts from that shader's fallback values.
+- Editor: rename UI rejects names that collide with any existing profile name across `realtime-coral`, `realtime-state`, and gallery variants (normalized comparison).
+- Editor: Replay button on Coral fresh-mounts the canvas and plays the intro **even when previewState was 'talking' before the click** (replay forces idle first); on Kyoto, existing seed-render behavior.
+- Editor: ids that collide across files (e.g., both files have `rt-default`) don't break dropdown selection — composite keys disambiguate.
 - TypeScript: `npx tsc --noEmit` clean.
 - API: `/api/studio-profiles?variant=realtime-coral` returns the Coral list; `?variant=realtime-state` returns the Kyoto/Tube list (unchanged).
 
