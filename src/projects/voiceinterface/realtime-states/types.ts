@@ -78,7 +78,7 @@ export interface SavedCoralProfile {
  *  the read-side projection. */
 export type DropdownRow =
   | {
-      shader: 'kyoto';
+      shader: 'tube';
       sourceVariant: 'realtime-state';
       id: string;
       name: string;
@@ -98,7 +98,7 @@ export type DropdownRow =
  *  is the dirty-detection projection. */
 export type LoadedOrb =
   | {
-      shader: 'kyoto';
+      shader: 'tube';
       sourceVariant: 'realtime-state';
       id: string;
       name: string;
@@ -119,7 +119,7 @@ export type LoadedOrb =
 /** Plan v8 round-7 F1 — narrow shape for dirty detection. Inspects only
  *  `settings`, never `name`/`pinned`/`lastModified`/`sourceVariant`. */
 export type BaselineSnapshot =
-  | { key: string; shader: 'kyoto'; settings: LinkedProfile }
+  | { key: string; shader: 'tube'; settings: LinkedProfile }
   | { key: string; shader: 'coral'; settings: CoralRealtimeSettings };
 
 export interface RenderValues {

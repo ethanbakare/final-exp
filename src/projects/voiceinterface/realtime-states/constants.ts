@@ -7,7 +7,7 @@
  */
 import type { AudioData, ColorFormat, LinkedProfile, PreviewState } from './types';
 
-export const KYOTO_SEED: LinkedProfile = {
+export const TUBE_SEED: LinkedProfile = {
   base: {
     scale: 0.55,
     thinRadius: 0.15,

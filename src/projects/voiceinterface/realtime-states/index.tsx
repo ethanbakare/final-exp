@@ -1,5 +1,5 @@
 /**
- * Kyoto preview surface for the realtime page's blob states.
+ * Realtime-states editor — preview surface for the realtime page's blob states (Tube + Coral shaders).
  *
  * Linked-profile model: idle, listening, thinking-rest, and talking-rest
  * share `profile.base`. Thinking and talking each carry their own peak
@@ -27,7 +27,7 @@ import {
 } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
 import {
   COLOR_FORMATS,
-  KYOTO_SEED,
+  TUBE_SEED,
   REALTIME_SEED_NAME,
   SILENT,
   STATES,
@@ -81,7 +81,7 @@ import type {
  * neutral page background + an empty canvas-sized slot. No bottom
  * bar (the real one is position: fixed, so its absence/presence
  * doesn't reflow other content). No profile-dependent content,
- * which means no Kyoto-vs-Coral flash before cascade applies.
+ * which means no Tube-vs-Coral flash before cascade applies.
  *
  * Once cascadeReady flips true, parent unmounts the skeleton and
  * mounts <RealtimeStatesEditor> with the resolved activeOrb +
@@ -112,15 +112,15 @@ const RealtimeStatesSkeleton: React.FC = () => (
  * The parent guarantees activeOrb is non-null before mounting the
  * child. activeBaseline is null on initial mount only when fallback
  * resolution failed (degenerate state — shouldn't happen because
- * the seed handler creates a Kyoto entry on empty fetch).
+ * the seed handler creates a Tube entry on empty fetch).
  */
 interface EditorProps {
   activeOrb: LoadedOrb;
   activeBaseline: BaselineSnapshot | null;
   setActiveBaseline: React.Dispatch<React.SetStateAction<BaselineSnapshot | null>>;
   setActiveOrbKey: React.Dispatch<React.SetStateAction<string | null>>;
-  kyotoProfiles: SavedProfile[];
-  setKyotoProfiles: React.Dispatch<React.SetStateAction<SavedProfile[]>>;
+  tubeProfiles: SavedProfile[];
+  setTubeProfiles: React.Dispatch<React.SetStateAction<SavedProfile[]>>;
   coralProfiles: SavedCoralProfile[];
   setCoralProfiles: React.Dispatch<React.SetStateAction<SavedCoralProfile[]>>;
   externalProfileNames: Set<string>;
@@ -133,8 +133,8 @@ function RealtimeStatesEditor({
   activeBaseline,
   setActiveBaseline,
   setActiveOrbKey,
-  kyotoProfiles,
-  setKyotoProfiles,
+  tubeProfiles,
+  setTubeProfiles,
   coralProfiles,
   setCoralProfiles,
   externalProfileNames,
@@ -150,14 +150,14 @@ function RealtimeStatesEditor({
   const [audioData, setAudioData] = useState<AudioData>(SILENT);
   // Plan v2.2 first-paint fix — render lazy-init seeds from the
   // RESOLVED active profile (passed in as a prop). Tube path: render
-  // starts at talking values for the active Kyoto profile so the
+  // starts at talking values for the active Tube profile so the
   // first paint matches the morph that follows. Coral path: render
   // isn't read by the Coral canvas, but the lazy-init still resolves
-  // a sensible value from KYOTO_SEED.
+  // a sensible value from TUBE_SEED.
   const [render, setRender] = useState<RenderValues>(() =>
-    activeOrb.shader === 'kyoto'
+    activeOrb.shader === 'tube'
       ? talkingRenderForProfile(activeOrb.settings)
-      : talkingRenderForProfile(KYOTO_SEED),
+      : talkingRenderForProfile(TUBE_SEED),
   );
   const [activeTab, setActiveTab] = useState<ControlTab | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -168,16 +168,16 @@ function RealtimeStatesEditor({
   // which sub-UI is visible; saveShader is the chosen target shader
   // for the new entry (defaults to the active shader on dialog open).
   const [saveStep, setSaveStep] = useState<'shader' | 'name'>('shader');
-  const [saveShader, setSaveShader] = useState<'kyoto' | 'coral'>('kyoto');
+  const [saveShader, setSaveShader] = useState<'tube' | 'coral'>('tube');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [thinkingPaused, setThinkingPaused] = useState(false);
 
-  // profileRef initialized to KYOTO_SEED; the per-render assignment
+  // profileRef initialized to TUBE_SEED; the per-render assignment
   // below syncs it to the derived `profile` value. Step 5 — `profile`
   // moved from useState to useMemo, so the ref initializer + sync had
   // to move below the useMemo declaration.
-  const profileRef = useRef<LinkedProfile>(KYOTO_SEED);
+  const profileRef = useRef<LinkedProfile>(TUBE_SEED);
   const stateRef = useRef(state);
   const renderRef = useRef(render);
   const pulseRef = useRef({ phase: 0, dir: 1 });
@@ -191,11 +191,11 @@ function RealtimeStatesEditor({
   // target's own thickenSpeed (which for Nebularr is 0 → instant snap).
   const previousStateRef = useRef<PreviewState>(state);
   // Plan v2.2 first-paint fix — initialize the talking-exit tau
-  // override from the RESOLVED Kyoto profile so the first morph back
+  // override from the RESOLVED Tube profile so the first morph back
   // to idle uses the correct settle speed. For Coral activeOrb this
   // is null (Coral has its own native morph; this ref isn't read).
   const activeTauOverrideRef = useRef<number | null>(
-    activeOrb.shader === 'kyoto'
+    activeOrb.shader === 'tube'
       ? activeOrb.settings.talking.settleSpeed ?? activeOrb.settings.base.thickenSpeed
       : null,
   );
@@ -210,8 +210,8 @@ function RealtimeStatesEditor({
   // a prop by the parent (already resolved before this child mounts —
   // see RealtimeStates parent and the cascadeReady gate).
   const orbs = useMemo<LoadedOrb[]>(() => {
-    const kyotoOrbs: LoadedOrb[] = kyotoProfiles.map((p) => ({
-      shader: 'kyoto' as const,
+    const tubeOrbs: LoadedOrb[] = tubeProfiles.map((p) => ({
+      shader: 'tube' as const,
       sourceVariant: 'realtime-state' as const,
       id: p.id,
       name: p.name,
@@ -228,19 +228,19 @@ function RealtimeStatesEditor({
       settings: p.settings,
       lastModified: p.lastModified,
     }));
-    return [...kyotoOrbs, ...coralOrbs];
-  }, [kyotoProfiles, coralProfiles]);
+    return [...tubeOrbs, ...coralOrbs];
+  }, [tubeProfiles, coralProfiles]);
 
   // `profile` derives from activeOrb; for Coral activeOrb the Tube
-  // tab renderer's `profile.X` bindings fall back to KYOTO_SEED (Tube
-  // renderer is gated to Kyoto activeOrb anyway — fallback just
+  // tab renderer's `profile.X` bindings fall back to TUBE_SEED (Tube
+  // renderer is gated to Tube activeOrb anyway — fallback just
   // prevents crashes).
   const profile = useMemo<LinkedProfile>(() => {
-    return activeOrb.shader === 'kyoto' ? activeOrb.settings : KYOTO_SEED;
+    return activeOrb.shader === 'tube' ? activeOrb.settings : TUBE_SEED;
   }, [activeOrb]);
 
   // Sync profileRef to the derived `profile` each render so the
-  // animator + restartIntro callers see the latest Kyoto settings.
+  // animator + restartIntro callers see the latest Tube settings.
   profileRef.current = profile;
 
   const setRenderNow = (next: RenderValues) => {
@@ -279,12 +279,12 @@ function RealtimeStatesEditor({
     window.localStorage.setItem('realtime-states-color-format', format);
   };
 
-  // Plan v2.2 first-paint fix — post-mount restartIntro for Kyoto
+  // Plan v2.2 first-paint fix — post-mount restartIntro for Tube
   // activeOrb identity changes. First mount is handled by lazy
   // useState init above (render seeds from activeOrb.settings,
   // activeTauOverrideRef seeds from talking.settleSpeed). Subsequent
   // changes (selectProfile / handleSave / etc. mutate parent state →
-  // activeOrb prop changes) trigger restartIntro for Kyoto only.
+  // activeOrb prop changes) trigger restartIntro for Tube only.
   // Coral keeps its existing replayCounter mechanism for explicit
   // Replay; same-shader Coral switching stays prop-only per F1.
   const isFirstEditorRenderRef = useRef(true);
@@ -293,7 +293,7 @@ function RealtimeStatesEditor({
       isFirstEditorRenderRef.current = false;
       return;
     }
-    if (activeOrb.shader === 'kyoto') {
+    if (activeOrb.shader === 'tube') {
       restartIntro(activeOrb.settings);
     }
   }, [activeOrb.id, activeOrb.shader]);
@@ -421,29 +421,29 @@ function RealtimeStatesEditor({
 
   // ── Mutators ────────────────────────────────────────────────
   // Plan v8 (3D-0 step 4 + round-7 F4) — slider write paths dual-write
-  // to BOTH the Kyoto profile mirror AND the kyotoProfiles source
+  // to BOTH the Tube profile mirror AND the tubeProfiles source
   // array. Without the source-array write, isDirty's settings
   // comparison runs against stale activeOrb.settings (still equal to
   // baseline) so slider edits would not register as dirty. Spread
   // updates only — no nested in-place mutation.
-  const updateActiveKyotoSettings = (mutate: (s: LinkedProfile) => LinkedProfile) => {
-    if (activeOrb?.shader !== 'kyoto') return;
+  const updateActiveTubeSettings = (mutate: (s: LinkedProfile) => LinkedProfile) => {
+    if (activeOrb?.shader !== 'tube') return;
     // Step 5 — profile is derived; only the source array needs an
     // immutable update. profile useMemo will recompute from the new
-    // kyotoProfiles[i].settings on the next render.
-    setKyotoProfiles((arr) =>
+    // tubeProfiles[i].settings on the next render.
+    setTubeProfiles((arr) =>
       arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: mutate(pr.settings) } : pr)),
     );
   };
 
   const setBase = (patch: Partial<BaseSettings>) =>
-    updateActiveKyotoSettings((p) => ({ ...p, base: { ...p.base, ...patch } }));
+    updateActiveTubeSettings((p) => ({ ...p, base: { ...p.base, ...patch } }));
 
   const setPeak = (scope: PeakScope, patch: Partial<PeakOverrides>) =>
-    updateActiveKyotoSettings((p) => ({ ...p, [scope]: { ...p[scope], ...patch } }));
+    updateActiveTubeSettings((p) => ({ ...p, [scope]: { ...p[scope], ...patch } }));
 
   const clearPeak = <K extends keyof PeakOverrides>(scope: PeakScope, field: K) =>
-    updateActiveKyotoSettings((p) => {
+    updateActiveTubeSettings((p) => {
       const next = { ...p[scope] };
       delete next[field];
       return { ...p, [scope]: next };
@@ -522,7 +522,7 @@ function RealtimeStatesEditor({
     return JSON.stringify(activeOrb.settings) !== JSON.stringify(activeBaseline.settings);
   })();
   // Plan v8 (3D-0 step 3) — read from canonical `activeOrb`. Mirror
-  // reads like `kyotoProfiles.find((p) => p.id === activeId)` are no
+  // reads like `tubeProfiles.find((p) => p.id === activeId)` are no
   // longer needed for these fields; activeOrb already carries name +
   // pinned. Settings-shaped reads still use mirrors below until step 3
   // gets to them.
@@ -543,7 +543,7 @@ function RealtimeStatesEditor({
     const normalized = normalizeProfileName(name);
     if (!normalized) return false;
     if (externalProfileNames.has(normalized)) return true;
-    if (kyotoProfiles.some((p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized)) {
+    if (tubeProfiles.some((p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized)) {
       return true;
     }
     // Plan v8 (F3): Coral entries must collide with Tube + gallery
@@ -558,13 +558,13 @@ function RealtimeStatesEditor({
 
   const pickRealtimeUnusedName = () => {
     // Plan v8 round-6 (F2): suggestion pool must mirror profileNameExists
-    // — gallery names + Kyoto profiles + Coral profiles. Otherwise the
+    // — gallery names + Tube profiles + Coral profiles. Otherwise the
     // helper can hand back a name that already exists in coralProfiles,
     // and the rename-validation flow flips it red the moment the user
     // accepts the suggestion.
     const used = new Set([
       ...Array.from(externalProfileNames),
-      ...kyotoProfiles.map((p) => normalizeProfileName(p.name)),
+      ...tubeProfiles.map((p) => normalizeProfileName(p.name)),
       ...coralProfiles.map((p) => normalizeProfileName(p.name)),
     ]);
     const available = CURATED_NAMES.filter((name) => !used.has(normalizeProfileName(name)));
@@ -572,7 +572,7 @@ function RealtimeStatesEditor({
       return available[Math.floor(Math.random() * available.length)];
     }
     const base = 'Realtime Profile';
-    let i = kyotoProfiles.length + 1;
+    let i = tubeProfiles.length + 1;
     while (used.has(normalizeProfileName(`${base} ${i}`))) i += 1;
     return `${base} ${i}`;
   };
@@ -580,7 +580,7 @@ function RealtimeStatesEditor({
   const saveNameInvalid = !saveName.trim() || profileNameExists(saveName);
 
   const selectProfile = (id: string) => {
-    const found = kyotoProfiles.find((p) => p.id === id);
+    const found = tubeProfiles.find((p) => p.id === id);
     if (!found) return;
     // Step 5 — single canonical write. activeOrb / profile / etc. all
     // derive from activeOrbKey + source arrays. BaselineSnapshot
@@ -588,7 +588,7 @@ function RealtimeStatesEditor({
     setActiveOrbKey(`realtime-state:${id}`);
     setActiveBaseline({
       key: `realtime-state:${id}`,
-      shader: 'kyoto',
+      shader: 'tube',
       settings: structuredClone(found.settings),
     });
     restartIntro(found.settings);
@@ -608,7 +608,7 @@ function RealtimeStatesEditor({
     // no intro replay. The new profile's settings flow into the
     // already-mounted CoralStoneMorph and the orb smoothly transitions
     // to the new values. Replay button is the only same-shader remount
-    // path. Cross-shader switching (Coral ↔ Kyoto) still remounts
+    // path. Cross-shader switching (Coral ↔ Tube) still remounts
     // naturally because the canvas branches between two component
     // types.
     setShowProfileDropdown(false);
@@ -684,7 +684,7 @@ function RealtimeStatesEditor({
   // startValue mounts the eased values at the TALKING profile's
   // values so the editor's Coral intro shows the same talking →
   // base ease as the live page. resetKey re-runs the intro on:
-  //   (a) shader change (kyoto → coral or fresh mount), and
+  //   (a) shader change (tube → coral or fresh mount), and
   //   (b) Replay button click (replayCounter bump).
   // Same-shader profile switch (Coral A → Coral B) does NOT change
   // resetKey — eases smoothly from current to new target instead
@@ -716,10 +716,10 @@ function RealtimeStatesEditor({
     // from the target shader's fallback default.
     const sameShader = saveShader === activeOrb?.shader;
 
-    if (saveShader === 'kyoto') {
+    if (saveShader === 'tube') {
       const settings: LinkedProfile = sameShader
         ? structuredClone(profile)
-        : structuredClone(KYOTO_SEED);
+        : structuredClone(TUBE_SEED);
       const entry: SavedProfile = {
         id: `rt-${crypto.randomUUID()}`,
         name,
@@ -727,12 +727,12 @@ function RealtimeStatesEditor({
         settings,
         lastModified: Date.now(),
       };
-      const next = [...kyotoProfiles, entry];
-      setKyotoProfiles(next);
+      const next = [...tubeProfiles, entry];
+      setTubeProfiles(next);
       setActiveOrbKey(`realtime-state:${entry.id}`);
       setActiveBaseline({
         key: `realtime-state:${entry.id}`,
-        shader: 'kyoto',
+        shader: 'tube',
         settings: structuredClone(settings),
       });
       restartIntro(settings);
@@ -776,12 +776,12 @@ function RealtimeStatesEditor({
   };
 
   const togglePinned = async (id: string) => {
-    // Flip the `pinned` flag on the named Tube/Kyoto profile and
+    // Flip the `pinned` flag on the named Tube profile and
     // persist. Live page picks up the change on next refresh.
-    const next = kyotoProfiles.map((pr) =>
+    const next = tubeProfiles.map((pr) =>
       pr.id === id ? { ...pr, pinned: !pr.pinned, lastModified: Date.now() } : pr,
     );
-    setKyotoProfiles(next);
+    setTubeProfiles(next);
     await persistProfiles(next);
   };
 
@@ -813,29 +813,29 @@ function RealtimeStatesEditor({
   const commitRename = async (id: string, draft: string) => {
     const name = draft.trim();
     if (!name || profileNameExists(name, id)) return;
-    const next = kyotoProfiles.map((pr) =>
+    const next = tubeProfiles.map((pr) =>
       pr.id === id ? { ...pr, name, lastModified: Date.now() } : pr
     );
-    setKyotoProfiles(next);
+    setTubeProfiles(next);
     cancelRename();
     await persistProfiles(next);
   };
 
   const handleUpdate = async () => {
     if (!isDirty || !activeOrb) return;
-    // Phase 3E — route by activeOrb.shader. Kyoto persists to the
+    // Phase 3E — route by activeOrb.shader. Tube persists to the
     // realtime-state file; Coral persists to realtime-coral. Same
     // BaselineSnapshot re-snapshot pattern in both branches.
-    if (activeOrb.shader === 'kyoto') {
-      const next = kyotoProfiles.map((pr) =>
+    if (activeOrb.shader === 'tube') {
+      const next = tubeProfiles.map((pr) =>
         pr.id === activeOrb.id
           ? { ...pr, settings: profile, lastModified: Date.now() }
           : pr,
       );
-      setKyotoProfiles(next);
+      setTubeProfiles(next);
       setActiveBaseline({
         key: `realtime-state:${activeOrb.id}`,
-        shader: 'kyoto',
+        shader: 'tube',
         settings: structuredClone(profile),
       });
       await persistProfiles(next);
@@ -943,7 +943,7 @@ function RealtimeStatesEditor({
       <GalleryAudioControls onAudioActive={setAudioActive} />
 
       {/* Canvas size matches production /voiceinterface/realtime (RealtimeBlob.tsx:53).
-          Dispatches by activeOrb.shader: GentleOrbThicken for Tube/Kyoto
+          Dispatches by activeOrb.shader: GentleOrbThicken for Tube
           (driven by the existing JS animator's `render` state), or
           CoralStoneMorph for Coral D (driven by its native morph
           animator with state-aware effective values). */}
@@ -1122,14 +1122,14 @@ function RealtimeStatesEditor({
                 {activeOrb?.shader === 'coral' ? (
                   <Circle size={11} className="shrink-0 text-[#ffa279]" aria-label="Coral D profile" />
                 ) : (
-                  <Disc size={11} className="shrink-0 text-[#949e05]" aria-label="Tube/Kyoto profile" />
+                  <Disc size={11} className="shrink-0 text-[#949e05]" aria-label="Tube profile" />
                 )}
                 <span className="truncate text-gray-600 max-w-[120px]">{activeName}</span>
                 <ChevronDown size={12} className="text-gray-400 shrink-0" />
               </button>
               {showProfileDropdown && (
                 <div className="absolute bottom-full left-0 mb-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {kyotoProfiles.map((p) => {
+                  {tubeProfiles.map((p) => {
                     const isRenaming = renamingId === p.id;
                     const renameInvalid = !renameDraft.trim() || profileNameExists(renameDraft, p.id);
 
@@ -1137,7 +1137,7 @@ function RealtimeStatesEditor({
                       <div
                         key={p.id}
                         className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 ${
-                          activeOrb?.shader === 'kyoto' && p.id === activeOrb.id
+                          activeOrb?.shader === 'tube' && p.id === activeOrb.id
                             ? 'font-medium text-gray-700'
                             : 'text-gray-600'
                         } ${isRenaming ? '' : 'cursor-pointer'}`}
@@ -1191,7 +1191,7 @@ function RealtimeStatesEditor({
                             <Disc
                               size={11}
                               className="shrink-0 text-[#949e05]"
-                              aria-label="Tube/Kyoto profile"
+                              aria-label="Tube profile"
                             />
                             <span className="min-w-0 flex-1 truncate">{p.name}</span>
                             <button
@@ -1354,7 +1354,7 @@ function RealtimeStatesEditor({
 
             {/* Bottom swatches — Tube-only per round-7 F8. Coral users
                 edit colours from the Colours tab. */}
-            {activeOrb?.shader === 'kyoto' && (
+            {activeOrb?.shader === 'tube' && (
               <div className="flex items-center gap-1 ml-2">
                 {([0, 1, 2] as const).map((i) => (
                   <ColorPickerButton
@@ -1450,12 +1450,12 @@ function RealtimeStatesEditor({
                     // clone, isDirty returns false.
                     if (!activeOrb || !activeBaseline) return;
                     if (activeOrb.shader !== activeBaseline.shader) return;
-                    if (activeOrb.shader === 'kyoto' && activeBaseline.shader === 'kyoto') {
+                    if (activeOrb.shader === 'tube' && activeBaseline.shader === 'tube') {
                       const reverted = structuredClone(activeBaseline.settings);
                       // profile is derived; only the source array
                       // needs to be updated. profile useMemo will
                       // recompute on next render.
-                      setKyotoProfiles((arr) =>
+                      setTubeProfiles((arr) =>
                         arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: reverted } : pr)),
                       );
                     } else if (activeOrb.shader === 'coral' && activeBaseline.shader === 'coral') {
@@ -1487,7 +1487,7 @@ function RealtimeStatesEditor({
                   <span className="text-[11px] text-gray-500 uppercase tracking-wider">Shader:</span>
                   <button
                     onClick={() => {
-                      setSaveShader('kyoto');
+                      setSaveShader('tube');
                       setSaveName(pickRealtimeUnusedName());
                       setSaveStep('name');
                     }}
@@ -1557,7 +1557,7 @@ function RealtimeStatesEditor({
             ) : (
               <button
                 onClick={() => {
-                  setSaveShader(activeOrb?.shader ?? 'kyoto');
+                  setSaveShader(activeOrb?.shader ?? 'tube');
                   setSaveStep('shader');
                   setShowSaveDialog(true);
                 }}
@@ -1586,12 +1586,12 @@ function RealtimeStatesEditor({
  * (no stale-fallback frame).
  */
 export default function RealtimeStates() {
-  const [kyotoProfiles, setKyotoProfiles] = useState<SavedProfile[]>([]);
+  const [tubeProfiles, setTubeProfiles] = useState<SavedProfile[]>([]);
   const [coralProfiles, setCoralProfiles] = useState<SavedCoralProfile[]>([]);
   // Per-source loaded flags. Cascade waits for BOTH so a persisted
   // key in either file resolves regardless of which fetch wins the
   // race. (Round-7 round-3 fix.)
-  const [kyotoLoaded, setKyotoLoaded] = useState(false);
+  const [tubeLoaded, setTubeLoaded] = useState(false);
   const [coralLoaded, setCoralLoaded] = useState(false);
   // activeOrbKey starts null. Cascade fills it. The child mounts
   // only after activeOrb resolves to non-null AND cascadeReady is
@@ -1620,16 +1620,16 @@ export default function RealtimeStates() {
         const seedEntry: SavedProfile = {
           id: 'rt-kyoto',
           name: REALTIME_SEED_NAME,
-          settings: KYOTO_SEED,
+          settings: TUBE_SEED,
           lastModified: Date.now(),
         };
         const next = [seedEntry];
         await persistProfiles(next);
-        setKyotoProfiles(next);
+        setTubeProfiles(next);
       } else {
-        setKyotoProfiles(arr);
+        setTubeProfiles(arr);
       }
-      setKyotoLoaded(true);
+      setTubeLoaded(true);
     });
     fetchCoralProfiles().then((arr) => {
       setCoralProfiles(arr);
@@ -1648,8 +1648,8 @@ export default function RealtimeStates() {
   // resolution; child also re-derives orbs internally for the
   // dropdown).
   const orbs = useMemo<LoadedOrb[]>(() => {
-    const kyotoOrbs: LoadedOrb[] = kyotoProfiles.map((p) => ({
-      shader: 'kyoto' as const,
+    const tubeOrbs: LoadedOrb[] = tubeProfiles.map((p) => ({
+      shader: 'tube' as const,
       sourceVariant: 'realtime-state' as const,
       id: p.id,
       name: p.name,
@@ -1666,8 +1666,8 @@ export default function RealtimeStates() {
       settings: p.settings,
       lastModified: p.lastModified,
     }));
-    return [...kyotoOrbs, ...coralOrbs];
-  }, [kyotoProfiles, coralProfiles]);
+    return [...tubeOrbs, ...coralOrbs];
+  }, [tubeProfiles, coralProfiles]);
 
   const activeOrb = useMemo<LoadedOrb | null>(() => {
     if (!activeOrbKey) return null;
@@ -1681,16 +1681,16 @@ export default function RealtimeStates() {
   const cascadeAppliedRef = useRef(false);
   useEffect(() => {
     if (cascadeAppliedRef.current) return;
-    if (!kyotoLoaded || !coralLoaded) return; // wait for BOTH sources
+    if (!tubeLoaded || !coralLoaded) return; // wait for BOTH sources
 
     const persisted = window.localStorage.getItem('realtime-states-active-orb-key');
     const persistedOrb = persisted
       ? orbs.find((o) => compositeKey(o) === persisted)
       : null;
-    const kyotoDefault = orbs.find(
-      (o) => o.shader === 'kyoto' && o.name === REALTIME_SEED_NAME,
+    const tubeDefault = orbs.find(
+      (o) => o.shader === 'tube' && o.name === REALTIME_SEED_NAME,
     );
-    const fallback = persistedOrb ?? kyotoDefault ?? orbs[0];
+    const fallback = persistedOrb ?? tubeDefault ?? orbs[0];
     if (!fallback) return; // degenerate state — skeleton persists
 
     cascadeAppliedRef.current = true;
@@ -1714,7 +1714,7 @@ export default function RealtimeStates() {
     if (typeof window !== 'undefined') {
       console.log('cascade resolved: target=', targetKey, 'persisted=', persisted);
     }
-  }, [kyotoLoaded, coralLoaded, orbs]);
+  }, [tubeLoaded, coralLoaded, orbs]);
 
   // Persist activeOrbKey on change. Gated on cascadeReady so the
   // initial null doesn't blow away the user's saved selection.
@@ -1734,8 +1734,8 @@ export default function RealtimeStates() {
       activeBaseline={activeBaseline}
       setActiveBaseline={setActiveBaseline}
       setActiveOrbKey={setActiveOrbKey}
-      kyotoProfiles={kyotoProfiles}
-      setKyotoProfiles={setKyotoProfiles}
+      tubeProfiles={tubeProfiles}
+      setTubeProfiles={setTubeProfiles}
       coralProfiles={coralProfiles}
       setCoralProfiles={setCoralProfiles}
       externalProfileNames={externalProfileNames}
