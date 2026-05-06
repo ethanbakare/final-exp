@@ -1,5 +1,38 @@
 # Coral Unification Plan (v8)
 
+> v8 round 7 (current head) tightens the dirty/baseline contract and the
+> bridge-state contract — the two places the reviewer flagged as most
+> likely to produce subtle bugs during 3D-0 implementation. Plan-only
+> changes; no code patch this round. Specific edits:
+> - **F1 (P1).** `activeBaseline` is no longer typed as `LoadedOrb |
+>   null`. New `BaselineSnapshot` shape: `{ key, shader, settings }` —
+>   nothing else. Dirty comparator is now spelled out as code, not
+>   prose, and explicitly excludes `name` / `pinned` / `lastModified` /
+>   `sourceVariant`. Bookmark toggle, rename, and Save's
+>   `lastModified` bump cannot mark the editor dirty by construction.
+> - **F2 (P1).** Bridge-state migration gains a canonical-truth rule:
+>   from step 1 onward, `activeOrbKey` + source arrays are the single
+>   source of truth; old vars are demoted to read-compat mirrors; no
+>   migrated code calls the old setters; bridge effects run in one
+>   direction only. 3D-0 is NOT considered done until the bridge is
+>   gone — verification step grep-checks for residual references.
+> - **F3 (P2).** Editor default-selection cascade keeps "Kyoto
+>   Realtime" first until 3D-1 lands Coral controls. Without this,
+>   3D-0 alone would change the fresh-load editor experience from
+>   "open Tube + tunable" to "open Coral + view-only," which is a
+>   regression in flight.
+> - **F4 (P2).** Immutability rule for slider setters: every helper
+>   does `setKyotoProfiles(arr.map(p => p.id === activeId ? { ...p,
+>   settings: { ...p.settings, base: { ...p.settings.base, scale: v
+>   }}} : p))` style updates — no nested mutation. Baseline captured
+>   via `structuredClone` at selection / Save / Discard. Without this,
+>   `activeOrb.settings` and `baseline.settings` can share nested
+>   references and dirty silently returns false after edits.
+> - **F5 (P3).** Round-6 commit hash (`c5a2d00`) filled in; new row
+>   for round 7.
+>
+> v7 → v8 round 5 changelog (kept for reference):
+>
 > v8 incorporates a fifth round of human-reviewer feedback on v7. Three of
 > the nine findings (F1, F3, F6) describe contradictions between what the
 > plan says and what's actually shipped — they require a small code patch
@@ -151,13 +184,14 @@ What has shipped, what's next in line, and what changed during implementation vs
 | Interim guard | When a Coral profile is active, hide Tube-shaped tabs / expanded panel / Update / Discard buttons. **Shows placeholder text** "Coral tuning controls coming next." (Earlier draft of this row mistakenly said "replaces" — v8 wording corrected.) | `192026f` |
 | **v8 patch — F1 + F3 corrections (round 5)** | (a) F1: same-shader Coral switch no longer remounts (see Phase 3c row above). (b) F3: `profileNameExists` now checks the Coral source array too — previously two Coral entries could be renamed into the same name. | `f22c0cc` |
 | **v8 polish (round 5 self-review)** | Phase numbering standardized (3D-0 / 3D-1 / 3E / 3F); F8 swatch note moved out of Motion-tab row; 3D-0 contract expanded with Removed-vs-derived table + 6-step migration order + pre-mortem checks. Plan-only, no code. | `b0d0c4a` |
-| **v8 patch — round 6 polish** | (F1 round 6) `pinned` documented in schema / `LoadedOrb` / fallback orbs / fetchVariant mapping — closes the loophole where Save round-trip could drop the field. (F2) `pickRealtimeUnusedName` extended to include `coralProfiles`. (F3) commit hashes filled in. (F4) one-line `previewState` ↔ `state` alias note added near the canvas pseudocode. (F5) live-page strip descriptions updated to mention the `pinned` filter. | (this commit) |
+| **v8 patch — round 6 polish** | (F1 round 6) `pinned` documented in schema / `LoadedOrb` / fallback orbs / fetchVariant mapping — closes the loophole where Save round-trip could drop the field. (F2) `pickRealtimeUnusedName` extended to include `coralProfiles`. (F3) commit hashes filled in. (F4) one-line `previewState` ↔ `state` alias note added near the canvas pseudocode. (F5) live-page strip descriptions updated to mention the `pinned` filter. | `c5a2d00` |
+| **v8 patch — round 7 polish (plan-only)** | (F1 round 7) `BaselineSnapshot` type replaces the old `LoadedOrb \| null` baseline shape — narrow contract (`{ key, shader, settings }`) prevents bookmark/rename/Save from spuriously marking the editor dirty. (F2) Canonical-truth rule for the bridge state: `activeOrbKey` + source arrays are the single source of truth from step 1; old vars are read-compat mirrors only; bridge is removed before 3D-0 is "done." (F3) Default-selection cascade keeps "Kyoto Realtime" first-fallback until 3D-1 ships Coral controls. (F4) Immutability rule for slider setters + deep-clone rule for baseline capture, so `activeOrb.settings` and `baseline.settings` cannot share nested references. (F5) Round-6 commit hash filled in. | (this commit) |
 
 ### Next in line (NOT yet shipped — remaining Phase 3 items, reorganized in v8)
 
 | Step | Description |
 |---|---|
-| **Phase 3D-0** | **Editor state-model migration.** Replace today's split state (`activeId` + `profile` + `activeBaseline` for Kyoto and `activeShader` + `activeCoralId` + `coralProfiles` for Coral) with the unified model the plan describes (`coralProfiles` + `kyotoProfiles` source arrays + derived `orbs` + `activeOrbKey` + shader-aware `activeBaseline: LoadedOrb \| null`). This is the risky bulk of 3D — must land before Coral sliders, otherwise dirty/save/routing bugs are inevitable. **See "Editor state-model migration (read this first)" further down for the full contract**, including which legacy variables are removed, which become derived `useMemo`s for compat, and the migration-order steps. |
+| **Phase 3D-0** | **Editor state-model migration.** Replace today's split state (`activeId` + `profile` + `activeBaseline` for Kyoto and `activeShader` + `activeCoralId` + `coralProfiles` for Coral) with the unified model the plan describes (`coralProfiles` + `kyotoProfiles` source arrays + derived `orbs` + `activeOrbKey` + `activeBaseline: BaselineSnapshot \| null`). This is the risky bulk of 3D — must land before Coral sliders, otherwise dirty/save/routing bugs are inevitable. **See "Editor state-model migration (read this first)" further down for the full contract**, including the dirty/baseline shape, immutability rule, canonical-truth bridge rule, removed-vs-derived variable map, and the 6-step migration order. |
 | **Phase 3D-1** | **Coral controls panel + UI gates.** Once the state-model migration lands, restore the controls UI for Coral. Slider table per the explicit Coral section below (`Scale`, `Torus Radius`, `Settle Speed`, `Morph Speed`, `Wave Intensity`, `Breath Amp`, `Idle Amp`, colours + `talking` peaks). The exact gates that must flip from `activeShader === 'kyoto'` to shader-aware dispatch: **(1)** the single-tab popover, **(2)** the expanded 4-column drawer, **(3)** the tab buttons themselves, **(4)** Update/Discard buttons (gated on dirty + shader-aware baseline). The bottom-bar 3-swatch shortcut row stays Tube-only (Coral has no bottom swatches in this pass — F8). |
 | **Phase 3E** | **Save (Update) routing for Coral edits.** Once Coral controls exist, `isDirtyCoral` compares active Coral settings against the shader-aware baseline. The Update button writes via `persistCoralProfiles` to `realtime-coral-profiles.json`. Discard reverts to baseline. Currently Update/Discard are gated on `activeShader === 'kyoto'`; that gate flips to "shader-aware dirty + shader-aware persist." |
 | **Phase 3F** | **New-profile shader-choice modal + cross-source name validation in new-profile path.** "Save current state to new profile" asks which shader (Tube or Coral) before opening the name input. Same-shader = clone active settings; different-shader = start from that shader's fallback. **Validation reuses the v8-patched `profileNameExists`** (which now spans Coral + Tube + gallery), so cross-source collision is already correct by the time 3F lands. (Old "Phase 3G" was just this validation; promoted to v8 patch and folded into 3F.) |
@@ -566,10 +600,35 @@ The editor today is ~1900 lines and its entire state machine assumes a Tube/Kyot
 |---|---|
 | `profile: LinkedProfile` (single state) | `coralProfiles: SavedCoralProfile[]` + `kyotoProfiles: SavedKyotoProfile[]` (two source arrays) + `activeOrbKey: string \| null` (composite key) |
 | `activeId: string` | replaced by `activeOrbKey` (composite-keyed) |
-| `activeBaseline: LinkedProfile` (for dirty detection) | becomes `activeBaseline: LoadedOrb \| null`; dirty check compares the active settings against the baseline of the same shader |
+| `activeBaseline: LinkedProfile` (for dirty detection) | becomes `activeBaseline: BaselineSnapshot \| null` — see "Dirty/baseline contract" below; **NOT** a full `LoadedOrb`. |
 | (none) | `replayCounter: number` (Coral remount trigger) |
 
 The combined `orbs` list is a derived view (`useMemo`) over the two source arrays, exactly as in `VoiceRealtimeOpenAI`. `activeOrb` is derived from `activeOrbKey + orbs`.
+
+**Dirty/baseline contract (round 7 F1 + F4).** Earlier drafts said `activeBaseline: LoadedOrb | null`, with prose telling the reader to "compare active settings against the baseline of the same shader." That's too loose — a literal `LoadedOrb` includes `id` / `name` / `pinned` / `lastModified` / `sourceVariant`, and a naive deep-equal would mark the editor dirty whenever the user toggles the bookmark, renames, or completes a Save (which rewrites `lastModified`). The contract:
+
+```ts
+type BaselineSnapshot =
+  | { key: string; shader: 'kyoto'; settings: LinkedProfile }
+  | { key: string; shader: 'coral'; settings: CoralRealtimeProfile['settings'] };
+
+const isDirty = (active: LoadedOrb | null, baseline: BaselineSnapshot | null): boolean => {
+  if (!active || !baseline) return false;
+  if (composite(active) !== baseline.key) return false;       // mismatched baseline → not dirty (will be re-snapshotted)
+  if (active.shader !== baseline.shader) return false;         // shader-shape mismatch → not comparable
+  return !deepEqual(active.settings, baseline.settings);       // ONLY the settings tree, never name/pinned/lastModified
+};
+```
+
+Concrete rules a 3D-0 implementer MUST follow:
+
+1. **Baseline carries `settings` only**, plus the composite key + shader for sanity checks. Not `id`, not `name`, not `pinned`, not `lastModified`, not `sourceVariant`.
+2. **Baseline is captured as a deep clone** at three moments: (a) on profile selection, (b) immediately after a successful Save (Update), (c) on Discard (clones from the current source-array entry). Snapshot via `structuredClone` or a `JSON.parse(JSON.stringify(...))` fallback; do NOT alias the source-array entry's `settings` reference.
+3. **Slider `onChange` setters MUST update immutably.** Helper signatures look like `setKyotoField('base.scale', v)` and internally do `setKyotoProfiles(arr.map(p => p.id === activeId ? { ...p, settings: { ...p.settings, base: { ...p.settings.base, scale: v } } } : p))`. No `arr[i].settings.base.scale = v` direct assignment, anywhere. Without this, `activeOrb.settings` and the captured baseline can share a nested reference and dirty detection silently returns `false` after edits.
+4. **Bookmark toggle, rename, and Save bumping `lastModified` do NOT mark the editor dirty.** Bookmark + rename operate on top-level fields (`pinned`, `name`); they bypass dirty/baseline entirely and persist immediately. Save produces a new `lastModified` but immediately re-snapshots the baseline, so dirty returns to `false`.
+5. **Cross-shader switch resets baseline.** When `activeOrbKey` flips and `activeOrb.shader` changes, the baseline is re-captured for the new orb. Same-shader switch (Coral A → Coral B) also re-captures so dirty is per-orb, not per-session.
+
+The `BaselineSnapshot` type is intentionally narrow. Anything broader (a full `LoadedOrb`, or "the whole thing") opens the door to dirty-by-bookmark and dirty-after-save bugs that are tedious to reproduce and easy to ship past tests.
 
 **Removed vs derived variables (3D-0 contract).**
 
@@ -588,19 +647,19 @@ Anything not listed above is unchanged.
 
 The migration is one PR but the changes are sequenced inside the file to keep the editor working at every step. Suggested order:
 
-1. **Add the new state without removing the old.** Introduce `activeOrbKey`, `kyotoProfiles` (renamed from `profiles`), the derived `activeShader`/`activeOrb` `useMemo`s. Leave `activeId` / `activeCoralId` / `profile` in place; populate them from the new derived values via small bridge effects. The editor still works exactly as before because all read sites still see the old variables.
-2. **Add the localStorage persistence (no backward-compat needed).** Today's editor does NOT persist active-profile selection in localStorage — it always defaults on mount. After 3D-0, write `activeOrbKey` to `realtime-states-active-orb-key` (composite `${sourceVariant}:${id}`) on change, and read it on mount with the cascade: persisted → "Coral Realtime" entry → first available. No legacy key to migrate from; this is a fresh persistence surface. (The live page's `realtime-active-orb-key` is a separate key — different surface, different storage.)
+1. **Add the new state without removing the old.** Introduce `activeOrbKey`, `kyotoProfiles` (renamed from `profiles`), the derived `activeShader`/`activeOrb` `useMemo`s. Leave `activeId` / `activeCoralId` / `profile` in place; populate them from the new derived values via small bridge effects. The editor still works exactly as before because all read sites still see the old variables. **Canonical-truth rule (round 7 F2):** the moment the bridge is installed, `activeOrbKey` + the two source arrays are the **single source of truth**. The old vars (`activeId`, `activeCoralId`, `activeShader`, `profile`) are demoted to **read-compat mirrors only** — their setters MUST NOT be called by any new or migrated code. Any code path that wants to change the selection must call `setActiveOrbKey`; any code path that wants to change settings must call the immutable shader-aware helpers (see Dirty/baseline contract above). The bridge effect runs in one direction only: canonical → mirror. If you find yourself writing `setActiveId(...)` after step 1, that's the bridge running backwards and the migration is broken.
+2. **Add the localStorage persistence (no backward-compat needed).** Today's editor does NOT persist active-profile selection in localStorage — it always defaults on mount. After 3D-0, write `activeOrbKey` to `realtime-states-active-orb-key` (composite `${sourceVariant}:${id}`) on change, and read it on mount with the cascade: persisted → **"Kyoto Realtime"** → first available. **F3 round 7 — keep Kyoto-first cascade until 3D-1 lands.** The plan's earlier drafts had the cascade fall back to "Coral Realtime"; that would silently change the first-load editor experience for fresh users (no persisted key) from "Tube editor open and tunable" to "Coral viewer open with no controls" while 3D-1 is in flight. Until 3D-1 ships Coral controls, the fresh-load fallback stays "Kyoto Realtime"; flip the priority to "Coral Realtime" → "Kyoto Realtime" only when 3D-1 lands and Coral is editable. (The live page's `realtime-active-orb-key` is a separate key — different surface, different storage, and the live page already cascades to "Coral Realtime" because Coral is fully functional there.)
 3. **Switch read sites one at a time.** Profile-dropdown rows, the canvas dispatch, the controls panel, the bottom-bar pinned/replay buttons — each gets migrated to read from `activeOrb` instead of `activeId`/`profile`. Keep the bridge effects from step 1 alive while sites migrate; remove a bridge effect only when no read site depends on its output.
-4. **Switch write sites one at a time.** Slider `onChange` handlers update the relevant source array via shader-aware helpers. The Save (Update) button POSTs only the relevant source array. Rename + new-profile route by `activeOrb.sourceVariant`.
-5. **Remove the old variables and bridge effects** once nothing reads them.
-6. **Verify dirty-detection** end-to-end before declaring 3D-0 done: edit a Tube profile → bar reflects dirty → Discard reverts → Update persists → diff shows only `realtime-state-profiles.json` changed. Repeat for Coral once 3D-1 lands.
+4. **Switch write sites one at a time.** Slider `onChange` handlers update the relevant source array via shader-aware **immutable** helpers (see Dirty/baseline contract rule 3). The Save (Update) button POSTs only the relevant source array. Rename + new-profile route by `activeOrb.sourceVariant`.
+5. **Remove the old variables and bridge effects** once nothing reads them. **3D-0 is NOT considered done while any bridge effect is still installed.** The verification step below grep-checks that `activeId`, `activeCoralId`, `setActiveId`, `setActiveCoralId`, `setActiveShader`, `setProfile` (as a state setter — not the Coral one), and the `profile` state symbol have zero references in the editor file. Bridge state was a tool for the migration, not a permanent shape.
+6. **Verify dirty-detection** end-to-end before declaring 3D-0 done. The pre-mortem checks (below) are the test plan: dirty stuck on/off, localStorage persistence, animator early-return placement, plus an immutability sanity check (edit a slider → dirty → Discard reverts → not dirty → edit same slider to same value → dirty? should be `false`, which only works if helpers cloned correctly).
 
-**Why this order, specifically.** The non-obvious risks are: (a) flipping `activeBaseline` from `LinkedProfile` to `LoadedOrb | null` while Tube users have an unsaved-edit session in progress would silently mark them clean (or stuck dirty); (b) renaming `profiles` to `kyotoProfiles` in one sweep would touch ~30+ sites and any miss is a silent compile-time win that breaks at runtime. Step 1 + step 2 together absorb both risks: the new state shadows the old, and the localStorage key is migrated atomically.
+**Why this order, specifically.** The non-obvious risks are: (a) flipping `activeBaseline` from `LinkedProfile` to a shader-aware shape while Tube users have an unsaved-edit session in progress would silently mark them clean (or stuck dirty) — solved by the explicit `BaselineSnapshot` contract; (b) renaming `profiles` to `kyotoProfiles` in one sweep would touch ~30+ sites and any miss is a silent compile-time win that breaks at runtime — solved by the bridge approach in step 1; (c) bridge effects running in both directions create state oscillation — solved by the canonical-truth rule in step 1.
 
 **Pre-mortem checks (do BEFORE first 3D-0 commit).** Three-line list, anchored to actual failure modes the prior phases hit:
 
-- **Dirty signal stuck on/off.** Today's `isDirty = !deepEqual(profile, activeBaseline)`. After migration, the comparator must compare the active orb's settings against the baseline of the same shader. If the comparator runs against a baseline of the wrong shape (e.g., null on first load), `isDirty` is `true` forever or `false` forever. Test: load editor → no dirty indicator. Edit one slider → dirty. Discard → not dirty.
-- **localStorage persistence works end-to-end.** Test: select a non-default profile, refresh page, confirm the editor reopens with that profile selected. Then clear `localStorage`, refresh, confirm the cascade works (defaults to "Coral Realtime" if present, else first available).
+- **Dirty signal stuck on/off.** Today's `isDirty = !deepEqual(profile, activeBaseline)`. After migration, the comparator is the `isDirty(active, baseline)` function from the Dirty/baseline contract — it inspects only `settings`, not the `LoadedOrb` envelope. If the comparator accidentally compares the full active orb against the baseline (or vice-versa), `isDirty` flips on bookmark / rename / save and the test below catches it. Test: load editor → no dirty indicator. Edit one slider → dirty. Discard → not dirty. Toggle bookmark → still not dirty. Rename via the dropdown → still not dirty. Save → not dirty (immediately re-snapshots).
+- **localStorage persistence works end-to-end.** Test: select a non-default profile, refresh page, confirm the editor reopens with that profile selected. Then clear `localStorage`, refresh, confirm the cascade works (defaults to "Kyoto Realtime" if present until 3D-1 lands; flip priority to "Coral Realtime" first when 3D-1 ships Coral controls).
 - **JS-animator early-return placed at the wrong line.** The `if (activeOrbRef.current?.shader !== 'kyoto') { ... return; }` gate must go AT THE TOP of the `animate` function, not inside its conditional branches. Misplaced, it stops Tube's animator too. Test: Tube profile renders + animates as before; Coral profile shows a static `<CoralStoneMorph>` (its own native animator handles motion).
 
 **The JS animator (Kyoto's exponential lerp) is SKIPPED for Coral profiles.**
@@ -706,7 +765,7 @@ Rows show: `[glyph] [name]` with rename action to the right (no delete in this p
 
 ### Default selection on load
 
-Same rule and same composite-key format as the live page: localStorage `realtime-states-active-orb-key` (composite `${sourceVariant}:${id}`) → "Coral Realtime" entry → first available. The two pages use different localStorage keys (`realtime-active-orb-key` for the live page; `realtime-states-active-orb-key` for the editor) so each surface can remember its own last selection independently.
+Same composite-key format as the live page, but a **different priority on the fallback** (round 7 F3): localStorage `realtime-states-active-orb-key` (composite `${sourceVariant}:${id}`) → **"Kyoto Realtime" entry → first available** while 3D-1 is in flight. Once 3D-1 lands and Coral is fully editable in the editor, the priority flips to "Coral Realtime" → "Kyoto Realtime" → first available, matching the live page. The two pages use different localStorage keys (`realtime-active-orb-key` for the live page; `realtime-states-active-orb-key` for the editor) so each surface can remember its own last selection independently. The live page's cascade does **not** change with this rule — Coral is fully functional there, so "Coral Realtime" stays first.
 
 ### Dirty-edit behavior on switch
 
@@ -822,7 +881,7 @@ Already covered under `VoiceRealtimeOpenAI.tsx`. Net effect:
 14. Editor save / rename: route by `activeOrb.sourceVariant`. Update only the relevant source array; POST that array to its file. Other file untouched.
 15. Editor new-profile: shader-choice modal. Same-shader = clone active settings; different-shader = start from that shader's fallback. New entry pushed to relevant source array, then activated.
 16. Editor name validation: collision check across `realtime-coral` + `realtime-state` + gallery variant names.
-17. Default selection: composite key persistence via `realtime-states-active-orb-key` localStorage. Fallback chain: persisted → "Coral Realtime" → first available.
+17. Default selection: composite key persistence via `realtime-states-active-orb-key` localStorage. Fallback chain: persisted → "Kyoto Realtime" → first available (round 7 F3 — flips to Coral-first when 3D-1 ships).
 18. **Verification:** switch to Coral profile in the dropdown; canvas renders Coral. Edit `talking.morphSpeed`. Save. `git diff` shows ONLY `realtime-coral-profiles.json` changed. Refresh; both editor and live page pick up the change. Switch to Tube; everything Tube still works. Press Replay while on the Talking pill — Coral resets to idle and plays the sphere → torus morph.
 
 **Rollback:** revert the editor changes; editor falls back to Tube-only.
