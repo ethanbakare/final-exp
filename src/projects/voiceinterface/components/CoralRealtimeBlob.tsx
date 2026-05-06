@@ -34,6 +34,16 @@ export interface CoralRealtimeSettings {
     color2: string;
     color3: string;
     bgColor: string;
+    /** Plan v8 Phase 4 — top of the thinking-pulse range. Optional;
+     *  renderer falls back to CORAL_PULSE_DEFAULTS.thickRadius when
+     *  missing (legacy entries pre-Phase-4). Pulse is only visible
+     *  when thickRadius > torusRadius. */
+    thickRadius?: number;
+    /** Plan v8 Phase 4 — half-cycle duration in seconds (thin → thick).
+     *  Full cycle (thin → thick → thin) = pulseSpeed * 2. Optional;
+     *  renderer falls back to CORAL_PULSE_DEFAULTS.pulseSpeed when
+     *  missing. Half-cycle semantics match LoopingBlob.tsx exactly. */
+    pulseSpeed?: number;
   };
   talking?: {
     morphSpeed?: number;
@@ -42,6 +52,14 @@ export interface CoralRealtimeSettings {
     color3?: string;
   };
 }
+
+/** Defaults for Phase 4's optional pulse fields. Applied at use site
+ *  by useCoralThinkingPulse and by VoiceRealtimeOpenAI's defensive
+ *  orbs projection. */
+export const CORAL_PULSE_DEFAULTS = {
+  thickRadius: 0.45,
+  pulseSpeed: 0.6,
+} as const;
 
 interface CoralRealtimeBlobProps {
   audioData: AudioData;
@@ -72,6 +90,12 @@ export const CORAL_FALLBACK_PROFILE: CoralRealtimeSettings = {
     color2: '#ffa279',
     color3: '#ffc4c4',
     bgColor: '#f7f6f4',
+    // Phase 4 pulse defaults explicit on the fallback so any consumer
+    // reading `CORAL_FALLBACK_PROFILE.base.thickRadius` (without going
+    // through the optional `?? CORAL_PULSE_DEFAULTS` path) gets a real
+    // value.
+    thickRadius: CORAL_PULSE_DEFAULTS.thickRadius,
+    pulseSpeed: CORAL_PULSE_DEFAULTS.pulseSpeed,
   },
   talking: {
     morphSpeed: 0.54,

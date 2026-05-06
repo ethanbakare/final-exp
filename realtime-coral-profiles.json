@@ -14,7 +14,9 @@
         "color1": "#944b2e",
         "color2": "#ffa279",
         "color3": "#ffc4c4",
-        "bgColor": "#f7f6f4"
+        "bgColor": "#f7f6f4",
+        "thickRadius": 0.45,
+        "pulseSpeed": 0.6
       },
       "talking": {
         "morphSpeed": 0.54,
