@@ -2,6 +2,7 @@
   {
     "id": "rt-coral-default",
     "name": "Coral Realtime",
+    "pinned": true,
     "settings": {
       "base": {
         "scale": 1.04,

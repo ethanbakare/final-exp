@@ -24,6 +24,7 @@ type LoadedOrb =
       sourceVariant: 'realtime-coral';
       id: string;
       name: string;
+      pinned: boolean;
       settings: CoralRealtimeSettings;
       lastModified: number;
     }
@@ -32,6 +33,7 @@ type LoadedOrb =
       sourceVariant: 'realtime-state';
       id: string;
       name: string;
+      pinned: boolean;
       settings: LinkedProfile;
       lastModified: number;
     };
@@ -58,6 +60,7 @@ const CORAL_FALLBACK_ORB: LoadedOrb = {
   sourceVariant: 'realtime-coral',
   id: 'rt-coral-fallback',
   name: 'Coral Realtime',
+  pinned: true, // fallbacks are always shown when their file fails
   settings: CORAL_FALLBACK_PROFILE,
   lastModified: 0,
 };
@@ -67,6 +70,7 @@ const NEBULARR_FALLBACK_ORB: LoadedOrb = {
   sourceVariant: 'realtime-state',
   id: 'rt-nebularr-fallback',
   name: 'Nebularr',
+  pinned: true,
   settings: NEBULARR_FALLBACK_PROFILE,
   lastModified: 0,
 };
@@ -171,6 +175,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             sourceVariant: 'realtime-coral' as const,
             id: p.id,
             name: p.name,
+            pinned: p.pinned === true,
             settings: p.settings as CoralRealtimeSettings,
             lastModified: p.lastModified ?? 0,
           }));
@@ -180,6 +185,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           sourceVariant: 'realtime-state' as const,
           id: p.id,
           name: p.name,
+          pinned: p.pinned === true,
           settings: p.settings as LinkedProfile,
           lastModified: p.lastModified ?? 0,
         }));
@@ -204,18 +210,19 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       const merged = [...coralOrbs, ...kyotoOrbs];
       setOrbs(merged);
 
-      // Default selection: localStorage (composite key) → "Coral Realtime"
-      // entry → first available.
+      // Live page only shows pinned orbs (explicit opt-in). The default
+      // selection considers only pinned candidates.
+      const visible = merged.filter((o) => o.pinned);
       const persisted =
         typeof window !== 'undefined'
           ? window.localStorage.getItem('realtime-active-orb-key')
           : null;
-      const persistedExists = persisted && merged.find((o) => orbKey(o) === persisted);
-      const coralDefault = merged.find((o) => o.name === 'Coral Realtime');
+      const persistedExists = persisted && visible.find((o) => orbKey(o) === persisted);
+      const coralDefault = visible.find((o) => o.name === 'Coral Realtime');
       const fallbackKey = coralDefault
         ? orbKey(coralDefault)
-        : merged[0]
-        ? orbKey(merged[0])
+        : visible[0]
+        ? orbKey(visible[0])
         : null;
       setActiveOrbKey(persistedExists ? persisted! : fallbackKey);
     });
@@ -657,11 +664,11 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           )}
         </div>
 
-        {/* Profile strip — data-driven from `orbs` (parallel fetch of
-            realtime-coral + realtime-state). Click a thumb to swap the
-            orb. */}
+        {/* Profile strip — data-driven from `orbs`, filtered to only
+            pinned entries (explicit opt-in via the editor's bookmark
+            toggle). Click a thumb to swap the orb. */}
         <div className="profile-strip" aria-label="Orb profiles">
-          {orbs.map((thumb) => {
+          {orbs.filter((o) => o.pinned).map((thumb) => {
             const key = orbKey(thumb);
             const isActive = activeOrbKey === key;
             return (

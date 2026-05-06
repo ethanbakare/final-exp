@@ -2,6 +2,7 @@
   {
     "id": "rt-kyoto",
     "name": "Kyoto Realtime",
+    "pinned": false,
     "settings": {
       "base": {
         "scale": 1,
@@ -30,6 +31,7 @@
   {
     "id": "rt-ee41ea96-4906-448f-bf60-d6ddc07019e1",
     "name": "Nebularr",
+    "pinned": true,
     "settings": {
       "base": {
         "scale": 1,
