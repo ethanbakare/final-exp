@@ -968,6 +968,139 @@ End-of-implementation:
     - `realtime-states/index.tsx` (~1500 lines): the page component itself — state machine, useEffects, action handlers, dropdown, save dialog, canvas dispatch, bottom bar JSX.
   Naming rule: shader names (`Tube`, `Coral`) stay agnostic of saved-profile names (`Kyoto Realtime`, `Nebularr`, `Coral Realtime`) — if a profile is renamed tomorrow, the file/function names shouldn't churn. Each file has a single named purpose; debugging localizes cleanly. Most code lives in `index.tsx` and `controls.tsx`; `types.ts` and `api.ts` are infrastructure files only touched when adding a new type or persistence path. Tighter 3-file alternative: merge types + api into a single `lib.ts` — viable if 4 feels like too many; 4 reads more cleanly because types and api have different reasons to change. Out of scope for 3D-0; queue as a polish commit after Step 6 verification.
 
+## Phase 4 — Coral thinking pulse
+
+**Status:** Planned. Promoted from Open follow-ups after testing confirmed the home-page Voice UI Library card (`PreviewVoiceAnimated` → `LoopingBlob`) renders a `<CoralStoneMorph>` AND animates `torusRadius` during the thinking state. The mechanism exists and is proven; this phase ports it into `CoralRealtimeBlob` (live page) and adds editor controls (`/voiceinterface/realtime-states` Coral Thinking pill).
+
+### Mental model — what's actually happening
+
+Coral has two independent geometric properties that the renderer animates:
+
+1. **`morphRef` (0–1)**: sphere ↔ torus interpolation. Driven by the `goal` prop. `goal=1` → torus; `goal=0` → sphere.
+2. **`torusRadius`**: how thick the torus ring is. Only visible when `morphRef ≠ 0`.
+
+These are orthogonal. Today (post-3D-1) we drive `morphRef` from voiceState (talking → 0, otherwise → 1) and pass `torusRadius` as a static base value. The thinking pulse adds a third axis: while `voiceState === 'thinking'`, we ALSO animate `torusRadius` between thin and thick on a continuous loop.
+
+### Per-state behavior after this phase
+
+| voiceState | morphRef goal | torusRadius source | Intent |
+|---|---|---|---|
+| `idle` | 1 (torus) | `base.torusRadius` (static) | Settled at the resting torus shape |
+| `listening` | 1 (torus) | `base.torusRadius` (static) | Same as idle — visually identical |
+| `thinking` | 1 (torus) | Pulsing between `base.torusRadius` and `base.thickRadius` over `base.pulseSpeed` seconds per half-cycle | The orb "breathes" while the model is thinking |
+| `talking` | 0 (sphere) | irrelevant (sphere has no ring) | The orb is a sphere; pulse implicitly stops |
+
+### Transition semantics (answers the user's question)
+
+- **listening → thinking** (or idle → thinking): NO morph. Both states have `goal=1`. The only change is `torusRadius` starts pulsing. **Pulse onset is instant** — mirrors LoopingBlob.
+- **thinking → talking**: real morph (`goal: 1 → 0`) over `talking.morphSpeed`. Pulse stops at the same instant. Pulse offset is invisible because the orb is becoming a sphere where the torusRadius doesn't render.
+- **talking → idle**: real morph (`goal: 0 → 1`) over `base.morphSpeed`. No pulse afterward.
+
+The user's "set transition to zero" framing was approximately correct in spirit but didn't apply to where they thought. There is no listening→thinking morph to set to zero — it's already zero (no morph at all). The thinking→talking morph IS controlled by `talking.morphSpeed` and stays a normal duration so the orb doesn't snap-collapse.
+
+### Schema additions
+
+`CoralRealtimeProfile['settings']['base']` gets two new fields:
+
+```ts
+type CoralRealtimeBase = {
+  // ... existing fields ...
+  thickRadius: number;   // NEW — top of the pulse (peak ring thickness during thinking).
+                         // Must be > torusRadius for the pulse to be visible.
+                         // Suggested seed: 0.45 (vs torusRadius 0.275).
+  pulseSpeed: number;    // NEW — half-cycle duration in seconds (thin → thick = one half-cycle).
+                         // Full cycle (thin → thick → thin) = pulseSpeed * 2.
+                         // Suggested seed: 0.6 seconds (~1.2s full cycle).
+};
+```
+
+Both fields are required (NOT optional). Seed entries get sensible defaults; persisted entries on disk get migrated by adding the fields to the JSON. Implementer note: `CoralStoneMorph` already accepts a `torusRadius` prop dynamically — no shader change needed, only a wrapper-level `pulseRadius` ref.
+
+The Coral `talking` peak block does NOT get pulse fields. Pulse is thinking-only by definition.
+
+### Renderer port — `CoralRealtimeBlob`
+
+Lift the `setPulseRadius` RAF mechanism from `LoopingBlob.tsx:200-213`:
+
+```ts
+// In CoralRealtimeBlob.tsx
+const [pulseRadius, setPulseRadius] = useState<number | null>(null);
+const pulseRafRef = useRef<number | null>(null);
+
+useEffect(() => {
+  if (voiceState !== 'thinking') {
+    setPulseRadius(null);
+    if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current);
+    return;
+  }
+  const startTime = performance.now();
+  const halfCycle = Math.max(0.05, profile?.base.pulseSpeed ?? 0.6);
+  const animate = () => {
+    const elapsed = (performance.now() - startTime) / 1000;
+    const cycle = elapsed / halfCycle;       // counts half-cycles since start
+    const t = cycle % 2;                      // 0..2 oscillation
+    const phase = t < 1 ? t : 2 - t;          // 0..1..0 triangle wave
+    const thin = profile?.base.torusRadius ?? CORAL_FALLBACK_PROFILE.base.torusRadius;
+    const thick = profile?.base.thickRadius ?? CORAL_FALLBACK_PROFILE.base.thickRadius;
+    setPulseRadius(thin + phase * (thick - thin));
+    pulseRafRef.current = requestAnimationFrame(animate);
+  };
+  pulseRafRef.current = requestAnimationFrame(animate);
+  return () => {
+    if (pulseRafRef.current) cancelAnimationFrame(pulseRafRef.current);
+  };
+}, [voiceState, profile?.base.pulseSpeed, profile?.base.torusRadius, profile?.base.thickRadius]);
+
+// Then in JSX:
+const effectiveTorusRadius = pulseRadius ?? (profile?.base.torusRadius ?? CORAL_FALLBACK_PROFILE.base.torusRadius);
+```
+
+`pulseRadius` overrides the static `torusRadius` only while thinking. Outside of thinking, `pulseRadius` is `null` and the static value is used. This matches LoopingBlob exactly.
+
+The same mechanism mirrors into the editor's canvas dispatch (`realtime-states.tsx`) so the preview shows the pulse when the user is on the Thinking pill.
+
+### Editor controls — Coral Thickness tab, Thinking pill
+
+Today the Thinking pill on Coral renders the placeholder note. After this phase:
+
+- **Idle / Listening / Talking pills**: still show base.torusRadius (under the existing "Torus Radius" slider in the Size tab — no change).
+- **Thinking pill, Thickness tab**: shows TWO new sliders + drops the placeholder.
+  - `Thick Radius` — edits `base.thickRadius`. Range: 0.05–0.6, step 0.005. Should be > base.torusRadius for visible pulse (validation: warn but don't block, mirroring Tube's behavior).
+  - `Pulse Speed` — edits `base.pulseSpeed`. Range: 0.05–2.0 seconds, step 0.02. Literal seconds, NO `≈ visible` hint (round-7 F9 rule still applies — Coral uses literal seconds).
+
+Both fields are `base` only. No talking peak.
+
+### Phase 4 sub-step ordering
+
+| Step | Description |
+|---|---|
+| **4A** | Schema migration + seed defaults. Add `thickRadius` and `pulseSpeed` to `CoralRealtimeProfile['settings']['base']` type. Update `realtime-coral-profiles.json` seed entry. Update `CORAL_FALLBACK_PROFILE` constant. tsc clean. No runtime behavior change yet. |
+| **4B** | Renderer port. Add the `setPulseRadius` RAF + `effectiveTorusRadius` to `CoralRealtimeBlob`. Mirror into the editor's canvas dispatch (or extract into a shared hook if cleanly possible). Verify pulse is visible during thinking on the live page + editor preview. |
+| **4C** | Editor controls. Replace the Coral Thickness-tab Thinking-pill placeholder with the two new sliders. Wire to `coralSetBase` (already immutable per round-7 F4). Verify dirty detection picks up edits to thickRadius / pulseSpeed. |
+
+### Verification checklist (Phase 4 specific)
+
+- Live page: switch to Coral Realtime, drive voiceState to `thinking` (e.g., trigger a real conversation; or temporarily force the state via DevTools). Orb visibly breathes between thin and thick torus.
+- Live page: thinking → talking transition. Pulse stops; morph to sphere is smooth (controlled by `talking.morphSpeed`, unchanged).
+- Live page: talking → idle. Sphere → torus morph; no pulse afterward.
+- Editor: Coral Realtime selected. Click Thinking pill → orb pulses at editor's preview canvas. Click Talking → morph to sphere, no pulse. Click Idle → settled torus, no pulse.
+- Editor: edit `Thick Radius` slider on Thinking pill. Pulse amplitude visibly changes.
+- Editor: edit `Pulse Speed` slider. Pulse cycle period visibly changes.
+- Editor: edit either, then click Save. `realtime-coral-profiles.json` reflects the new values. Reload the page; values restore. Dirty button appears on edit, disappears on Save.
+
+### Open design questions to resolve before 4A starts
+
+1. **`pulseSpeed` semantics** — half-cycle (thin → thick) or full-cycle (thin → thick → thin)? LoopingBlob uses half-cycle. Recommendation: half-cycle for muscle memory with LoopingBlob, but the slider label should clarify ("0.6s = thin → thick" or similar). User's call.
+2. **Default `thickRadius` for the seed** — looking at the live `RealtimeBlob` Coral props, the default torusRadius (= thinRadius equivalent) is 0.275. A reasonable thick is 0.45 (matches Tube's default thickRadius). Open to tuning during 4B testing.
+3. **Editor's preview canvas: extract a shared pulse hook?** The same RAF mechanism runs in `CoralRealtimeBlob` and the editor's canvas dispatch. Could be lifted into `useCoralThinkingPulse(voiceState, profile)` to avoid duplication. Decide during 4B.
+4. **Pulse-during-non-thinking-states (out of scope for v1)?** The user's stretch idea: time the pulse against API response duration. Not in this phase; revisit if v1 feels too uniform.
+
+### What's NOT changing
+
+- `CoralStoneMorph` itself — no shader change. The pulse is wrapper-driven via the existing `torusRadius` prop.
+- Tube's thinking-pulse mechanism — independent and unchanged.
+- Coral's morph contract (sphere ↔ torus, `goal` + `morphSpeed`) — unchanged.
+
 ## Note on plan-review limits (lessons from v4 → v5)
 
 A self-run plan-review skill pass was run on v3 to produce v4. The human reviewer of v4 then surfaced six findings the self-run pass had missed. Captured here so the next planner doesn't repeat the gap.
