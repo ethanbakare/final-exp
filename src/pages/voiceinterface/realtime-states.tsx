@@ -13,7 +13,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, Pencil } from 'lucide-react';
+import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, Pencil, Bookmark } from 'lucide-react';
 import {
   ColorArea,
   ColorSlider,
@@ -75,6 +75,11 @@ interface LinkedProfile {
 interface SavedProfile {
   id: string;
   name: string;
+  /** When true, this profile appears in the live realtime page's
+   *  thumbnail strip. Toggleable via the bookmark button next to each
+   *  entry in the dropdown. Default false (a profile must be explicitly
+   *  pinned to show on the live page). */
+  pinned?: boolean;
   settings: LinkedProfile;
   lastModified: number;
 }
@@ -1211,6 +1216,17 @@ export default function RealtimeStates() {
     setRenameDraft(entry.name);
   };
 
+  const togglePinned = async (id: string) => {
+    // Flip the `pinned` flag on the named profile and persist. Live
+    // page picks up the change on next refresh (it re-fetches the
+    // realtime-state file on mount and filters by pinned===true).
+    const next = profiles.map((pr) =>
+      pr.id === id ? { ...pr, pinned: !pr.pinned, lastModified: Date.now() } : pr,
+    );
+    setProfiles(next);
+    await persistProfiles(next);
+  };
+
   const cancelRename = () => {
     setRenamingId(null);
     setRenameDraft('');
@@ -1808,6 +1824,23 @@ export default function RealtimeStates() {
                         ) : (
                           <div className="flex items-center gap-2">
                             <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePinned(p.id);
+                              }}
+                              className={`shrink-0 transition-colors cursor-pointer ${
+                                p.pinned
+                                  ? 'text-amber-500 hover:text-amber-600'
+                                  : 'text-gray-300 hover:text-gray-600'
+                              }`}
+                              title={p.pinned ? 'Pinned to live page (click to unpin)' : 'Pin to live page'}
+                            >
+                              <Bookmark
+                                size={12}
+                                fill={p.pinned ? 'currentColor' : 'none'}
+                              />
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
