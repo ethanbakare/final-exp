@@ -1438,6 +1438,57 @@ export default function RealtimeStates() {
   const peakHas = (scope: PeakScope, field: keyof PeakOverrides) =>
     profile[scope][field] !== undefined;
 
+  // ── Plan v8 Phase 3D-1 — Coral mutators + peak helpers ────────────
+  //
+  // Parallel set of write helpers for the Coral D shader. Coral has a
+  // single peak slot (`talking`) with its own narrow shape — there's
+  // no `thinking` peak (Coral's idle/listening/thinking all render
+  // identically). Helpers operate on `coralProfiles[i].settings`
+  // immutably (round-7 F4 rule) so dirty detection works against
+  // canonical settings, not a stale mirror.
+  type CoralBase = CoralRealtimeSettings['base'];
+  type CoralTalking = NonNullable<CoralRealtimeSettings['talking']>;
+
+  const updateActiveCoralSettings = (
+    mutate: (s: CoralRealtimeSettings) => CoralRealtimeSettings,
+  ) => {
+    if (activeOrb?.shader !== 'coral') return;
+    setCoralProfiles((arr) =>
+      arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: mutate(pr.settings) } : pr)),
+    );
+  };
+
+  const coralSetBase = (patch: Partial<CoralBase>) =>
+    updateActiveCoralSettings((s) => ({ ...s, base: { ...s.base, ...patch } }));
+
+  const coralSetPeak = (patch: Partial<CoralTalking>) =>
+    updateActiveCoralSettings((s) => ({
+      ...s,
+      talking: { ...(s.talking ?? {}), ...patch },
+    }));
+
+  const coralClearPeak = <K extends keyof CoralTalking>(field: K) =>
+    updateActiveCoralSettings((s) => {
+      const next: CoralTalking = { ...(s.talking ?? {}) };
+      delete next[field];
+      return { ...s, talking: next };
+    });
+
+  const coralPeakHas = <K extends keyof CoralTalking>(field: K) =>
+    activeCoralSettings?.talking?.[field] !== undefined;
+
+  const coralPeakEff = <K extends keyof CoralTalking>(
+    field: K,
+  ): CoralTalking[K] | CoralBase[K extends keyof CoralBase ? K : never] | undefined => {
+    if (!activeCoralSettings) return undefined;
+    const ovr = activeCoralSettings.talking?.[field];
+    if (ovr !== undefined) return ovr;
+    // All Coral talking-peak fields exist on base; safe lookup.
+    return (activeCoralSettings.base as Record<string, unknown>)[field as string] as CoralBase[
+      K extends keyof CoralBase ? K : never
+    ];
+  };
+
   // ── Profile actions ─────────────────────────────────────────
   // Plan v8 round-7 F1 — dirty comparator inspects ONLY settings.
   // Returns false on key/shader mismatch (during cross-shader switch
@@ -1633,22 +1684,42 @@ export default function RealtimeStates() {
   };
 
   const handleUpdate = async () => {
-    if (!isDirty) return;
-    if (activeOrb?.shader !== 'kyoto') return;
-    const next = kyotoProfiles.map((pr) =>
-      pr.id === activeId ? { ...pr, settings: profile, lastModified: Date.now() } : pr
-    );
-    setKyotoProfiles(next);
-    // Plan v8 round-7 — re-snapshot baseline AFTER successful save.
-    // Failed persist would leave baseline pinned to the old value so
-    // dirty stays true and the user can retry. (Right now persistProfiles
-    // swallows errors silently; tightening that is a separate concern.)
-    setActiveBaseline({
-      key: `realtime-state:${activeOrb.id}`,
-      shader: 'kyoto',
-      settings: structuredClone(profile),
-    });
-    await persistProfiles(next);
+    if (!isDirty || !activeOrb) return;
+    // Phase 3E — route by activeOrb.shader. Kyoto persists to the
+    // realtime-state file; Coral persists to realtime-coral. Same
+    // BaselineSnapshot re-snapshot pattern in both branches.
+    if (activeOrb.shader === 'kyoto') {
+      const next = kyotoProfiles.map((pr) =>
+        pr.id === activeOrb.id
+          ? { ...pr, settings: profile, lastModified: Date.now() }
+          : pr,
+      );
+      setKyotoProfiles(next);
+      setActiveBaseline({
+        key: `realtime-state:${activeOrb.id}`,
+        shader: 'kyoto',
+        settings: structuredClone(profile),
+      });
+      await persistProfiles(next);
+      return;
+    }
+    // Coral path — slider edits already wrote through to coralProfiles
+    // via updateActiveCoralSettings, so the source array is the truth.
+    // Just re-snapshot baseline + persist.
+    if (activeOrb.shader === 'coral') {
+      const currentCoralEntry = coralProfiles.find((p) => p.id === activeOrb.id);
+      if (!currentCoralEntry) return;
+      const next = coralProfiles.map((pr) =>
+        pr.id === activeOrb.id ? { ...pr, lastModified: Date.now() } : pr,
+      );
+      setCoralProfiles(next);
+      setActiveBaseline({
+        key: `realtime-coral:${activeOrb.id}`,
+        shader: 'coral',
+        settings: structuredClone(currentCoralEntry.settings),
+      });
+      await persistCoralProfiles(next);
+    }
   };
 
   // ── Tab definitions / rendering ─────────────────────────────
@@ -2015,6 +2086,239 @@ export default function RealtimeStates() {
     }
   };
 
+  // ── Plan v8 Phase 3D-1 — Coral tab renderer ───────────────────────
+  //
+  // Parallel to renderTabControls but binds to Coral's settings shape.
+  // Slider ranges per the explicit Coral table in the plan. Coral
+  // speed sliders show LITERAL seconds with no "≈ visible" hint
+  // (round-7 F9): morphSpeed is fed directly to CoralStoneMorph as
+  // delta-divisor seconds, no tau coefficient. Coral has only the
+  // talking peak slot — thinking/listening render as idle.
+  const renderCoralTabControls = (tab: ControlTab) => {
+    if (!activeCoralSettings) {
+      return (
+        <div className="text-xs text-gray-400 italic">
+          No Coral profile selected.
+        </div>
+      );
+    }
+    const baseS = activeCoralSettings.base;
+    const isTalking = state === 'talking';
+    const isThinking = state === 'thinking';
+    const restSuffix = isTalking ? ' (Rest)' : '';
+
+    switch (tab) {
+      case 'size': {
+        const restRow = (
+          <SliderRow
+            label={`Scale${restSuffix}`}
+            value={baseS.scale}
+            min={0.05}
+            max={1.5}
+            step={0.01}
+            unit="x"
+            onChange={(v) => coralSetBase({ scale: v })}
+          />
+        );
+        const torusRow = (
+          <SliderRow
+            label="Torus Radius"
+            value={baseS.torusRadius}
+            min={0.05}
+            max={0.45}
+            step={0.005}
+            onChange={(v) => coralSetBase({ torusRadius: v })}
+          />
+        );
+        if (!isTalking) {
+          return (
+            <div className="space-y-3">
+              {restRow}
+              {torusRow}
+            </div>
+          );
+        }
+        const sInh = !coralPeakHas('scale');
+        const sEff = (coralPeakEff('scale') as number) ?? baseS.scale;
+        return (
+          <div className="space-y-3">
+            {restRow}
+            <PeakSliderRow
+              label="Scale (Peak)"
+              value={sEff}
+              min={0.05}
+              max={1.5}
+              step={0.01}
+              unit="x"
+              inherited={sInh}
+              onChange={(v) => coralSetPeak({ scale: v })}
+              onReset={sInh ? undefined : () => coralClearPeak('scale')}
+            />
+            {torusRow}
+          </div>
+        );
+      }
+
+      case 'thickness': {
+        if (isThinking) {
+          return (
+            <div className="space-y-3 text-xs text-gray-400 italic">
+              Coral has no thinking pulse — uses idle settings.
+            </div>
+          );
+        }
+        if (isTalking) {
+          const mInh = !coralPeakHas('morphSpeed');
+          const mEff = (coralPeakEff('morphSpeed') as number) ?? baseS.morphSpeed;
+          return (
+            <div className="space-y-3">
+              <PeakSliderRow
+                label="Morph Speed (→ talking)"
+                value={mEff}
+                min={0}
+                max={4.0}
+                step={0.02}
+                unit="s"
+                inherited={mInh}
+                onChange={(v) => coralSetPeak({ morphSpeed: v })}
+                onReset={mInh ? undefined : () => coralClearPeak('morphSpeed')}
+              />
+            </div>
+          );
+        }
+        // idle / listening
+        return (
+          <div className="space-y-3">
+            <SliderRow
+              label="Settle Speed"
+              value={baseS.morphSpeed}
+              min={0}
+              max={4.0}
+              step={0.02}
+              unit="s"
+              onChange={(v) => coralSetBase({ morphSpeed: v })}
+            />
+          </div>
+        );
+      }
+
+      case 'motion': {
+        const waveRest = (
+          <SliderRow
+            label={`Wave Intensity${restSuffix}`}
+            value={baseS.waveIntensity}
+            min={0}
+            max={1.0}
+            step={0.01}
+            onChange={(v) => coralSetBase({ waveIntensity: v })}
+          />
+        );
+        const breathRow = (
+          <SliderRow
+            label="Breath Amplitude"
+            value={baseS.breathAmp}
+            min={0}
+            max={0.1}
+            step={0.005}
+            onChange={(v) => coralSetBase({ breathAmp: v })}
+          />
+        );
+        const idleRow = (
+          <SliderRow
+            label="Idle Intensity"
+            value={baseS.idleAmp * 100}
+            min={0}
+            max={20}
+            step={0.5}
+            unit="%"
+            onChange={(v) => coralSetBase({ idleAmp: v / 100 })}
+          />
+        );
+        if (!isTalking) {
+          return (
+            <div className="space-y-3">
+              {waveRest}
+              {breathRow}
+              {idleRow}
+            </div>
+          );
+        }
+        const wInh = !coralPeakHas('waveIntensity');
+        const wEff = (coralPeakEff('waveIntensity') as number) ?? baseS.waveIntensity;
+        return (
+          <div className="space-y-3">
+            {waveRest}
+            <PeakSliderRow
+              label="Wave Intensity (Peak)"
+              value={wEff}
+              min={0}
+              max={1.0}
+              step={0.01}
+              inherited={wInh}
+              onChange={(v) => coralSetPeak({ waveIntensity: v })}
+              onReset={wInh ? undefined : () => coralClearPeak('waveIntensity')}
+            />
+            {breathRow}
+            {idleRow}
+          </div>
+        );
+      }
+
+      case 'colours': {
+        const restRows = (
+          <>
+            <ColorFormatControl value={colorFormat} onChange={chooseColorFormat} />
+            <RealtimeColorRow
+              label={`Color 1${restSuffix}`}
+              value={baseS.color1}
+              colorFormat={colorFormat}
+              onChange={(v) => coralSetBase({ color1: v })}
+              onColorFormatChange={chooseColorFormat}
+            />
+            <RealtimeColorRow
+              label={`Color 2${restSuffix}`}
+              value={baseS.color2}
+              colorFormat={colorFormat}
+              onChange={(v) => coralSetBase({ color2: v })}
+              onColorFormatChange={chooseColorFormat}
+            />
+            <RealtimeColorRow
+              label={`Color 3${restSuffix}`}
+              value={baseS.color3}
+              colorFormat={colorFormat}
+              onChange={(v) => coralSetBase({ color3: v })}
+              onColorFormatChange={chooseColorFormat}
+            />
+            <RealtimeColorRow
+              label={`Background${restSuffix}`}
+              value={baseS.bgColor}
+              colorFormat={colorFormat}
+              onChange={(v) => coralSetBase({ bgColor: v })}
+              onColorFormatChange={chooseColorFormat}
+            />
+          </>
+        );
+        if (!isTalking) return <div className="space-y-3">{restRows}</div>;
+        const c3Inh = !coralPeakHas('color3');
+        const c3Eff = (coralPeakEff('color3') as string) ?? baseS.color3;
+        return (
+          <div className="space-y-3">
+            {restRows}
+            <PeakColorRow
+              label="Color 3 (Peak)"
+              value={c3Eff}
+              colorFormat={colorFormat}
+              inherited={c3Inh}
+              onChange={(v) => coralSetPeak({ color3: v })}
+              onReset={c3Inh ? undefined : () => coralClearPeak('color3')}
+              onColorFormatChange={chooseColorFormat}
+            />
+          </div>
+        );
+      }
+    }
+  };
+
   // Bottom swatch behavior: Rest on idle/listening, Peak on thinking/talking
   const swatchValue = (i: 0 | 1 | 2): string => {
     const key = (['color1', 'color2', 'color3'] as const)[i];
@@ -2132,22 +2436,24 @@ export default function RealtimeStates() {
 
       {/* Bottom bar (mirrors GalleryNavBar) */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
-        {/* Single-tab popover — Tube-only. The tab buttons themselves
-            are hidden when Coral is active so this branch can't fire,
-            but we add the activeOrb shader gate defensively. */}
-        {activeOrb?.shader === 'kyoto' && !expanded && activeTab && (
+        {/* Single-tab popover — shader-aware (round-7 F5 gate flip).
+            Dispatches to the appropriate per-shader tab renderer based
+            on activeOrb.shader. Hidden when no orb is selected. */}
+        {activeOrb && !expanded && activeTab && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[50vh] overflow-y-auto">
             <div className="max-w-3xl mx-auto p-4">
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
                 {tabs.find((t) => t.key === activeTab)?.label} — {state}
               </h3>
-              {renderTabControls(activeTab)}
+              {activeOrb.shader === 'coral'
+                ? renderCoralTabControls(activeTab)
+                : renderTabControls(activeTab)}
             </div>
           </div>
         )}
 
-        {/* Expanded 4-column drawer — Tube-only for the same reason. */}
-        {activeOrb?.shader === 'kyoto' && expanded && (
+        {/* Expanded 4-column drawer — shader-aware. */}
+        {activeOrb && expanded && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[60vh] overflow-y-auto">
             <div className="max-w-6xl mx-auto p-4">
               <div className="text-[11px] uppercase tracking-wider text-gray-400 mb-2">
@@ -2159,7 +2465,9 @@ export default function RealtimeStates() {
                     <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
                       {tab.label}
                     </h3>
-                    {renderTabControls(tab.key)}
+                    {activeOrb.shader === 'coral'
+                      ? renderCoralTabControls(tab.key)
+                      : renderTabControls(tab.key)}
                   </div>
                 ))}
               </div>
@@ -2424,48 +2732,40 @@ export default function RealtimeStates() {
 
             <div className="w-px h-6 bg-gray-200" />
 
-            {/* Tab buttons + bottom swatches — Tube-shaped today.
-                When a Coral profile is active they would mutate the
-                Tube `profile` state instead of the active Coral
-                settings, so we hide them entirely until Coral
-                controls land. The user can still Bookmark, Rename,
-                Replay, switch profiles, and use state pills. */}
-            {activeOrb?.shader === 'coral' ? (
-              <div className="flex items-center gap-1 ml-2 text-xs text-gray-400 italic">
-                Coral tuning controls coming next
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-1">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab.key}
-                      onClick={() => toggleTab(tab.key)}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                        activeTab === tab.key
-                          ? 'bg-gray-100 text-gray-800'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+            {/* Tab buttons — shader-aware. Both Tube and Coral show
+                tabs; the Coral renderer (renderCoralTabControls)
+                handles its own slider set per state pill. */}
+            <div className="flex items-center gap-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => toggleTab(tab.key)}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                    activeTab === tab.key
+                      ? 'bg-gray-100 text-gray-800'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-                {/* Bottom swatches (state-aware Rest vs Peak per §4.6) */}
-                <div className="flex items-center gap-1 ml-2">
-                  {([0, 1, 2] as const).map((i) => (
-                    <ColorPickerButton
-                      key={i}
-                      value={swatchValue(i)}
-                      colorFormat={colorFormat}
-                      onChange={(v) => swatchSet(i, v)}
-                      title={state === 'idle' || state === 'listening' ? 'Rest' : 'Peak'}
-                      swatchClassName="h-6 w-6 rounded-full"
-                    />
-                  ))}
-                </div>
-              </>
+            {/* Bottom swatches — Tube-only per round-7 F8. Coral users
+                edit colours from the Colours tab. */}
+            {activeOrb?.shader === 'kyoto' && (
+              <div className="flex items-center gap-1 ml-2">
+                {([0, 1, 2] as const).map((i) => (
+                  <ColorPickerButton
+                    key={i}
+                    value={swatchValue(i)}
+                    colorFormat={colorFormat}
+                    onChange={(v) => swatchSet(i, v)}
+                    title={state === 'idle' || state === 'listening' ? 'Rest' : 'Peak'}
+                    swatchClassName="h-6 w-6 rounded-full"
+                  />
+                ))}
+              </div>
             )}
 
             {/* Pause / resume thinking pulse — only visible while thinking */}
@@ -2534,27 +2834,33 @@ export default function RealtimeStates() {
 
             <div className="flex-1" />
 
-            {/* Discard + Update — Tube-only today. Coral has no editable
-                slider state in this phase, so isDirty for Coral can't
-                fire. Gating on activeOrb shader keeps any future
-                Coral-related dirty signal from accidentally writing
-                Tube state to the Tube file. */}
-            {activeOrb?.shader === 'kyoto' && isDirty && (
+            {/* Discard + Update — shader-aware (Phase 3E). Both shaders
+                use the same BaselineSnapshot dirty contract; routing
+                differs only in which source array + persist endpoint
+                gets the write. */}
+            {isDirty && (
               <>
                 <button
                   onClick={() => {
                     // Plan v8 round-7 F1 — Discard runs the inverse of
                     // a baseline capture: clone baseline.settings back
-                    // into active (mirror + source array), leaving
-                    // baseline untouched. Active becomes equal to
-                    // baseline by clone, isDirty returns false.
-                    if (!activeBaseline || activeBaseline.shader !== 'kyoto') return;
-                    if (activeOrb?.shader !== 'kyoto') return;
-                    const reverted = structuredClone(activeBaseline.settings);
-                    setProfile(reverted);
-                    setKyotoProfiles((arr) =>
-                      arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: reverted } : pr)),
-                    );
+                    // into active source array, leaving baseline
+                    // untouched. Active becomes equal to baseline by
+                    // clone, isDirty returns false.
+                    if (!activeOrb || !activeBaseline) return;
+                    if (activeOrb.shader !== activeBaseline.shader) return;
+                    if (activeOrb.shader === 'kyoto' && activeBaseline.shader === 'kyoto') {
+                      const reverted = structuredClone(activeBaseline.settings);
+                      setProfile(reverted);
+                      setKyotoProfiles((arr) =>
+                        arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: reverted } : pr)),
+                      );
+                    } else if (activeOrb.shader === 'coral' && activeBaseline.shader === 'coral') {
+                      const reverted = structuredClone(activeBaseline.settings);
+                      setCoralProfiles((arr) =>
+                        arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: reverted } : pr)),
+                      );
+                    }
                   }}
                   className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-1"
                   title="Discard unsaved edits and reset to last saved"
