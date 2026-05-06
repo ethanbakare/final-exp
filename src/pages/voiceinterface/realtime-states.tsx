@@ -1140,6 +1140,20 @@ export default function RealtimeStates() {
   };
 
   // ── First-load: fetch + defensive recreate (§10.2) ───────────
+  //
+  // Bug-fix (round 7 testing feedback round 2): in Next.js dev mode
+  // (React StrictMode), useEffect bodies run twice on mount. That means
+  // fetchProfiles fires twice; both .then handlers eventually resolve.
+  // The second resolution would unconditionally re-set activeId/profile
+  // to the array's first entry (Kyoto), CLOBBERING whatever the cascade
+  // had already applied from localStorage.
+  //
+  // Fix: gate the activeId/profile/baseline writes on
+  // cascadeAppliedRef.current. Once cascade has claimed the active
+  // slot, the first-load handler only updates the source array — it
+  // does NOT touch the selection. (The first call still installs an
+  // initial selection so the editor has something to render before
+  // cascade resolves localStorage.)
   useEffect(() => {
     fetchProfiles().then(async (arr) => {
       if (arr.length === 0) {
@@ -1152,17 +1166,21 @@ export default function RealtimeStates() {
         const next = [seedEntry];
         await persistProfiles(next);
         setKyotoProfiles(next);
-        setActiveId(seedEntry.id);
-        setProfile(seedEntry.settings);
-        setActiveBaseline(seedEntry.settings);
-        restartIntro(seedEntry.settings);
+        if (!cascadeAppliedRef.current) {
+          setActiveId(seedEntry.id);
+          setProfile(seedEntry.settings);
+          setActiveBaseline(seedEntry.settings);
+          restartIntro(seedEntry.settings);
+        }
       } else {
         setKyotoProfiles(arr);
-        const first = arr[0];
-        setActiveId(first.id);
-        setProfile(first.settings);
-        setActiveBaseline(first.settings);
-        restartIntro(first.settings);
+        if (!cascadeAppliedRef.current) {
+          const first = arr[0];
+          setActiveId(first.id);
+          setProfile(first.settings);
+          setActiveBaseline(first.settings);
+          restartIntro(first.settings);
+        }
       }
     });
     // Coral profiles loaded separately (parallel file). Failure / empty
