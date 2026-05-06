@@ -1183,6 +1183,60 @@ export default function RealtimeStates() {
     }
   }, []);
 
+  // ── Plan v8 (3D-0 step 2) — localStorage persistence ──────────────
+  //
+  // F3 round 7: editor cascade is `persisted → Kyoto Realtime → first
+  // available` until 3D-1 ships Coral controls. The live page cascade
+  // (different localStorage key) is unchanged at Coral-first.
+  //
+  // Two effects: (1) cascade resolution fires once when orbs first
+  // becomes non-empty, applying the persisted key if it still resolves
+  // — otherwise falls through to the named-default cascade. (2) write
+  // activeOrbKey to localStorage on change, so the next mount's
+  // resolver has something to read.
+  //
+  // The cascade dual-writes to canonical AND mirrors during step 2 so
+  // step 1's invariants hold (mirrors authoritative until step 3).
+  const cascadeAppliedRef = useRef(false);
+  useEffect(() => {
+    if (cascadeAppliedRef.current) return;
+    if (orbs.length === 0) return; // wait for first load
+    cascadeAppliedRef.current = true;
+
+    const persisted = window.localStorage.getItem('realtime-states-active-orb-key');
+    const persistedOrb = persisted
+      ? orbs.find((o) => compositeKey(o) === persisted)
+      : null;
+    const kyotoDefault = orbs.find(
+      (o) => o.shader === 'kyoto' && o.name === REALTIME_SEED_NAME,
+    );
+    const fallback = persistedOrb ?? kyotoDefault ?? orbs[0];
+    if (!fallback) return;
+
+    const targetKey = compositeKey(fallback);
+    if (targetKey === activeOrbKey) return; // already there
+
+    // Canonical write
+    setActiveOrbKey(targetKey);
+    // Mirror dual-write (step 2 — canonical not yet authoritative)
+    if (fallback.shader === 'kyoto') {
+      setActiveShader('kyoto');
+      setActiveId(fallback.id);
+      setActiveCoralId(null);
+      setProfile(fallback.settings);
+      setActiveBaseline(fallback.settings);
+      restartIntro(fallback.settings);
+    } else {
+      setActiveShader('coral');
+      setActiveCoralId(fallback.id);
+    }
+  }, [orbs, activeOrbKey]);
+
+  useEffect(() => {
+    if (!activeOrbKey) return;
+    window.localStorage.setItem('realtime-states-active-orb-key', activeOrbKey);
+  }, [activeOrbKey]);
+
   const chooseColorFormat = (format: ColorFormat) => {
     setColorFormat(format);
     window.localStorage.setItem('realtime-states-color-format', format);
