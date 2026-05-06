@@ -2191,9 +2191,39 @@ export default function RealtimeStates() {
 
       case 'thickness': {
         if (isThinking) {
+          // Phase 4C — Coral thinking-pulse controls. Both fields are
+          // optional in the schema; the value display falls back to
+          // CORAL_PULSE_DEFAULTS so legacy entries lacking the fields
+          // still show a sensible slider position. Edits go through
+          // coralSetBase (already immutable per round-7 F4).
+          const thickEff = baseS.thickRadius ?? CORAL_PULSE_DEFAULTS.thickRadius;
+          const pulseEff = baseS.pulseSpeed ?? CORAL_PULSE_DEFAULTS.pulseSpeed;
           return (
-            <div className="space-y-3 text-xs text-gray-400 italic">
-              Coral has no thinking pulse — uses idle settings.
+            <div className="space-y-3">
+              <SliderRow
+                label="Thick Radius"
+                value={thickEff}
+                min={0.05}
+                max={0.6}
+                step={0.005}
+                onChange={(v) => coralSetBase({ thickRadius: v })}
+              />
+              <SliderRow
+                label="Pulse Speed (thin → thick)"
+                value={pulseEff}
+                min={0.05}
+                max={2.0}
+                step={0.02}
+                unit="s"
+                onChange={(v) => coralSetBase({ pulseSpeed: v })}
+              />
+              {thickEff <= baseS.torusRadius && (
+                <div className="text-[11px] text-amber-600">
+                  Thick Radius should be greater than Torus Radius
+                  ({baseS.torusRadius.toFixed(3)}) for the pulse to be
+                  visible.
+                </div>
+              )}
             </div>
           );
         }
