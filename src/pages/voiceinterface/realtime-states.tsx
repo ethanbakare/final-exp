@@ -1250,7 +1250,17 @@ export default function RealtimeStates() {
     const normalized = normalizeProfileName(name);
     if (!normalized) return false;
     if (externalProfileNames.has(normalized)) return true;
-    return profiles.some((p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized);
+    if (profiles.some((p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized)) {
+      return true;
+    }
+    // Plan v8 (F3): Coral entries must collide with Tube + gallery
+    // names AND with each other. Without this check, two Coral
+    // entries could be renamed to the same name. id space is shared
+    // across Coral + Tube source arrays in practice (uuid-based), so
+    // exceptId disambiguation is safe.
+    return coralProfiles.some(
+      (p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized,
+    );
   };
 
   const pickRealtimeUnusedName = () => {
@@ -1287,12 +1297,13 @@ export default function RealtimeStates() {
     if (!found) return;
     setActiveShader('coral');
     setActiveCoralId(id);
-    // Bump replay counter so the preview canvas remounts and the
-    // sphere → torus intro plays for the new Coral profile.
-    setReplayCounter((c) => c + 1);
-    // Force preview state to idle so goal=1 on remount, otherwise
-    // talking pill would land us at goal=0 with morphRef=0 (no morph).
-    setState('idle');
+    // Plan v8 (F1): same-shader Coral switch is prop-only — no remount,
+    // no intro replay. The new profile's settings flow into the
+    // already-mounted CoralStoneMorph and the orb smoothly transitions
+    // to the new values. Replay button is the only same-shader remount
+    // path. Cross-shader switching (Coral ↔ Kyoto) still remounts
+    // naturally because the canvas branches between two component
+    // types.
     setShowProfileDropdown(false);
   };
 
@@ -1823,7 +1834,12 @@ export default function RealtimeStates() {
               const effColor3 = isTalking ? tlk?.color3 ?? baseS.color3 : baseS.color3;
               return (
                 <CoralStoneMorph
-                  key={`coral-${activeCoralId}-${replayCounter}`}
+                  // Plan v8 (F1): key is replayCounter only — NOT
+                  // activeCoralId. Same-shader Coral A → Coral B is
+                  // prop-only (no remount, no intro). Replay button
+                  // bumps replayCounter and is the sole same-shader
+                  // remount path.
+                  key={`coral-${replayCounter}`}
                   audioData={blobAudioData}
                   goal={isTalking ? 0 : 1}
                   scale={effScale}

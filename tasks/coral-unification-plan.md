@@ -1,13 +1,74 @@
-# Coral Unification Plan (v7)
+# Coral Unification Plan (v8)
 
-> v7 reflects what's actually shipped vs what's next-in-line after the first
-> implementation pass. v1–v6 changelogs kept below for context. v7 changes:
+> v8 incorporates a fifth round of human-reviewer feedback on v7. Three of
+> the nine findings (F1, F3, F6) describe contradictions between what the
+> plan says and what's actually shipped — they require a small code patch
+> alongside the plan amendment. The remaining six are plan-only edits that
+> re-shape the "Next in line" section before Phase 3D implementation
+> starts. v1–v7 changelogs kept below. v8 changes:
+> - **F1 — Same-shader Coral switching contract corrected.** v7's plan
+>   said "no intro on same-shader switch," but the shipped Phase-3c code
+>   bumps `replayCounter` on every Coral selection AND uses
+>   `coral-${activeCoralId}-${replayCounter}` as the canvas key, which
+>   remounts (and replays the intro) every time the user picks a
+>   different Coral profile. Plan and code now reconciled to the original
+>   intent: `selectCoralProfile` does NOT bump `replayCounter`; the
+>   canvas key is `coral-${replayCounter}` only. Replay button is the
+>   sole same-shader remount path. (Code patch ships with v8.)
+> - **F2 — Phase 3D scope expanded with explicit 3D-0 state-model
+>   migration step.** The risky bulk of "Coral controls panel" is not
+>   adding sliders, it's migrating the editor's split state
+>   (`activeId`/`profile`/`activeBaseline` for Kyoto + `activeShader`/
+>   `activeCoralId`/`coralProfiles` for Coral) into a single
+>   `activeOrb`/`activeOrbKey`/shader-aware-baseline model. Now broken
+>   out as **Phase 3D-0** before any UI work. 3D-1 (controls), 3D-2
+>   (save) follow.
+> - **F3 — Cross-source name-collision fix promoted out of 3G.** Coral
+>   rename already persists to the Coral file via Phase 3b; today
+>   `profileNameExists` checks Tube + gallery names but not Coral, so
+>   two Coral entries can be renamed into the same name right now. Fix
+>   shipped as part of v8's code patch (no longer waiting on 3G). 3G is
+>   removed; new-profile validation is folded into 3F.
+> - **F4 — Slider-table row for `morphSpeed` rewritten.** Old row said
+>   "at 0, `delta / 0 → Infinity` and the existing animator handles it
+>   gracefully" — wrong, this contradicts the floor rule stated three
+>   sections above. New row: UI may display 0.00s as "instant," but
+>   both live (`CoralRealtimeBlob`) and editor canvas wrappers must
+>   floor to `Math.max(0.001, ...)` before passing to `CoralStoneMorph`.
+>   Raw 0 is never safe.
+> - **F5 — 3D-1 now lists the exact `activeShader === 'kyoto'` gates
+>   that must flip to shader-aware renderers** (single-tab popover,
+>   expanded drawer, tab buttons + swatches, Update/Discard). Without
+>   this enumeration, Coral controls could be implemented and still be
+>   unreachable from the UI.
+> - **F6 — Implementation-status row corrected.** v7's row said the
+>   interim guard "replaces the placeholder text" — the code actually
+>   *renders* the placeholder text. Wording fixed to "shows placeholder
+>   text 'Coral tuning controls coming next.'"
+> - **F7 — Coral Size editing semantics pinned.** When the Talking pill
+>   is active, the visible Scale control edits `talking.scale` (Peak),
+>   not `base.scale`. To edit `base.scale`, the user must select the
+>   Idle, Listening, or Thinking pill. Stated explicitly to match
+>   Tube's existing Rest/Peak pattern.
+> - **F8 — Coral has no bottom-bar swatches in 3D.** The bottom-bar
+>   swatch shortcut row in the editor is Tube-only and stays gated on
+>   `activeShader === 'kyoto'`. (Tube has 3 swatches; Coral has none.)
+> - **F9 — Speed-slider label difference repeated inside the range
+>   row.** Coral shows literal seconds with no "≈ X.XXs visible" hint;
+>   Tube keeps the tau-derived hint. Stated once at the top of the
+>   slider table and repeated in the `morphSpeed` row to make it
+>   copy-pasteable.
+>
+> v6 → v7 changelog (kept for reference):
+>
+> v7 reflected what's actually shipped vs what's next-in-line after the first
+> implementation pass. v7 changes:
 > - Implementation status table added (top of "Implementation status" section).
 > - Phase 3 split into 3a/3b/3c (shipped) and 3d/3e/3f/3g (next in line).
 > - Interim editor guard: when a Coral profile is active, the Tube-shaped
 >   tabs / expanded panel / Update / Discard buttons are hidden. The user
 >   can Bookmark, Rename, Replay, switch profiles, and use state pills.
->   Replaces the placeholder text "Coral tuning controls coming next".
+>   Shows placeholder text "Coral tuning controls coming next".
 > - The "Note on plan-review limits" gains a fourth round-of-review entry
 >   capturing the user's UX-precision findings (active-shader glyph in
 >   trigger, standalone bookmark, pinned opt-in vs auto-include).
@@ -66,9 +127,9 @@
 > - Temp test route dropped; Phases 2 + 3 merged.
 > - Thumbnail-capture script honestly described as Tube-only (real work to extend).
 
-## Implementation status (as of v7)
+## Implementation status (as of v8)
 
-What has shipped, what's next in line, and what changed during implementation vs the design.
+What has shipped, what's next in line, and what changed during implementation vs the design. v8 reorganizes the "Next in line" section after reviewer feedback (F1–F9) and ships a small code patch alongside the plan amendment.
 
 ### Shipped
 
@@ -79,20 +140,21 @@ What has shipped, what's next in line, and what changed during implementation vs
 | Phase 2.5 (added during impl) | `pinned: boolean` opt-in. Live page strip filters to `pinned===true` so profiles only show on the live page when explicitly pinned. Was originally "auto-show union of both files" in the design — corrected to explicit opt-in after a review round. | `5c4594d` |
 | Phase 3a | Bookmark toggle in editor profile dropdown rows. | `1d92825` |
 | Phase 3b | Coral entries appear in editor dropdown with shader glyphs (`Disc` for Tube/Kyoto in olive, `Circle` for Coral D in peach). Bookmark + rename for Coral entries persist to the Coral file. | `1bb595f` |
-| Phase 3c | Editor preview canvas dispatches by shader (`<CoralStoneMorph>` when Coral active, `<GentleOrbThicken>` when Kyoto). Replay button branches by shader. Coral selection bumps a `replayCounter` keyed on the canvas → morphRef remount → sphere → torus intro. | `3845738` |
+| Phase 3c | Editor preview canvas dispatches by shader (`<CoralStoneMorph>` when Coral active, `<GentleOrbThicken>` when Kyoto). Replay button branches by shader. **v7-shipped behavior:** Coral selection bumped a `replayCounter` keyed on `coral-${activeCoralId}-${replayCounter}`, which remounted on every Coral selection. **v8 corrects this** to match the plan's "no intro on same-shader switch" rule: `selectCoralProfile` no longer bumps `replayCounter`; canvas key is `coral-${replayCounter}` only; Replay button is the sole remount path. | `3845738` (v7) + v8 patch |
 | Standalone UX | Active-shader glyph next to closed-dropdown trigger; standalone bookmark button in bottom bar (next to Replay/Auto-loop). | `a5b9799` |
-| Interim guard | When a Coral profile is active, hide Tube-shaped tabs / expanded panel / Update / Discard buttons. Replace with placeholder text. Prevents accidental edits to Tube state while looking at Coral canvas. | (this milestone commit) |
+| Interim guard | When a Coral profile is active, hide Tube-shaped tabs / expanded panel / Update / Discard buttons. **Shows placeholder text** "Coral tuning controls coming next." (Earlier draft of this row mistakenly said "replaces" — v8 wording corrected.) | `192026f` |
+| **v8 patch — F1 + F3 corrections** | (a) F1: same-shader Coral switch no longer remounts (see Phase 3c row above). (b) F3: `profileNameExists` now checks the Coral source array too — previously two Coral entries could be renamed into the same name. | (v8 commit) |
 
-### Next in line (NOT yet shipped — these are the remaining Phase 3 items)
+### Next in line (NOT yet shipped — remaining Phase 3 items, reorganized in v8)
 
 | Step | Description |
 |---|---|
-| Phase 3d | **Coral controls panel.** Editor's tabs need shader-aware variants for Coral. Per the plan's earlier table: `Scale (base + talking peak)`, `Torus Radius (base)`, `Settle Speed = base.morphSpeed`, `Morph Speed = talking.morphSpeed`, `Wave Intensity (base + talking peak)`, `Breath Amp (base)`, `Idle Amp (base)`, color1/2/3 + bgColor (base) and `color3 (talking peak)`. Slider ranges per the explicit table further below. Today the tabs are simply hidden when Coral is active. |
-| Phase 3e | **Save (Update) routing for Coral edits.** Once Coral controls exist, an `isDirtyCoral` signal compares the active Coral settings against `activeCoralBaseline`. The Update button writes via `persistCoralProfiles` to `realtime-coral-profiles.json`. Discard reverts to baseline. Currently Update/Discard are gated on `activeShader === 'kyoto'`. |
-| Phase 3f | **New-profile shader-choice modal.** "Save current state to new profile" should ask which shader (Tube or Coral) before opening the name input. Same-shader = clone active settings; different-shader = start from that shader's fallback. Today the existing save dialog only creates Tube profiles. |
-| Phase 3g | **Cross-source name-collision validation.** `profileNameExists` currently checks Tube + gallery names; needs to also check Coral entries. Trivial change once 3d/3e land. |
+| **Phase 3D-0** | **Editor state-model migration.** Replace today's split state (`activeId` + `profile` + `activeBaseline` for Kyoto and `activeShader` + `activeCoralId` + `coralProfiles` for Coral) with the unified model the plan describes (`coralProfiles` + `kyotoProfiles` source arrays + derived `orbs` + `activeOrbKey` + shader-aware `activeBaseline: LoadedOrb \| null`). This is the risky bulk of 3D — must land before Coral sliders, otherwise dirty/save/routing bugs are inevitable. |
+| **Phase 3D-1** | **Coral controls panel + UI gates.** Once the state-model migration lands, restore the controls UI for Coral. Slider table per the explicit Coral section below (`Scale`, `Torus Radius`, `Settle Speed`, `Morph Speed`, `Wave Intensity`, `Breath Amp`, `Idle Amp`, colours + `talking` peaks). The exact gates that must flip from `activeShader === 'kyoto'` to shader-aware dispatch: **(1)** the single-tab popover, **(2)** the expanded 4-column drawer, **(3)** the tab buttons themselves, **(4)** Update/Discard buttons (gated on dirty + shader-aware baseline). The bottom-bar 3-swatch shortcut row stays Tube-only (Coral has no bottom swatches in this pass — F8). |
+| **Phase 3E** | **Save (Update) routing for Coral edits.** Once Coral controls exist, `isDirtyCoral` compares active Coral settings against the shader-aware baseline. The Update button writes via `persistCoralProfiles` to `realtime-coral-profiles.json`. Discard reverts to baseline. Currently Update/Discard are gated on `activeShader === 'kyoto'`; that gate flips to "shader-aware dirty + shader-aware persist." |
+| **Phase 3F** | **New-profile shader-choice modal + cross-source name validation in new-profile path.** "Save current state to new profile" asks which shader (Tube or Coral) before opening the name input. Same-shader = clone active settings; different-shader = start from that shader's fallback. **Validation reuses the v8-patched `profileNameExists`** (which now spans Coral + Tube + gallery), so cross-source collision is already correct by the time 3F lands. (Old "Phase 3G" was just this validation; promoted to v8 patch and folded into 3F.) |
 
-### Known limitations of the current shipped state (until 3d–3g land)
+### Known limitations of the current shipped state (until 3D–3F land)
 
 - Coral profile is **viewable** but not **tunable** in the editor — selecting a Coral entry shows the canvas + bookmark + rename, but no slider edits are possible.
 - A user with a saved Coral profile can edit its values directly via JSON file (`realtime-coral-profiles.json`) and refresh; the editor will pick up the change in the dropdown and on the canvas.
@@ -276,7 +338,13 @@ When the user clicks the Coral thumbnail on the live page, `RealtimeBlob` swaps 
 
 **Same-shader profile switch — no intro by default.** Switching Coral A → Coral B (or Tube A → Tube B) in either the live page or the editor does NOT trigger an intro. The reasoning: `activeOrbKey` is the logical identity used for dropdown selection, localStorage, and source-list lookup, but it is **not** used as a React reconciliation `key` on the renderer. Only the *shader* change triggers a component swap (`<CoralRealtimeBlob>` ↔ `<NebularrBlob>` are different component types, so React unmounts + remounts naturally). Same-shader profile A → B is just prop changes flowing into the already-mounted renderer.
 
-Concrete consequence:
+> **v8 reconciliation note (F1).** The v7 implementation in `realtime-states.tsx` violated this rule:
+> - `selectCoralProfile` called `setReplayCounter(c => c + 1)` on every Coral selection.
+> - The canvas key was `coral-${activeCoralId}-${replayCounter}` — `activeCoralId` changing on selection forced a remount even without the counter bump.
+>
+> v8's code patch reconciles both: `selectCoralProfile` no longer touches `replayCounter`, and the canvas key is `coral-${replayCounter}` only. The Replay button is the sole same-shader remount path (it bumps `replayCounter`). Cross-shader switching (Coral ↔ Kyoto) still remounts naturally because the canvas branches between two different component types.
+
+Concrete consequence (after v8 patch):
 
 - Live page: clicking a different Coral thumb when Coral is active → strip selection updates, profile prop changes, orb smoothly transitions to the new profile's values (no intro).
 - Live page: clicking a Tube thumb when Coral is active → component swap, intro plays.
@@ -601,18 +669,20 @@ Tabs stay (Size, Thickness, Motion, Colours). Slider set differs by active shade
 
 | Tab | Controls per pill | Notes |
 |---|---|---|
-| **Size** | Idle/listening/thinking pills: `Scale` editing `base.scale`. Talking pill: `Scale (Peak)` editing `talking.scale` (PeakSliderRow, inherited if unset). All pills also show `Torus Radius` editing `base.torusRadius`. | `talking.scale` is the only Peak slot for size. |
-| **Thickness** | Idle/listening pills: `Settle Speed` (`base.morphSpeed`, literal seconds). Talking pill: `Morph Speed (→ talking)` (`talking.morphSpeed`, inherited if unset). Thinking pill: empty + a small note "Coral has no thinking pulse — uses idle settings". | The `≈ X.XXs visible` hint **does NOT apply to Coral sliders** — Coral's morphSpeed is already literal seconds. |
-| **Motion** | All pills: `Wave Intensity` editing `base.waveIntensity`. Talking pill additionally shows `Wave Intensity (Peak)` editing `talking.waveIntensity`. `Breath Amp` and `Idle Amp` (base only, all pills). | |
+| **Size** | Idle/listening/thinking pills: `Scale` slider edits `base.scale` directly. Talking pill: `Scale (Peak)` edits `talking.scale` (PeakSliderRow, inherited if unset). All pills also show `Torus Radius` editing `base.torusRadius`. | **F7 — base.scale is NOT editable from the Talking pill.** When the Talking pill is active, the only Scale control visible is the Peak (`talking.scale`). To edit `base.scale`, the user selects Idle, Listening, or Thinking. This mirrors Tube's existing Rest/Peak pattern — there is no separate "always-visible Rest/base" Size control on the Talking pill. `talking.scale` is the only Peak slot for size. |
+| **Thickness** | Idle/listening pills: `Settle Speed` slider edits `base.morphSpeed` (literal seconds). Talking pill: `Morph Speed (→ talking)` edits `talking.morphSpeed` (inherited from `base.morphSpeed` if unset). Thinking pill: empty + a small note "Coral has no thinking pulse — uses idle settings." | Coral speed sliders show **literal seconds, no `≈ visible` hint** (see F9 in slider-range table below). |
+| **Motion** | All pills: `Wave Intensity` slider edits `base.waveIntensity` directly. Talking pill additionally shows `Wave Intensity (Peak)` editing `talking.waveIntensity`. `Breath Amp` and `Idle Amp` (base only, shown on all pills). | **F8 — Coral has no bottom-bar swatch shortcut row.** Tube's bottom-bar has 3 swatches (`color1` / `color2` / `color3`) for quick edits without opening the Colours tab. Coral does NOT replicate this in the 3D pass — the swatch row is gated `activeShader === 'kyoto'` and stays Tube-only. Coral users edit colours from the Colours tab. |
 | **Colours** | All pills: `color1` / `color2` / `color3` / `bgColor` (base). Talking pill additionally shows `color3 (Peak)` editing `talking.color3`. | |
 
 Thinking and listening pills for Coral don't have meaningful Peak overrides (Coral has no thinking pulse). Their tabs render as if on idle. The thinking pill shows the "no pulse" note in the Thickness tab so the user understands.
 
 #### Coral slider ranges (explicit)
 
+> **Speed-label rule (F9, repeated for copy-paste safety):** Coral speed sliders display **literal seconds** (e.g., "1.30s"). They do NOT show the "≈ X.XXs visible" hint that Tube speed sliders use. Tube's hint is tau-derived (exponential animator) — not applicable to Coral, which uses linear-advance morph in literal seconds. Implementer copying from the Tube slider markup must strip the `≈ visible` hint when rendering Coral rows.
+
 | Field | min | max | step | Notes |
 |---|---|---|---|---|
-| `morphSpeed` (base + talking) | 0 | 4.0 | 0.02 | Literal seconds for full transition. **At `0`, `delta / 0` → Infinity → `morphRef` snaps to `goal` each frame → effectively instant.** Documented behavior; the existing animator handles it gracefully (`Math.min(1, ...)` / `Math.max(0, ...)` clamps the result). Range matches Tube's speed sliders for muscle-memory consistency. |
+| `morphSpeed` (base + talking) | 0 | 4.0 | 0.02 | Literal seconds for full sphere ↔ torus transition. **F4 — value-zero handling.** The slider may go to `0` and the UI may display `0.00s` as "instant," **but neither the live wrapper (`CoralRealtimeBlob`) nor the editor canvas wrapper passes raw `0` to `CoralStoneMorph`.** Both wrappers apply `Math.max(0.001, effectiveMorphSpeed)` before the prop binding. Reason: `CoralStoneMorph` computes `delta / morphSpeed`; with `morphSpeed === 0` and a non-zero `delta`, the result is `Infinity` (then clamped, fine on its own); with `morphSpeed === 0` AND `delta === 0` (rare but possible — first frame after mount, or under throttling), the result is `NaN`, which propagates to `morphRef` and stays there. The floor is small enough that user-facing `0.00s` still feels instant: at the floor, one 16ms frame moves `morphRef` by `delta / 0.001 = 16`, far past the 0–1 clamp range, so saturation is single-frame. **Raw 0 is never safe; the floor is the contract.** Range matches Tube's speed sliders for muscle-memory consistency. **Label: literal seconds, no `≈ visible` hint** (see speed-label rule above). |
 | `scale` (base + `talking.scale`) | 0.05 | 1.5 | 0.01 | Same range as Tube's Scale. |
 | `torusRadius` (base) | 0.05 | 0.45 | 0.005 | Coral's "ring tightness" — analogous to Tube's tube thickness range. |
 | `waveIntensity` (base + `talking.waveIntensity`) | 0 | 1.0 | 0.01 | Same range as Tube's Wave Intensity. |
@@ -788,6 +858,18 @@ A self-run plan-review skill pass was run on v3 to produce v4. The human reviewe
 Round 4 surfaced a different failure mode: **edits introduce new contradictions if consistency isn't re-checked after each edit pass.** v5 added the same-shader-no-remount rule in one section but didn't propagate the implication back to the earlier `activeOrbKey` description that still called it "the React key." The two sections were separately correct in isolation, contradictory together. Plus a numeric typo (`0.0005` for a `0.001` floor) and a verification mechanism (console assertion in the unchanged shader file) that contradicted the file's "Unchanged" classification.
 
 Lesson: after each substantive edit pass, re-walk Dimension 2 (internal consistency) at minimum — read every paragraph that names the concept being edited, not just the paragraph being edited. The cost is one extra pass; the cost of skipping it is another reviewer round.
+
+### Additional lesson from v7 → v8
+
+Round 5 hit a new failure mode the earlier rounds had not exposed: **plan-vs-code drift after partial implementation.** v7 was correct as a design document, but the Phase 3c commit (`3845738`) shipped same-shader Coral switching with `selectCoralProfile` bumping `replayCounter` AND a canvas key of `coral-${activeCoralId}-${replayCounter}` — both of which directly contradict the plan's "no intro on same-shader switch" rule. v7's "Implementation status" table claimed Phase 3c shipped "as designed," but it didn't. Three findings of this round (F1, F3, F6) are all variants of the same pattern: the plan describes a correct intent; the code actually shipped does something else; the status table records "shipped" without checking which.
+
+Three concrete lessons:
+
+1. **Status-table entries must be checked against the actual code, not the plan.** When marking a phase "shipped," the reviewer (or self-reviewer) should open the relevant file at the named symbol and confirm the behavior matches the plan paragraph that describes it. v7's table conflated "code landed" with "code matches plan." After v8 the rule is: every shipped row links to a commit hash AND cites the source file + symbol the reviewer can open to verify.
+2. **Verbs in the status table matter.** v7 said the interim guard "replaces" the placeholder text, but the code "shows" it. Tiny wording, but the implementation reviewer reads "replaces" as "the placeholder is no longer there" and gets confused. Each status row must use the verb that matches what the code actually does.
+3. **Validation that touches multiple source files must be implemented at the time the first file gets multi-source CRUD, not deferred.** v7 deferred cross-source name validation to Phase 3G, but Phase 3b shipped Coral rename — which is exactly the path that needs the validation. Deferring opened a window where two Coral entries can collide. Rule: when CRUD verbs land, their validation lands the same commit. Don't park validation in a "later" phase if the verb is shipping now.
+
+These three patterns explain why the v8 patch ships *with* the v8 plan amendment rather than after: the plan-amendment-only path would leave the contradictions visible to anyone reading code-vs-plan together.
 
 ## Scope estimate
 
