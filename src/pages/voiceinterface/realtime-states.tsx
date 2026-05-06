@@ -997,6 +997,11 @@ export default function RealtimeStates() {
   // selecting a Coral entry routes bookmark/rename to its file and
   // swaps the canvas to a Coral preview.
   const [coralProfiles, setCoralProfiles] = useState<SavedCoralProfile[]>([]);
+  // Per-source loaded flags. Cascade waits until BOTH are true so that
+  // a persisted key in either file can be resolved without depending
+  // on which fetch resolved first. (Round-7 round-3 race fix.)
+  const [kyotoLoaded, setKyotoLoaded] = useState(false);
+  const [coralLoaded, setCoralLoaded] = useState(false);
   const [activeId, setActiveId] = useState<string>('rt-kyoto');
   // Editor-active shader. 'kyoto' uses the existing JS animator + tube
   // controls; 'coral' renders a Coral preview from the active Coral
@@ -1139,21 +1144,25 @@ export default function RealtimeStates() {
     setRenderNow(talkingRenderForProfile(nextProfile));
   };
 
-  // ── First-load: fetch + defensive recreate (§10.2) ───────────
+  // ── First-load: fetch both source files in parallel ─────────
   //
-  // Bug-fix (round 7 testing feedback round 2): in Next.js dev mode
-  // (React StrictMode), useEffect bodies run twice on mount. That means
-  // fetchProfiles fires twice; both .then handlers eventually resolve.
-  // The second resolution would unconditionally re-set activeId/profile
-  // to the array's first entry (Kyoto), CLOBBERING whatever the cascade
-  // had already applied from localStorage.
+  // Round-7 testing round 3: the prior approach had a race. Cascade
+  // fired as soon as `orbs` became non-empty (i.e., as soon as
+  // EITHER source loaded), so if the persisted key was for a Coral
+  // profile but the Kyoto fetch resolved first, cascade would fail
+  // to find the Coral entry, fall back to Kyoto Realtime, and lock
+  // `cascadeAppliedRef`. When the Coral fetch resolved seconds
+  // later, cascade was already locked — non-deterministic Kyoto
+  // flips on Coral-pinned reloads.
   //
-  // Fix: gate the activeId/profile/baseline writes on
-  // cascadeAppliedRef.current. Once cascade has claimed the active
-  // slot, the first-load handler only updates the source array — it
-  // does NOT touch the selection. (The first call still installs an
-  // initial selection so the editor has something to render before
-  // cascade resolves localStorage.)
+  // New architecture: the first-load handler is responsible ONLY
+  // for populating the source arrays + flipping per-source loaded
+  // flags. It does NOT install any default selection. The cascade
+  // is the sole authority for the active selection and waits until
+  // BOTH `kyotoLoaded` AND `coralLoaded` are true before resolving
+  // localStorage. Until cascade fires, the editor renders the
+  // useState defaults (`activeId='rt-kyoto'`, `profile=KYOTO_SEED`,
+  // etc.) — that's the brief placeholder state on initial load.
   useEffect(() => {
     fetchProfiles().then(async (arr) => {
       if (arr.length === 0) {
@@ -1166,26 +1175,15 @@ export default function RealtimeStates() {
         const next = [seedEntry];
         await persistProfiles(next);
         setKyotoProfiles(next);
-        if (!cascadeAppliedRef.current) {
-          setActiveId(seedEntry.id);
-          setProfile(seedEntry.settings);
-          setActiveBaseline(seedEntry.settings);
-          restartIntro(seedEntry.settings);
-        }
       } else {
         setKyotoProfiles(arr);
-        if (!cascadeAppliedRef.current) {
-          const first = arr[0];
-          setActiveId(first.id);
-          setProfile(first.settings);
-          setActiveBaseline(first.settings);
-          restartIntro(first.settings);
-        }
       }
+      setKyotoLoaded(true);
     });
-    // Coral profiles loaded separately (parallel file). Failure / empty
-    // is fine — just means no Coral entries appear in the dropdown.
-    fetchCoralProfiles().then(setCoralProfiles);
+    fetchCoralProfiles().then((arr) => {
+      setCoralProfiles(arr);
+      setCoralLoaded(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -1207,18 +1205,20 @@ export default function RealtimeStates() {
   // available` until 3D-1 ships Coral controls. The live page cascade
   // (different localStorage key) is unchanged at Coral-first.
   //
-  // Two effects: (1) cascade resolution fires once when orbs first
-  // becomes non-empty, applying the persisted key if it still resolves
-  // — otherwise falls through to the named-default cascade. (2) write
-  // activeOrbKey to localStorage on change, so the next mount's
-  // resolver has something to read.
-  //
-  // The cascade dual-writes to canonical AND mirrors during step 2 so
-  // step 1's invariants hold (mirrors authoritative until step 3).
+  // Round-7 testing round 3 — race fix: cascade now gates on BOTH
+  // `kyotoLoaded` and `coralLoaded` flags rather than on
+  // `orbs.length > 0`. The old gate fired as soon as either source
+  // resolved, which meant a Coral persisted key could fail to
+  // resolve if Kyoto's fetch came back first (cascade locked on
+  // Kyoto fallback before Coral data arrived). Now cascade only
+  // fires once we know BOTH source arrays are populated — including
+  // empty arrays (a load that returned [] still flips its flag, so
+  // cascade can resolve a Kyoto key even when Coral has no entries
+  // and vice versa).
   const cascadeAppliedRef = useRef(false);
   useEffect(() => {
     if (cascadeAppliedRef.current) return;
-    if (orbs.length === 0) return; // wait for first load
+    if (!kyotoLoaded || !coralLoaded) return; // wait for BOTH sources
     cascadeAppliedRef.current = true;
 
     const persisted = window.localStorage.getItem('realtime-states-active-orb-key');
@@ -1232,7 +1232,6 @@ export default function RealtimeStates() {
     if (!fallback) return;
 
     const targetKey = compositeKey(fallback);
-    if (targetKey === activeOrbKey) return; // already there
 
     // Canonical write
     setActiveOrbKey(targetKey);
@@ -1248,7 +1247,7 @@ export default function RealtimeStates() {
       setActiveShader('coral');
       setActiveCoralId(fallback.id);
     }
-  }, [orbs, activeOrbKey]);
+  }, [kyotoLoaded, coralLoaded, orbs]);
 
   useEffect(() => {
     // Bug-fix (round 7 testing feedback): the persist effect must NOT
