@@ -1,14 +1,75 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { RealtimeAgent, RealtimeSession, OpenAIRealtimeWebRTC } from '@openai/agents-realtime';
 // VelvetOrb is shelved — kept in tree at ./orb/VelvetOrb for revert.
-// Active orb is RealtimeBlob (CoralStoneMorph adapter, matches Figma 252×252).
+// Active orb is RealtimeBlob — a shader-aware dispatcher between
+// CoralRealtimeBlob (Coral D shader) and NebularrBlob (Tube/Kyoto shader).
 import {
   RealtimeBlob,
   RealtimeVoiceState as VoiceState,
-  type RealtimeBlobProfile,
+  type RealtimeOrb,
 } from './RealtimeBlob';
 import { NEBULARR_FALLBACK_PROFILE } from './NebularrBlob';
+import { CORAL_FALLBACK_PROFILE, type CoralRealtimeSettings } from './CoralRealtimeBlob';
 import type { LinkedProfile } from './useLinkedProfileAnimator';
+
+/**
+ * Discriminated union for orbs loaded from the studio-profiles API.
+ * Carries enough metadata for both the live thumbnail strip (id, name,
+ * shader for dispatch) and any future editor surface (sourceVariant
+ * for save routing, lastModified for sort).
+ */
+type LoadedOrb =
+  | {
+      shader: 'coral';
+      sourceVariant: 'realtime-coral';
+      id: string;
+      name: string;
+      settings: CoralRealtimeSettings;
+      lastModified: number;
+    }
+  | {
+      shader: 'kyoto';
+      sourceVariant: 'realtime-state';
+      id: string;
+      name: string;
+      settings: LinkedProfile;
+      lastModified: number;
+    };
+
+/** `${sourceVariant}:${id}` — used as React key, dropdown selection,
+ *  and localStorage value. Composite because ids are scoped per file
+ *  and could collide across files. */
+const orbKey = (o: LoadedOrb) => `${o.sourceVariant}:${o.id}`;
+
+/** Slugify a profile name for thumbnail path lookup. "Coral Realtime"
+ *  → "coral-realtime". Matches the on-disk convention. */
+const slug = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+const PLACEHOLDER_THUMB = '/thumbnails/realtime-states/_placeholder.png';
+const thumbSrcFor = (orb: LoadedOrb) =>
+  `/thumbnails/realtime-states/${slug(orb.name)}.png`;
+
+const CORAL_FALLBACK_ORB: LoadedOrb = {
+  shader: 'coral',
+  sourceVariant: 'realtime-coral',
+  id: 'rt-coral-fallback',
+  name: 'Coral Realtime',
+  settings: CORAL_FALLBACK_PROFILE,
+  lastModified: 0,
+};
+
+const NEBULARR_FALLBACK_ORB: LoadedOrb = {
+  shader: 'kyoto',
+  sourceVariant: 'realtime-state',
+  id: 'rt-nebularr-fallback',
+  name: 'Nebularr',
+  settings: NEBULARR_FALLBACK_PROFILE,
+  lastModified: 0,
+};
 import { VoiceStateLabel, VoiceStateLabelState } from './ui/VoiceStateLabel';
 import { MorphingRecordWideSimple } from './ui/voicemorphingbuttons';
 import { AudioData } from '../types';
@@ -86,32 +147,109 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('idle');
   const [error, setError] = useState<string>('');
   const [isConversationActive, setIsConversationActive] = useState<boolean>(false);
-  const [profile, setProfile] = useState<RealtimeBlobProfile>('coral');
-  const [nebularrProfile, setNebularrProfile] = useState<LinkedProfile | null>(null);
+  const [orbs, setOrbs] = useState<LoadedOrb[]>([]);
+  const [activeOrbKey, setActiveOrbKey] = useState<string | null>(null);
 
-  // Fetch the saved Nebularr profile on mount so its bgColor (and
-  // animator targets) are available to the page when the user picks
-  // the Nebularr orb. Falls back to a hardcoded snapshot if the
-  // fetch fails or the profile has been renamed/removed.
+  // Parallel fetch of both shader profile files via Promise.allSettled
+  // so a single failure on one variant doesn't erase the other shader's
+  // entries. Each shader gets an independent fallback if its list is
+  // empty or the request rejects.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    const fetchVariant = async (
+      variant: 'realtime-coral' | 'realtime-state',
+      shader: 'coral' | 'kyoto',
+    ): Promise<LoadedOrb[]> => {
       try {
-        const r = await fetch('/api/studio-profiles?variant=realtime-state');
+        const r = await fetch(`/api/studio-profiles?variant=${variant}`);
         const arr = await r.json();
-        if (cancelled) return;
-        const found = Array.isArray(arr)
-          ? arr.find((p) => typeof p?.name === 'string' && p.name.toLowerCase() === 'nebularr')
-          : null;
-        setNebularrProfile((found?.settings as LinkedProfile) ?? NEBULARR_FALLBACK_PROFILE);
+        if (!Array.isArray(arr)) return [];
+        if (shader === 'coral') {
+          return arr.map((p) => ({
+            shader: 'coral' as const,
+            sourceVariant: 'realtime-coral' as const,
+            id: p.id,
+            name: p.name,
+            settings: p.settings as CoralRealtimeSettings,
+            lastModified: p.lastModified ?? 0,
+          }));
+        }
+        return arr.map((p) => ({
+          shader: 'kyoto' as const,
+          sourceVariant: 'realtime-state' as const,
+          id: p.id,
+          name: p.name,
+          settings: p.settings as LinkedProfile,
+          lastModified: p.lastModified ?? 0,
+        }));
       } catch {
-        if (!cancelled) setNebularrProfile(NEBULARR_FALLBACK_PROFILE);
+        return [];
       }
-    })();
+    };
+
+    Promise.allSettled([
+      fetchVariant('realtime-coral', 'coral'),
+      fetchVariant('realtime-state', 'kyoto'),
+    ]).then(([coralRes, kyotoRes]) => {
+      if (cancelled) return;
+      const coralOrbs =
+        coralRes.status === 'fulfilled' && coralRes.value.length > 0
+          ? coralRes.value
+          : [CORAL_FALLBACK_ORB];
+      const kyotoOrbs =
+        kyotoRes.status === 'fulfilled' && kyotoRes.value.length > 0
+          ? kyotoRes.value
+          : [NEBULARR_FALLBACK_ORB];
+      const merged = [...coralOrbs, ...kyotoOrbs];
+      setOrbs(merged);
+
+      // Default selection: localStorage (composite key) → "Coral Realtime"
+      // entry → first available.
+      const persisted =
+        typeof window !== 'undefined'
+          ? window.localStorage.getItem('realtime-active-orb-key')
+          : null;
+      const persistedExists = persisted && merged.find((o) => orbKey(o) === persisted);
+      const coralDefault = merged.find((o) => o.name === 'Coral Realtime');
+      const fallbackKey = coralDefault
+        ? orbKey(coralDefault)
+        : merged[0]
+        ? orbKey(merged[0])
+        : null;
+      setActiveOrbKey(persistedExists ? persisted! : fallbackKey);
+    });
+
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Persist active orb composite key on change.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !activeOrbKey) return;
+    window.localStorage.setItem('realtime-active-orb-key', activeOrbKey);
+  }, [activeOrbKey]);
+
+  // Derive the active orb + the props passed to RealtimeBlob. The
+  // RealtimeOrb shape (used by the dispatcher) is a one-line projection
+  // of LoadedOrb; this useMemo is the single conversion point between
+  // the two unions.
+  const activeOrb = useMemo(
+    () => orbs.find((o) => orbKey(o) === activeOrbKey) ?? null,
+    [orbs, activeOrbKey],
+  );
+  const realtimeOrb: RealtimeOrb = useMemo(() => {
+    if (!activeOrb) {
+      // Pre-fetch boot state — render Coral fallback so the orb area
+      // doesn't blank out for one render.
+      return { shader: 'coral', profile: CORAL_FALLBACK_PROFILE };
+    }
+    if (activeOrb.shader === 'coral') {
+      return { shader: 'coral', profile: activeOrb.settings };
+    }
+    return { shader: 'kyoto', profile: activeOrb.settings };
+  }, [activeOrb]);
 
   // Audio visualization state
   const [audioData, setAudioData] = useState<AudioData>({ bass: 0, mid: 0, treble: 0, rms: 0 });
@@ -480,12 +618,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     };
   }, []);
 
-  // Card bg stays at its original --VoiceBoxBg (#F7F6F4) for both
+  // Card bg stays at its original --VoiceBoxBg (#F7F6F4) for all
   // profiles — only the page bg behind the card swaps to white.
-  const profileThumbs: { id: RealtimeBlobProfile; src: string; label: string }[] = [
-    { id: 'coral', src: '/thumbnails/realtime-production.png', label: 'Coral' },
-    { id: 'nebularr', src: '/thumbnails/realtime-states/nebularr.png', label: 'Nebularr' },
-  ];
 
   return (
     <>
@@ -498,8 +632,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
               <RealtimeBlob
                 audioData={audioData}
                 voiceState={getVoiceState()}
-                profile={profile}
-                nebularrProfile={nebularrProfile}
+                orb={realtimeOrb}
               />
             </div>
 
@@ -524,21 +657,35 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           )}
         </div>
 
-        {/* Profile strip — pattern lifted from TraceDemo's
-            showcase-sample-strip. Click a thumb to swap the orb. */}
+        {/* Profile strip — data-driven from `orbs` (parallel fetch of
+            realtime-coral + realtime-state). Click a thumb to swap the
+            orb. */}
         <div className="profile-strip" aria-label="Orb profiles">
-          {profileThumbs.map((thumb) => (
-            <button
-              key={thumb.id}
-              type="button"
-              onClick={() => setProfile(thumb.id)}
-              className={`profile-thumb ${profile === thumb.id ? 'is-active' : ''}`}
-              aria-label={`Switch to ${thumb.label} orb`}
-              aria-pressed={profile === thumb.id}
-            >
-              <img src={thumb.src} alt="" draggable={false} />
-            </button>
-          ))}
+          {orbs.map((thumb) => {
+            const key = orbKey(thumb);
+            const isActive = activeOrbKey === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveOrbKey(key)}
+                className={`profile-thumb ${isActive ? 'is-active' : ''}`}
+                aria-label={`Switch to ${thumb.name} orb`}
+                aria-pressed={isActive}
+              >
+                <img
+                  src={thumbSrcFor(thumb)}
+                  alt=""
+                  draggable={false}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (img.src.endsWith(PLACEHOLDER_THUMB)) return;
+                    img.src = PLACEHOLDER_THUMB;
+                  }}
+                />
+              </button>
+            );
+          })}
         </div>
       </div>
 
