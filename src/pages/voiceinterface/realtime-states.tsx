@@ -989,46 +989,92 @@ const PeakColorRow: React.FC<PeakColorRowProps> = ({
 
 // ── Page ─────────────────────────────────────────────────────────
 
-export default function RealtimeStates() {
-  const [kyotoProfiles, setKyotoProfiles] = useState<SavedProfile[]>([]);
-  // Coral profiles live in a parallel file. Read here so the dropdown
-  // can show them with shader glyphs and the bookmark toggle works for
-  // both shaders. Editing Coral controls is a separate phase — for now
-  // selecting a Coral entry routes bookmark/rename to its file and
-  // swaps the canvas to a Coral preview.
-  const [coralProfiles, setCoralProfiles] = useState<SavedCoralProfile[]>([]);
-  // Per-source loaded flags. Cascade waits until BOTH are true so that
-  // a persisted key in either file can be resolved without depending
-  // on which fetch resolved first. (Round-7 round-3 race fix.)
-  const [kyotoLoaded, setKyotoLoaded] = useState(false);
-  const [coralLoaded, setCoralLoaded] = useState(false);
+/**
+ * Plan v8 first-paint flash fix (v2.2) — Editor-page skeleton.
+ *
+ * Rendered by the parent <RealtimeStates> while the cascade is
+ * resolving the persisted active orb. Honest "loading" state: a
+ * neutral page background + an empty canvas-sized slot. No bottom
+ * bar (the real one is position: fixed, so its absence/presence
+ * doesn't reflow other content). No profile-dependent content,
+ * which means no Kyoto-vs-Coral flash before cascade applies.
+ *
+ * Once cascadeReady flips true, parent unmounts the skeleton and
+ * mounts <RealtimeStatesEditor> with the resolved activeOrb +
+ * activeBaseline as props. The child's useState hooks initialize
+ * from real data (no stale-fallback first frame).
+ */
+const RealtimeStatesSkeleton: React.FC = () => (
+  <div
+    style={{
+      minHeight: '100vh',
+      background: '#fafafa',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 24,
+      padding: '48px 16px 200px',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    }}
+  >
+    <div style={{ width: 328, height: 328 }} />
+  </div>
+);
+
+/**
+ * Props passed from <RealtimeStates> (parent — owns the data layer)
+ * to <RealtimeStatesEditor> (child — owns visual + animator + JSX).
+ *
+ * The parent guarantees activeOrb is non-null before mounting the
+ * child. activeBaseline is null on initial mount only when fallback
+ * resolution failed (degenerate state — shouldn't happen because
+ * the seed handler creates a Kyoto entry on empty fetch).
+ */
+interface EditorProps {
+  activeOrb: LoadedOrb;
+  activeBaseline: BaselineSnapshot | null;
+  setActiveBaseline: React.Dispatch<React.SetStateAction<BaselineSnapshot | null>>;
+  setActiveOrbKey: React.Dispatch<React.SetStateAction<string | null>>;
+  kyotoProfiles: SavedProfile[];
+  setKyotoProfiles: React.Dispatch<React.SetStateAction<SavedProfile[]>>;
+  coralProfiles: SavedCoralProfile[];
+  setCoralProfiles: React.Dispatch<React.SetStateAction<SavedCoralProfile[]>>;
+  externalProfileNames: Set<string>;
+  colorFormat: ColorFormat;
+  setColorFormat: React.Dispatch<React.SetStateAction<ColorFormat>>;
+}
+
+function RealtimeStatesEditor({
+  activeOrb,
+  activeBaseline,
+  setActiveBaseline,
+  setActiveOrbKey,
+  kyotoProfiles,
+  setKyotoProfiles,
+  coralProfiles,
+  setCoralProfiles,
+  externalProfileNames,
+  colorFormat,
+  setColorFormat,
+}: EditorProps) {
   // Replay counter for Coral (forces canvas remount → morphRef resets
   // to 0 → sphere → torus intro replays).
   const [replayCounter, setReplayCounter] = useState(0);
-  // Plan v8 (3D-0 step 4 + round-7 F1) — BaselineSnapshot. Inspects
-  // only `settings` for dirty comparison — `name` / `pinned` /
-  // `lastModified` / `sourceVariant` changes do NOT mark the editor
-  // dirty.
-  const [activeBaseline, setActiveBaseline] = useState<BaselineSnapshot | null>(null);
-
-  // ── Plan v8 (3D-0) — canonical state ──────────────────────────────
-  //
-  // `activeOrbKey` (composite `${sourceVariant}:${id}`) is the single
-  // source of truth for selection. `orbs` is the unified discriminated
-  // union over both source files (kyotoProfiles + coralProfiles).
-  // `activeOrb` resolves the key against orbs. `profile` is kept as a
-  // derived useMemo for the Tube tab renderer's existing `profile.X`
-  // bindings — falls back to KYOTO_SEED when no Kyoto orb is active.
-  // No more mirror state (activeId / activeShader / activeCoralId /
-  // profile-as-state) — those were removed in step 5.
-  const [activeOrbKey, setActiveOrbKey] = useState<string | null>(
-    () => `realtime-state:rt-kyoto`,
-  );
   const [state, setState] = useState<PreviewState>('idle');
   const [autoLoop, setAutoLoop] = useState(false);
   const [audioActive, setAudioActive] = useState(false);
   const [audioData, setAudioData] = useState<AudioData>(SILENT);
-  const [render, setRender] = useState<RenderValues>(() => talkingRenderForProfile(KYOTO_SEED));
+  // Plan v2.2 first-paint fix — render lazy-init seeds from the
+  // RESOLVED active profile (passed in as a prop). Tube path: render
+  // starts at talking values for the active Kyoto profile so the
+  // first paint matches the morph that follows. Coral path: render
+  // isn't read by the Coral canvas, but the lazy-init still resolves
+  // a sensible value from KYOTO_SEED.
+  const [render, setRender] = useState<RenderValues>(() =>
+    activeOrb.shader === 'kyoto'
+      ? talkingRenderForProfile(activeOrb.settings)
+      : talkingRenderForProfile(KYOTO_SEED),
+  );
   const [activeTab, setActiveTab] = useState<ControlTab | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -1039,10 +1085,8 @@ export default function RealtimeStates() {
   // for the new entry (defaults to the active shader on dialog open).
   const [saveStep, setSaveStep] = useState<'shader' | 'name'>('shader');
   const [saveShader, setSaveShader] = useState<'kyoto' | 'coral'>('kyoto');
-  const [externalProfileNames, setExternalProfileNames] = useState<Set<string>>(new Set());
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
-  const [colorFormat, setColorFormat] = useState<ColorFormat>('hex');
   const [thinkingPaused, setThinkingPaused] = useState(false);
 
   // profileRef initialized to KYOTO_SEED; the per-render assignment
@@ -1062,7 +1106,15 @@ export default function RealtimeStates() {
   // lets talking → idle settle on talking.settleSpeed instead of the
   // target's own thickenSpeed (which for Nebularr is 0 → instant snap).
   const previousStateRef = useRef<PreviewState>(state);
-  const activeTauOverrideRef = useRef<number | null>(null);
+  // Plan v2.2 first-paint fix — initialize the talking-exit tau
+  // override from the RESOLVED Kyoto profile so the first morph back
+  // to idle uses the correct settle speed. For Coral activeOrb this
+  // is null (Coral has its own native morph; this ref isn't read).
+  const activeTauOverrideRef = useRef<number | null>(
+    activeOrb.shader === 'kyoto'
+      ? activeOrb.settings.talking.settleSpeed ?? activeOrb.settings.base.thickenSpeed
+      : null,
+  );
 
   stateRef.current = state;
   renderRef.current = render;
@@ -1070,9 +1122,9 @@ export default function RealtimeStates() {
   // ── Plan v8 (3D-0 step 1) — derived canonical projections ─────────
   //
   // `orbs` is the unified read-side projection of both source arrays
-  // into the LoadedOrb discriminated union. `activeOrb` resolves the
-  // canonical key against the unified list. Both are computed lazily
-  // and stay null until source arrays load.
+  // into the LoadedOrb discriminated union. activeOrb is passed in as
+  // a prop by the parent (already resolved before this child mounts —
+  // see RealtimeStates parent and the cascadeReady gate).
   const orbs = useMemo<LoadedOrb[]>(() => {
     const kyotoOrbs: LoadedOrb[] = kyotoProfiles.map((p) => ({
       shader: 'kyoto' as const,
@@ -1095,19 +1147,12 @@ export default function RealtimeStates() {
     return [...kyotoOrbs, ...coralOrbs];
   }, [kyotoProfiles, coralProfiles]);
 
-  const activeOrb = useMemo<LoadedOrb | null>(() => {
-    if (!activeOrbKey) return null;
-    return orbs.find((o) => compositeKey(o) === activeOrbKey) ?? null;
-  }, [orbs, activeOrbKey]);
-
-  // Plan v8 (3D-0 step 5) — `profile` is now derived from activeOrb,
-  // not its own state. Tube tab renderer reads `profile.base.X` etc.;
-  // this useMemo keeps those bindings working without rewriting them.
-  // Falls back to KYOTO_SEED when activeOrb is null or shader is
-  // 'coral' (Tube renderer is gated and won't read profile in that
-  // case anyway, but the fallback prevents crashes).
+  // `profile` derives from activeOrb; for Coral activeOrb the Tube
+  // tab renderer's `profile.X` bindings fall back to KYOTO_SEED (Tube
+  // renderer is gated to Kyoto activeOrb anyway — fallback just
+  // prevents crashes).
   const profile = useMemo<LinkedProfile>(() => {
-    return activeOrb?.shader === 'kyoto' ? activeOrb.settings : KYOTO_SEED;
+    return activeOrb.shader === 'kyoto' ? activeOrb.settings : KYOTO_SEED;
   }, [activeOrb]);
 
   // Sync profileRef to the derived `profile` each render so the
@@ -1139,131 +1184,35 @@ export default function RealtimeStates() {
     setRenderNow(talkingRenderForProfile(nextProfile));
   };
 
-  // ── First-load: fetch both source files in parallel ─────────
-  //
-  // Round-7 testing round 3: the prior approach had a race. Cascade
-  // fired as soon as `orbs` became non-empty (i.e., as soon as
-  // EITHER source loaded), so if the persisted key was for a Coral
-  // profile but the Kyoto fetch resolved first, cascade would fail
-  // to find the Coral entry, fall back to Kyoto Realtime, and lock
-  // `cascadeAppliedRef`. When the Coral fetch resolved seconds
-  // later, cascade was already locked — non-deterministic Kyoto
-  // flips on Coral-pinned reloads.
-  //
-  // New architecture: the first-load handler is responsible ONLY
-  // for populating the source arrays + flipping per-source loaded
-  // flags. It does NOT install any default selection. The cascade
-  // is the sole authority for the active selection and waits until
-  // BOTH `kyotoLoaded` AND `coralLoaded` are true before resolving
-  // localStorage. Until cascade fires, the editor renders the
-  // useState defaults (`activeId='rt-kyoto'`, `profile=KYOTO_SEED`,
-  // etc.) — that's the brief placeholder state on initial load.
-  useEffect(() => {
-    fetchProfiles().then(async (arr) => {
-      if (arr.length === 0) {
-        const seedEntry: SavedProfile = {
-          id: 'rt-kyoto',
-          name: REALTIME_SEED_NAME,
-          settings: KYOTO_SEED,
-          lastModified: Date.now(),
-        };
-        const next = [seedEntry];
-        await persistProfiles(next);
-        setKyotoProfiles(next);
-      } else {
-        setKyotoProfiles(arr);
-      }
-      setKyotoLoaded(true);
-    });
-    fetchCoralProfiles().then((arr) => {
-      setCoralProfiles(arr);
-      setCoralLoaded(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    Promise.all(Object.values(GALLERY_API_KEYS).map(fetchProfileNames)).then((groups) => {
-      setExternalProfileNames(new Set(groups.flat().map(normalizeProfileName)));
-    });
-  }, []);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem('realtime-states-color-format');
-    if (stored && COLOR_FORMATS.includes(stored as ColorFormat)) {
-      setColorFormat(stored as ColorFormat);
-    }
-  }, []);
-
-  // ── Plan v8 (3D-0 step 2) — localStorage persistence ──────────────
-  //
-  // F3 round 7: editor cascade is `persisted → Kyoto Realtime → first
-  // available` until 3D-1 ships Coral controls. The live page cascade
-  // (different localStorage key) is unchanged at Coral-first.
-  //
-  // Round-7 testing round 3 — race fix: cascade now gates on BOTH
-  // `kyotoLoaded` and `coralLoaded` flags rather than on
-  // `orbs.length > 0`. The old gate fired as soon as either source
-  // resolved, which meant a Coral persisted key could fail to
-  // resolve if Kyoto's fetch came back first (cascade locked on
-  // Kyoto fallback before Coral data arrived). Now cascade only
-  // fires once we know BOTH source arrays are populated — including
-  // empty arrays (a load that returned [] still flips its flag, so
-  // cascade can resolve a Kyoto key even when Coral has no entries
-  // and vice versa).
-  const cascadeAppliedRef = useRef(false);
-  useEffect(() => {
-    if (cascadeAppliedRef.current) return;
-    if (!kyotoLoaded || !coralLoaded) return; // wait for BOTH sources
-    cascadeAppliedRef.current = true;
-
-    const persisted = window.localStorage.getItem('realtime-states-active-orb-key');
-    const persistedOrb = persisted
-      ? orbs.find((o) => compositeKey(o) === persisted)
-      : null;
-    const kyotoDefault = orbs.find(
-      (o) => o.shader === 'kyoto' && o.name === REALTIME_SEED_NAME,
-    );
-    const fallback = persistedOrb ?? kyotoDefault ?? orbs[0];
-    if (!fallback) return;
-
-    const targetKey = compositeKey(fallback);
-
-    // Canonical write — `profile` is derived from activeOrb so no
-    // mirror dual-write needed. Just snapshot baseline + intro.
-    setActiveOrbKey(targetKey);
-    if (fallback.shader === 'kyoto') {
-      setActiveBaseline({
-        key: targetKey,
-        shader: 'kyoto',
-        settings: structuredClone(fallback.settings),
-      });
-      restartIntro(fallback.settings);
-    } else {
-      setActiveBaseline({
-        key: targetKey,
-        shader: 'coral',
-        settings: structuredClone(fallback.settings),
-      });
-    }
-  }, [kyotoLoaded, coralLoaded, orbs]);
-
-  useEffect(() => {
-    // Bug-fix (round 7 testing feedback): the persist effect must NOT
-    // run before the cascade has had a chance to read localStorage.
-    // Otherwise the default activeOrbKey ('realtime-state:rt-kyoto')
-    // gets written on mount, blowing away the user's previous selection
-    // before the cascade can pick it up. Gate on cascadeAppliedRef so
-    // persist only kicks in once the cascade has finished its
-    // first-resolution pass.
-    if (!cascadeAppliedRef.current) return;
-    if (!activeOrbKey) return;
-    window.localStorage.setItem('realtime-states-active-orb-key', activeOrbKey);
-  }, [activeOrbKey]);
+  // First-load fetch, gallery names, color-format localStorage, the
+  // cascade-once effect, and the persist-on-change effect all live
+  // in the parent <RealtimeStates> component. By the time this child
+  // mounts, activeOrbKey + activeBaseline have already been resolved
+  // and source arrays are loaded.
 
   const chooseColorFormat = (format: ColorFormat) => {
     setColorFormat(format);
     window.localStorage.setItem('realtime-states-color-format', format);
   };
+
+  // Plan v2.2 first-paint fix — post-mount restartIntro for Kyoto
+  // activeOrb identity changes. First mount is handled by lazy
+  // useState init above (render seeds from activeOrb.settings,
+  // activeTauOverrideRef seeds from talking.settleSpeed). Subsequent
+  // changes (selectProfile / handleSave / etc. mutate parent state →
+  // activeOrb prop changes) trigger restartIntro for Kyoto only.
+  // Coral keeps its existing replayCounter mechanism for explicit
+  // Replay; same-shader Coral switching stays prop-only per F1.
+  const isFirstEditorRenderRef = useRef(true);
+  useEffect(() => {
+    if (isFirstEditorRenderRef.current) {
+      isFirstEditorRenderRef.current = false;
+      return;
+    }
+    if (activeOrb.shader === 'kyoto') {
+      restartIntro(activeOrb.settings);
+    }
+  }, [activeOrb.id, activeOrb.shader]);
 
   // Audio data polling
   useEffect(() => {
@@ -3129,5 +3078,176 @@ export default function RealtimeStates() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Parent component (default export). Owns the data layer + cascade
+ * + cascadeReady gate. Renders <RealtimeStatesSkeleton /> until the
+ * cascade resolves the persisted active orb, then mounts
+ * <RealtimeStatesEditor> with the resolved data as props.
+ *
+ * Plan v8 first-paint flash fix v2.2 — child only mounts when
+ * `activeOrb` is non-null and `cascadeReady === true`. The child's
+ * eased hooks therefore initialize from real data on first render
+ * (no stale-fallback frame).
+ */
+export default function RealtimeStates() {
+  const [kyotoProfiles, setKyotoProfiles] = useState<SavedProfile[]>([]);
+  const [coralProfiles, setCoralProfiles] = useState<SavedCoralProfile[]>([]);
+  // Per-source loaded flags. Cascade waits for BOTH so a persisted
+  // key in either file resolves regardless of which fetch wins the
+  // race. (Round-7 round-3 fix.)
+  const [kyotoLoaded, setKyotoLoaded] = useState(false);
+  const [coralLoaded, setCoralLoaded] = useState(false);
+  // activeOrbKey starts null. Cascade fills it. The child mounts
+  // only after activeOrb resolves to non-null AND cascadeReady is
+  // true.
+  const [activeOrbKey, setActiveOrbKey] = useState<string | null>(null);
+  const [activeBaseline, setActiveBaseline] = useState<BaselineSnapshot | null>(null);
+  const [cascadeReady, setCascadeReady] = useState(false);
+  const [externalProfileNames, setExternalProfileNames] = useState<Set<string>>(new Set());
+  // Plan v2.2 round-3 F4 — colorFormat lazy-init reads localStorage
+  // synchronously so first paint matches the persisted format. The
+  // old useEffect that read localStorage post-mount caused a brief
+  // HEX-flash for HSL/HSB users.
+  const [colorFormat, setColorFormat] = useState<ColorFormat>(() => {
+    if (typeof window === 'undefined') return 'hex';
+    const stored = window.localStorage.getItem('realtime-states-color-format');
+    return stored && COLOR_FORMATS.includes(stored as ColorFormat)
+      ? (stored as ColorFormat)
+      : 'hex';
+  });
+
+  // First-load: fetch both source files in parallel. The cascade
+  // useEffect below waits until BOTH flip true.
+  useEffect(() => {
+    fetchProfiles().then(async (arr) => {
+      if (arr.length === 0) {
+        const seedEntry: SavedProfile = {
+          id: 'rt-kyoto',
+          name: REALTIME_SEED_NAME,
+          settings: KYOTO_SEED,
+          lastModified: Date.now(),
+        };
+        const next = [seedEntry];
+        await persistProfiles(next);
+        setKyotoProfiles(next);
+      } else {
+        setKyotoProfiles(arr);
+      }
+      setKyotoLoaded(true);
+    });
+    fetchCoralProfiles().then((arr) => {
+      setCoralProfiles(arr);
+      setCoralLoaded(true);
+    });
+  }, []);
+
+  // Gallery names for cross-source name-collision validation.
+  useEffect(() => {
+    Promise.all(Object.values(GALLERY_API_KEYS).map(fetchProfileNames)).then((groups) => {
+      setExternalProfileNames(new Set(groups.flat().map(normalizeProfileName)));
+    });
+  }, []);
+
+  // Derived orbs list (passed to child as activeOrb prop after
+  // resolution; child also re-derives orbs internally for the
+  // dropdown).
+  const orbs = useMemo<LoadedOrb[]>(() => {
+    const kyotoOrbs: LoadedOrb[] = kyotoProfiles.map((p) => ({
+      shader: 'kyoto' as const,
+      sourceVariant: 'realtime-state' as const,
+      id: p.id,
+      name: p.name,
+      pinned: p.pinned === true,
+      settings: p.settings,
+      lastModified: p.lastModified,
+    }));
+    const coralOrbs: LoadedOrb[] = coralProfiles.map((p) => ({
+      shader: 'coral' as const,
+      sourceVariant: 'realtime-coral' as const,
+      id: p.id,
+      name: p.name,
+      pinned: p.pinned === true,
+      settings: p.settings,
+      lastModified: p.lastModified,
+    }));
+    return [...kyotoOrbs, ...coralOrbs];
+  }, [kyotoProfiles, coralProfiles]);
+
+  const activeOrb = useMemo<LoadedOrb | null>(() => {
+    if (!activeOrbKey) return null;
+    return orbs.find((o) => compositeKey(o) === activeOrbKey) ?? null;
+  }, [orbs, activeOrbKey]);
+
+  // Cascade-once: resolves localStorage → "Kyoto Realtime" →
+  // first available, applies via setActiveOrbKey + setActiveBaseline,
+  // and flips cascadeReady at the END of the success path (round-2
+  // F1 / round-3 F1 timing).
+  const cascadeAppliedRef = useRef(false);
+  useEffect(() => {
+    if (cascadeAppliedRef.current) return;
+    if (!kyotoLoaded || !coralLoaded) return; // wait for BOTH sources
+
+    const persisted = window.localStorage.getItem('realtime-states-active-orb-key');
+    const persistedOrb = persisted
+      ? orbs.find((o) => compositeKey(o) === persisted)
+      : null;
+    const kyotoDefault = orbs.find(
+      (o) => o.shader === 'kyoto' && o.name === REALTIME_SEED_NAME,
+    );
+    const fallback = persistedOrb ?? kyotoDefault ?? orbs[0];
+    if (!fallback) return; // degenerate state — skeleton persists
+
+    cascadeAppliedRef.current = true;
+    const targetKey = compositeKey(fallback);
+
+    setActiveOrbKey(targetKey);
+    setActiveBaseline({
+      key: targetKey,
+      shader: fallback.shader,
+      settings: structuredClone(fallback.settings),
+    } as BaselineSnapshot);
+
+    // Flip cascadeReady LAST, after activeOrbKey + baseline have
+    // been scheduled. Triggers child mount on next render.
+    setCascadeReady(true);
+
+    // Temporary verification log (round-3 F3 — uses targetKey +
+    // persisted, both in scope here). Remove after confirming the
+    // first-paint fix works on persisted Coral and persisted
+    // Nebularr.
+    if (typeof window !== 'undefined') {
+      console.log('cascade resolved: target=', targetKey, 'persisted=', persisted);
+    }
+  }, [kyotoLoaded, coralLoaded, orbs]);
+
+  // Persist activeOrbKey on change. Gated on cascadeReady so the
+  // initial null doesn't blow away the user's saved selection.
+  useEffect(() => {
+    if (!cascadeReady) return;
+    if (!activeOrbKey) return;
+    window.localStorage.setItem('realtime-states-active-orb-key', activeOrbKey);
+  }, [activeOrbKey, cascadeReady]);
+
+  if (!cascadeReady || !activeOrb) {
+    return <RealtimeStatesSkeleton />;
+  }
+
+  return (
+    <RealtimeStatesEditor
+      activeOrb={activeOrb}
+      activeBaseline={activeBaseline}
+      setActiveBaseline={setActiveBaseline}
+      setActiveOrbKey={setActiveOrbKey}
+      kyotoProfiles={kyotoProfiles}
+      setKyotoProfiles={setKyotoProfiles}
+      coralProfiles={coralProfiles}
+      setCoralProfiles={setCoralProfiles}
+      externalProfileNames={externalProfileNames}
+      colorFormat={colorFormat}
+      setColorFormat={setColorFormat}
+    />
   );
 }
