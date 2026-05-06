@@ -15,14 +15,14 @@
         "color2": "#ffa279",
         "color3": "#ffc4c4",
         "bgColor": "#f7f6f4",
-        "thickRadius": 0.45,
-        "pulseSpeed": 0.6
+        "thickRadius": 0.35000000000000003,
+        "pulseSpeed": 1.2
       },
       "talking": {
         "morphSpeed": 0.54,
         "waveIntensity": 0.2
       }
     },
-    "lastModified": 1778060000000
+    "lastModified": 1778090542614
   }
 ]
