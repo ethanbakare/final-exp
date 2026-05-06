@@ -21,8 +21,13 @@
 >   (`activeId`/`profile`/`activeBaseline` for Kyoto + `activeShader`/
 >   `activeCoralId`/`coralProfiles` for Coral) into a single
 >   `activeOrb`/`activeOrbKey`/shader-aware-baseline model. Now broken
->   out as **Phase 3D-0** before any UI work. 3D-1 (controls), 3D-2
->   (save) follow.
+>   out as **Phase 3D-0** before any UI work. **3D-1** (controls + UI
+>   gates), **3E** (save routing), **3F** (new-profile modal + name
+>   validation in new-profile path) follow. v8 phase numbering uses
+>   uppercase `3D-0 / 3D-1 / 3E / 3F` consistently — the lowercase
+>   `3a / 3b / 3c` numbering in the Shipped table is kept as historical
+>   record (those rows reference real past commits and are not edited
+>   retroactively).
 > - **F3 — Cross-source name-collision fix promoted out of 3G.** Coral
 >   rename already persists to the Coral file via Phase 3b; today
 >   `profileNameExists` checks Tube + gallery names but not Coral, so
@@ -38,9 +43,10 @@
 >   Raw 0 is never safe.
 > - **F5 — 3D-1 now lists the exact `activeShader === 'kyoto'` gates
 >   that must flip to shader-aware renderers** (single-tab popover,
->   expanded drawer, tab buttons + swatches, Update/Discard). Without
->   this enumeration, Coral controls could be implemented and still be
->   unreachable from the UI.
+>   expanded drawer, tab buttons, Update/Discard). The bottom-bar
+>   3-swatch shortcut row is intentionally NOT in this list — it stays
+>   Tube-only (see F8). Without this enumeration, Coral controls could
+>   be implemented and still be unreachable from the UI.
 > - **F6 — Implementation-status row corrected.** v7's row said the
 >   interim guard "replaces the placeholder text" — the code actually
 >   *renders* the placeholder text. Wording fixed to "shows placeholder
@@ -149,12 +155,12 @@ What has shipped, what's next in line, and what changed during implementation vs
 
 | Step | Description |
 |---|---|
-| **Phase 3D-0** | **Editor state-model migration.** Replace today's split state (`activeId` + `profile` + `activeBaseline` for Kyoto and `activeShader` + `activeCoralId` + `coralProfiles` for Coral) with the unified model the plan describes (`coralProfiles` + `kyotoProfiles` source arrays + derived `orbs` + `activeOrbKey` + shader-aware `activeBaseline: LoadedOrb \| null`). This is the risky bulk of 3D — must land before Coral sliders, otherwise dirty/save/routing bugs are inevitable. |
+| **Phase 3D-0** | **Editor state-model migration.** Replace today's split state (`activeId` + `profile` + `activeBaseline` for Kyoto and `activeShader` + `activeCoralId` + `coralProfiles` for Coral) with the unified model the plan describes (`coralProfiles` + `kyotoProfiles` source arrays + derived `orbs` + `activeOrbKey` + shader-aware `activeBaseline: LoadedOrb \| null`). This is the risky bulk of 3D — must land before Coral sliders, otherwise dirty/save/routing bugs are inevitable. **See "Editor state-model migration (read this first)" further down for the full contract**, including which legacy variables are removed, which become derived `useMemo`s for compat, and the migration-order steps. |
 | **Phase 3D-1** | **Coral controls panel + UI gates.** Once the state-model migration lands, restore the controls UI for Coral. Slider table per the explicit Coral section below (`Scale`, `Torus Radius`, `Settle Speed`, `Morph Speed`, `Wave Intensity`, `Breath Amp`, `Idle Amp`, colours + `talking` peaks). The exact gates that must flip from `activeShader === 'kyoto'` to shader-aware dispatch: **(1)** the single-tab popover, **(2)** the expanded 4-column drawer, **(3)** the tab buttons themselves, **(4)** Update/Discard buttons (gated on dirty + shader-aware baseline). The bottom-bar 3-swatch shortcut row stays Tube-only (Coral has no bottom swatches in this pass — F8). |
 | **Phase 3E** | **Save (Update) routing for Coral edits.** Once Coral controls exist, `isDirtyCoral` compares active Coral settings against the shader-aware baseline. The Update button writes via `persistCoralProfiles` to `realtime-coral-profiles.json`. Discard reverts to baseline. Currently Update/Discard are gated on `activeShader === 'kyoto'`; that gate flips to "shader-aware dirty + shader-aware persist." |
 | **Phase 3F** | **New-profile shader-choice modal + cross-source name validation in new-profile path.** "Save current state to new profile" asks which shader (Tube or Coral) before opening the name input. Same-shader = clone active settings; different-shader = start from that shader's fallback. **Validation reuses the v8-patched `profileNameExists`** (which now spans Coral + Tube + gallery), so cross-source collision is already correct by the time 3F lands. (Old "Phase 3G" was just this validation; promoted to v8 patch and folded into 3F.) |
 
-### Known limitations of the current shipped state (until 3D–3F land)
+### Known limitations of the current shipped state (until 3D-0 / 3D-1 / 3E / 3F land)
 
 - Coral profile is **viewable** but not **tunable** in the editor — selecting a Coral entry shows the canvas + bookmark + rename, but no slider edits are possible.
 - A user with a saved Coral profile can edit its values directly via JSON file (`realtime-coral-profiles.json`) and refresh; the editor will pick up the change in the dropdown and on the canvas.
@@ -552,6 +558,38 @@ The editor today is ~1900 lines and its entire state machine assumes a Tube/Kyot
 
 The combined `orbs` list is a derived view (`useMemo`) over the two source arrays, exactly as in `VoiceRealtimeOpenAI`. `activeOrb` is derived from `activeOrbKey + orbs`.
 
+**Removed vs derived variables (3D-0 contract).**
+
+| Variable today | After 3D-0 | Why |
+|---|---|---|
+| `activeId: string` | **Removed.** All references switch to `activeOrbKey`. | A composite key already encodes the same identity; keeping both is redundant and a likely bug source if they drift. |
+| `activeShader: 'coral' \| 'kyoto'` | **Derived (`useMemo`).** `activeShader = activeOrb?.shader ?? 'kyoto'`. | The shader is a property of the active orb; storing it separately can drift from `activeOrbKey`. Keep the read API but compute it. |
+| `activeCoralId: string \| null` | **Removed.** All references replaced with `activeOrbKey` lookup or `activeOrb.id` if shader is coral. | Same as `activeId` — composite key already encodes this. |
+| `profile: LinkedProfile` | **Removed.** Reads switch to `activeOrb.shader === 'kyoto' ? activeOrb.settings : null`. Writes (slider edits) go through `kyotoSetPeak` / `kyotoClear`-style helpers that route to `kyotoProfiles[i].settings`. | The single `profile` mirror was a Kyoto-specific shortcut; in a multi-shader world it has to be computed per shader. |
+| `coralProfiles: SavedCoralProfile[]` | **Renamed in place** as the canonical Coral source array. (Already exists today; just stays.) | Already correctly scoped. |
+| `profiles: SavedProfile[]` | **Renamed to `kyotoProfiles: SavedKyotoProfile[]`.** | Naming alignment with `coralProfiles`; makes derived-view code symmetric. |
+
+Anything not listed above is unchanged.
+
+**Migration order at implementation time.**
+
+The migration is one PR but the changes are sequenced inside the file to keep the editor working at every step. Suggested order:
+
+1. **Add the new state without removing the old.** Introduce `activeOrbKey`, `kyotoProfiles` (renamed from `profiles`), the derived `activeShader`/`activeOrb` `useMemo`s. Leave `activeId` / `activeCoralId` / `profile` in place; populate them from the new derived values via small bridge effects. The editor still works exactly as before because all read sites still see the old variables.
+2. **Add the localStorage persistence (no backward-compat needed).** Today's editor does NOT persist active-profile selection in localStorage — it always defaults on mount. After 3D-0, write `activeOrbKey` to `realtime-states-active-orb-key` (composite `${sourceVariant}:${id}`) on change, and read it on mount with the cascade: persisted → "Coral Realtime" entry → first available. No legacy key to migrate from; this is a fresh persistence surface. (The live page's `realtime-active-orb-key` is a separate key — different surface, different storage.)
+3. **Switch read sites one at a time.** Profile-dropdown rows, the canvas dispatch, the controls panel, the bottom-bar pinned/replay buttons — each gets migrated to read from `activeOrb` instead of `activeId`/`profile`. Keep the bridge effects from step 1 alive while sites migrate; remove a bridge effect only when no read site depends on its output.
+4. **Switch write sites one at a time.** Slider `onChange` handlers update the relevant source array via shader-aware helpers. The Save (Update) button POSTs only the relevant source array. Rename + new-profile route by `activeOrb.sourceVariant`.
+5. **Remove the old variables and bridge effects** once nothing reads them.
+6. **Verify dirty-detection** end-to-end before declaring 3D-0 done: edit a Tube profile → bar reflects dirty → Discard reverts → Update persists → diff shows only `realtime-state-profiles.json` changed. Repeat for Coral once 3D-1 lands.
+
+**Why this order, specifically.** The non-obvious risks are: (a) flipping `activeBaseline` from `LinkedProfile` to `LoadedOrb | null` while Tube users have an unsaved-edit session in progress would silently mark them clean (or stuck dirty); (b) renaming `profiles` to `kyotoProfiles` in one sweep would touch ~30+ sites and any miss is a silent compile-time win that breaks at runtime. Step 1 + step 2 together absorb both risks: the new state shadows the old, and the localStorage key is migrated atomically.
+
+**Pre-mortem checks (do BEFORE first 3D-0 commit).** Three-line list, anchored to actual failure modes the prior phases hit:
+
+- **Dirty signal stuck on/off.** Today's `isDirty = !deepEqual(profile, activeBaseline)`. After migration, the comparator must compare the active orb's settings against the baseline of the same shader. If the comparator runs against a baseline of the wrong shape (e.g., null on first load), `isDirty` is `true` forever or `false` forever. Test: load editor → no dirty indicator. Edit one slider → dirty. Discard → not dirty.
+- **localStorage persistence works end-to-end.** Test: select a non-default profile, refresh page, confirm the editor reopens with that profile selected. Then clear `localStorage`, refresh, confirm the cascade works (defaults to "Coral Realtime" if present, else first available).
+- **JS-animator early-return placed at the wrong line.** The `if (activeOrbRef.current?.shader !== 'kyoto') { ... return; }` gate must go AT THE TOP of the `animate` function, not inside its conditional branches. Misplaced, it stops Tube's animator too. Test: Tube profile renders + animates as before; Coral profile shows a static `<CoralStoneMorph>` (its own native animator handles motion).
+
 **The JS animator (Kyoto's exponential lerp) is SKIPPED for Coral profiles.**
 
 The existing animator effect (the `useEffect` containing the `requestAnimationFrame` loop with `lerpRender(cur, target, alpha)`) is Tube-specific. For Coral profiles:
@@ -671,10 +709,12 @@ Tabs stay (Size, Thickness, Motion, Colours). Slider set differs by active shade
 |---|---|---|
 | **Size** | Idle/listening/thinking pills: `Scale` slider edits `base.scale` directly. Talking pill: `Scale (Peak)` edits `talking.scale` (PeakSliderRow, inherited if unset). All pills also show `Torus Radius` editing `base.torusRadius`. | **F7 — base.scale is NOT editable from the Talking pill.** When the Talking pill is active, the only Scale control visible is the Peak (`talking.scale`). To edit `base.scale`, the user selects Idle, Listening, or Thinking. This mirrors Tube's existing Rest/Peak pattern — there is no separate "always-visible Rest/base" Size control on the Talking pill. `talking.scale` is the only Peak slot for size. |
 | **Thickness** | Idle/listening pills: `Settle Speed` slider edits `base.morphSpeed` (literal seconds). Talking pill: `Morph Speed (→ talking)` edits `talking.morphSpeed` (inherited from `base.morphSpeed` if unset). Thinking pill: empty + a small note "Coral has no thinking pulse — uses idle settings." | Coral speed sliders show **literal seconds, no `≈ visible` hint** (see F9 in slider-range table below). |
-| **Motion** | All pills: `Wave Intensity` slider edits `base.waveIntensity` directly. Talking pill additionally shows `Wave Intensity (Peak)` editing `talking.waveIntensity`. `Breath Amp` and `Idle Amp` (base only, shown on all pills). | **F8 — Coral has no bottom-bar swatch shortcut row.** Tube's bottom-bar has 3 swatches (`color1` / `color2` / `color3`) for quick edits without opening the Colours tab. Coral does NOT replicate this in the 3D pass — the swatch row is gated `activeShader === 'kyoto'` and stays Tube-only. Coral users edit colours from the Colours tab. |
+| **Motion** | All pills: `Wave Intensity` slider edits `base.waveIntensity` directly. Talking pill additionally shows `Wave Intensity (Peak)` editing `talking.waveIntensity`. `Breath Amp` and `Idle Amp` (base only, shown on all pills). | |
 | **Colours** | All pills: `color1` / `color2` / `color3` / `bgColor` (base). Talking pill additionally shows `color3 (Peak)` editing `talking.color3`. | |
 
 Thinking and listening pills for Coral don't have meaningful Peak overrides (Coral has no thinking pulse). Their tabs render as if on idle. The thinking pill shows the "no pulse" note in the Thickness tab so the user understands.
+
+**F8 — Bottom-bar swatch shortcut row stays Tube-only.** Independent of any tab, the editor's bottom bar carries a 3-swatch shortcut row (`color1` / `color2` / `color3`) that lets a user edit core colours without opening the Colours tab. This row is NOT replicated for Coral in this pass — it stays gated on `activeShader === 'kyoto'`. Coral users edit colours from the Colours tab. (Adding a Coral swatch row is a small follow-up if it turns out to be missed; out of scope for 3D-1.)
 
 #### Coral slider ranges (explicit)
 
