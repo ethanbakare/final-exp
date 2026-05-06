@@ -168,6 +168,133 @@ export function useCoralThinkingPulse(args: {
   return pulseRadius;
 }
 
+/**
+ * Plan v8 follow-up — Coral state-prop easing.
+ *
+ * Coral's CoralStoneMorph internally animates `morphRef` (sphere ↔
+ * torus) but every other prop (scale, waveIntensity, color3, etc.)
+ * applies instantly each render. That means when voiceState flips
+ * (e.g., listening → talking), the morph eases over `talking.morphSpeed`
+ * but `scale` SNAPS to `talking.scale` in one frame — visually
+ * unnatural compared to Tube's animator which lerps everything.
+ *
+ * `useEasedNumber` gives us per-prop lerping at the wrapper level,
+ * matching the geometric morph duration. Three of these run in
+ * parallel for the three eased props (scale, waveIntensity, color3).
+ *
+ * The lerp is linear (matches Coral's morph philosophy — literal
+ * seconds, no tau coefficient). Duration = morphSpeed parameter.
+ *
+ * Re-targeting mid-animation snaps the start value to the current
+ * eased value, so rapid state flips don't produce jumps.
+ */
+export function useEasedNumber(target: number, duration: number): number {
+  const [current, setCurrent] = useState(target);
+  const currentRef = useRef(target);
+  const rafRef = useRef<number | null>(null);
+
+  // Keep ref in sync with the latest committed value so the next
+  // animation can start from where we are right now.
+  useEffect(() => {
+    currentRef.current = current;
+  });
+
+  useEffect(() => {
+    const startValue = currentRef.current;
+    if (Math.abs(target - startValue) < 1e-9) return; // already at target
+    const startTime = performance.now();
+    const safeDuration = Math.max(0.05, duration);
+
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+
+    const animate = () => {
+      const elapsed = (performance.now() - startTime) / 1000;
+      const t = Math.min(1, elapsed / safeDuration);
+      const value = startValue + t * (target - startValue);
+      currentRef.current = value;
+      setCurrent(value);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        rafRef.current = null;
+      }
+    };
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, duration]);
+
+  return current;
+}
+
+/**
+ * Color variant of useEasedNumber. Lerps RGB triples from `current`
+ * toward `target` (both hex strings like '#ffa279'). Returns hex.
+ *
+ * Hex parse is forgiving — invalid hex (or shorthand like '#abc')
+ * falls back to a reasonable default rather than crashing.
+ */
+export function useEasedColor(target: string, duration: number): string {
+  const [current, setCurrent] = useState(target);
+  const currentRef = useRef(target);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    currentRef.current = current;
+  });
+
+  useEffect(() => {
+    const startHex = currentRef.current;
+    if (target === startHex) return;
+    const startRgb = parseHex(startHex);
+    const targetRgb = parseHex(target);
+    const startTime = performance.now();
+    const safeDuration = Math.max(0.05, duration);
+
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+
+    const animate = () => {
+      const elapsed = (performance.now() - startTime) / 1000;
+      const t = Math.min(1, elapsed / safeDuration);
+      const r = startRgb[0] + t * (targetRgb[0] - startRgb[0]);
+      const g = startRgb[1] + t * (targetRgb[1] - startRgb[1]);
+      const b = startRgb[2] + t * (targetRgb[2] - startRgb[2]);
+      const hex = rgbToHex(r, g, b);
+      currentRef.current = hex;
+      setCurrent(hex);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        rafRef.current = null;
+      }
+    };
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, duration]);
+
+  return current;
+}
+
+function parseHex(hex: string): [number, number, number] {
+  if (typeof hex !== 'string' || hex.length < 7 || hex[0] !== '#') return [128, 128, 128];
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return [128, 128, 128];
+  return [r, g, b];
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+  const toHex = (n: number) => clamp(n).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   audioData,
   voiceState,
@@ -193,18 +320,37 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   });
   const effectiveTorusRadius = pulse ?? active.base.torusRadius;
 
-  // Per-state effective values. Coral only differentiates talking today;
-  // idle/listening/thinking all use base values.
-  const effectiveMorphSpeed =
+  // Per-state target values. Coral only differentiates talking today;
+  // idle/listening/thinking all use base values. These are the TARGETS
+  // for the easing hooks below — actual prop values flow through
+  // useEasedNumber / useEasedColor so transitions feel coherent with
+  // the geometric morph instead of snapping.
+  const targetMorphSpeed =
     isTalking ? (active.talking?.morphSpeed ?? active.base.morphSpeed) : active.base.morphSpeed;
-  const effectiveScale =
+  const targetScale =
     isTalking ? (active.talking?.scale ?? active.base.scale) : active.base.scale;
-  const effectiveWaveIntensity =
+  const targetWaveIntensity =
     isTalking
       ? (active.talking?.waveIntensity ?? active.base.waveIntensity)
       : active.base.waveIntensity;
-  const effectiveColor3 =
+  const targetColor3 =
     isTalking ? (active.talking?.color3 ?? active.base.color3) : active.base.color3;
+
+  // Easing duration matches the geometric morph: `talking.morphSpeed`
+  // going INTO talking (sphere collapse), `base.morphSpeed` coming
+  // OUT (torus restore). Scale / waveIntensity / color3 lerp over the
+  // same window so the visual transition feels unified.
+  const transitionDuration = isTalking
+    ? (active.talking?.morphSpeed ?? active.base.morphSpeed)
+    : active.base.morphSpeed;
+  const effectiveScale = useEasedNumber(targetScale, transitionDuration);
+  const effectiveWaveIntensity = useEasedNumber(targetWaveIntensity, transitionDuration);
+  const effectiveColor3 = useEasedColor(targetColor3, transitionDuration);
+
+  // morphSpeed is the duration parameter for CoralStoneMorph's internal
+  // morph animation — snapping is fine (and actually correct, since
+  // changing it mid-morph would shift the active animation's clock).
+  const effectiveMorphSpeed = targetMorphSpeed;
 
   // Math safety: CoralStoneMorph computes `delta / morphSpeed`. With both
   // delta and morphSpeed at 0 (rare but possible on the first frame after

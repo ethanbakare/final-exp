@@ -30,7 +30,7 @@ import { Slider } from '@/components/ui/slider';
 import { audioService } from '@/projects/blob-orb/services/audioService';
 import { CURATED_NAMES, GALLERY_API_KEYS, approxPixelDia } from '@/projects/blob-orb/galleryTypes';
 import type { AudioData } from '@/projects/voiceinterface/types';
-import { CORAL_FALLBACK_PROFILE, CORAL_PULSE_DEFAULTS, useCoralThinkingPulse, type CoralRealtimeSettings } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
+import { CORAL_FALLBACK_PROFILE, CORAL_PULSE_DEFAULTS, useCoralThinkingPulse, useEasedColor, useEasedNumber, type CoralRealtimeSettings } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -1599,6 +1599,29 @@ export default function RealtimeStates() {
     pulseSpeed: activeCoralSettings?.base.pulseSpeed,
   });
 
+  // Coral state-prop easing — same pattern as the live page. Targets
+  // are computed from activeCoralSettings + state; eased values flow
+  // into the canvas's Coral branch. When Tube is active, the targets
+  // are coral-fallback values and the eased values are unused — RAFs
+  // still run but the work is negligible (one frame per render until
+  // they settle).
+  const coralIsTalking = state === 'talking';
+  const coralTargetScale = coralIsTalking
+    ? (activeCoralSettings?.talking?.scale ?? activeCoralSettings?.base.scale ?? CORAL_FALLBACK_PROFILE.base.scale)
+    : (activeCoralSettings?.base.scale ?? CORAL_FALLBACK_PROFILE.base.scale);
+  const coralTargetWave = coralIsTalking
+    ? (activeCoralSettings?.talking?.waveIntensity ?? activeCoralSettings?.base.waveIntensity ?? CORAL_FALLBACK_PROFILE.base.waveIntensity)
+    : (activeCoralSettings?.base.waveIntensity ?? CORAL_FALLBACK_PROFILE.base.waveIntensity);
+  const coralTargetColor3 = coralIsTalking
+    ? (activeCoralSettings?.talking?.color3 ?? activeCoralSettings?.base.color3 ?? CORAL_FALLBACK_PROFILE.base.color3)
+    : (activeCoralSettings?.base.color3 ?? CORAL_FALLBACK_PROFILE.base.color3);
+  const coralTransitionDuration = coralIsTalking
+    ? (activeCoralSettings?.talking?.morphSpeed ?? activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed)
+    : (activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed);
+  const coralEasedScale = useEasedNumber(coralTargetScale, coralTransitionDuration);
+  const coralEasedWave = useEasedNumber(coralTargetWave, coralTransitionDuration);
+  const coralEasedColor3 = useEasedColor(coralTargetColor3, coralTransitionDuration);
+
   const handleSave = async () => {
     const name = saveName.trim();
     if (!name || profileNameExists(name)) return;
@@ -2446,12 +2469,12 @@ export default function RealtimeStates() {
               const isTalking = state === 'talking';
               const baseS = activeCoralSettings.base;
               const tlk = activeCoralSettings.talking;
+              // morphSpeed is the duration parameter for CoralStoneMorph's
+              // internal morph — snapping is correct (changing it mid-morph
+              // would shift the active animation's clock). All other
+              // visible props use the eased values from the hooks at
+              // top of component scope.
               const effMorphSpeed = isTalking ? tlk?.morphSpeed ?? baseS.morphSpeed : baseS.morphSpeed;
-              const effScale = isTalking ? tlk?.scale ?? baseS.scale : baseS.scale;
-              const effWaveIntensity = isTalking
-                ? tlk?.waveIntensity ?? baseS.waveIntensity
-                : baseS.waveIntensity;
-              const effColor3 = isTalking ? tlk?.color3 ?? baseS.color3 : baseS.color3;
               return (
                 <CoralStoneMorph
                   // Plan v8 (F1): key is replayCounter only — NOT
@@ -2462,15 +2485,15 @@ export default function RealtimeStates() {
                   key={`coral-${replayCounter}`}
                   audioData={blobAudioData}
                   goal={isTalking ? 0 : 1}
-                  scale={effScale}
+                  scale={coralEasedScale}
                   morphSpeed={Math.max(0.001, effMorphSpeed)}
                   torusRadius={coralPulse ?? baseS.torusRadius}
-                  waveIntensity={effWaveIntensity}
+                  waveIntensity={coralEasedWave}
                   breathAmp={baseS.breathAmp}
                   idleAmp={baseS.idleAmp}
                   color1={baseS.color1}
                   color2={baseS.color2}
-                  color3={effColor3}
+                  color3={coralEasedColor3}
                 />
               );
             })()
