@@ -10,7 +10,7 @@
  *
  * Plan: REALTIME_STATES_PLAN.md (v2.4 + patches)
  */
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas } from '@react-three/fiber';
 import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, Pencil, Bookmark, Disc, Circle } from 'lucide-react';
@@ -114,6 +114,41 @@ type DropdownRow =
       name: string;
       pinned: boolean;
     };
+
+/** Plan v8 (3D-0) — full discriminated union over both source files.
+ *  Used as the editor's canonical active-orb shape. The dropdown's
+ *  `DropdownRow` is a read-side projection of this; `BaselineSnapshot`
+ *  is the dirty-detection projection. */
+type LoadedOrb =
+  | {
+      shader: 'kyoto';
+      sourceVariant: 'realtime-state';
+      id: string;
+      name: string;
+      pinned: boolean;
+      settings: LinkedProfile;
+      lastModified: number;
+    }
+  | {
+      shader: 'coral';
+      sourceVariant: 'realtime-coral';
+      id: string;
+      name: string;
+      pinned: boolean;
+      settings: CoralRealtimeSettings;
+      lastModified: number;
+    };
+
+/** Plan v8 round-7 F1 — narrow shape for dirty detection. Inspects only
+ *  `settings`, never `name`/`pinned`/`lastModified`/`sourceVariant`. */
+type BaselineSnapshot =
+  | { key: string; shader: 'kyoto'; settings: LinkedProfile }
+  | { key: string; shader: 'coral'; settings: CoralRealtimeSettings };
+
+/** Composite key format `${sourceVariant}:${id}` — ids aren't unique
+ *  across the two source files, so the key glues them. */
+const compositeKey = (orb: { sourceVariant: string; id: string }) =>
+  `${orb.sourceVariant}:${orb.id}`;
 
 interface RenderValues {
   scale: number;
@@ -955,7 +990,7 @@ const PeakColorRow: React.FC<PeakColorRowProps> = ({
 // ── Page ─────────────────────────────────────────────────────────
 
 export default function RealtimeStates() {
-  const [profiles, setProfiles] = useState<SavedProfile[]>([]);
+  const [kyotoProfiles, setKyotoProfiles] = useState<SavedProfile[]>([]);
   // Coral profiles live in a parallel file. Read here so the dropdown
   // can show them with shader glyphs and the bookmark toggle works for
   // both shaders. Editing Coral controls is a separate phase — for now
@@ -973,6 +1008,26 @@ export default function RealtimeStates() {
   const [replayCounter, setReplayCounter] = useState(0);
   const [profile, setProfile] = useState<LinkedProfile>(KYOTO_SEED);
   const [activeBaseline, setActiveBaseline] = useState<LinkedProfile>(KYOTO_SEED);
+
+  // ── Plan v8 (3D-0 step 1) — canonical state alongside mirrors ──────
+  //
+  // Introduced now: `activeOrbKey` (composite-keyed selection) plus
+  // derived `orbs` and `activeOrb`. Mirrors (`activeId`, `activeShader`,
+  // `activeCoralId`, `profile`, `activeBaseline`) stay authoritative
+  // until step 3 migrates read sites. During step 1 the canonical key
+  // is sync'd FROM mirrors so callers can start reading `activeOrb`
+  // without contracts changing.
+  //
+  // Step 3 will flip the direction: bridge becomes canonical → mirror,
+  // and old setters get demoted to no-ops as their write sites migrate
+  // to immutable shader-aware helpers (step 4).
+  //
+  // Canonical-truth rule (F2 round 7): no NEW code path written from
+  // step 3 onward calls the old mirror setters. Existing call sites
+  // are migrated in steps 3-4; the bridge is removed in step 5.
+  const [activeOrbKey, setActiveOrbKey] = useState<string | null>(
+    () => `realtime-state:rt-kyoto`,
+  );
   const [state, setState] = useState<PreviewState>('idle');
   const [autoLoop, setAutoLoop] = useState(false);
   const [audioActive, setAudioActive] = useState(false);
@@ -1007,6 +1062,57 @@ export default function RealtimeStates() {
   profileRef.current = profile;
   stateRef.current = state;
   renderRef.current = render;
+
+  // ── Plan v8 (3D-0 step 1) — derived canonical projections ─────────
+  //
+  // `orbs` is the unified read-side projection of both source arrays
+  // into the LoadedOrb discriminated union. `activeOrb` resolves the
+  // canonical key against the unified list. Both are computed lazily
+  // and stay null until source arrays load.
+  const orbs = useMemo<LoadedOrb[]>(() => {
+    const kyotoOrbs: LoadedOrb[] = kyotoProfiles.map((p) => ({
+      shader: 'kyoto' as const,
+      sourceVariant: 'realtime-state' as const,
+      id: p.id,
+      name: p.name,
+      pinned: p.pinned === true,
+      settings: p.settings,
+      lastModified: p.lastModified,
+    }));
+    const coralOrbs: LoadedOrb[] = coralProfiles.map((p) => ({
+      shader: 'coral' as const,
+      sourceVariant: 'realtime-coral' as const,
+      id: p.id,
+      name: p.name,
+      pinned: p.pinned === true,
+      settings: p.settings,
+      lastModified: p.lastModified,
+    }));
+    return [...kyotoOrbs, ...coralOrbs];
+  }, [kyotoProfiles, coralProfiles]);
+
+  const activeOrb = useMemo<LoadedOrb | null>(() => {
+    if (!activeOrbKey) return null;
+    return orbs.find((o) => compositeKey(o) === activeOrbKey) ?? null;
+  }, [orbs, activeOrbKey]);
+
+  // ── Mirror → canonical sync (step 1 only) ─────────────────────────
+  //
+  // During step 1, mirrors (activeId/activeShader/activeCoralId) are
+  // still authoritative — existing select handlers write to them. This
+  // effect shadows their value into `activeOrbKey` so any code that
+  // wants to read canonical (introduced in step 3) sees fresh data.
+  //
+  // Step 3 inverts this: canonical becomes authoritative, this effect
+  // is removed, and a new bridge runs canonical → mirror to keep
+  // not-yet-migrated read sites alive until step 5 deletes them.
+  useEffect(() => {
+    const next =
+      activeShader === 'coral' && activeCoralId
+        ? `realtime-coral:${activeCoralId}`
+        : `realtime-state:${activeId}`;
+    if (next !== activeOrbKey) setActiveOrbKey(next);
+  }, [activeId, activeShader, activeCoralId, activeOrbKey]);
 
   const setRenderNow = (next: RenderValues) => {
     renderRef.current = next;
@@ -1045,13 +1151,13 @@ export default function RealtimeStates() {
         };
         const next = [seedEntry];
         await persistProfiles(next);
-        setProfiles(next);
+        setKyotoProfiles(next);
         setActiveId(seedEntry.id);
         setProfile(seedEntry.settings);
         setActiveBaseline(seedEntry.settings);
         restartIntro(seedEntry.settings);
       } else {
-        setProfiles(arr);
+        setKyotoProfiles(arr);
         const first = arr[0];
         setActiveId(first.id);
         setProfile(first.settings);
@@ -1228,7 +1334,7 @@ export default function RealtimeStates() {
 
   // ── Profile actions ─────────────────────────────────────────
   const isDirty = JSON.stringify(profile) !== JSON.stringify(activeBaseline);
-  const activeProfile = profiles.find((p) => p.id === activeId);
+  const activeProfile = kyotoProfiles.find((p) => p.id === activeId);
   const activeCoralProfile = coralProfiles.find((p) => p.id === activeCoralId);
   const activeName =
     activeShader === 'coral'
@@ -1250,7 +1356,7 @@ export default function RealtimeStates() {
     const normalized = normalizeProfileName(name);
     if (!normalized) return false;
     if (externalProfileNames.has(normalized)) return true;
-    if (profiles.some((p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized)) {
+    if (kyotoProfiles.some((p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized)) {
       return true;
     }
     // Plan v8 (F3): Coral entries must collide with Tube + gallery
@@ -1271,7 +1377,7 @@ export default function RealtimeStates() {
     // accepts the suggestion.
     const used = new Set([
       ...Array.from(externalProfileNames),
-      ...profiles.map((p) => normalizeProfileName(p.name)),
+      ...kyotoProfiles.map((p) => normalizeProfileName(p.name)),
       ...coralProfiles.map((p) => normalizeProfileName(p.name)),
     ]);
     const available = CURATED_NAMES.filter((name) => !used.has(normalizeProfileName(name)));
@@ -1279,7 +1385,7 @@ export default function RealtimeStates() {
       return available[Math.floor(Math.random() * available.length)];
     }
     const base = 'Realtime Profile';
-    let i = profiles.length + 1;
+    let i = kyotoProfiles.length + 1;
     while (used.has(normalizeProfileName(`${base} ${i}`))) i += 1;
     return `${base} ${i}`;
   };
@@ -1287,7 +1393,7 @@ export default function RealtimeStates() {
   const saveNameInvalid = !saveName.trim() || profileNameExists(saveName);
 
   const selectProfile = (id: string) => {
-    const found = profiles.find((p) => p.id === id);
+    const found = kyotoProfiles.find((p) => p.id === id);
     if (!found) return;
     setActiveShader('kyoto');
     setActiveCoralId(null);
@@ -1327,8 +1433,8 @@ export default function RealtimeStates() {
       settings: profile,
       lastModified: Date.now(),
     };
-    const next = [...profiles, entry];
-    setProfiles(next);
+    const next = [...kyotoProfiles, entry];
+    setKyotoProfiles(next);
     setActiveId(entry.id);
     setActiveBaseline(entry.settings);
     setShowSaveDialog(false);
@@ -1344,10 +1450,10 @@ export default function RealtimeStates() {
   const togglePinned = async (id: string) => {
     // Flip the `pinned` flag on the named Tube/Kyoto profile and
     // persist. Live page picks up the change on next refresh.
-    const next = profiles.map((pr) =>
+    const next = kyotoProfiles.map((pr) =>
       pr.id === id ? { ...pr, pinned: !pr.pinned, lastModified: Date.now() } : pr,
     );
-    setProfiles(next);
+    setKyotoProfiles(next);
     await persistProfiles(next);
   };
 
@@ -1379,20 +1485,20 @@ export default function RealtimeStates() {
   const commitRename = async (id: string, draft: string) => {
     const name = draft.trim();
     if (!name || profileNameExists(name, id)) return;
-    const next = profiles.map((pr) =>
+    const next = kyotoProfiles.map((pr) =>
       pr.id === id ? { ...pr, name, lastModified: Date.now() } : pr
     );
-    setProfiles(next);
+    setKyotoProfiles(next);
     cancelRename();
     await persistProfiles(next);
   };
 
   const handleUpdate = async () => {
     if (!isDirty) return;
-    const next = profiles.map((pr) =>
+    const next = kyotoProfiles.map((pr) =>
       pr.id === activeId ? { ...pr, settings: profile, lastModified: Date.now() } : pr
     );
-    setProfiles(next);
+    setKyotoProfiles(next);
     setActiveBaseline(profile);
     await persistProfiles(next);
   };
@@ -1970,7 +2076,7 @@ export default function RealtimeStates() {
               </button>
               {showProfileDropdown && (
                 <div className="absolute bottom-full left-0 mb-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  {profiles.map((p) => {
+                  {kyotoProfiles.map((p) => {
                     const isRenaming = renamingId === p.id;
                     const renameInvalid = !renameDraft.trim() || profileNameExists(renameDraft, p.id);
 
