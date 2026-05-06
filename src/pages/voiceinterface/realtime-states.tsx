@@ -1264,9 +1264,15 @@ export default function RealtimeStates() {
   };
 
   const pickRealtimeUnusedName = () => {
+    // Plan v8 round-6 (F2): suggestion pool must mirror profileNameExists
+    // — gallery names + Kyoto profiles + Coral profiles. Otherwise the
+    // helper can hand back a name that already exists in coralProfiles,
+    // and the rename-validation flow flips it red the moment the user
+    // accepts the suggestion.
     const used = new Set([
       ...Array.from(externalProfileNames),
       ...profiles.map((p) => normalizeProfileName(p.name)),
+      ...coralProfiles.map((p) => normalizeProfileName(p.name)),
     ]);
     const available = CURATED_NAMES.filter((name) => !used.has(normalizeProfileName(name)));
     if (available.length > 0) {

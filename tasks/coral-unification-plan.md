@@ -149,7 +149,9 @@ What has shipped, what's next in line, and what changed during implementation vs
 | Phase 3c | Editor preview canvas dispatches by shader (`<CoralStoneMorph>` when Coral active, `<GentleOrbThicken>` when Kyoto). Replay button branches by shader. **v7-shipped behavior:** Coral selection bumped a `replayCounter` keyed on `coral-${activeCoralId}-${replayCounter}`, which remounted on every Coral selection. **v8 corrects this** to match the plan's "no intro on same-shader switch" rule: `selectCoralProfile` no longer bumps `replayCounter`; canvas key is `coral-${replayCounter}` only; Replay button is the sole remount path. | `3845738` (v7) + v8 patch |
 | Standalone UX | Active-shader glyph next to closed-dropdown trigger; standalone bookmark button in bottom bar (next to Replay/Auto-loop). | `a5b9799` |
 | Interim guard | When a Coral profile is active, hide Tube-shaped tabs / expanded panel / Update / Discard buttons. **Shows placeholder text** "Coral tuning controls coming next." (Earlier draft of this row mistakenly said "replaces" — v8 wording corrected.) | `192026f` |
-| **v8 patch — F1 + F3 corrections** | (a) F1: same-shader Coral switch no longer remounts (see Phase 3c row above). (b) F3: `profileNameExists` now checks the Coral source array too — previously two Coral entries could be renamed into the same name. | (v8 commit) |
+| **v8 patch — F1 + F3 corrections (round 5)** | (a) F1: same-shader Coral switch no longer remounts (see Phase 3c row above). (b) F3: `profileNameExists` now checks the Coral source array too — previously two Coral entries could be renamed into the same name. | `f22c0cc` |
+| **v8 polish (round 5 self-review)** | Phase numbering standardized (3D-0 / 3D-1 / 3E / 3F); F8 swatch note moved out of Motion-tab row; 3D-0 contract expanded with Removed-vs-derived table + 6-step migration order + pre-mortem checks. Plan-only, no code. | `b0d0c4a` |
+| **v8 patch — round 6 polish** | (F1 round 6) `pinned` documented in schema / `LoadedOrb` / fallback orbs / fetchVariant mapping — closes the loophole where Save round-trip could drop the field. (F2) `pickRealtimeUnusedName` extended to include `coralProfiles`. (F3) commit hashes filled in. (F4) one-line `previewState` ↔ `state` alias note added near the canvas pseudocode. (F5) live-page strip descriptions updated to mention the `pinned` filter. | (this commit) |
 
 ### Next in line (NOT yet shipped — remaining Phase 3 items, reorganized in v8)
 
@@ -174,7 +176,7 @@ The goal is to give Coral the same editable, data-driven setup Nebularr already 
 
 - A saved profile file for Coral, parallel to the existing one for Nebularr.
 - The realtime-states editor reads + writes both, with shader-aware controls **and** a shader-aware preview canvas.
-- The live realtime page's thumbnail strip becomes data-driven (iterates the union of both files).
+- The live realtime page's thumbnail strip becomes data-driven (renders the **pinned** subset of the union of both files — Phase 2.5 added explicit opt-in via a per-profile `pinned` flag).
 - Coral's renderer (`CoralStoneMorph`) and shader stay untouched — no API change, no animator change. Nebularr's renderer (`GentleOrbThicken`) and shader stay untouched. Each shader keeps its own animator, math, and visual feel.
 
 The unification is **at the data and editor layers only.** Below the surface, Coral D and Tube/GentleOrb stay separate components with separate shaders. They converge at exactly two points:
@@ -209,6 +211,7 @@ Located at the repo root, parallel to `realtime-state-profiles.json`. Coral-spec
 type CoralRealtimeProfile = {
   id: string;
   name: string;
+  pinned: boolean;                 // Phase 2.5 opt-in: live-page strip shows only pinned entries.
   settings: {
     base: {
       scale: number;
@@ -235,11 +238,14 @@ type CoralRealtimeProfile = {
 
 The `talking` block holds Peak overrides for the only state Coral differentiates today. Idle, listening, and thinking all share `base` values. Adding a `thinking` block is an open follow-up (out of scope).
 
+**`pinned` is required at the persisted-schema layer** (matches the shipped `realtime-coral-profiles.json` and the symmetric `pinned: boolean` field on Kyoto profiles, both added in Phase 2.5). Save/Update CRUD MUST round-trip `pinned`; dropping it on serialization would silently unpin the user's profile and remove it from the live page strip. The editor's bookmark toggle is the only authority that flips this field. Plan-Review v8 round 6 (F1) explicitly called this out as the most likely remaining loophole — implementer wiring 3D-0/3E should treat `pinned` as a top-level field they must preserve verbatim through the save round-trip.
+
 **Initial seed entry (one):**
 ```jsonc
 {
   "id": "rt-coral-default",
   "name": "Coral Realtime",
+  "pinned": true,
   "settings": {
     "base": {
       "scale": 1.04,
@@ -289,6 +295,7 @@ type LoadedOrb =
       sourceVariant: 'realtime-coral';
       id: string;
       name: string;
+      pinned: boolean;
       settings: CoralRealtimeProfile['settings'];
       lastModified: number;
     }
@@ -297,12 +304,13 @@ type LoadedOrb =
       sourceVariant: 'realtime-state';
       id: string;
       name: string;
+      pinned: boolean;
       settings: LinkedProfile;
       lastModified: number;
     };
 ```
 
-`sourceVariant` lets save/rename/new-profile CRUD route back to the right file without re-deriving from `shader`.
+`sourceVariant` lets save/rename/new-profile CRUD route back to the right file without re-deriving from `shader`. `pinned` is hoisted from the persisted record into both branches of the union — the live-page strip filters by `o.pinned === true`, and the editor's bookmark toggle writes through to the persisted file.
 
 ### API endpoint
 
@@ -412,6 +420,7 @@ useEffect(() => {
         sourceVariant: variant,
         id: p.id,
         name: p.name,
+        pinned: p.pinned === true,           // explicit boolean coercion: missing field → false (defensive against legacy entries)
         settings: p.settings,
         lastModified: p.lastModified,
       })) as LoadedOrb[] : [];
@@ -474,6 +483,7 @@ const CORAL_FALLBACK_ORB: LoadedOrb = {
   sourceVariant: 'realtime-coral',
   id: 'rt-coral-fallback',                 // distinct from the seed's 'rt-coral-default'
   name: 'Coral Realtime',                  // matches the seed name; only loads when seed is absent, so no collision
+  pinned: true,                            // fallbacks are always shown when their file fails (otherwise the strip would be empty in the failure case)
   settings: { /* values from the seed table above */ },
   lastModified: 0,                         // 0 = "never persisted"
 };
@@ -483,6 +493,7 @@ const NEBULARR_FALLBACK_ORB: LoadedOrb = {
   sourceVariant: 'realtime-state',
   id: 'rt-nebularr-fallback',
   name: 'Nebularr',                        // matches the existing realtime-state-profiles.json entry name
+  pinned: true,                            // same reasoning as CORAL_FALLBACK_ORB
   settings: { /* values from current NEBULARR_FALLBACK_PROFILE in NebularrBlob.tsx */ },
   lastModified: 0,
 };
@@ -490,7 +501,7 @@ const NEBULARR_FALLBACK_ORB: LoadedOrb = {
 
 The fallback orb only loads when the file fetch returns nothing (missing file, malformed JSON, or empty array). In that case, no real entry exists with the same `name`, so collision is not a real risk. Using `'Coral Realtime'` matches the verification checklist's expectation ("the strip still includes a 'Coral Realtime' entry") and keeps default-selection lookup uniform whether or not the file is present. `lastModified: 0` makes any saved entry preferred in any sort-by-recency UI.
 
-**Thumbnail strip:** iterates `orbs`. Each thumb's image src derived from a slug rule:
+**Thumbnail strip:** iterates `orbs.filter(o => o.pinned)` (Phase 2.5 explicit opt-in — only profiles the user has pinned via the editor's bookmark toggle appear on the live page). Each thumb's image src derived from a slug rule:
 
 ```ts
 const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -505,6 +516,8 @@ For existing Kyoto entries: "Kyoto Realtime" → "kyoto-realtime", "Nebularr" �
 `RealtimeBlob` receives `orb={ shader, profile: settings }` for the active orb.
 
 ### Editor preview canvas — shader-aware dispatch (NEW REQUIREMENT)
+
+> **Naming note (F4 round 6).** The pseudocode in this section and the `restartIntro` snippet further down use `previewState` / `setPreviewState` for readability. The **actual editor variable is named `state`** (typed `PreviewState`), with setter `setState`. They refer to the same thing — `previewState` is just a less-collision-prone name in prose. Implementer should NOT introduce a parallel state variable; use the existing `state` / `setState` everywhere the pseudocode says `previewState` / `setPreviewState`.
 
 Today the canvas in `realtime-states.tsx` is hardwired to `<GentleOrbThicken>`. After unification, the canvas dispatches by the active profile's shader:
 
@@ -767,15 +780,17 @@ The existing editor already fetches gallery profile names into the `externalProf
 
 Rename and New-profile (the two CRUD verbs that take a candidate name — see CRUD section above) normalize the candidate name (lowercase, trim) and reject if it collides with ANY name across all three source groups. The error UI is the existing rename-validation pattern (red border + disabled save button), already used by the `profileNameExists` helper. The Save (Update) verb does NOT re-validate the name — the active profile's existing name is already valid by construction.
 
+**Suggestion pool tracks the validation pool (F2).** The editor's `pickRealtimeUnusedName` helper produces a default name for the New-profile flow by sampling `CURATED_NAMES` against a set of "names already in use." That set must mirror exactly what `profileNameExists` checks — gallery names + Kyoto profile names + Coral profile names. If suggestion-pool drifts from validation-pool, the helper can hand back a candidate that the validator immediately rejects, flipping the Save button red on first paint and giving the user a confusing "I haven't typed anything and it's already invalid" experience. v8's round-6 patch already fixed this in code; the rule is documented here so 3F's modal work doesn't regress it.
+
 ## Live page changes (`/voiceinterface/realtime`)
 
 Already covered under `VoiceRealtimeOpenAI.tsx`. Net effect:
 - Hardcoded `profileThumbs` array deleted.
 - Profiles fetched via `Promise.allSettled` with per-shader fallback.
-- Strip rendered from unified `orbs` list.
+- Strip rendered from `orbs.filter(o => o.pinned)` — Phase 2.5 opt-in. Unpinned profiles are visible in the editor dropdown but NOT on the live page.
 - Active orb passed to `RealtimeBlob` as `{ shader, profile }`.
 - Dispatch by `shader` inside `RealtimeBlob`.
-- localStorage persistence of last-selected orb.
+- localStorage persistence of last-selected orb (composite key, scoped to the pinned subset on default-selection cascade).
 
 ## Migration ordering (3 phases, each independently revertable)
 
