@@ -23,6 +23,7 @@ import {
   type Color,
 } from 'react-aria-components';
 import GentleOrbThicken from '@/projects/blob-orb/variants/GentleOrbThicken';
+import CoralStoneMorph from '@/projects/blob-orb/variants/CoralStoneMorph';
 import GalleryAudioControls from '@/projects/blob-orb/components/GalleryAudioControls';
 import SliderRow from '@/projects/blob-orb/components/shared/SliderRow';
 import { Slider } from '@/components/ui/slider';
@@ -958,9 +959,18 @@ export default function RealtimeStates() {
   // Coral profiles live in a parallel file. Read here so the dropdown
   // can show them with shader glyphs and the bookmark toggle works for
   // both shaders. Editing Coral controls is a separate phase — for now
-  // selecting a Coral entry just routes bookmark/rename to its file.
+  // selecting a Coral entry routes bookmark/rename to its file and
+  // swaps the canvas to a Coral preview.
   const [coralProfiles, setCoralProfiles] = useState<SavedCoralProfile[]>([]);
   const [activeId, setActiveId] = useState<string>('rt-kyoto');
+  // Editor-active shader. 'kyoto' uses the existing JS animator + tube
+  // controls; 'coral' renders a Coral preview from the active Coral
+  // profile's settings (controls are read-only in this phase).
+  const [activeShader, setActiveShader] = useState<'kyoto' | 'coral'>('kyoto');
+  const [activeCoralId, setActiveCoralId] = useState<string | null>(null);
+  // Replay counter for Coral (forces canvas remount → morphRef resets
+  // to 0 → sphere → torus intro replays).
+  const [replayCounter, setReplayCounter] = useState(0);
   const [profile, setProfile] = useState<LinkedProfile>(KYOTO_SEED);
   const [activeBaseline, setActiveBaseline] = useState<LinkedProfile>(KYOTO_SEED);
   const [state, setState] = useState<PreviewState>('idle');
@@ -1219,7 +1229,22 @@ export default function RealtimeStates() {
   // ── Profile actions ─────────────────────────────────────────
   const isDirty = JSON.stringify(profile) !== JSON.stringify(activeBaseline);
   const activeProfile = profiles.find((p) => p.id === activeId);
-  const activeName = activeProfile?.name ?? REALTIME_SEED_NAME;
+  const activeCoralProfile = coralProfiles.find((p) => p.id === activeCoralId);
+  const activeName =
+    activeShader === 'coral'
+      ? activeCoralProfile?.name ?? 'Coral Realtime'
+      : activeProfile?.name ?? REALTIME_SEED_NAME;
+  const activePinned =
+    activeShader === 'coral'
+      ? activeCoralProfile?.pinned === true
+      : activeProfile?.pinned === true;
+  const toggleActivePinned = () => {
+    if (activeShader === 'coral' && activeCoralId) {
+      togglePinnedCoral(activeCoralId);
+    } else if (activeId) {
+      togglePinned(activeId);
+    }
+  };
 
   const profileNameExists = (name: string, exceptId?: string) => {
     const normalized = normalizeProfileName(name);
@@ -1248,12 +1273,33 @@ export default function RealtimeStates() {
   const selectProfile = (id: string) => {
     const found = profiles.find((p) => p.id === id);
     if (!found) return;
+    setActiveShader('kyoto');
+    setActiveCoralId(null);
     setActiveId(id);
     setProfile(found.settings);
     setActiveBaseline(found.settings);
     restartIntro(found.settings);
     setShowProfileDropdown(false);
   };
+
+  const selectCoralProfile = (id: string) => {
+    const found = coralProfiles.find((p) => p.id === id);
+    if (!found) return;
+    setActiveShader('coral');
+    setActiveCoralId(id);
+    // Bump replay counter so the preview canvas remounts and the
+    // sphere → torus intro plays for the new Coral profile.
+    setReplayCounter((c) => c + 1);
+    // Force preview state to idle so goal=1 on remount, otherwise
+    // talking pill would land us at goal=0 with morphRef=0 (no morph).
+    setState('idle');
+    setShowProfileDropdown(false);
+  };
+
+  const activeCoralSettings: CoralRealtimeSettings | null =
+    activeShader === 'coral' && activeCoralId
+      ? coralProfiles.find((p) => p.id === activeCoralId)?.settings ?? null
+      : null;
 
   const handleSave = async () => {
     const name = saveName.trim();
@@ -1842,6 +1888,11 @@ export default function RealtimeStates() {
                 onClick={() => setShowProfileDropdown((p) => !p)}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer min-w-[100px]"
               >
+                {activeShader === 'coral' ? (
+                  <Circle size={11} className="shrink-0 text-[#ffa279]" aria-label="Coral D profile" />
+                ) : (
+                  <Disc size={11} className="shrink-0 text-[#949e05]" aria-label="Tube/Kyoto profile" />
+                )}
                 <span className="truncate text-gray-600 max-w-[120px]">{activeName}</span>
                 <ChevronDown size={12} className="text-gray-400 shrink-0" />
               </button>
@@ -1953,16 +2004,13 @@ export default function RealtimeStates() {
                     return (
                       <div
                         key={p.id}
-                        className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-600 ${
-                          isRenaming ? '' : 'cursor-pointer'
-                        }`}
+                        className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 ${
+                          activeShader === 'coral' && p.id === activeCoralId
+                            ? 'font-medium text-gray-700'
+                            : 'text-gray-600'
+                        } ${isRenaming ? '' : 'cursor-pointer'}`}
                         onClick={() => {
-                          if (isRenaming) return;
-                          // TODO: full Coral preview + controls. For
-                          // now, surface that selection is recognised.
-                          window.alert(
-                            'Coral profile selection is recognised — preview canvas + controls arrive in the next phase. Use the bookmark and rename buttons in the meantime.',
-                          );
+                          if (!isRenaming) selectCoralProfile(p.id);
                         }}
                       >
                         {isRenaming ? (
@@ -2097,6 +2145,21 @@ export default function RealtimeStates() {
                 {thinkingPaused ? <Play size={14} /> : <Pause size={14} />}
               </button>
             )}
+
+            {/* Pin / unpin the active profile to the live realtime page.
+                Mirrors the bookmark inside the dropdown row but is
+                always reachable without opening the dropdown. */}
+            <button
+              onClick={toggleActivePinned}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ml-2 ${
+                activePinned
+                  ? 'bg-amber-50 text-amber-500 hover:text-amber-600'
+                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+              }`}
+              title={activePinned ? 'Pinned to live page (click to unpin)' : 'Pin active profile to live page'}
+            >
+              <Bookmark size={14} fill={activePinned ? 'currentColor' : 'none'} />
+            </button>
 
             {/* Replay first-load talking → idle intro for the active profile */}
             <button
