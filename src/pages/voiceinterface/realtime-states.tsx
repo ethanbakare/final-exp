@@ -1618,9 +1618,32 @@ export default function RealtimeStates() {
   const coralTransitionDuration = coralIsTalking
     ? (activeCoralSettings?.talking?.morphSpeed ?? activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed)
     : (activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed);
-  const coralEasedScale = useEasedNumber(coralTargetScale, coralTransitionDuration);
-  const coralEasedWave = useEasedNumber(coralTargetWave, coralTransitionDuration);
-  const coralEasedColor3 = useEasedColor(coralTargetColor3, coralTransitionDuration);
+
+  // startValue mounts the eased values at the TALKING profile's
+  // values so the editor's Coral intro shows the same talking →
+  // base ease as the live page. resetKey re-runs the intro on:
+  //   (a) shader change (kyoto → coral or fresh mount), and
+  //   (b) Replay button click (replayCounter bump).
+  // Same-shader profile switch (Coral A → Coral B) does NOT change
+  // resetKey — eases smoothly from current to new target instead
+  // of replaying the intro, matching the round-7 F1 contract.
+  const coralStartScale = activeCoralSettings?.talking?.scale ?? activeCoralSettings?.base.scale ?? CORAL_FALLBACK_PROFILE.base.scale;
+  const coralStartWave = activeCoralSettings?.talking?.waveIntensity ?? activeCoralSettings?.base.waveIntensity ?? CORAL_FALLBACK_PROFILE.base.waveIntensity;
+  const coralStartColor3 = activeCoralSettings?.talking?.color3 ?? activeCoralSettings?.base.color3 ?? CORAL_FALLBACK_PROFILE.base.color3;
+  const coralResetKey = `${activeOrb?.shader ?? 'none'}-${replayCounter}`;
+
+  const coralEasedScale = useEasedNumber(coralTargetScale, coralTransitionDuration, {
+    startValue: coralStartScale,
+    resetKey: coralResetKey,
+  });
+  const coralEasedWave = useEasedNumber(coralTargetWave, coralTransitionDuration, {
+    startValue: coralStartWave,
+    resetKey: coralResetKey,
+  });
+  const coralEasedColor3 = useEasedColor(coralTargetColor3, coralTransitionDuration, {
+    startValue: coralStartColor3,
+    resetKey: coralResetKey,
+  });
 
   const handleSave = async () => {
     const name = saveName.trim();

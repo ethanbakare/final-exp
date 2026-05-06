@@ -188,29 +188,56 @@ export function useCoralThinkingPulse(args: {
  * Re-targeting mid-animation snaps the start value to the current
  * eased value, so rapid state flips don't produce jumps.
  */
-export function useEasedNumber(target: number, duration: number): number {
-  const [current, setCurrent] = useState(target);
-  const currentRef = useRef(target);
+export function useEasedNumber(
+  target: number,
+  duration: number,
+  opts?: {
+    /** Initial value on first mount. Also the value the hook snaps to
+     *  when `resetKey` changes. Use this to start the eased value at
+     *  a different point than the target — e.g., talking.scale on
+     *  Coral mount so the orb visibly grows from talking shape to
+     *  idle shape concurrent with the geometric sphere → torus
+     *  intro. Defaults to `target`. */
+    startValue?: number;
+    /** Optional reset trigger. When this value changes, the hook
+     *  snaps the eased value back to `startValue` and begins a new
+     *  animation toward `target`. Use to retrigger the prop-easing
+     *  intro on Replay (editor) or on cross-shader mount. */
+    resetKey?: unknown;
+  },
+): number {
+  const startValue = opts?.startValue ?? target;
+  const [current, setCurrent] = useState(startValue);
+  const currentRef = useRef(startValue);
   const rafRef = useRef<number | null>(null);
+  const lastResetKeyRef = useRef(opts?.resetKey);
 
   // Keep ref in sync with the latest committed value so the next
-  // animation can start from where we are right now.
+  // animation can start from where we are right now (unless reset).
   useEffect(() => {
     currentRef.current = current;
   });
 
   useEffect(() => {
-    const startValue = currentRef.current;
-    if (Math.abs(target - startValue) < 1e-9) return; // already at target
+    let from = currentRef.current;
+    // Reset trigger: snap to startValue then animate toward target.
+    if (opts?.resetKey !== lastResetKeyRef.current) {
+      lastResetKeyRef.current = opts?.resetKey;
+      from = startValue;
+      currentRef.current = startValue;
+      setCurrent(startValue);
+    }
+    if (Math.abs(target - from) < 1e-9) return; // already at target
     const startTime = performance.now();
     const safeDuration = Math.max(0.05, duration);
+    const fromValue = from;
 
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
 
     const animate = () => {
       const elapsed = (performance.now() - startTime) / 1000;
       const t = Math.min(1, elapsed / safeDuration);
-      const value = startValue + t * (target - startValue);
+      const value = fromValue + t * (target - fromValue);
       currentRef.current = value;
       setCurrent(value);
       if (t < 1) {
@@ -224,7 +251,7 @@ export function useEasedNumber(target: number, duration: number): number {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [target, duration]);
+  }, [target, duration, opts?.resetKey, startValue]);
 
   return current;
 }
@@ -236,17 +263,29 @@ export function useEasedNumber(target: number, duration: number): number {
  * Hex parse is forgiving — invalid hex (or shorthand like '#abc')
  * falls back to a reasonable default rather than crashing.
  */
-export function useEasedColor(target: string, duration: number): string {
-  const [current, setCurrent] = useState(target);
-  const currentRef = useRef(target);
+export function useEasedColor(
+  target: string,
+  duration: number,
+  opts?: { startValue?: string; resetKey?: unknown },
+): string {
+  const startValue = opts?.startValue ?? target;
+  const [current, setCurrent] = useState(startValue);
+  const currentRef = useRef(startValue);
   const rafRef = useRef<number | null>(null);
+  const lastResetKeyRef = useRef(opts?.resetKey);
 
   useEffect(() => {
     currentRef.current = current;
   });
 
   useEffect(() => {
-    const startHex = currentRef.current;
+    let startHex = currentRef.current;
+    if (opts?.resetKey !== lastResetKeyRef.current) {
+      lastResetKeyRef.current = opts?.resetKey;
+      startHex = startValue;
+      currentRef.current = startValue;
+      setCurrent(startValue);
+    }
     if (target === startHex) return;
     const startRgb = parseHex(startHex);
     const targetRgb = parseHex(target);
@@ -275,7 +314,7 @@ export function useEasedColor(target: string, duration: number): string {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [target, duration]);
+  }, [target, duration, opts?.resetKey, startValue]);
 
   return current;
 }
@@ -343,9 +382,21 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   const transitionDuration = isTalking
     ? (active.talking?.morphSpeed ?? active.base.morphSpeed)
     : active.base.morphSpeed;
-  const effectiveScale = useEasedNumber(targetScale, transitionDuration);
-  const effectiveWaveIntensity = useEasedNumber(targetWaveIntensity, transitionDuration);
-  const effectiveColor3 = useEasedColor(targetColor3, transitionDuration);
+
+  // startValue mounts the eased values at the TALKING profile's
+  // values. CoralStoneMorph initializes morphRef=0 (sphere = talking
+  // shape) on mount; pairing the eased props with talking values means
+  // the orb visibly starts at the talking shape AND the talking
+  // scale/wave/color, then eases to the idle/base values concurrent
+  // with the geometric morph (sphere → torus). This is the intro
+  // animation the user expects.
+  const startScale = active.talking?.scale ?? active.base.scale;
+  const startWave = active.talking?.waveIntensity ?? active.base.waveIntensity;
+  const startColor3 = active.talking?.color3 ?? active.base.color3;
+
+  const effectiveScale = useEasedNumber(targetScale, transitionDuration, { startValue: startScale });
+  const effectiveWaveIntensity = useEasedNumber(targetWaveIntensity, transitionDuration, { startValue: startWave });
+  const effectiveColor3 = useEasedColor(targetColor3, transitionDuration, { startValue: startColor3 });
 
   // morphSpeed is the duration parameter for CoralStoneMorph's internal
   // morph animation — snapping is fine (and actually correct, since
