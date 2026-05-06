@@ -1,6 +1,12 @@
-# Coral Unification Plan (v5)
+# Coral Unification Plan (v6)
 
-> v5 incorporates a third round of human-reviewer feedback on v4. The findings in this round point to gaps the self-run plan-review missed; that miss-analysis is in `## Note on plan-review limits` near the bottom of this doc. v1–v4 changelogs kept below; v5 changes:
+> v6 incorporates a fourth round of human-reviewer feedback on v5. Mostly editorial precision after v5's edits introduced a fresh contradiction; one math typo corrected; one unchanged-contract hardened. v1–v5 changelogs kept below; v6 changes:
+> - **Stale "as the React key" sentence fixed.** v5 added the same-shader-no-remount rule but didn't propagate to the earlier `activeOrbKey` description, leaving a direct contradiction. Now consistent: `activeOrbKey` is logical identity (selection/localStorage/lookup), NOT a React reconciliation key on the renderer.
+> - **Math typo fixed.** v5 said "with floor 0.001, one frame moves by `delta / 0.0005`" — the second number was wrong. Corrected to `delta / 0.001`.
+> - **R3F replay verification kept out of `CoralStoneMorph`.** v5's verification note suggested adding a dev-only console assertion *inside* `CoralStoneMorph.useFrame`, which softens the "unchanged shader component" contract. Verification mechanisms moved to wrapper-level only (visible behavior, dev log in the editor's Coral branch, React DevTools).
+> - **Fallback condition phrasing tightened.** v5 said "API fetch fails AND file is missing/empty" — should be OR (any failure path drops to the empty-list fallback). Now: "the fetched list for that shader is empty or unavailable."
+>
+> v4 → v5 changelog (kept for reference):
 > - **Coral canvas uses `blobAudioData`** (the existing `audioActive && state !== 'idle' ? audioData : SILENT` gate), not raw `audioData`. Both shaders' previews now share the idle/listening audio contract.
 > - **`CORAL_FALLBACK_ORB.name` = `'Coral Realtime'`** (was `'Coral'`). Removes the verification-vs-implementation contradiction; collision risk is not real because the fallback only loads when the seed file is absent.
 > - **Same-shader profile-switch intro rule made explicit.** `activeOrbKey` is NOT the React reconciliation key on the renderer — only the shader change triggers a component swap (and thus a remount/intro). Same-shader profile A → B is just prop changes; no intro. Editor's Replay button is the only way to re-trigger the intro within a single shader.
@@ -216,7 +222,7 @@ Pure renderer. Mirrors `NebularrBlob.tsx` in structure but uses Coral's native a
   - `effectiveWaveIntensity = voiceState === 'ai_speaking' ? (talking.waveIntensity ?? base.waveIntensity) : base.waveIntensity`
   - `effectiveColor3 = voiceState === 'ai_speaking' ? (talking.color3 ?? base.color3) : base.color3`
   - `breathAmp`, `idleAmp`, `color1`, `color2`, `torusRadius`: base only.
-- **Renders** `<CoralStoneMorph audioData goal morphSpeed={Math.max(0.001, effectiveMorphSpeed)} scale torusRadius waveIntensity breathAmp idleAmp color1 color2 color3 />` with the effective values above. The `Math.max(0.001, ...)` floor on `morphSpeed` is required because `CoralStoneMorph` computes `delta / morphSpeed`; with both `delta` and `morphSpeed` at `0` (rare but possible on the first frame after mount), the result is `NaN` and propagates into `morphRef` permanently. The floor is small enough that `0` on the user-facing slider still produces a near-instant transition (one frame at the floor moves `morphRef` by `delta / 0.0005`, far beyond the 0–1 clamp range).
+- **Renders** `<CoralStoneMorph audioData goal morphSpeed={Math.max(0.001, effectiveMorphSpeed)} scale torusRadius waveIntensity breathAmp idleAmp color1 color2 color3 />` with the effective values above. The `Math.max(0.001, ...)` floor on `morphSpeed` is required because `CoralStoneMorph` computes `delta / morphSpeed`; with both `delta` and `morphSpeed` at `0` (rare but possible on the first frame after mount), the result is `NaN` and propagates into `morphRef` permanently. The floor is small enough that `0` on the user-facing slider still produces a near-instant transition (one frame at the floor moves `morphRef` by `delta / 0.001`, far beyond the 0–1 clamp range).
 
 **Intro behavior (no extra code needed):**
 
@@ -334,13 +340,13 @@ const realtimeOrbProp: RealtimeOrb | null = useMemo(
 );
 ```
 
-`activeOrbKey` is the composite `${sourceVariant}:${id}` string used everywhere as the React key, dropdown selection, localStorage value, and source-list lookup. The same composite-key convention applies in the editor (key: `realtime-states-active-orb-key`).
+`activeOrbKey` is the composite `${sourceVariant}:${id}` string used for dropdown selection, localStorage value, and source-list lookup. **It is NOT used as a React reconciliation `key` on the renderer.** Renderer React keys come from shader identity only — `<CoralRealtimeBlob>` and `<NebularrBlob>` are different component types, so the shader change is the only thing that triggers a remount/intro. Same-shader profile A → B is just prop changes flowing into the already-mounted renderer (see "Same-shader profile switch — no intro by default" below). The editor's Coral replay key (`coral-${replayCounter}`) is the one place a counter-derived key is used, scoped only to the editor canvas's Coral branch. The same composite-key convention applies in the editor's localStorage (`realtime-states-active-orb-key`).
 
 The `RealtimeOrb` shape (used by `RealtimeBlob`) is derived from `LoadedOrb` (used everywhere else) via the `useMemo` above. Conversion is a one-line projection: `{ shader, profile: settings }`. This boundary is the only place the two unions meet.
 
 ### Fallback orb shapes (`CORAL_FALLBACK_ORB`, `NEBULARR_FALLBACK_ORB`)
 
-Hardcoded constants used only when API fetch fails AND the file is missing/empty. Shapes specified explicitly so the implementer doesn't guess:
+Hardcoded constants used whenever the fetched list for a shader comes back empty or unavailable — i.e., any of: the network request rejected, the response was malformed, the file was missing, or the file existed but contained an empty array. The pseudocode above already collapses these cases via `coralRes.status === 'fulfilled' && coralRes.value.length > 0`; the fallback is the `else` branch. Shapes specified explicitly so the implementer doesn't guess:
 
 ```ts
 const CORAL_FALLBACK_ORB: LoadedOrb = {
@@ -408,7 +414,7 @@ Today the canvas in `realtime-states.tsx` is hardwired to `<GentleOrbThicken>`. 
 
 **`blobAudioData`, not raw `audioData`.** The existing Tube path uses a gated `blobAudioData = audioActive && state !== 'idle' ? audioData : SILENT` (the existing helper in `realtime-states.tsx`). Coral's preview MUST use the same gate or a Coral profile would visibly react to audio while idle, breaking the existing idle/listening contract. The same `blobAudioData` value flows into both branches.
 
-**`Math.max(0.001, morphSpeed)` floor.** Coral's animator computes `delta / morphSpeed`. With `morphSpeed === 0` and `delta === 0` (rare but possible — first frame after mount, or under throttling), the result is `NaN`, which propagates to `morphRef` and stays there. The floor protects the math without changing the user-facing slider semantics: the slider can still show `0.00s` and feel instant (`tau = 0.0005` → `delta / 0.0005` is huge → `morphRef` reaches its bound in one frame). Apply the same floor inside `CoralRealtimeBlob` for the live page.
+**`Math.max(0.001, morphSpeed)` floor.** Coral's animator computes `delta / morphSpeed`. With `morphSpeed === 0` and `delta === 0` (rare but possible — first frame after mount, or under throttling), the result is `NaN`, which propagates to `morphRef` and stays there. The floor protects the math without changing the user-facing slider semantics: the slider can still show `0.00s` and feel instant (with the floor at `0.001`, a non-zero `delta` of e.g. 16ms gives `delta / 0.001 = 16` per frame, far beyond the 0–1 clamp range, so `morphRef` saturates in a single frame). Apply the same floor inside `CoralRealtimeBlob` for the live page.
 
 The editor's existing `restartIntro` action stays, but branches by shader:
 
@@ -513,7 +519,12 @@ const restartIntro = (orb: LoadedOrb | null = activeOrb) => {
 
 Order matters: `setPreviewState('idle')` runs first so React has time to commit the state change before the next render — Coral's canvas then reads `previewState === 'idle'` → `goal = 1`. Tube's path doesn't depend on this timing because its tau override is set synchronously in the same handler.
 
-**R3F `key` remount note:** `<CoralStoneMorph key={`coral-${replayCounter}`}>` inside `<Canvas>` should trigger Three.js mesh recreation when the key changes — R3F's reconciler treats child components like a normal React tree. Verify during implementation that the morphRef does reset to 0 (could be a one-line console assertion in `CoralStoneMorph`'s `useFrame` when env is dev).
+**R3F `key` remount note:** `<CoralStoneMorph key={`coral-${replayCounter}`}>` inside `<Canvas>` should trigger Three.js mesh recreation when the key changes — R3F's reconciler treats child components like a normal React tree. Verify during implementation by **wrapper-level mechanisms only** (preserving the "CoralStoneMorph unchanged" contract):
+- Visible behavior: pressing Replay while the orb is settled at torus visibly returns it to sphere and morphs back.
+- Wrapper-level dev log: a `useEffect(() => console.log('coral mount', replayCounter), [])` (empty deps) inside the editor's Coral branch — fires once per mount.
+- React DevTools: confirm `<CoralStoneMorph>`'s instance id changes on each Replay click.
+
+Do NOT add console assertions inside `CoralStoneMorph.tsx` itself — that file is in the "Unchanged" list and adding dev-only code would soften that contract for an avoidable reason.
 
 
 
@@ -725,6 +736,12 @@ A self-run plan-review skill pass was run on v3 to produce v4. The human reviewe
 **One miss that is genuinely harder to catch automatically:** Finding 3 (same-shader profile-switch intro behavior). The plan said "no intro on same-shader switch" in one section and "activeOrbKey used everywhere as the React key" in another, and these weren't logically incompatible (the second statement was loose phrasing). Catching this would require building an internal model of "what changes a React component identity" and walking it. Worth a future plan-review-pattern note.
 
 **Findings 5** (background sourcing) is a polish-completeness item — the plan didn't actually mislead an implementer, just left a gap. Acceptable miss.
+
+### Additional lesson from v5 → v6
+
+Round 4 surfaced a different failure mode: **edits introduce new contradictions if consistency isn't re-checked after each edit pass.** v5 added the same-shader-no-remount rule in one section but didn't propagate the implication back to the earlier `activeOrbKey` description that still called it "the React key." The two sections were separately correct in isolation, contradictory together. Plus a numeric typo (`0.0005` for a `0.001` floor) and a verification mechanism (console assertion in the unchanged shader file) that contradicted the file's "Unchanged" classification.
+
+Lesson: after each substantive edit pass, re-walk Dimension 2 (internal consistency) at minimum — read every paragraph that names the concept being edited, not just the paragraph being edited. The cost is one extra pass; the cost of skipping it is another reviewer round.
 
 ## Scope estimate
 
