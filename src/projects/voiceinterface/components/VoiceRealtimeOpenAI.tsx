@@ -246,12 +246,19 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     () => orbs.find((o) => orbKey(o) === activeOrbKey) ?? null,
     [orbs, activeOrbKey],
   );
-  const realtimeOrb: RealtimeOrb = useMemo(() => {
-    if (!activeOrb) {
-      // Pre-fetch boot state — render Coral fallback so the orb area
-      // doesn't blank out for one render.
-      return { shader: 'coral', profile: CORAL_FALLBACK_PROFILE };
-    }
+  const realtimeOrb: RealtimeOrb | null = useMemo(() => {
+    // Pre-fetch boot: don't render an orb yet. Previously this returned
+    // a Coral fallback "so the orb area doesn't blank out for one
+    // render," but that caused CoralRealtimeBlob to mount with the
+    // fallback profile (which has no talking.scale), so the eased
+    // hooks' useState initialized at base values. When the real
+    // profile arrived later, useState had already committed; the
+    // intro animation never played.
+    //
+    // Returning null means RealtimeBlob doesn't render until the real
+    // activeOrb resolves. The momentary blank (~80–150ms in dev)
+    // is a smaller cost than a permanently broken intro.
+    if (!activeOrb) return null;
     if (activeOrb.shader === 'coral') {
       return { shader: 'coral', profile: activeOrb.settings };
     }
@@ -636,11 +643,13 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           <div className="orb-label-group">
             {/* Velvet Orb - Audio-reactive visualization */}
             <div className="orb-container">
-              <RealtimeBlob
-                audioData={audioData}
-                voiceState={getVoiceState()}
-                orb={realtimeOrb}
-              />
+              {realtimeOrb && (
+                <RealtimeBlob
+                  audioData={audioData}
+                  voiceState={getVoiceState()}
+                  orb={realtimeOrb}
+                />
+              )}
             </div>
 
             {/* State Label - Text below orb */}
