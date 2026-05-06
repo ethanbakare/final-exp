@@ -2,7 +2,7 @@
   {
     "id": "rt-kyoto",
     "name": "Kyoto Realtime",
-    "pinned": false,
+    "pinned": true,
     "settings": {
       "base": {
         "scale": 1,
@@ -26,7 +26,7 @@
         "waveCount": 14
       }
     },
-    "lastModified": 1777943901079
+    "lastModified": 1778080889244
   },
   {
     "id": "rt-ee41ea96-4906-448f-bf60-d6ddc07019e1",
