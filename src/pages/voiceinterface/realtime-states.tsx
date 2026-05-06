@@ -30,7 +30,7 @@ import { Slider } from '@/components/ui/slider';
 import { audioService } from '@/projects/blob-orb/services/audioService';
 import { CURATED_NAMES, GALLERY_API_KEYS, approxPixelDia } from '@/projects/blob-orb/galleryTypes';
 import type { AudioData } from '@/projects/voiceinterface/types';
-import type { CoralRealtimeSettings } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
+import { CORAL_FALLBACK_PROFILE, type CoralRealtimeSettings } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -1047,6 +1047,11 @@ export default function RealtimeStates() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState('');
+  // Phase 3F — two-step Save-as-new-profile dialog. saveStep gates
+  // which sub-UI is visible; saveShader is the chosen target shader
+  // for the new entry (defaults to the active shader on dialog open).
+  const [saveStep, setSaveStep] = useState<'shader' | 'name'>('shader');
+  const [saveShader, setSaveShader] = useState<'kyoto' | 'coral'>('kyoto');
   const [externalProfileNames, setExternalProfileNames] = useState<Set<string>>(new Set());
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
@@ -1611,25 +1616,68 @@ export default function RealtimeStates() {
   const handleSave = async () => {
     const name = saveName.trim();
     if (!name || profileNameExists(name)) return;
-    const entry: SavedProfile = {
-      id: `rt-${crypto.randomUUID()}`,
+
+    // Phase 3F — route by saveShader, not by activeOrb.shader. Same-
+    // shader new = clone active settings; cross-shader new = start
+    // from the target shader's fallback default.
+    const sameShader = saveShader === activeOrb?.shader;
+
+    if (saveShader === 'kyoto') {
+      const settings: LinkedProfile = sameShader
+        ? structuredClone(profile)
+        : structuredClone(KYOTO_SEED);
+      const entry: SavedProfile = {
+        id: `rt-${crypto.randomUUID()}`,
+        name,
+        pinned: false,
+        settings,
+        lastModified: Date.now(),
+      };
+      const next = [...kyotoProfiles, entry];
+      setKyotoProfiles(next);
+      setActiveShader('kyoto');
+      setActiveCoralId(null);
+      setActiveId(entry.id);
+      setProfile(settings);
+      setActiveBaseline({
+        key: `realtime-state:${entry.id}`,
+        shader: 'kyoto',
+        settings: structuredClone(settings),
+      });
+      restartIntro(settings);
+      closeSaveDialog();
+      await persistProfiles(next);
+      return;
+    }
+
+    // saveShader === 'coral'
+    const coralSettings: CoralRealtimeSettings = sameShader
+      ? structuredClone(activeCoralSettings ?? CORAL_FALLBACK_PROFILE)
+      : structuredClone(CORAL_FALLBACK_PROFILE);
+    const coralEntry: SavedCoralProfile = {
+      id: `rt-coral-${crypto.randomUUID()}`,
       name,
-      settings: profile,
+      pinned: false,
+      settings: coralSettings,
       lastModified: Date.now(),
     };
-    const next = [...kyotoProfiles, entry];
-    setKyotoProfiles(next);
-    setActiveId(entry.id);
-    // Plan v8 round-7 — capture BaselineSnapshot for the just-created
-    // entry. New profile starts clean (active === baseline).
+    const nextCoral = [...coralProfiles, coralEntry];
+    setCoralProfiles(nextCoral);
+    setActiveShader('coral');
+    setActiveCoralId(coralEntry.id);
     setActiveBaseline({
-      key: `realtime-state:${entry.id}`,
-      shader: 'kyoto',
-      settings: structuredClone(entry.settings),
+      key: `realtime-coral:${coralEntry.id}`,
+      shader: 'coral',
+      settings: structuredClone(coralSettings),
     });
+    closeSaveDialog();
+    await persistCoralProfiles(nextCoral);
+  };
+
+  const closeSaveDialog = () => {
     setShowSaveDialog(false);
     setSaveName('');
-    await persistProfiles(next);
+    setSaveStep('shader');
   };
 
   const beginRename = (entry: SavedProfile) => {
@@ -2877,51 +2925,85 @@ export default function RealtimeStates() {
               </>
             )}
 
-            {/* Save */}
+            {/* Save — Phase 3F two-step shader-choice modal. */}
             {showSaveDialog ? (
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={saveName}
-                  onChange={(e) => setSaveName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSave();
-                    if (e.key === 'Escape') {
-                      setShowSaveDialog(false);
-                      setSaveName('');
-                    }
-                  }}
-                  placeholder="Profile name"
-                  className={`w-28 px-2 py-1 text-xs border rounded-lg outline-none focus:border-gray-400 ${
-                    saveNameInvalid ? 'border-red-200' : 'border-gray-200'
-                  }`}
-                  autoFocus
-                />
-                <button
-                  onClick={handleSave}
-                  disabled={saveNameInvalid}
-                  className={`transition-colors ${
-                    saveNameInvalid
-                      ? 'text-gray-300 cursor-not-allowed'
-                      : 'text-gray-500 hover:text-green-600 cursor-pointer'
-                  }`}
-                >
-                  <Check size={14} />
-                </button>
-                <button
-                  onClick={() => {
-                    setShowSaveDialog(false);
-                    setSaveName('');
-                  }}
-                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                >
-                  <X size={14} />
-                </button>
-              </div>
+              saveStep === 'shader' ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-gray-500 uppercase tracking-wider">Shader:</span>
+                  <button
+                    onClick={() => {
+                      setSaveShader('kyoto');
+                      setSaveName(pickRealtimeUnusedName());
+                      setSaveStep('name');
+                    }}
+                    className="px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  >
+                    <Disc size={11} className="text-[#949e05]" />
+                    Tube
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSaveShader('coral');
+                      setSaveName(pickRealtimeUnusedName());
+                      setSaveStep('name');
+                    }}
+                    className="px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  >
+                    <Circle size={11} className="text-[#ffa279]" />
+                    Coral
+                  </button>
+                  <button
+                    onClick={closeSaveDialog}
+                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  {saveShader === 'coral' ? (
+                    <Circle size={11} className="text-[#ffa279]" />
+                  ) : (
+                    <Disc size={11} className="text-[#949e05]" />
+                  )}
+                  <input
+                    type="text"
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSave();
+                      if (e.key === 'Escape') closeSaveDialog();
+                    }}
+                    placeholder="Profile name"
+                    className={`w-28 px-2 py-1 text-xs border rounded-lg outline-none focus:border-gray-400 ${
+                      saveNameInvalid ? 'border-red-200' : 'border-gray-200'
+                    }`}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSave}
+                    disabled={saveNameInvalid}
+                    className={`transition-colors ${
+                      saveNameInvalid
+                        ? 'text-gray-300 cursor-not-allowed'
+                        : 'text-gray-500 hover:text-green-600 cursor-pointer'
+                    }`}
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    onClick={closeSaveDialog}
+                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )
             ) : (
               <button
                 onClick={() => {
-                  setSaveName(pickRealtimeUnusedName());
+                  setSaveShader(activeOrb?.shader ?? 'kyoto');
+                  setSaveStep('shader');
                   setShowSaveDialog(true);
                 }}
                 className="p-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
