@@ -1012,7 +1012,11 @@ export default function RealtimeStates() {
   // to 0 → sphere → torus intro replays).
   const [replayCounter, setReplayCounter] = useState(0);
   const [profile, setProfile] = useState<LinkedProfile>(KYOTO_SEED);
-  const [activeBaseline, setActiveBaseline] = useState<LinkedProfile>(KYOTO_SEED);
+  // Plan v8 (3D-0 step 4 + round-7 F1) — BaselineSnapshot replaces the
+  // old LinkedProfile shape. Inspects only `settings` for dirty
+  // comparison — `name` / `pinned` / `lastModified` / `sourceVariant`
+  // changes do NOT mark the editor dirty.
+  const [activeBaseline, setActiveBaseline] = useState<BaselineSnapshot | null>(null);
 
   // ── Plan v8 (3D-0 step 1) — canonical state alongside mirrors ──────
   //
@@ -1235,17 +1239,26 @@ export default function RealtimeStates() {
 
     // Canonical write
     setActiveOrbKey(targetKey);
-    // Mirror dual-write (step 2 — canonical not yet authoritative)
+    // Mirror dual-write + BaselineSnapshot capture (round-7 F1 + F4).
     if (fallback.shader === 'kyoto') {
       setActiveShader('kyoto');
       setActiveId(fallback.id);
       setActiveCoralId(null);
       setProfile(fallback.settings);
-      setActiveBaseline(fallback.settings);
+      setActiveBaseline({
+        key: targetKey,
+        shader: 'kyoto',
+        settings: structuredClone(fallback.settings),
+      });
       restartIntro(fallback.settings);
     } else {
       setActiveShader('coral');
       setActiveCoralId(fallback.id);
+      setActiveBaseline({
+        key: targetKey,
+        shader: 'coral',
+        settings: structuredClone(fallback.settings),
+      });
     }
   }, [kyotoLoaded, coralLoaded, orbs]);
 
@@ -1389,14 +1402,28 @@ export default function RealtimeStates() {
   useEffect(() => () => audioService.stop(), []);
 
   // ── Mutators ────────────────────────────────────────────────
+  // Plan v8 (3D-0 step 4 + round-7 F4) — slider write paths dual-write
+  // to BOTH the Kyoto profile mirror AND the kyotoProfiles source
+  // array. Without the source-array write, isDirty's settings
+  // comparison runs against stale activeOrb.settings (still equal to
+  // baseline) so slider edits would not register as dirty. Spread
+  // updates only — no nested in-place mutation.
+  const updateActiveKyotoSettings = (mutate: (s: LinkedProfile) => LinkedProfile) => {
+    if (activeOrb?.shader !== 'kyoto') return;
+    setProfile(mutate);
+    setKyotoProfiles((arr) =>
+      arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: mutate(pr.settings) } : pr)),
+    );
+  };
+
   const setBase = (patch: Partial<BaseSettings>) =>
-    setProfile((p) => ({ ...p, base: { ...p.base, ...patch } }));
+    updateActiveKyotoSettings((p) => ({ ...p, base: { ...p.base, ...patch } }));
 
   const setPeak = (scope: PeakScope, patch: Partial<PeakOverrides>) =>
-    setProfile((p) => ({ ...p, [scope]: { ...p[scope], ...patch } }));
+    updateActiveKyotoSettings((p) => ({ ...p, [scope]: { ...p[scope], ...patch } }));
 
   const clearPeak = <K extends keyof PeakOverrides>(scope: PeakScope, field: K) =>
-    setProfile((p) => {
+    updateActiveKyotoSettings((p) => {
       const next = { ...p[scope] };
       delete next[field];
       return { ...p, [scope]: next };
@@ -1412,7 +1439,17 @@ export default function RealtimeStates() {
     profile[scope][field] !== undefined;
 
   // ── Profile actions ─────────────────────────────────────────
-  const isDirty = JSON.stringify(profile) !== JSON.stringify(activeBaseline);
+  // Plan v8 round-7 F1 — dirty comparator inspects ONLY settings.
+  // Returns false on key/shader mismatch (during cross-shader switch
+  // in flight) rather than throwing. Bookmark/rename/Save's
+  // lastModified bump cannot mark the editor dirty by construction
+  // because they don't touch settings.
+  const isDirty = (() => {
+    if (!activeOrb || !activeBaseline) return false;
+    if (compositeKey(activeOrb) !== activeBaseline.key) return false;
+    if (activeOrb.shader !== activeBaseline.shader) return false;
+    return JSON.stringify(activeOrb.settings) !== JSON.stringify(activeBaseline.settings);
+  })();
   // Plan v8 (3D-0 step 3) — read from canonical `activeOrb`. Mirror
   // reads like `kyotoProfiles.find((p) => p.id === activeId)` are no
   // longer needed for these fields; activeOrb already carries name +
@@ -1478,7 +1515,16 @@ export default function RealtimeStates() {
     setActiveCoralId(null);
     setActiveId(id);
     setProfile(found.settings);
-    setActiveBaseline(found.settings);
+    // Plan v8 round-7 F1 + F4 — capture BaselineSnapshot via
+    // structuredClone so active and baseline never share nested
+    // references. Slider edits update kyotoProfiles immutably; baseline
+    // stays pinned to the just-selected snapshot until Save or
+    // re-selection.
+    setActiveBaseline({
+      key: `realtime-state:${id}`,
+      shader: 'kyoto',
+      settings: structuredClone(found.settings),
+    });
     restartIntro(found.settings);
     setShowProfileDropdown(false);
   };
@@ -1488,6 +1534,15 @@ export default function RealtimeStates() {
     if (!found) return;
     setActiveShader('coral');
     setActiveCoralId(id);
+    // Plan v8 round-7 F1 — capture BaselineSnapshot for Coral too. Coral
+    // controls aren't editable yet (3D-1 ships them), but capturing
+    // baseline now means the dirty contract is consistent across
+    // shaders from the moment 3D-1 lands.
+    setActiveBaseline({
+      key: `realtime-coral:${id}`,
+      shader: 'coral',
+      settings: structuredClone(found.settings),
+    });
     // Plan v8 (F1): same-shader Coral switch is prop-only — no remount,
     // no intro replay. The new profile's settings flow into the
     // already-mounted CoralStoneMorph and the orb smoothly transitions
@@ -1514,7 +1569,13 @@ export default function RealtimeStates() {
     const next = [...kyotoProfiles, entry];
     setKyotoProfiles(next);
     setActiveId(entry.id);
-    setActiveBaseline(entry.settings);
+    // Plan v8 round-7 — capture BaselineSnapshot for the just-created
+    // entry. New profile starts clean (active === baseline).
+    setActiveBaseline({
+      key: `realtime-state:${entry.id}`,
+      shader: 'kyoto',
+      settings: structuredClone(entry.settings),
+    });
     setShowSaveDialog(false);
     setSaveName('');
     await persistProfiles(next);
@@ -1573,11 +1634,20 @@ export default function RealtimeStates() {
 
   const handleUpdate = async () => {
     if (!isDirty) return;
+    if (activeOrb?.shader !== 'kyoto') return;
     const next = kyotoProfiles.map((pr) =>
       pr.id === activeId ? { ...pr, settings: profile, lastModified: Date.now() } : pr
     );
     setKyotoProfiles(next);
-    setActiveBaseline(profile);
+    // Plan v8 round-7 — re-snapshot baseline AFTER successful save.
+    // Failed persist would leave baseline pinned to the old value so
+    // dirty stays true and the user can retry. (Right now persistProfiles
+    // swallows errors silently; tightening that is a separate concern.)
+    setActiveBaseline({
+      key: `realtime-state:${activeOrb.id}`,
+      shader: 'kyoto',
+      settings: structuredClone(profile),
+    });
     await persistProfiles(next);
   };
 
@@ -2472,7 +2542,20 @@ export default function RealtimeStates() {
             {activeOrb?.shader === 'kyoto' && isDirty && (
               <>
                 <button
-                  onClick={() => setProfile(activeBaseline)}
+                  onClick={() => {
+                    // Plan v8 round-7 F1 — Discard runs the inverse of
+                    // a baseline capture: clone baseline.settings back
+                    // into active (mirror + source array), leaving
+                    // baseline untouched. Active becomes equal to
+                    // baseline by clone, isDirty returns false.
+                    if (!activeBaseline || activeBaseline.shader !== 'kyoto') return;
+                    if (activeOrb?.shader !== 'kyoto') return;
+                    const reverted = structuredClone(activeBaseline.settings);
+                    setProfile(reverted);
+                    setKyotoProfiles((arr) =>
+                      arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: reverted } : pr)),
+                    );
+                  }}
                   className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-1"
                   title="Discard unsaved edits and reset to last saved"
                 >
