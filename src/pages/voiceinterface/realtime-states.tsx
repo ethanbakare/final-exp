@@ -1388,21 +1388,21 @@ export default function RealtimeStates() {
 
   // ── Profile actions ─────────────────────────────────────────
   const isDirty = JSON.stringify(profile) !== JSON.stringify(activeBaseline);
-  const activeProfile = kyotoProfiles.find((p) => p.id === activeId);
-  const activeCoralProfile = coralProfiles.find((p) => p.id === activeCoralId);
+  // Plan v8 (3D-0 step 3) — read from canonical `activeOrb`. Mirror
+  // reads like `kyotoProfiles.find((p) => p.id === activeId)` are no
+  // longer needed for these fields; activeOrb already carries name +
+  // pinned. Settings-shaped reads still use mirrors below until step 3
+  // gets to them.
   const activeName =
-    activeShader === 'coral'
-      ? activeCoralProfile?.name ?? 'Coral Realtime'
-      : activeProfile?.name ?? REALTIME_SEED_NAME;
-  const activePinned =
-    activeShader === 'coral'
-      ? activeCoralProfile?.pinned === true
-      : activeProfile?.pinned === true;
+    activeOrb?.name ??
+    (activeOrb?.shader === 'coral' ? 'Coral Realtime' : REALTIME_SEED_NAME);
+  const activePinned = activeOrb?.pinned === true;
   const toggleActivePinned = () => {
-    if (activeShader === 'coral' && activeCoralId) {
-      togglePinnedCoral(activeCoralId);
-    } else if (activeId) {
-      togglePinned(activeId);
+    if (!activeOrb) return;
+    if (activeOrb.shader === 'coral') {
+      togglePinnedCoral(activeOrb.id);
+    } else {
+      togglePinned(activeOrb.id);
     }
   };
 
@@ -1473,10 +1473,9 @@ export default function RealtimeStates() {
     setShowProfileDropdown(false);
   };
 
+  // Plan v8 (3D-0 step 3) — derive from canonical activeOrb.
   const activeCoralSettings: CoralRealtimeSettings | null =
-    activeShader === 'coral' && activeCoralId
-      ? coralProfiles.find((p) => p.id === activeCoralId)?.settings ?? null
-      : null;
+    activeOrb?.shader === 'coral' ? activeOrb.settings : null;
 
   const handleSave = async () => {
     const name = saveName.trim();
@@ -1947,10 +1946,10 @@ export default function RealtimeStates() {
 
   // Page bg sources from the active shader's profile so swapping a
   // Coral entry tints the whole editor with its bgColor.
-  const activeBgColor =
-    activeShader === 'coral' && activeCoralSettings
-      ? activeCoralSettings.base.bgColor
-      : profile.base.bgColor;
+  // Plan v8 (3D-0 step 3) — read from activeOrb. The path is uniform
+  // since both shader settings types expose `base.bgColor` at the same
+  // path (deliberate design from v4).
+  const activeBgColor = activeOrb?.settings.base.bgColor ?? profile.base.bgColor;
 
   return (
     <div
@@ -1980,14 +1979,10 @@ export default function RealtimeStates() {
         >
           <color
             attach="background"
-            args={[
-              activeShader === 'coral' && activeCoralSettings
-                ? activeCoralSettings.base.bgColor
-                : profile.base.bgColor,
-            ]}
+            args={[activeOrb?.settings.base.bgColor ?? profile.base.bgColor]}
           />
           <ambientLight intensity={0.5} />
-          {activeShader === 'coral' && activeCoralSettings ? (
+          {activeOrb?.shader === 'coral' && activeCoralSettings ? (
             (() => {
               const isTalking = state === 'talking';
               const baseS = activeCoralSettings.base;
@@ -2044,8 +2039,8 @@ export default function RealtimeStates() {
       <div className="fixed bottom-0 left-0 right-0 z-40">
         {/* Single-tab popover — Tube-only. The tab buttons themselves
             are hidden when Coral is active so this branch can't fire,
-            but we add the activeShader gate defensively. */}
-        {activeShader === 'kyoto' && !expanded && activeTab && (
+            but we add the activeOrb shader gate defensively. */}
+        {activeOrb?.shader === 'kyoto' && !expanded && activeTab && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[50vh] overflow-y-auto">
             <div className="max-w-3xl mx-auto p-4">
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
@@ -2057,7 +2052,7 @@ export default function RealtimeStates() {
         )}
 
         {/* Expanded 4-column drawer — Tube-only for the same reason. */}
-        {activeShader === 'kyoto' && expanded && (
+        {activeOrb?.shader === 'kyoto' && expanded && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[60vh] overflow-y-auto">
             <div className="max-w-6xl mx-auto p-4">
               <div className="text-[11px] uppercase tracking-wider text-gray-400 mb-2">
@@ -2120,7 +2115,7 @@ export default function RealtimeStates() {
                 onClick={() => setShowProfileDropdown((p) => !p)}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer min-w-[100px]"
               >
-                {activeShader === 'coral' ? (
+                {activeOrb?.shader === 'coral' ? (
                   <Circle size={11} className="shrink-0 text-[#ffa279]" aria-label="Coral D profile" />
                 ) : (
                   <Disc size={11} className="shrink-0 text-[#949e05]" aria-label="Tube/Kyoto profile" />
@@ -2138,7 +2133,9 @@ export default function RealtimeStates() {
                       <div
                         key={p.id}
                         className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 ${
-                          p.id === activeId ? 'font-medium text-gray-700' : 'text-gray-600'
+                          activeOrb?.shader === 'kyoto' && p.id === activeOrb.id
+                            ? 'font-medium text-gray-700'
+                            : 'text-gray-600'
                         } ${isRenaming ? '' : 'cursor-pointer'}`}
                         onClick={() => {
                           if (!isRenaming) selectProfile(p.id);
@@ -2237,7 +2234,7 @@ export default function RealtimeStates() {
                       <div
                         key={p.id}
                         className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 ${
-                          activeShader === 'coral' && p.id === activeCoralId
+                          activeOrb?.shader === 'coral' && p.id === activeOrb.id
                             ? 'font-medium text-gray-700'
                             : 'text-gray-600'
                         } ${isRenaming ? '' : 'cursor-pointer'}`}
@@ -2338,7 +2335,7 @@ export default function RealtimeStates() {
                 settings, so we hide them entirely until Coral
                 controls land. The user can still Bookmark, Rename,
                 Replay, switch profiles, and use state pills. */}
-            {activeShader === 'coral' ? (
+            {activeOrb?.shader === 'coral' ? (
               <div className="flex items-center gap-1 ml-2 text-xs text-gray-400 italic">
                 Coral tuning controls coming next
               </div>
@@ -2414,7 +2411,7 @@ export default function RealtimeStates() {
                 intro plays via Coral's native animator. */}
             <button
               onClick={() => {
-                if (activeShader === 'coral') {
+                if (activeOrb?.shader === 'coral') {
                   setState('idle');
                   setReplayCounter((c) => c + 1);
                 } else {
@@ -2444,10 +2441,10 @@ export default function RealtimeStates() {
 
             {/* Discard + Update — Tube-only today. Coral has no editable
                 slider state in this phase, so isDirty for Coral can't
-                fire. Gating on activeShader === 'kyoto' keeps any
-                future Coral-related dirty signal from accidentally
-                writing Tube state to the Tube file. */}
-            {activeShader === 'kyoto' && isDirty && (
+                fire. Gating on activeOrb shader keeps any future
+                Coral-related dirty signal from accidentally writing
+                Tube state to the Tube file. */}
+            {activeOrb?.shader === 'kyoto' && isDirty && (
               <>
                 <button
                   onClick={() => setProfile(activeBaseline)}
