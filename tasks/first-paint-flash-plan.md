@@ -1,6 +1,6 @@
-# Editor first-paint flash — fix plan (v2.1)
+# Editor first-paint flash — fix plan (v2.2)
 
-> v2.1 incorporates round-2 reviewer feedback. Three accepts (F1, F2, F3 — real corrections folded in) and one light pushback (F4 — see footnote at bottom). Ready for implementation; reviewer pushback noted for re-read.
+> v2.2 incorporates round-3 reviewer feedback. All four findings accepted (F1 P1, F2 P2, F3 P2, F4 P3) — they all surface real ownership-boundary gaps that v2.1's table missed. Reviewer's round-2 F4 pushback (footnote at bottom) is unchanged.
 
 ## Problem
 
@@ -48,20 +48,42 @@ Split `RealtimeStates` into a parent component that handles data + actions, and 
 
 | Owned by **parent** (`RealtimeStates`) | Owned by **child** (`RealtimeStatesEditor`) |
 |---|---|
+| **Source data** | **Visual / animator state** |
 | `kyotoProfiles`, `coralProfiles` (source arrays) | `render: RenderValues` (animator output) |
 | `kyotoLoaded`, `coralLoaded` (load flags) | `replayCounter` |
 | `activeOrbKey` | `state: PreviewState` (idle/listening/thinking/talking pill) |
 | `activeBaseline` (for dirty detection) | `autoLoop`, `expanded`, `activeTab`, `thinkingPaused` |
 | `cascadeReady` (new) | All eased hooks (`useEasedNumber`, `useEasedColor`) |
 | `externalProfileNames` | `useCoralThinkingPulse` |
-| `colorFormat` (or move to child if cleaner) | The JS animator `useEffect` |
-| **Cascade effect** | All visual JSX |
-| **First-load fetch effect** (sets `kyotoLoaded`/`coralLoaded`) | `restartIntro` (uses animator state) |
-| **Action handlers**: `selectProfile`, `selectCoralProfile`, `handleSave`, `handleUpdate`, `togglePinned`, `togglePinnedCoral`, `commitRename`, `commitRenameCoral`, etc. | Slider helpers (`setBase`, `setPeak`, `clearPeak`, `coralSetBase`, etc.) — **operate on parent-owned source arrays via passed-in setters** |
+| **Audio state (round-3 F2)** | The JS animator `useEffect` |
+| `audioActive` — set by `<GalleryAudioControls>` which renders in the parent (visible in skeleton AND child-mounted phase) | All visual JSX |
+| `audioData` + the audio polling `useEffect` — depends only on `audioActive`, doesn't need `state` | `restartIntro` (uses animator state). **Triggered post-mount via a child useEffect that watches `activeOrb` identity changes** — see "restartIntro post-mount mechanism" below. |
+| **Modal / dialog UI state (round-3 F3)** | Slider helpers (`setBase`, `setPeak`, `clearPeak`, `coralSetBase`, etc.) — operate on parent-owned source arrays via passed-in setters |
+| `showSaveDialog`, `saveStep`, `saveShader`, `saveName` | |
+| `renamingId`, `renameDraft` | |
+| **Color format (round-3 F4)** | |
+| `colorFormat` — initialized via lazy `useState(() => ...)` reading localStorage synchronously on first render, so the format-flash is eliminated | |
+| **Cascade effect** | |
+| **First-load fetch effect** (sets `kyotoLoaded`/`coralLoaded`) | |
+| **Action handlers**: `selectProfile`, `selectCoralProfile`, `handleSave`, `handleUpdate`, `togglePinned`, `togglePinnedCoral`, `commitRename`, `commitRenameCoral`, etc. | |
 
-**Props flow:** parent passes resolved `activeOrb`, `activeBaseline`, source arrays, and all action handlers as props. Child reads them, displays, calls handlers on user interaction.
+**Props flow:** parent passes resolved `activeOrb`, `activeBaseline`, source arrays, all dialog state + setters, `colorFormat` + setter, `audioActive` + `audioData`, and all action handlers as props. Child reads them, displays, calls handlers on user interaction.
 
 **Why baseline lives in the parent:** the cascade `useEffect` is the natural place to capture baseline (`setActiveBaseline({key, shader, settings: structuredClone(...)})`) — that's how "the orb on disk = the orb in memory" is established. If baseline lived in the child, cascade couldn't pre-set it before the child mounts. Child receives `activeBaseline` as prop + `setActiveBaseline` as a callback for re-snapshotting after Save.
+
+**Why dialog UI state lives in the parent (round-3 F3):** `handleSave` reads `saveName`, `saveShader`, `saveStep`. `commitRename` reads `renameDraft`. These are tightly coupled to the action handlers — keeping them with the handler keeps the action self-contained. The child renders the dialog UI but reads dialog state + calls dialog setters via props. Slightly more plumbing but cleaner action encapsulation.
+
+**Why audio state lives in the parent (round-3 F2):** the skeleton renders `<GalleryAudioControls>` in the top-right (visible during the loading phase). That component calls `setAudioActive`. If `audioActive` lived in the child, the skeleton's audio control would either be non-functional during the loading phase OR couldn't be rendered at all. Putting it in the parent lets the audio control work continuously — turn audio on while the editor is still loading and the polling already works. Child receives `audioActive` + `audioData` as props.
+
+**Why colorFormat lives in the parent with lazy init (round-3 F4):** today `colorFormat` defaults to `'hex'` and reads localStorage in a `useEffect` (line 1190–1195). On reload with persisted HSL/HSB, the Colours tab briefly shows HEX before the localStorage effect overwrites it. Lazy `useState` initializer reads localStorage synchronously on first render, eliminating the format flash:
+```ts
+const [colorFormat, setColorFormat] = useState<ColorFormat>(() => {
+  if (typeof window === 'undefined') return 'hex';
+  const stored = window.localStorage.getItem('realtime-states-color-format');
+  return stored && COLOR_FORMATS.includes(stored as ColorFormat) ? (stored as ColorFormat) : 'hex';
+});
+```
+The existing localStorage `useEffect` for color format becomes redundant and should be removed. Child receives `colorFormat` + `chooseColorFormat` (setter wrapper that also persists) as props.
 
 ### 2. Exact `cascadeReady` flip timing (round-1 F2 / round-2 F1)
 
@@ -87,6 +109,37 @@ const [render, setRender] = useState<RenderValues>(() =>
     : talkingRenderForProfile(KYOTO_SEED), // Coral path: render isn't used by Coral canvas, fallback is fine
 );
 ```
+
+### restartIntro post-mount mechanism (round-3 F1)
+
+The child seeds its render state on first mount via the lazy useState initializer above. For **post-mount profile switches** — `selectProfile`, `handleSave` (which previously called `restartIntro` directly at lines 1561, 1705) — the parent's action handlers no longer call `restartIntro` themselves (they can't; it's child-local). Instead:
+
+- Parent's `selectProfile(id)` updates source state: `setActiveOrbKey('realtime-state:${id}')` + `setActiveBaseline({...})`.
+- Parent's `handleSave` (Kyoto branch) appends to `kyotoProfiles`, sets active key + baseline, persists.
+- These setters propagate to the child as a new `activeOrb` prop.
+- **Child has a `useEffect` that watches `activeOrb` identity changes (post-mount only) and runs `restartIntro` for Kyoto transitions:**
+
+```tsx
+const isFirstRenderRef = useRef(true);
+useEffect(() => {
+  if (isFirstRenderRef.current) {
+    isFirstRenderRef.current = false;
+    return; // first mount handled by lazy useState init above
+  }
+  if (activeOrb.shader === 'kyoto') {
+    restartIntro(activeOrb.settings);
+  }
+  // Coral transitions don't use restartIntro — Coral has its own
+  // native morph + the existing Replay/replayCounter mechanism.
+}, [activeOrb.id, activeOrb.shader]);
+```
+
+Net behavior preserved:
+- **First mount with Kyoto persisted**: lazy useState init seeds `render` from active profile. No restartIntro call. `activeTauOverrideRef` should also be lazy-initialized to `talking.settleSpeed ?? base.thickenSpeed` of the active profile so the talking-exit override works without an explicit restartIntro.
+- **First mount with Coral persisted**: lazy init falls back to KYOTO_SEED render values (unused — Coral canvas doesn't read `render`). Coral's `<CoralStoneMorph>` mounts fresh; the `goal=1` + `morphRef=0` natural intro plays.
+- **Post-mount Kyoto profile switch**: parent updates state → activeOrb prop changes → child's effect runs `restartIntro(activeOrb.settings)`. Same intro semantics as today.
+- **Post-mount Coral profile switch**: parent updates state → activeOrb prop changes. Child's effect skips restartIntro (Coral path). The existing F1 round-7 contract (no intro replay on same-shader switch) still holds.
+- **Post-mount cross-shader switch (Coral ↔ Kyoto)**: activeOrb.shader change still triggers the canvas dispatch swap via the existing JSX. Plus the new effect runs restartIntro on the Kyoto-side direction.
 
 For persisted Tube profiles like Nebularr, the child's `render` useState now initializes from the resolved active profile instead of `KYOTO_SEED`. No `restartIntro` needed at mount because the initial render values already match the active profile.
 
