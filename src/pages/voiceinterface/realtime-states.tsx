@@ -2216,6 +2216,12 @@ export default function RealtimeStates() {
         }
         const sInh = !coralPeakHas('scale');
         const sEff = (coralPeakEff('scale') as number) ?? baseS.scale;
+        // Torus Radius is intentionally HIDDEN on the talking pill —
+        // the orb is a sphere during talking, so editing torus radius
+        // produces no visible change and creates a false-broken UX
+        // signal. The field is still editable from idle/listening/
+        // thinking pills where the orb is a torus. This mirrors Tube's
+        // "Geometry pinned to sphere — no peak slider" pattern.
         return (
           <div className="space-y-3">
             {restRow}
@@ -2230,7 +2236,10 @@ export default function RealtimeStates() {
               onChange={(v) => coralSetPeak({ scale: v })}
               onReset={sInh ? undefined : () => coralClearPeak('scale')}
             />
-            {torusRow}
+            <div className="text-xs text-gray-400 italic">
+              Torus Radius hidden — orb is a sphere during talking. Edit
+              it from Idle, Listening, or Thinking.
+            </div>
           </div>
         );
       }
