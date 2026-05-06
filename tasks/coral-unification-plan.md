@@ -1000,23 +1000,40 @@ The user's "set transition to zero" framing was approximately correct in spirit 
 
 ### Schema additions
 
-`CoralRealtimeProfile['settings']['base']` gets two new fields:
+`CoralRealtimeProfile['settings']['base']` gets two new fields. **Resolved during plan-review pass: both are OPTIONAL** with renderer-side fallbacks. This sidesteps a migration: legacy persisted entries (the seed file's existing entry, any user-saved Coral profiles created pre-Phase-4) work unchanged because the renderer applies defaults when the fields are absent. Mirrors the existing `pinned?: boolean` pattern.
 
 ```ts
 type CoralRealtimeBase = {
   // ... existing fields ...
-  thickRadius: number;   // NEW — top of the pulse (peak ring thickness during thinking).
-                         // Must be > torusRadius for the pulse to be visible.
-                         // Suggested seed: 0.45 (vs torusRadius 0.275).
-  pulseSpeed: number;    // NEW — half-cycle duration in seconds (thin → thick = one half-cycle).
-                         // Full cycle (thin → thick → thin) = pulseSpeed * 2.
-                         // Suggested seed: 0.6 seconds (~1.2s full cycle).
+  thickRadius?: number;   // NEW (optional) — top of the pulse (peak ring thickness during thinking).
+                          // Default if absent: 0.45 (matches Tube's default thickRadius for muscle memory).
+                          // Pulse is only visible when thickRadius > torusRadius; the editor warns
+                          // (red label) but does not block.
+  pulseSpeed?: number;    // NEW (optional) — half-cycle duration in seconds (thin → thick = one half-cycle).
+                          // Full cycle (thin → thick → thin) = pulseSpeed * 2.
+                          // Default if absent: 0.6 seconds (~1.2s full cycle, matches LoopingBlob's
+                          // default `states.thinking.thickenSpeed` for visual continuity).
+                          // Half-cycle semantics match LoopingBlob exactly. Slider label
+                          // reads "Pulse Speed (thin → thick)" — same style as Tube's "Settle Speed (→ idle)".
 };
 ```
 
-Both fields are required (NOT optional). Seed entries get sensible defaults; persisted entries on disk get migrated by adding the fields to the JSON. Implementer note: `CoralStoneMorph` already accepts a `torusRadius` prop dynamically — no shader change needed, only a wrapper-level `pulseRadius` ref.
+Implementer notes:
+- `CoralStoneMorph` already accepts `torusRadius` as a dynamic prop — no shader change. Wrapper-level `pulseRadius` state overrides the static value during thinking.
+- The Coral `talking` peak block does NOT get pulse fields. Pulse is thinking-only by definition.
+- Schema field names (`base.thickRadius`, `base.pulseSpeed`) deliberately differ from `LoopingBlob`'s shape (`states.thinking.thickenSpeed`, `base.thickRadius` from `WHIMSY_BASE`/`blobStudioTypes`). The plumbing is structurally separate even though the runtime mechanism is identical.
+- `VoiceRealtimeOpenAI`'s orbs projection adds defensive read for both fields — parallel to `pinned: p.pinned === true` — so legacy persisted entries get the defaults at projection time.
 
-The Coral `talking` peak block does NOT get pulse fields. Pulse is thinking-only by definition.
+### Affected files (resolved during plan-review)
+
+Phase 4 touches exactly these files. No new files, no renames, no deletions.
+
+| File | Phase | Change |
+|---|---|---|
+| `realtime-coral-profiles.json` | 4A | Add `thickRadius: 0.45` and `pulseSpeed: 0.6` to the seed entry's `base` block. Optional fields, but seeding them documents the defaults explicitly. |
+| `src/projects/voiceinterface/components/CoralRealtimeBlob.tsx` | 4A type, 4B mechanism | Extend `CoralRealtimeSettings.base` with `thickRadius?` + `pulseSpeed?`. Update `CORAL_FALLBACK_PROFILE`. **Add and export `useCoralThinkingPulse` hook** (co-located, not a new file). Wire it into the component's `<CoralStoneMorph>` `torusRadius` prop. |
+| `src/projects/voiceinterface/components/VoiceRealtimeOpenAI.tsx` | 4A | Defensive read in the orbs projection: when projecting a Coral entry into `LoadedOrb.settings.base`, fall back to defaults if `thickRadius`/`pulseSpeed` are absent. Parallel to the existing `pinned: p.pinned === true` defensive coercion. |
+| `src/pages/voiceinterface/realtime-states.tsx` | 4B canvas, 4C controls | Editor's Coral canvas dispatch consumes the shared `useCoralThinkingPulse` hook (replacing the static `torusRadius={baseS.torusRadius}` binding). `renderCoralTabControls` Thinking-pill placeholder is replaced by two new sliders bound to `coralSetBase`. |
 
 ### Renderer port — `CoralRealtimeBlob`
 
