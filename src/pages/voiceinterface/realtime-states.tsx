@@ -13,7 +13,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas } from '@react-three/fiber';
-import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, Pencil, Bookmark } from 'lucide-react';
+import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, Pencil, Bookmark, Disc, Circle } from 'lucide-react';
 import {
   ColorArea,
   ColorSlider,
@@ -29,6 +29,7 @@ import { Slider } from '@/components/ui/slider';
 import { audioService } from '@/projects/blob-orb/services/audioService';
 import { CURATED_NAMES, GALLERY_API_KEYS, approxPixelDia } from '@/projects/blob-orb/galleryTypes';
 import type { AudioData } from '@/projects/voiceinterface/types';
+import type { CoralRealtimeSettings } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -83,6 +84,35 @@ interface SavedProfile {
   settings: LinkedProfile;
   lastModified: number;
 }
+
+/** Saved-profile shape for the Coral D shader (parallel file). */
+interface SavedCoralProfile {
+  id: string;
+  name: string;
+  pinned?: boolean;
+  settings: CoralRealtimeSettings;
+  lastModified: number;
+}
+
+/** Combined display row used by the dropdown — keeps the source
+ *  variant so save/rename/pin can route to the right file. The editor
+ *  preserves separate per-source arrays internally; this union is just
+ *  the read-side projection. */
+type DropdownRow =
+  | {
+      shader: 'kyoto';
+      sourceVariant: 'realtime-state';
+      id: string;
+      name: string;
+      pinned: boolean;
+    }
+  | {
+      shader: 'coral';
+      sourceVariant: 'realtime-coral';
+      id: string;
+      name: string;
+      pinned: boolean;
+    };
 
 interface RenderValues {
   scale: number;
@@ -156,6 +186,30 @@ async function persistProfiles(arr: SavedProfile[]) {
     });
   } catch (e) {
     console.error('[realtime-states] persist failed', e);
+  }
+}
+
+const CORAL_API = '/api/studio-profiles?variant=realtime-coral';
+
+async function fetchCoralProfiles(): Promise<SavedCoralProfile[]> {
+  try {
+    const r = await fetch(CORAL_API);
+    const j = await r.json();
+    return Array.isArray(j) ? j : [];
+  } catch {
+    return [];
+  }
+}
+
+async function persistCoralProfiles(arr: SavedCoralProfile[]) {
+  try {
+    await fetch(CORAL_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(arr),
+    });
+  } catch (e) {
+    console.error('[realtime-states] persist coral failed', e);
   }
 }
 
@@ -901,6 +955,11 @@ const PeakColorRow: React.FC<PeakColorRowProps> = ({
 
 export default function RealtimeStates() {
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
+  // Coral profiles live in a parallel file. Read here so the dropdown
+  // can show them with shader glyphs and the bookmark toggle works for
+  // both shaders. Editing Coral controls is a separate phase — for now
+  // selecting a Coral entry just routes bookmark/rename to its file.
+  const [coralProfiles, setCoralProfiles] = useState<SavedCoralProfile[]>([]);
   const [activeId, setActiveId] = useState<string>('rt-kyoto');
   const [profile, setProfile] = useState<LinkedProfile>(KYOTO_SEED);
   const [activeBaseline, setActiveBaseline] = useState<LinkedProfile>(KYOTO_SEED);
@@ -990,6 +1049,9 @@ export default function RealtimeStates() {
         restartIntro(first.settings);
       }
     });
+    // Coral profiles loaded separately (parallel file). Failure / empty
+    // is fine — just means no Coral entries appear in the dropdown.
+    fetchCoralProfiles().then(setCoralProfiles);
   }, []);
 
   useEffect(() => {
@@ -1217,14 +1279,33 @@ export default function RealtimeStates() {
   };
 
   const togglePinned = async (id: string) => {
-    // Flip the `pinned` flag on the named profile and persist. Live
-    // page picks up the change on next refresh (it re-fetches the
-    // realtime-state file on mount and filters by pinned===true).
+    // Flip the `pinned` flag on the named Tube/Kyoto profile and
+    // persist. Live page picks up the change on next refresh.
     const next = profiles.map((pr) =>
       pr.id === id ? { ...pr, pinned: !pr.pinned, lastModified: Date.now() } : pr,
     );
     setProfiles(next);
     await persistProfiles(next);
+  };
+
+  const togglePinnedCoral = async (id: string) => {
+    // Same as togglePinned but routes to the Coral profile file.
+    const next = coralProfiles.map((pr) =>
+      pr.id === id ? { ...pr, pinned: !pr.pinned, lastModified: Date.now() } : pr,
+    );
+    setCoralProfiles(next);
+    await persistCoralProfiles(next);
+  };
+
+  const commitRenameCoral = async (id: string, draft: string) => {
+    const name = draft.trim();
+    if (!name || profileNameExists(name, id)) return;
+    const next = coralProfiles.map((pr) =>
+      pr.id === id ? { ...pr, name, lastModified: Date.now() } : pr,
+    );
+    setCoralProfiles(next);
+    cancelRename();
+    await persistCoralProfiles(next);
   };
 
   const cancelRename = () => {
@@ -1823,6 +1904,11 @@ export default function RealtimeStates() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
+                            <Disc
+                              size={11}
+                              className="shrink-0 text-[#949e05]"
+                              aria-label="Tube/Kyoto profile"
+                            />
                             <span className="min-w-0 flex-1 truncate">{p.name}</span>
                             <button
                               onClick={(e) => {
@@ -1845,6 +1931,110 @@ export default function RealtimeStates() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 beginRename(p);
+                              }}
+                              className="shrink-0 text-gray-300 hover:text-gray-600 transition-colors cursor-pointer"
+                              title="Rename profile"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {/* Coral D entries from realtime-coral-profiles.json.
+                      Selecting a Coral row currently shows a no-op
+                      placeholder — full Coral preview + controls
+                      arrive in a later phase. Bookmark + rename work
+                      end-to-end and route to the Coral file. */}
+                  {coralProfiles.map((p) => {
+                    const isRenaming = renamingId === p.id;
+                    const renameInvalid = !renameDraft.trim() || profileNameExists(renameDraft, p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 text-gray-600 ${
+                          isRenaming ? '' : 'cursor-pointer'
+                        }`}
+                        onClick={() => {
+                          if (isRenaming) return;
+                          // TODO: full Coral preview + controls. For
+                          // now, surface that selection is recognised.
+                          window.alert(
+                            'Coral profile selection is recognised — preview canvas + controls arrive in the next phase. Use the bookmark and rename buttons in the meantime.',
+                          );
+                        }}
+                      >
+                        {isRenaming ? (
+                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="text"
+                              value={renameDraft}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') commitRenameCoral(p.id, renameDraft);
+                                if (e.key === 'Escape') cancelRename();
+                              }}
+                              className={`min-w-0 flex-1 px-2 py-1 text-xs border rounded-md outline-none focus:border-gray-400 ${
+                                renameInvalid ? 'border-red-200' : 'border-gray-200'
+                              }`}
+                              autoFocus
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                commitRenameCoral(p.id, renameDraft);
+                              }}
+                              disabled={renameInvalid}
+                              className={`transition-colors ${
+                                renameInvalid
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-gray-500 hover:text-green-600 cursor-pointer'
+                              }`}
+                              title="Save name"
+                            >
+                              <Check size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelRename();
+                              }}
+                              className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                              title="Cancel rename"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Circle
+                              size={11}
+                              className="shrink-0 text-[#ffa279]"
+                              aria-label="Coral D profile"
+                            />
+                            <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePinnedCoral(p.id);
+                              }}
+                              className={`shrink-0 transition-colors cursor-pointer ${
+                                p.pinned
+                                  ? 'text-amber-500 hover:text-amber-600'
+                                  : 'text-gray-300 hover:text-gray-600'
+                              }`}
+                              title={p.pinned ? 'Pinned to live page (click to unpin)' : 'Pin to live page'}
+                            >
+                              <Bookmark
+                                size={12}
+                                fill={p.pinned ? 'currentColor' : 'none'}
+                              />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                beginRename(p as unknown as SavedProfile);
                               }}
                               className="shrink-0 text-gray-300 hover:text-gray-600 transition-colors cursor-pointer"
                               title="Rename profile"
