@@ -317,6 +317,13 @@ function parseColorValue(value: string, format: ColorFormat) {
   return null;
 }
 
+// Speed sliders store a "tau coefficient": tau = value * 0.5, then the
+// animator decays toward target with alpha = 1 - exp(-dt/tau). Visually
+// "feels done" at ~3 tau (95% settled), so the *visible* duration the
+// user perceives is approximately value * 1.5 seconds. We surface this
+// number under each speed slider so the labelled "s" stays honest.
+const SETTLE_DURATION_MULTIPLIER = 1.5;
+
 function lerpHex(a: string, b: string, t: number): string {
   const ar = parseInt(a.slice(1, 3), 16);
   const ag = parseInt(a.slice(3, 5), 16);
@@ -462,6 +469,11 @@ const PeakSliderRow: React.FC<PeakSliderRowProps> = ({
           )}
         </div>
       </div>
+      {unit === 's' && (
+        <div className="text-[11px] text-gray-400 tabular-nums">
+          ≈ {(value * SETTLE_DURATION_MULTIPLIER).toFixed(2)}s visible
+        </div>
+      )}
       <Slider value={[value]} min={min} max={max} step={step} onValueChange={([v]) => onChange(v)} />
     </div>
   );
@@ -1329,15 +1341,20 @@ export default function RealtimeStates() {
           return (
             <div className="space-y-3">
               {thinRest}
-              <SliderRow
-                label="Settle Speed (→ idle)"
-                value={profile.base.thickenSpeed}
-                min={0}
-                max={4.0}
-                step={0.02}
-                unit="s"
-                onChange={(v) => setBase({ thickenSpeed: v })}
-              />
+              <div className="space-y-1">
+                <SliderRow
+                  label="Settle Speed (→ idle)"
+                  value={profile.base.thickenSpeed}
+                  min={0}
+                  max={4.0}
+                  step={0.02}
+                  unit="s"
+                  onChange={(v) => setBase({ thickenSpeed: v })}
+                />
+                <div className="text-[11px] text-gray-400 tabular-nums">
+                  ≈ {(profile.base.thickenSpeed * SETTLE_DURATION_MULTIPLIER).toFixed(2)}s visible
+                </div>
+              </div>
             </div>
           );
         }
