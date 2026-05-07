@@ -107,6 +107,11 @@ interface CellProps {
   variant: 'inward' | 'outward';
   focused: boolean;
   onClick: () => void;
+  /** When true, render a red ghost ring on this cell at the bar's full
+   *  extension zone (between the bars' base and their max reach). Used
+   *  to preview where Max Bar Length lands while the user is hovering
+   *  the Max Bar Length slider. */
+  showMaxGhost?: boolean;
 }
 
 const CELL_SIZE = 360;
@@ -119,8 +124,21 @@ const DONUT_INNER = Math.max(0, THORN.radius - THORN.maxBarLength - DONUT_PADDIN
 const DONUT_SIZE = DONUT_OUTER * 2;
 const DONUT_THICKNESS = DONUT_OUTER - DONUT_INNER;
 
-function Cell({ label, settings, frequencyData, variant, focused, onClick }: CellProps) {
+function Cell({ label, settings, frequencyData, variant, focused, onClick, showMaxGhost }: CellProps) {
   const Renderer = variant === 'outward' ? RadialOutward : RadialInward;
+
+  // Max-reach ghost ring. Outer/inner span the full bar extension zone:
+  //   inward  → from (radius - maxBarLength) up to radius
+  //   outward → from radius up to (radius + maxBarLength)
+  // Bars currently fill some sub-range of this; the ghost shows the
+  // ceiling. Rendered as an absolute-positioned div with a red border
+  // (border = ring thickness, border-radius:50%).
+  const ghostOuter =
+    variant === 'outward' ? settings.radius + settings.maxBarLength : settings.radius;
+  const ghostInner =
+    variant === 'outward' ? settings.radius : Math.max(0, settings.radius - settings.maxBarLength);
+  const ghostSize = ghostOuter * 2;
+  const ghostThickness = ghostOuter - ghostInner;
 
   return (
     <div
@@ -176,6 +194,24 @@ function Cell({ label, settings, frequencyData, variant, focused, onClick }: Cel
             zIndex: 0,
           }}
         />
+        {showMaxGhost && ghostThickness > 0 && (
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: ghostSize,
+              height: ghostSize,
+              transform: 'translate(-50%, -50%)',
+              borderRadius: '50%',
+              border: `${ghostThickness}px solid rgba(239, 68, 68, 0.18)`,
+              boxSizing: 'border-box',
+              pointerEvents: 'none',
+              zIndex: 2,
+            }}
+          />
+        )}
         <div style={{ position: 'relative', zIndex: 1, lineHeight: 0 }}>
           <Renderer
             frequencyData={frequencyData}
@@ -360,9 +396,12 @@ interface ControlsPanelProps {
   settings: RadialSettings;
   onChange: (patch: Partial<RadialSettings>) => void;
   onResetState: () => void;
+  /** Hover signal for the Max Bar Length slider — drives the red ghost
+   *  ring on the focused cell. */
+  onMaxBarHover: (hover: boolean) => void;
 }
 
-function ControlsPanel({ settings, onChange, onResetState }: ControlsPanelProps) {
+function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover }: ControlsPanelProps) {
   const set = <K extends keyof RadialSettings>(key: K, value: RadialSettings[K]) =>
     onChange({ [key]: value } as Partial<RadialSettings>);
 
@@ -406,7 +445,12 @@ function ControlsPanel({ settings, onChange, onResetState }: ControlsPanelProps)
         <Slider label="Bar Width" value={settings.barWidth} min={0.5} max={10} step={0.5} unit="px" onChange={(v) => set('barWidth', v)} />
         <Slider label="Bar Gap" value={settings.barGap} min={0} max={12} step={0.5} unit="px" onChange={(v) => set('barGap', v)} />
         <Slider label="Min Bar Length" value={settings.minBarLength} min={0} max={30} step={1} unit="px" onChange={(v) => set('minBarLength', v)} />
-        <Slider label="Max Bar Length" value={settings.maxBarLength} min={10} max={120} step={1} unit="px" onChange={(v) => set('maxBarLength', v)} />
+        <div
+          onMouseEnter={() => onMaxBarHover(true)}
+          onMouseLeave={() => onMaxBarHover(false)}
+        >
+          <Slider label="Max Bar Length" value={settings.maxBarLength} min={10} max={120} step={1} unit="px" onChange={(v) => set('maxBarLength', v)} />
+        </div>
       </div>
 
       <div style={columnStyle}>
@@ -551,6 +595,7 @@ export default function RadialStatesReview() {
   };
 
   const [controlsCollapsed, setControlsCollapsed] = useState(false);
+  const [maxBarHovered, setMaxBarHovered] = useState(false);
 
   const cellsRow = useMemo(
     () => (
@@ -573,11 +618,12 @@ export default function RadialStatesReview() {
             variant={STATE_VARIANT[k]}
             focused={focused === k}
             onClick={() => setFocused(k)}
+            showMaxGhost={focused === k && maxBarHovered}
           />
         ))}
       </div>
     ),
-    [all, frequencyData, focused],
+    [all, frequencyData, focused, maxBarHovered],
   );
 
   return (
@@ -700,6 +746,7 @@ export default function RadialStatesReview() {
               settings={all[focused]}
               onChange={updateFocused}
               onResetState={resetFocused}
+              onMaxBarHover={setMaxBarHovered}
             />
           </div>
         )}
