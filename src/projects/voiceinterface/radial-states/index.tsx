@@ -16,7 +16,7 @@
  * `mapFrequencyToBars` (ambientWave is off too, so bars sit at
  * minBarLength and just rotate).
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import RadialInward from '@/projects/radial-waveform/variants/RadialInward';
 import RadialOutward from '@/projects/radial-waveform/variants/RadialOutward';
 import RadialGalleryAudioControls from '@/projects/radial-waveform/components/RadialGalleryAudioControls';
@@ -98,6 +98,81 @@ const DEFAULT_ALL: AllSettings = {
 
 const STORAGE_KEY = 'radial-states-review-v1';
 
+// ── Ghost bars (Max Bar Length preview) ──────────────────────────
+//
+// Mirrors the geometry math from RadialInward / RadialOutward exactly:
+// same barCount derivation (circumference / (barWidth + barGap)), same
+// per-bar angle, same roundCaps. Every bar is drawn at maxBarLength so
+// the user sees the real bars' ceiling. Static (no rotation) — the
+// real bars' rotation just slides them through these guide positions.
+
+interface GhostBarsProps {
+  variant: 'inward' | 'outward';
+  radius: number;
+  barWidth: number;
+  barGap: number;
+  maxBarLength: number;
+  roundCaps: boolean;
+  size: number;
+  color: string;
+}
+
+function GhostBars({ variant, radius, barWidth, barGap, maxBarLength, roundCaps, size, color }: GhostBarsProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    canvas.style.width = `${size}px`;
+    canvas.style.height = `${size}px`;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+
+    const cx = size / 2;
+    const cy = size / 2;
+    const circumference = 2 * Math.PI * radius;
+    const barCount = Math.max(1, Math.floor(circumference / (barWidth + barGap)));
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = barWidth;
+    ctx.lineCap = roundCaps ? 'round' : 'butt';
+
+    for (let i = 0; i < barCount; i++) {
+      const angle = (i / barCount) * Math.PI * 2;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, -radius);
+      ctx.lineTo(
+        0,
+        variant === 'outward' ? -(radius + maxBarLength) : -(radius - maxBarLength),
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+  }, [variant, radius, barWidth, barGap, maxBarLength, roundCaps, size, color]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+        zIndex: 2,
+      }}
+    />
+  );
+}
+
 // ── Cell ──────────────────────────────────────────────────────────
 
 interface CellProps {
@@ -127,18 +202,10 @@ const DONUT_THICKNESS = DONUT_OUTER - DONUT_INNER;
 function Cell({ label, settings, frequencyData, variant, focused, onClick, showMaxGhost }: CellProps) {
   const Renderer = variant === 'outward' ? RadialOutward : RadialInward;
 
-  // Max-reach ghost ring. Outer/inner span the full bar extension zone:
-  //   inward  → from (radius - maxBarLength) up to radius
-  //   outward → from radius up to (radius + maxBarLength)
-  // Bars currently fill some sub-range of this; the ghost shows the
-  // ceiling. Rendered as an absolute-positioned div with a red border
-  // (border = ring thickness, border-radius:50%).
-  const ghostOuter =
-    variant === 'outward' ? settings.radius + settings.maxBarLength : settings.radius;
-  const ghostInner =
-    variant === 'outward' ? settings.radius : Math.max(0, settings.radius - settings.maxBarLength);
-  const ghostSize = ghostOuter * 2;
-  const ghostThickness = ghostOuter - ghostInner;
+  // Max-reach ghost: individual bars at maxBarLength shown via the
+  // GhostBars overlay below. Sized to fit both inward and outward
+  // ranges so the canvas never clips.
+  const ghostCanvasSize = (settings.radius + settings.maxBarLength + 20) * 2;
 
   return (
     <div
@@ -194,22 +261,16 @@ function Cell({ label, settings, frequencyData, variant, focused, onClick, showM
             zIndex: 0,
           }}
         />
-        {showMaxGhost && ghostThickness > 0 && (
-          <div
-            aria-hidden
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              width: ghostSize,
-              height: ghostSize,
-              transform: 'translate(-50%, -50%)',
-              borderRadius: '50%',
-              border: `${ghostThickness}px solid rgba(239, 68, 68, 0.08)`,
-              boxSizing: 'border-box',
-              pointerEvents: 'none',
-              zIndex: 2,
-            }}
+        {showMaxGhost && (
+          <GhostBars
+            variant={variant}
+            radius={settings.radius}
+            barWidth={settings.barWidth}
+            barGap={settings.barGap}
+            maxBarLength={settings.maxBarLength}
+            roundCaps={settings.roundCaps}
+            size={ghostCanvasSize}
+            color="rgba(239, 68, 68, 0.18)"
           />
         )}
         <div style={{ position: 'relative', zIndex: 1, lineHeight: 0 }}>
