@@ -932,21 +932,45 @@ function ControlsPanel({
         </div>
 
         {/* Backdrop subsection — profile-level (shared across all three
-            states), tucked under Style as a sub-group with its own
-            header. Inner and outer rings are independent. The Show
-            toggle hides the backdrop SVG entirely so the user can
-            preview the bars without it. */}
-        <h3 style={{ ...headerStyle, marginTop: 8 }}>Backdrop</h3>
-        <Toggle
-          label="Show"
-          checked={backdrop.enabled}
-          onChange={(v) => onBackdropChange({ enabled: v })}
-        />
+         *  states). The header row carries the Show toggle on its right
+         *  side so the toggle doesn't waste a whole row of its own. When
+         *  Show is off, the inner/outer config rows hide entirely (saves
+         *  ~80px when the user is just previewing bars). When Show is
+         *  on, Inner and Outer each get a single compact row "Inner
+         *  [Circle | Segments]" with conditional Segments/Depth sliders
+         *  immediately beneath — no per-side sub-header. */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: 8,
+          }}
+        >
+          <h3 style={{ ...headerStyle, margin: 0 }}>Backdrop</h3>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              color: '#9ca3af',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={backdrop.enabled}
+              onChange={(e) => onBackdropChange({ enabled: e.target.checked })}
+              style={{ accentColor: '#FACC15' }}
+            />
+            Show
+          </label>
+        </div>
         {backdrop.enabled && (
           <>
-            <h3 style={{ ...headerStyle, marginTop: 4 }}>Backdrop · Inner</h3>
             <PillGroup
-              label="Shape"
+              label="Inner"
               value={backdrop.shape}
               options={['circle', 'segments'] as const}
               onChange={(v) => onBackdropChange({ shape: v })}
@@ -974,9 +998,8 @@ function ControlsPanel({
                 />
               </>
             )}
-            <h3 style={{ ...headerStyle, marginTop: 4 }}>Backdrop · Outer</h3>
             <PillGroup
-              label="Shape"
+              label="Outer"
               value={backdrop.outerShape}
               options={['circle', 'segments'] as const}
               onChange={(v) => onBackdropChange({ outerShape: v })}
@@ -1571,25 +1594,26 @@ export default function RadialStatesReview() {
               >
                 <Save size={14} />
               </button>
-              {/* Reset — only visible when dirty */}
+              {/* Discard — only visible when dirty. Labeled as 'Discard'
+               *  (not a refresh icon) so the affordance is honest about
+               *  reverting unsaved edits, not reloading the page. */}
               {isDirty && (
                 <button
                   type="button"
                   onClick={handleReset}
                   style={{
-                    padding: 6,
+                    padding: '4px 10px',
+                    fontSize: 11,
                     borderRadius: 6,
                     background: 'rgba(255,255,255,0.05)',
                     color: '#9ca3af',
                     border: 'none',
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
                   }}
-                  aria-label="Reset to last saved"
-                  title="Reset to last saved"
+                  aria-label="Discard unsaved edits"
+                  title="Discard unsaved edits"
                 >
-                  <RotateCcw size={12} />
+                  Discard
                 </button>
               )}
             </>
