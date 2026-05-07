@@ -141,16 +141,6 @@ function RealtimeStatesEditor({
   colorFormat,
   setColorFormat,
 }: EditorProps) {
-  // Skip-intro Replay override — when the active Coral profile has
-  // skipIntroOnSelect on, the eased-hook startValues are derived from
-  // base (not talking), so a Replay click would snap to base + animate
-  // to base = no visible intro. This one-shot state flips the
-  // derivation back to talking for the single render in which
-  // replayCounter bumps; it's cleared on the next tick by a useEffect
-  // below so subsequent renders revert to the skip-intro behavior.
-  // Tube Replay path is unaffected — restartIntro() seeds talking
-  // values directly into render via setRenderNow regardless.
-  const [replayForceIntro, setReplayForceIntro] = useState(false);
   // Replay counter for Coral (forces canvas remount → morphRef resets
   // to 0 → sphere → torus intro replays).
   const [replayCounter, setReplayCounter] = useState(0);
@@ -746,7 +736,7 @@ function RealtimeStatesEditor({
   // even a Replay would mount at base — but the Replay button is the
   // user's explicit "play intro" action, so it short-circuits the
   // skip flag inline (see the Replay button onClick handler).
-  const skipCoralIntro = activeOrb?.skipIntroOnSelect === true && !replayForceIntro;
+  const skipCoralIntro = activeOrb?.skipIntroOnSelect === true;
   const coralStartScale = skipCoralIntro
     ? (activeCoralSettings?.base.scale ?? CORAL_FALLBACK_PROFILE.base.scale)
     : (activeCoralSettings?.talking?.scale ?? activeCoralSettings?.base.scale ?? CORAL_FALLBACK_PROFILE.base.scale);
@@ -770,18 +760,6 @@ function RealtimeStatesEditor({
     startValue: coralStartColor3,
     resetKey: coralResetKey,
   });
-
-  // Clear the one-shot replayForceIntro flag on the tick AFTER it's
-  // set. The eased hooks above run their effects in declaration order,
-  // so by the time this effect runs, useEasedNumber/useEasedColor have
-  // already captured startValue=talking and snapped current to it. We
-  // can safely flip back to skip-intro semantics for any subsequent
-  // re-renders without disturbing the in-flight animation.
-  useEffect(() => {
-    if (!replayForceIntro) return;
-    const id = setTimeout(() => setReplayForceIntro(false), 0);
-    return () => clearTimeout(id);
-  }, [replayForceIntro]);
 
   const handleSave = async () => {
     const name = saveName.trim();
@@ -1544,13 +1522,13 @@ function RealtimeStatesEditor({
                 to idle (so goal=1) and bumps replayCounter to remount
                 the canvas → morphRef resets to 0 → sphere → torus
                 intro plays via Coral's native animator.
-                Skip-intro override: replayForceIntro is set on every
-                Replay click (one-shot, harmless on Tube path), so the
-                Coral eased-hook startValues snap to talking values for
-                this render even if skipIntroOnSelect is on. */}
+                Skip-intro gate: when the active profile has
+                skipIntroOnSelect on, the intro animation is
+                conceptually disabled — Replay is greyed out + disabled
+                so it can't fire the morph that the user just opted
+                out of. To re-enable Replay, toggle skip-intro off. */}
             <button
               onClick={() => {
-                setReplayForceIntro(true);
                 if (activeOrb?.shader === 'coral') {
                   setState('idle');
                   setReplayCounter((c) => c + 1);
@@ -1558,8 +1536,17 @@ function RealtimeStatesEditor({
                   restartIntro();
                 }
               }}
-              className="p-1.5 rounded-lg transition-colors cursor-pointer ml-2 bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-              title="Replay talking-to-idle intro"
+              disabled={activeSkipIntro}
+              className={`p-1.5 rounded-lg transition-colors ml-2 ${
+                activeSkipIntro
+                  ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 cursor-pointer'
+              }`}
+              title={
+                activeSkipIntro
+                  ? 'Replay disabled — skip-intro is on for this profile (toggle off to re-enable)'
+                  : 'Replay talking-to-idle intro'
+              }
             >
               <RotateCcw size={14} />
             </button>
