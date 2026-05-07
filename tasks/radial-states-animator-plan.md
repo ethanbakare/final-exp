@@ -96,6 +96,7 @@ interface RadialLinkedProfile {
     talkingInnerGap: number;     // unchanged from current
   };
   idleListeningLinked: boolean;  // when true, edits to idle.* mirror to listening.*
+  lockBarCount: boolean;         // default true; locks bar count to idle's circumference (Reviewer R2 P1.3)
   backdrop?: RadialBackdrop;     // unchanged
   morph: {
     idleToThinking: number;      // seconds, default 0.4 — also covers thinking→idle
@@ -146,7 +147,8 @@ For each legacy profile, `migrateLegacyProfile(p: any): RadialLinkedProfile`:
 5. Lift `idleRadius` from `idle.radius` into `geometry.idleRadius`. Carry `talkingInnerGap` over.
 6. Drop the deprecated keys from per-state objects (barWidth, barGap, roundCaps, barColor, segments, rotationSpeed, minBarLength, radius, updateRate, bgColor, previewBg, container*, outline*, inwardRatio).
 7. Add `morph` defaults: `idleToThinking: 0.4`, `thinkingToTalking: 0.6`, `reactiveStartAt: 0.75`.
-8. Set `schemaVersion: 2`. Bump `lastModified`.
+8. Carry `lockBarCount` from legacy profile (which has it as a top-level field already in current code); default to `true` if absent.
+9. Set `schemaVersion: 2`. Bump `lastModified`.
 
 **Trigger.** Migration runs in-memory inside `fetchRadialLinkedProfiles` whenever a profile is read with `schemaVersion !== 2`. **The first user-initiated `Update` or `Save As` writes the entire array back as v2** — because `persistRadialLinkedProfiles` POSTs the whole array (`api.ts:74`), there's no per-profile write. Acceptance criterion 16 must reflect this: it's all-at-once on first save, not per-profile (Reviewer P1.5).
 
@@ -183,11 +185,11 @@ Format: profile id + name; for each promoted key, the chosen value, the source s
 
 Pure damp. Anchor unchanged. Over `morph.idleToThinking` seconds, the animator lerps these values from start state → target state:
 
-- `sensitivity` (idle/listening's value → 0 entering thinking; 0 → idle's value leaving)
-- `ambientWave` (`true → false` entering; `false → true` leaving — boolean steps mid-lerp at `t=0.5`)
-- `waveAmplitude`, `waveHeight`, `envelopeAmplitude` (lerp to/from 0 to silence the wave smoothly even before the boolean flips)
-- All other wave/envelope params lerp normally.
-- `inwardRatio` stays 1. Anchor stays at `geometry.idleRadius`.
+- **Numeric fields** (`sensitivity`, `waveSpeed`, `waveAmplitude`, `waveHeight`, `waveLobes`, `smoothing`, `waveEnvelope`, `envelopeAmplitude`, `envelopeSensitivity`, `maxBarLength`): lerp linearly.
+- **Booleans** (`ambientWave`, `intensityOpacity`): step at `t = 0.5`. (Reviewer R2 P1.5 — booleans cannot lerp.)
+- **String unions** (`waveMode`, `waveShape`): step at `t = 0.5` (same moment as booleans for consistency). v1 doesn't crossfade discrete shape changes.
+- **Geometry** (`anchor`, `inwardRatio`): unchanged. Anchor stays at `geometry.idleRadius`. `inwardRatio` stays 1.
+- **`freezeAtMin`**: false throughout the damp (we want length to follow audio fading). At `t = 1.0`, length lands near `minBarLength` via the audio path; smoothing residue is acceptable here because thinking's resting state is also subject to ambient smoothing (no flip following).
 
 **Length is NOT lerped explicitly.** It's an emergent property of the audio path: `barLength = minBarLength + value × (maxBarLength − minBarLength)`. When sensitivity and wave-amplitudes both reach 0, `value` reaches 0, and `barLength` settles at `minBarLength`. The length convergence is the natural consequence, not a separate state variable.
 
@@ -209,27 +211,30 @@ Two phases over total duration `morph.thinkingToTalking`. The phase boundary is 
 **The flip** (instantaneous, between Phase A and Phase B) — `inwardRatio` flips 1 → 0, anchor reference jumps from `talkingAnchor + minBarLength` (outer-tip semantics) to `talkingAnchor` (inner-tip semantics). Same pixels — see §5 table.
 
 **Phase B — reactive-style transition.** `t ∈ [reactiveStartAt, 1]`, normalized to `tB ∈ [0, 1]`.
-- `anchor = talkingAnchor` (already there from end of Phase A).
-- `inwardRatio` flips 1 → 0 at the moment Phase B starts. **Visually invisible** because at that instant length is exactly `minBarLength` — see §5 for the pixel-equivalence proof.
-- `maxBarLength` lerps `idle's max → talking's max` in `tB`. (Sets the target ceiling; live audio drives where within `[minBarLength, max]` the bar actually sits.)
-- `sensitivity` lerps `0 → talking's sensitivity` in `tB`. (Phase A zeroed it.)
-- All wave/envelope params lerp `0 → talking's values` in `tB`. (Phase A zeroed them.)
-- `ambientWave` flips false → true at `tB = 0` (start of Phase B), so the wave is enabled but starts with zero amplitude and ramps up via the param lerps.
+- `anchor = talkingAnchor` (post-flip; the flip moved the reference from `talkingAnchor + minBarLength` outer-tip to `talkingAnchor` inner-tip; same pixels).
+- `inwardRatio` stepped 1 → 0 at the moment Phase B starts (the flip).
+- `freezeAtMin` stepped true → false at the flip. Audio path resumes.
+- **Numeric fields** (`maxBarLength`, `sensitivity`, all wave/envelope numerics): lerp `0 → talking's value` in `tB` (forward damp zeroed them, so we lerp from 0).
+- **Booleans + string unions** (`ambientWave`, `intensityOpacity`, `waveMode`, `waveShape`): step to talking's values at `tB = 0` (the flip moment, same as everything else changing). `ambientWave` going false → true means the wave is enabled but its amplitudes are still 0; they ramp up via the numeric lerps. (Reviewer R2 P1.5.)
 
-When `reactiveStartAt = 1`, Phase B is instantaneous — bars finish translation, then SNAP into talking's reactive form. (Reviewer P2.1: this snap is why default 1.0 was wrong.)
-When `reactiveStartAt = 0`, Phase B starts immediately and runs in parallel — translation and reactive ramp-up happen together; degenerate (translation collapses to zero duration).
+When `reactiveStartAt = 1`, Phase B is instantaneous — bars finish translation, then SNAP into talking's reactive form. (Reviewer R1 P2.1: this snap is why default 1.0 was wrong.)
+When `reactiveStartAt = 0`, **Phase A duration is zero** — anchor teleports from `idleRadius` to `talkingAnchor + minBarLength` instantly; Phase B then runs the full duration as a reactive ramp-up at the talking position. Tester degenerate; not a useful default.
 **Default `0.75`** — translation runs 0→75% of the morph; reactive ramp runs 75→100%. No snap. Tunable per profile in `[0, 1]`.
 
 ### Transition: talking → idle/listening (return path)
 
 Same two-phase shape as thinking → talking, in reverse, sharing `morph.thinkingToTalking` and `morph.reactiveStartAt`:
 
-- **Phase A (reverse-reactive transition)** runs first, `t ∈ [0, 1 - reactiveStartAt]`. Sensitivity, ambientWave, wave/envelope params lerp talking's values → 0 / off. Length collapses to `minBarLength` via the audio path. Anchor stays at `talkingAnchor`. `inwardRatio` stays 0.
-- **Inverse flip** at the boundary: `inwardRatio` flips 0 → 1, anchor reference moves from inner-tip-at-T to outer-tip-at-(T+minBarLength) = same pixels.
-- **Phase B (translation)** runs second, `t ∈ [1 - reactiveStartAt, 1]`. Anchor lerps `T + minBarLength → idleRadius`. Bars stay rigid at `minBarLength`. After arrival, idle's reactive form is already prepared (ambientWave true, sensitivity at idle's value).
+- **Phase A (reverse-reactive transition)** runs first, `t ∈ [0, 1 - reactiveStartAt]`. Numeric wave/envelope/sensitivity/maxBarLength params lerp `talking's value → 0`. Anchor stays at `talkingAnchor`. `inwardRatio` stays 0. **`freezeAtMin = false` for most of this window** — we want the audio path active so the user sees the reactive fade. **In the last 10% of Phase A** (`tA ∈ [0.9, 1.0]`), `freezeAtMin` ramps in: at `tA = 0.9`, set `freezeAtMin = true` and zero `prevValuesRef` (Reviewer R2 P1.6). This pulls residual smoothed length down to exactly `minBarLength` before the inverse flip.
+- **Booleans + string unions** step to off / matching defaults at `tA = 0.5` (mid-Phase-A). `ambientWave` flips true → false at `tA = 0.5`.
+- **Inverse flip** at the Phase A → Phase B boundary: `inwardRatio` steps 0 → 1, anchor reference jumps from `talkingAnchor` (inner-tip semantics) to `talkingAnchor + minBarLength` (outer-tip semantics) — same pixels because `freezeAtMin` ensured length is exactly `minBarLength`.
+- **Phase B (translation)** runs second, `t ∈ [1 - reactiveStartAt, 1]`. Anchor lerps `talkingAnchor + minBarLength → idleRadius`. `freezeAtMin = true` throughout. Bars stay rigid at `minBarLength`.
+- **After arrival** (full duration completes): `freezeAtMin = false`, idle's reactive form unfreezes — sensitivity, ambientWave, wave/envelope params snap to idle's resting values (they're already at 0 / off from Phase A; idle's resting numerics step in here as a one-frame transition, accepted because the rotation + audio path is gentle on the eye).
 - After full duration, state is fully idle.
 
 This is the literal inverse, so `reactiveStartAt = 0.75` (default) means "reactive transition runs the first 25% of the return, then translation runs the last 75%" — a clean mirror of the forward path.
+
+**Residual-length tradeoff.** The 10% tail clamp accepts a tiny visible step where length pulls down to `minBarLength` over a short window. v1 ships with this tradeoff. If users find it noticeable, two options for v2: (a) longer tail clamp, (b) renderer exposes a `targetValueOverride` prop that the animator drives toward 0 in the tail, replacing the tail clamp with a smooth value-path. Defer.
 
 ### Transition matrix
 
@@ -328,7 +333,7 @@ export interface RadialRenderValues {
   // Audio
   sensitivity: number;           // 0 during thinking and Phase A
   // Render gate
-  freezeAtMin: boolean;          // true during thinking and Phase A — see §7
+  freezeAtMin: boolean;          // true during thinking and forward Phase A; reverse-path tail and reverse Phase B — see §6.5
   // Per-state behavior (lerped)
   ambientWave: boolean;
   waveSpeed: number;
@@ -428,15 +433,100 @@ The cell is the adapter between the animator's output and `RadialBidirectional`'
 
 ---
 
+---
+
+## 6.5 Renderer animation contract (Reviewer R2 main recommendation)
+
+The current `RadialBidirectional`, `RadialInward`, and `RadialOutward` re-run their `useEffect` whenever any prop changes. With per-frame animator output, that would tear down the canvas + RAF loop every frame (Reviewer R2 P1.1). The renderers must be refactored to support per-frame animated props without re-mounting the effect.
+
+### Contract for all three radial variants
+
+1. **Single mount-time RAF loop.** The `useEffect` dependency array is reduced to mount-only concerns (canvas size, `barCount` override). Per-frame animated props are stored in refs and read inside the RAF loop. Stable across re-renders.
+
+2. **Animated props go through refs.** A new `useRef<RadialAnimatedProps>` holds the latest `radius`, `maxBarLength`, `sensitivity`, `inwardRatio`, all wave/envelope params, `freezeAtMin`. A small `useEffect` with `[radius, maxBarLength, ...]` syncs the ref each render. The RAF loop reads from the ref each frame.
+
+3. **Stable canvas extent** (Reviewer R2 P1.2). The canvas is sized once on mount based on the `MAX_RENDER_EXTENT` for the cell — for tune mode this is `geometry.idleRadius + max(idle.maxBarLength, talking.maxBarLength) + 20`. Anchor lerp during Phase A moves the bar inside a stable canvas; the canvas itself does NOT resize during the morph. For static mode, canvas extent is computed per-cell from that cell's settings (unchanged behavior).
+
+4. **`freezeAtMin` semantics — both flips.** The renderer reads `freezeAtMin` from the ref each frame. When true, it skips the audio + wave + envelope blocks, sets `value = 0`, skips the smoothing block, and zeros `prevValuesRef.current` on the entering frame (one-shot reset). Phase A → B (forward) uses freezeAtMin throughout Phase A, releases at flip. Phase A → B (reverse) uses freezeAtMin in the last 10% of reverse Phase A and throughout reverse Phase B.
+
+5. **Static adapter.** Static mode passes `composeRadialSettings(profile, state)` (see below) into the renderer. Tune mode passes `composeRadialSettings(profile, animationTargetState)` merged with the animator's `RadialRenderValues` (animated values override resting values).
+
+### `composeRadialSettings(profile, state)` helper
+
+Lives in `radial-states/api.ts` next to `RadialLinkedProfile`. Pure function. Used by both static cells and tune mode (for resting values; tune merges animator output on top).
+
+```ts
+export function composeRadialSettings(
+  profile: RadialLinkedProfile,
+  state: RadialState,
+): RadialWaveformProps {
+  const s = profile[state]; // RadialStateSettings
+  const isInward = state !== 'talking';
+  const radius = state === 'talking'
+    ? deriveTalkingAnchor(profile)
+    : profile.geometry.idleRadius;
+
+  return {
+    // From bars (shared identity + perf)
+    barWidth: profile.bars.barWidth,
+    barGap: profile.bars.barGap,
+    roundCaps: profile.bars.roundCaps,
+    barColor: profile.bars.barColor,
+    segments: profile.bars.segments,
+    rotationSpeed: profile.bars.rotationSpeed,
+    minBarLength: profile.bars.minBarLength,
+    updateRate: profile.bars.updateRate,
+
+    // From display (shared chrome)
+    bgColor: profile.display.bgColor,
+
+    // Per-state
+    radius,
+    maxBarLength: s.maxBarLength,
+    sensitivity: s.sensitivity,
+    ambientWave: s.ambientWave,
+    waveSpeed: s.waveSpeed,
+    waveAmplitude: s.waveAmplitude,
+    waveHeight: s.waveHeight,
+    waveMode: s.waveMode,
+    waveShape: s.waveShape,
+    waveLobes: s.waveLobes,
+    smoothing: s.smoothing,
+    waveEnvelope: s.waveEnvelope,
+    envelopeAmplitude: s.envelopeAmplitude,
+    envelopeSensitivity: s.envelopeSensitivity,
+    intensityOpacity: s.intensityOpacity,
+
+    // Static mode never freezes
+    freezeAtMin: false,
+
+    // Bar count from lockBarCount rule
+    barCount: profile.lockBarCount
+      ? Math.floor(2 * Math.PI * profile.geometry.idleRadius / (profile.bars.barWidth + profile.bars.barGap))
+      : undefined,
+
+    // Renderer-controlled
+    frequencyData: null, // wired by caller
+  };
+}
+```
+
+### Refs refactor applies to all three variants
+
+Reviewer-CM1: making only `RadialBidirectional` refs-based while leaving `RadialInward` / `RadialOutward` on the per-prop effect would create two renderer models in the same file tree. Apply the refs refactor uniformly. Static cells continue to work because their props are stable (no per-frame change), so the refs path is a no-op equivalent of the current behavior.
+
+---
+
 ## 7. Rendering surface — RadialBidirectional adoption
 
 The tune-mode cell renders `RadialBidirectional` directly (not `RadialInward` or `RadialOutward`), passing the animator's output as props. `RadialBidirectional.tsx:9` already accepts `inwardRatio`, `radius`, `barWidth`, `barGap`, `minBarLength`, `maxBarLength`, `sensitivity`, all wave params, and `barCount` (added in `types.ts:69`).
 
 The static three-cell mode keeps its current renderers (`RadialInward` for idle/listening/thinking, `RadialOutward` for talking) — no migration needed there.
 
-### Required prop additions to RadialBidirectional
+### Required prop / interface additions to RadialBidirectional
 
-None. The existing prop surface covers everything the animator emits. Verified by reading `RadialBidirectional.tsx:5–37`.
+- `barCount?: number` (already in `RadialWaveformProps` per `types.ts:69`; just needs propagation through `RadialBidirectional`'s destructure).
+- `freezeAtMin?: boolean` (NEW; add to `RadialWaveformProps`).
 
 ### Required behavior changes in RadialBidirectional
 
@@ -478,11 +568,13 @@ Two conceptually distinct ideas (Reviewer P2.2):
 
 In static mode, only `controlsFocusedState` matters — there's no animation. The two-name distinction exists in the code so the future decoupling is a small change.
 
-### What does NOT change
+### What does NOT change (intent vs. implementation)
 
-- Static mode is unchanged. The 3-cell review remains the default.
-- Profile load/save/discard logic is unchanged.
-- The controls panel layout, color picker, backdrop section — unchanged.
+Behavioral intent unchanged; implementation changes are required (Reviewer R2 P2.4):
+
+- Static mode is the default view. (Implementation: cells now consume `composeRadialSettings(profile, state)` instead of reading `profile.idle` directly, because the schema is reshaped.)
+- Profile load/save/discard *behavior* matches today's review page. (Implementation: `snapshotOf`, `dirty` comparison, `handleSelectProfile`, `handleReset`, `handleSaveAs`, `updateFocused` all need updates to handle new fields — see §8b.)
+- Color picker, backdrop section visual design — unchanged. (Implementation: their host panels reshape per §8a.)
 
 ### Toggle persistence
 
@@ -498,8 +590,11 @@ Promoting bar-identity to `bars` forces the controls panel to be reorganized. Th
 ┌─ Bars (shared) ─────────────────────────────────────────────────────┐
 │  Bar Width [—◯—]  Bar Gap [—◯—]  Round Caps [✓]  Bar Color [▣]      │
 │  Segments [—◯—]   Rotation [—◯—]  Min Bar Length [—◯—]              │
+│  Update Rate [—◯—]ms                                                │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+(`Update Rate` was per-state in the legacy schema; it's a perf throttle, not state behavior — moved here in the refactor. Reviewer R2 P2.2.)
 
 Always visible regardless of focused state. Editing here updates every cell simultaneously in static mode and the morph baseline in tune mode.
 
@@ -513,21 +608,28 @@ Always visible regardless of focused state. Editing here updates every cell simu
 
 `talking.radius` displayed read-only in this strip when focused state is talking.
 
-**Per-state 5-column grid.** Now narrower content because bar-identity is gone:
+**New top strip — display.** A third horizontal strip with shared display chrome (Reviewer R2 P2.3):
+
+```
+┌─ Display (shared) ──────────────────────────────────────────────────┐
+│  Bg Color [▣]  Preview Bg [▣]  Container [▣ + opacity / radius / pad]│
+│  Outline [✓ + color + width]                                        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Per-state 5-column grid.** Now narrower content because bar-identity, perf, and display chrome are all shared above:
 
 | Column | Per-state content |
 |---|---|
 | Geometry | `maxBarLength` only (radius is shared above) |
-| Audio | `sensitivity`, `intensityOpacity`, `updateRate`, `smoothing` |
+| Audio | `sensitivity`, `intensityOpacity`, `smoothing` |
 | Wave | `ambientWave`, `waveSpeed`, `waveAmplitude`, `waveHeight`, `waveMode`, `waveShape`, `waveLobes` |
 | Envelope | `waveEnvelope`, `envelopeAmplitude`, `envelopeSensitivity` |
-| Style + Backdrop | `bgColor`, backdrop section (unchanged) |
+| Backdrop | backdrop section (unchanged structurally) |
 
-**Listening panel.** New per-state panel — *default behavior; pending §13(2) confirmation*. When `idleListeningLinked === true` (default), the listening panel renders a notice "Linked to idle — break link to edit independently" with a single "Break link" button. Editing idle's per-state values updates listening's via the **link-propagation rule** (below). When the link is broken, listening's panel becomes a full editable panel matching idle's.
+**Listening panel.** New per-state panel (locked per §13). When `idleListeningLinked === true` (default), the listening panel renders a notice "Linked to idle — break link to edit independently" with a single "Break link" button. Editing idle's per-state values updates listening's via the **link-propagation rule** (below). When the link is broken, listening's panel becomes a full editable panel matching idle's.
 
 **Link-propagation rule.** Lives in the slider/input commit handler in `index.tsx`, NOT in the animator. When the focused state is idle and the link is on, every commit to a per-state field also writes the same value to listening's matching field in the profile object. When the focused state is listening with the link on, the panel renders read-only (linked-notice + Break link button only); no commits originate from there, so propagation is unidirectional by construction. This is a UI-layer concern; the animator just reads whatever per-state values are in the profile. The cell renderer for the listening pill reads listening's settings — which equal idle's by construction.
-
-If §13(2) confirms "omit listening panel entirely," replace this section with: listening pill is a label-only flip; no panel; render path uses idle's per-state settings whenever `state === 'listening'`.
 
 **Morph subsection.** Visible only in tune mode AND only when the focused state is **thinking or talking** (the states involved in the morphs the knobs affect). Hidden on idle/listening — editing a knob with no visible connection to the watched cell is friction. Same underlying profile fields read/written from either thinking's panel or talking's panel; edits sync via the profile object.
 
@@ -665,10 +767,12 @@ All resolved as of the latest revision. Lock-in summary (so the reviewer can see
 
 | File | Change |
 |---|---|
-| `src/projects/voiceinterface/radial-states/api.ts` | Schema refactor (RadialBars, RadialDisplay, listening, geometry, idleListeningLinked, morph, schemaVersion); `migrateLegacyProfile`; in-memory normalization in `fetchRadialLinkedProfiles`; new defaults |
+| `src/projects/voiceinterface/radial-states/api.ts` | Schema refactor (RadialBars, RadialDisplay, listening, geometry, idleListeningLinked, lockBarCount, morph, schemaVersion); `migrateLegacyProfile`; in-memory normalization in `fetchRadialLinkedProfiles`; `composeRadialSettings(profile, state)` helper; new defaults |
 | `src/projects/voiceinterface/radial-states/useLinkedRadialAnimator.ts` | NEW — animator hook |
-| `src/projects/voiceinterface/radial-states/index.tsx` | Tune-mode toggle; single-cell render path; controls panel reshape (§8a); listening sites (§8b list); consume animator; ghost-bar fix (with maxSafeInward clamp); consume new schema; update snapshotOf, dirty comparison, save-as, reset, profile-switch |
-| `src/projects/radial-waveform/variants/RadialBidirectional.tsx` | Add `barCount` prop (destructure + dependency array + body); add `freezeAtMin` prop (skip audio/wave/smoothing blocks; zero prevValuesRef on entry) |
+| `src/projects/voiceinterface/radial-states/index.tsx` | Tune-mode toggle; single-cell render path; controls panel reshape (§8a); listening sites (§8b list); consume animator; ghost-bar fix (with maxSafeInward clamp); consume new schema; static cells now call `composeRadialSettings`; update snapshotOf, dirty comparison, save-as, reset, profile-switch; `controlsFocusedState` / `animationTargetState` named explicitly |
+| `src/projects/radial-waveform/variants/RadialBidirectional.tsx` | Refs-based animated-prop refactor (single mount-time RAF, refs sync each render); add `barCount` propagation; add `freezeAtMin` prop (skip audio/wave/smoothing blocks; zero prevValuesRef on entering frame); pin canvas extent for tune mode via new `MAX_RENDER_EXTENT` (Reviewer R2 P1.1, P1.2) |
+| `src/projects/radial-waveform/variants/RadialInward.tsx` | Same refs refactor (CM1 — uniform model). No new props. Behavior unchanged because static-mode props are stable. |
+| `src/projects/radial-waveform/variants/RadialOutward.tsx` | Same refs refactor (CM1). No new props. |
 | `src/projects/radial-waveform/types.ts` | Add `freezeAtMin?: boolean` to `RadialWaveformProps` |
 | `radial-states-profiles.json` | Rewritten on first user-initiated save post-deploy (whole-array POST migrates everything) |
 
@@ -679,6 +783,8 @@ No new pages. No new API routes. No changes outside `voiceinterface/radial-state
 ## 15. Concept index
 
 For a plan this size, listing every named concept and the section(s) where it's defined / referenced. (Maintained on every edit — see plan-review §1.)
+
+Updated for Reviewer R2 patches:
 
 | Concept | Defined in | Also referenced in |
 |---|---|---|
@@ -695,7 +801,12 @@ For a plan this size, listing every named concept and the section(s) where it's 
 | Phase A (translation, anchor → talkingAnchor + minBarLength) | §4 | §5, §10, §11 |
 | Phase B (reactive-style, lerps from 0) | §4 | §5, §10 |
 | `inwardRatio` flip | §4 | §5, §11 |
-| `freezeAtMin` renderer path | §7 | §6, §11 |
+| `freezeAtMin` renderer path | §6.5, §7 | §4, §6, §11 |
+| Renderer animation contract | §6.5 | §7, §14 |
+| `composeRadialSettings` helper | §6.5 | §7, §14 |
+| `lockBarCount` (profile-level) | §3 | §8a, §10 |
+| Discrete-field step semantics | §4 | §10 |
+| Reverse-path tail clamp | §4 | §11 |
 | `useLinkedRadialAnimator` | §6 | §7, §8, §10, §14 |
 | Adapter mapping | §6 | §7 |
 | Pause semantics | §6 | (v1 unused in UI) |
