@@ -74,13 +74,15 @@ interface CoralRealtimeBlobProps {
   profile: CoralRealtimeSettings | null;
   width?: number;
   height?: number;
-  /** When true, suppress the talking → idle intro on mount: eased
-   *  scale / waveIntensity / color3 mount at base values rather than
-   *  talking values, so the orb appears at idle without the sphere →
-   *  torus crossfade. Note: CoralStoneMorph's internal morphRef still
-   *  initializes to 0 (sphere) on mount, but with goal=1 (idle) the
-   *  geometric morph completes within ~one frame at base.morphSpeed,
-   *  which is much less perceptible than the eased prop animation. */
+  /** When true, suppress the talking → idle intro on mount:
+   *   - eased scale / waveIntensity / color3 mount at base values
+   *     rather than talking values (no prop morph).
+   *   - CoralStoneMorph's `initialMorph` is seeded to 1 (torus)
+   *     instead of 0 (sphere), so no geometric morph plays either.
+   *  Result: cross-shader mount into a skip-intro Coral profile shows
+   *  the orb at idle/torus directly, no animation.
+   *  Replay (editor) is unaffected — bumps a key to remount with
+   *  initialMorph default 0 so the intro replays as before. */
   skipIntro?: boolean;
 }
 
@@ -479,6 +481,12 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
           color1={active.base.color1}
           color2={active.base.color2}
           color3={effectiveColor3}
+          // Skip-intro: when set, mount morphRef at 1 (torus) so the
+          // sphere → torus geometric morph doesn't play. Pairs with
+          // the eased-prop seeding at base values above. With both
+          // suppressed, a cross-shader switch into a skip-intro Coral
+          // appears at idle directly.
+          initialMorph={skipIntro ? 1 : 0}
         />
       </Canvas>
     </div>

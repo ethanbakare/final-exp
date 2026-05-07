@@ -1146,6 +1146,11 @@ function RealtimeStatesEditor({
                   color1={baseS.color1}
                   color2={baseS.color2}
                   color3={coralEasedColor3}
+                  // Skip-intro: mount at torus when the active profile
+                  // opts out of the intro. Replay always re-renders with
+                  // skipCoralIntro=false (button is disabled when on),
+                  // so this branch only fires on cascade / cross-shader.
+                  initialMorph={skipCoralIntro ? 1 : 0}
                 />
               );
             })()

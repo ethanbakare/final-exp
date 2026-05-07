@@ -148,6 +148,13 @@ export interface CoralStoneMorphProps {
   color1: string;
   color2: string;
   color3: string;
+  /** Initial morphRef value (0=sphere, 1=torus). Default 0, which
+   *  produces the classic talking → idle (sphere → torus) intro
+   *  animation when goal=1 on mount. Set to 1 to mount directly at
+   *  torus — used by skip-intro flow on cross-shader Coral mount,
+   *  where the eased props are also seeded at base values so neither
+   *  the prop morph nor the geometric morph plays. */
+  initialMorph?: number;
 }
 
 const CoralStoneMorph: React.FC<CoralStoneMorphProps> = ({
@@ -162,12 +169,16 @@ const CoralStoneMorph: React.FC<CoralStoneMorphProps> = ({
   color1,
   color2,
   color3,
+  initialMorph,
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const smoothedAmps = useRef(new Float32Array(NUM_WAVES));
   const phases = useRef(new Float32Array(NUM_WAVES));
-  const morphRef = useRef(0);
+  // useRef captures initialMorph at first call only. Subsequent prop
+  // changes don't reseed — to retrigger the intro, parent must remount
+  // (component-type swap or React `key` bump).
+  const morphRef = useRef(initialMorph ?? 0);
 
   // Constant: outer edge R + r stays the same
   const outerEdge = 1.0;
