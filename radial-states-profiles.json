@@ -128,7 +128,7 @@
       "barWidth": 6.5,
       "barGap": 9,
       "minBarLength": 3,
-      "maxBarLength": 40,
+      "maxBarLength": 34,
       "sensitivity": 0.7,
       "barColor": "#0f0f11",
       "bgColor": "#0F0F11",
@@ -140,7 +140,7 @@
       "rotationSpeed": 6,
       "ambientWave": true,
       "waveSpeed": 2,
-      "waveAmplitude": 0.5,
+      "waveAmplitude": 0.72,
       "waveHeight": 1.5,
       "waveMode": "additive",
       "waveShape": "segments",
@@ -228,7 +228,7 @@
       "outlineWidth": 2,
       "previewBg": "#f7f6f4"
     },
-    "lastModified": 1778174911114,
+    "lastModified": 1778175772776,
     "backdrop": {
       "enabled": true,
       "color": "#262424",
