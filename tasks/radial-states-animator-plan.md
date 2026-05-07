@@ -228,7 +228,7 @@ When `reactiveStartAt = 0`, **Phase A duration is zero** — anchor teleports fr
 
 Same two-phase shape as thinking → talking, in reverse, sharing `morph.thinkingToTalking` and `morph.reactiveStartAt`:
 
-- **Phase A (reverse-reactive transition)** runs first, `t ∈ [0, 1 - reactiveStartAt]`. Numeric wave/envelope/sensitivity/maxBarLength params lerp `talking's value → 0`. Anchor stays at `talkingAnchor`. `inwardRatio` stays 0. **`freezeAtMin = false` for most of this window** — we want the audio path active so the user sees the reactive fade. **In the last 10% of Phase A** (`tA ∈ [0.9, 1.0]`), `freezeAtMin` ramps in: at `tA = 0.9`, set `freezeAtMin = true` and zero `prevValuesRef` (Reviewer R2 P1.6). This pulls residual smoothed length down to exactly `minBarLength` before the inverse flip.
+- **Phase A (reverse-reactive transition)** runs first, `t ∈ [0, 1 - reactiveStartAt]`. **Numeric wave/envelope/sensitivity params (NOT `maxBarLength`)** lerp `talking's value → 0` (D1 fix: maxBarLength excluded — follows its own full-morph lerp per R4 P1.2; see Phase B bullet below). Anchor stays at `talkingAnchor`. `inwardRatio` stays 0. **`freezeAtMin = false` for most of this window** — we want the audio path active so the user sees the reactive fade. **In the last 10% of Phase A** (`tA ∈ [0.9, 1.0]`), `freezeAtMin` ramps in: at `tA = 0.9`, set `freezeAtMin = true` and zero `prevValuesRef` (Reviewer R2 P1.6). This pulls residual smoothed length down to exactly `minBarLength` before the inverse flip.
 - **Booleans + string unions** step to off / matching defaults at `tA = 0.5` (mid-Phase-A). `ambientWave` flips true → false at `tA = 0.5`.
 - **Inverse flip** at the Phase A → Phase B boundary: `inwardRatio` steps 0 → 1, anchor reference jumps from `talkingAnchor` (inner-tip semantics) to `talkingAnchor + minBarLength` (outer-tip semantics) — same pixels because `freezeAtMin` ensured length is exactly `minBarLength`.
 - **Phase B (translation + idle-resume)** runs second, `t ∈ [1 - reactiveStartAt, 1]`. Two things happen in parallel (Reviewer R3 P1.6):
@@ -309,9 +309,7 @@ At the flip instant, length is still 12, so:
 
 **No overlap.** Phase A's lerp completes within its own window (`t ∈ [0, reactiveStartAt]`); during Phase B (`t ∈ [reactiveStartAt, 1]`), the anchor stays pinned at `talkingAnchor` (post-flip). Length is `minBarLength` exactly throughout Phase A (enforced by the renderer's `freezeAtMin` path), so the flip frame has no length ambiguity. Phase B's reactive lerp then runs from 0 → talking's values without any anchor motion.
 
-This means: Phase A's lerp duration is `reactiveStartAt × morph.thinkingToTalking`; Phase B's lerp duration is `(1 − reactiveStartAt) × morph.thinkingToTalking`. The phase labels are accurate — translation is done before reactive-style begins.
-
-This means the actual lerp speeds are not the same as the morph duration. Phase A's duration is `reactiveStartAt × morph.thinkingToTalking`. Phase B's duration is `(1 - reactiveStartAt) × morph.thinkingToTalking`.
+Phase A's lerp duration is `reactiveStartAt × morph.thinkingToTalking`; Phase B's is `(1 − reactiveStartAt) × morph.thinkingToTalking`. Translation completes before reactive-style begins — the phase labels are accurate.
 
 Edge values:
 - `reactiveStartAt = 1`: Phase B duration is 0 — bars complete translation then SNAP into talking's reactive form. Pre-review default; rejected (Reviewer P2.1) because the snap is visible.
@@ -427,7 +425,7 @@ The cell is the adapter between the animator's output and `RadialBidirectional`'
 | `minBarLength` | `profile.bars.minBarLength` |
 | `maxBarLength`, `sensitivity`, `ambientWave`, `waveSpeed`, `waveAmplitude`, `waveHeight`, `waveMode`, `waveShape`, `waveLobes`, `smoothing`, `waveEnvelope`, `envelopeAmplitude`, `envelopeSensitivity`, `intensityOpacity` | `RenderValues.*` (lerped) |
 | `freezeAtMin` (new) | `RenderValues.freezeAtMin` |
-| `barCount` | derived once from `profile.bars` + `geometry.idleRadius`; passed in unchanged across the morph (locked by §"Geometry rules" in handoff) |
+| `barCount` | tune mode: derived once from `profile.bars` + `geometry.idleRadius` and held constant across the morph (locked-bar-count rule in handoff). Static mode: from `composeBaseWaveformProps` per `profile.lockBarCount` (undefined when off). D6 fix: rule depends on consumer mode. |
 | `frequencyData` | external — comes from the audio source, not the animator |
 | `bgColor` | `profile.display.bgColor` |
 | `showEnvelopeCeiling` | UI hover state, not from animator |
@@ -577,7 +575,7 @@ Reviewer-CM1: making only `RadialBidirectional` refs-based while leaving `Radial
 
 ## 7. Rendering surface — RadialBidirectional adoption
 
-The tune-mode cell renders `RadialBidirectional` directly (not `RadialInward` or `RadialOutward`), passing the animator's output as props. `RadialBidirectional.tsx:9` already accepts `inwardRatio`, `radius`, `barWidth`, `barGap`, `minBarLength`, `maxBarLength`, `sensitivity`, all wave params, and `barCount` (added in `types.ts:69`).
+The tune-mode cell renders `RadialBidirectional` directly (not `RadialInward` or `RadialOutward`). It builds props by **merging `composeBaseWaveformProps(profile, animationTargetState)` with the animator's `RadialRenderValues`** per §6.5 point 6 (D7 fix: not "passing animator output" alone — animator overrides the base for animated fields). `RadialBidirectional.tsx:9` already accepts `inwardRatio`, `radius`, `barWidth`, `barGap`, `minBarLength`, `maxBarLength`, `sensitivity`, all wave params, and `barCount` (added in `types.ts:69`).
 
 **Static-mode cell count: 3, not 4** (Reviewer R3 P1.5). The 3 cells are: idle/listening (one cell, since `idleListeningLinked = true` makes them visually identical by default), thinking, talking. Pills in the bottom bar are 4 (idle, listening, thinking, talking) so the controls panel can route to the right per-state object — but cells stay 3. When the link is broken (deferred), revisit.
 
@@ -597,10 +595,10 @@ The static three-cell mode keeps its current renderers (`RadialInward` for idle/
    - Skips the audio + wave + envelope calculation entirely (the inner block from line 92 to line 127).
    - Sets `value = 0` directly.
    - Skips the smoothing block (line 129) — does not read or write `prevValuesRef`.
-   - Clears `prevValuesRef.current` to a zero array on the entering frame (so re-entering reactive state starts clean).
+   - On the entering frame (false → true transition), zeros `prevValuesRef.current` per the **`wasFreezeAtMinRef` rule in §6.5 point 5** (D5 fix: single source of truth for the entry-frame logic).
    - Bar length collapses exactly to `minBarLength` because `value = 0`.
 
-   Driven by the animator: `freezeAtMin = true` during thinking and during Phase A of any thinking-related morph; false otherwise. Reviewer P1.4.
+   Driven by the animator: see §6.5 point 5 "Engaged" list for the exact phases. Reviewer P1.4.
 
    This is the renderer-level pinning that makes the Phase A → B flip pixel-stable regardless of the `smoothing` slider value.
 
@@ -797,7 +795,7 @@ Imagine the implementation fails on the first attempt. Top three predicted failu
    Mitigation for (b): Phase A's anchor target is `talkingAnchor + bars.minBarLength` (NOT `talkingAnchor`). At the flip, anchor reference jumps from `talkingAnchor + minBarLength` (outer-tip) to `talkingAnchor` (inner-tip). Same pixels under different semantics.
 
    Dev assertion at the flip: `console.assert(Math.abs(currentRenderedLength - bars.minBarLength) < 0.5 && Math.abs(currentAnchor - (talkingAnchor + bars.minBarLength)) < 0.5, 'Phase A→B flip preconditions failed')`. Logged once per flip event.
-3. **Morph progress tracking double-fires on rapid state changes.** User clicks Talking mid-morph from idle → thinking. The hook needs to handle interrupted morphs cleanly: capture current render values as the new start, retarget to the new state, restart morphT. Mitigation: explicit `morphPhase` state machine in the hook; on state change, transition the phase atomically and reset `morphT = 0`.
+3. **Morph progress tracking double-fires on rapid state changes.** User clicks Talking mid-morph from idle → thinking. The hook needs to handle interrupted morphs cleanly: capture current render values as the new start, retarget to the new state, restart morphT. Mitigation: the explicit internal-state set defined in §6 (`morphActive`, `morphFrom`, `morphTarget`, `morphT`, `intendedFinalState`, `currentlyIn`); on state change, the rules in §6 "State-change handling" reset `morphT = 0` atomically and update target. (D4 fix: prior text referenced a `morphPhase` field that doesn't exist in §6.)
 
 ---
 
@@ -837,8 +835,8 @@ All resolved as of the latest revision. Lock-in summary (so the reviewer can see
 | `src/projects/voiceinterface/radial-states/useLinkedRadialAnimator.ts` | NEW — animator hook |
 | `src/projects/voiceinterface/radial-states/index.tsx` | Tune-mode toggle; single-cell render path; controls panel reshape (§8a); listening sites (§8b list); consume animator; ghost-bar fix (with maxSafeInward clamp); consume new schema; static cells now call `composeBaseWaveformProps`; update snapshotOf, dirty comparison, save-as, reset, profile-switch; `controlsFocusedState` / `animationTargetState` named explicitly |
 | `src/projects/radial-waveform/variants/RadialBidirectional.tsx` | Refs-based renderer refactor (single mount-time RAF; main effect deps reduced to `[renderExtent]`; all live props inc. `frequencyData` flow through a sync ref); add `barCount` propagation; add `freezeAtMin` handling (skip audio/wave/smoothing; zero prevValuesRef on entering frame); add `renderExtent`-based canvas sizing with fallback to self-sizing math (Reviewer R3 P1.1, P1.2, P1.3) |
-| `src/projects/radial-waveform/variants/RadialInward.tsx` | Same refs refactor for consistency. Inherits the wider prop type but does not read `freezeAtMin`/`inwardRatio`. Static-mode visual output unchanged because props are stable per render (Reviewer R3 P2.3). |
-| `src/projects/radial-waveform/variants/RadialOutward.tsx` | Same refs refactor; inherits the wider prop type without reading new fields. |
+| `src/projects/radial-waveform/variants/RadialInward.tsx` | Refs refactor + **honors `freezeAtMin`** (so static thinking renders frozen at min length, per §6.5 point 5). Does not read `inwardRatio` (not part of inward variant). Static-mode visual output unchanged for non-thinking states because props are stable per render. |
+| `src/projects/radial-waveform/variants/RadialOutward.tsx` | Refs refactor + **honors `freezeAtMin`** (for symmetry; talking's reverse Phase B uses freezeAtMin true during the translation tail of static talking is theoretical but the prop is honored consistently). Does not read `inwardRatio`. |
 | `src/projects/radial-waveform/types.ts` | Add `freezeAtMin?: boolean` and `renderExtent?: number` to `RadialWaveformProps` |
 | `src/projects/voiceinterface/radial-states/types.ts` | NEW — exports `RadialState` so api and hook can share without circular import (Reviewer R3 P2.1) |
 | `radial-states-profiles.json` | Rewritten on first user-initiated save post-deploy (whole-array POST migrates everything) |
