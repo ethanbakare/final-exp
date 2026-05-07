@@ -221,9 +221,12 @@ interface GhostBarsProps {
   settings: RadialSettings;
   size: number;
   color: string;
+  /** Match the rendered bar count override so the ghost bars line up
+   *  with the real bars when radial-states forces a shared count. */
+  barCountOverride?: number;
 }
 
-function GhostBars({ variant, settings, size, color }: GhostBarsProps) {
+function GhostBars({ variant, settings, size, color, barCountOverride }: GhostBarsProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -257,7 +260,8 @@ function GhostBars({ variant, settings, size, color }: GhostBarsProps) {
     const cx = size / 2;
     const cy = size / 2;
     const circumference = 2 * Math.PI * radius;
-    const barCount = Math.max(1, Math.floor(circumference / (barWidth + barGap)));
+    const barCount =
+      barCountOverride ?? Math.max(1, Math.floor(circumference / (barWidth + barGap)));
 
     let waveTime = 0;
     let lastTs = performance.now();
@@ -320,7 +324,7 @@ function GhostBars({ variant, settings, size, color }: GhostBarsProps) {
 
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [variant, settings, size, color]);
+  }, [variant, settings, size, color, barCountOverride]);
 
   return (
     <canvas
@@ -442,6 +446,13 @@ interface CellProps {
    *  idle.radius - idle.maxBarLength - DONUT_PADDING. */
   donutSize: number;
   donutThickness: number;
+  /** Bar-count override applied to all three cells, computed once at
+   *  the page level from the active profile's idle settings. Talking
+   *  has a smaller radius than idle, which would otherwise compute
+   *  fewer bars; using a shared override keeps the angular density
+   *  consistent across all three cells (talking just gets a smaller
+   *  computed gap to fit the same count on its smaller circumference). */
+  barCountOverride: number;
   /** Backdrop config — both edges have independent shape/segments/depth.
    *  Resolved with defaults at the page level. */
   backdropEnabled: boolean;
@@ -474,6 +485,7 @@ function Cell({
   showMaxGhost,
   donutSize,
   donutThickness,
+  barCountOverride,
   backdropEnabled,
   backdropColor,
   backdropOpacity,
@@ -550,6 +562,7 @@ function Cell({
             settings={settings}
             size={ghostCanvasSize}
             color="rgba(239, 68, 68, 0.18)"
+            barCountOverride={barCountOverride}
           />
         )}
         <div style={{ position: 'relative', zIndex: 1, lineHeight: 0 }}>
@@ -579,6 +592,7 @@ function Cell({
             waveEnvelope={settings.waveEnvelope}
             envelopeAmplitude={settings.envelopeAmplitude}
             envelopeSensitivity={settings.envelopeSensitivity}
+            barCount={barCountOverride}
           />
         </div>
       </div>
@@ -1373,6 +1387,15 @@ export default function RadialStatesReview() {
   const donutInner = Math.max(0, all.idle.radius - all.idle.maxBarLength - DONUT_PADDING);
   const donutSize = donutOuter * 2;
   const donutThickness = donutOuter - donutInner;
+  // Shared bar count — anchored on idle's circumference so talking
+  // (smaller radius) packs the same number of bars on its smaller
+  // ring. Without this, talking computes ~38 bars where idle has 54,
+  // and the spokes look spaced unevenly between cells.
+  const idleCircumference = 2 * Math.PI * all.idle.radius;
+  const barCountOverride = Math.max(
+    1,
+    Math.floor(idleCircumference / (all.idle.barWidth + all.idle.barGap)),
+  );
   const backdrop = resolveBackdrop(activeProfile?.backdrop);
 
   const updateBackdrop = (patch: Partial<RadialBackdrop>) => {
@@ -1413,6 +1436,7 @@ export default function RadialStatesReview() {
           showMaxGhost={focused === k && maxBarHovered}
           donutSize={donutSize}
           donutThickness={donutThickness}
+          barCountOverride={barCountOverride}
           backdropEnabled={backdrop.enabled}
           backdropColor={backdrop.color}
           backdropOpacity={backdrop.opacity}

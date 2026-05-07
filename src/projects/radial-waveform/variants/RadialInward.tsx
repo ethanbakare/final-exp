@@ -29,6 +29,7 @@ export default function RadialInward({
   envelopeAmplitude,
   envelopeSensitivity,
   showEnvelopeCeiling,
+  barCount: barCountOverride,
 }: RadialWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
@@ -71,7 +72,8 @@ export default function RadialInward({
       ctx.clearRect(0, 0, size, size);
 
       const circumference = 2 * Math.PI * radius;
-      const barCount = Math.max(1, Math.floor(circumference / (barWidth + barGap)));
+      const barCount =
+        barCountOverride ?? Math.max(1, Math.floor(circumference / (barWidth + barGap)));
       const minInnerRadius = (barCount * barGap) / (2 * Math.PI);
       const maxSafeInward = Math.max(0, radius - minInnerRadius);
       const values = mapFrequencyToBars(frequencyData, barCount, sensitivity, segments);
@@ -194,7 +196,7 @@ export default function RadialInward({
 
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [frequencyData, radius, barWidth, barGap, minBarLength, maxBarLength, sensitivity, barColor, bgColor, segments, roundCaps, intensityOpacity, updateRate, rotationSpeed, ambientWave, waveSpeed, waveAmplitude, waveHeight, waveMode, waveShape, waveLobes, smoothing, waveEnvelope, envelopeAmplitude, envelopeSensitivity, showEnvelopeCeiling]);
+  }, [frequencyData, radius, barWidth, barGap, minBarLength, maxBarLength, sensitivity, barColor, bgColor, segments, roundCaps, intensityOpacity, updateRate, rotationSpeed, ambientWave, waveSpeed, waveAmplitude, waveHeight, waveMode, waveShape, waveLobes, smoothing, waveEnvelope, envelopeAmplitude, envelopeSensitivity, showEnvelopeCeiling, barCountOverride]);
 
   const size = (radius + 20) * 2;
   return <canvas ref={canvasRef} style={{ width: size, height: size }} />;

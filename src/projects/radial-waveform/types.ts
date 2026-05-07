@@ -61,6 +61,12 @@ export interface RadialWaveformProps {
   envelopeSensitivity: number;
   /** Show ghost bars at envelope ceiling height (display-only, not saved) */
   showEnvelopeCeiling?: boolean;
+  /** Override the auto-computed bar count. Used by radial-states to
+   *  share a bar count across cells with different radii (so talking
+   *  at radius 94 keeps the same 54 bars idle has at radius 134, just
+   *  with a smaller computed gap). When undefined, the variant
+   *  computes its own count from circumference / (barWidth+barGap). */
+  barCount?: number;
 }
 
 // ── Variant type ──────────────────────────────────────────────
