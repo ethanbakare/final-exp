@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { RealtimeAgent, RealtimeSession, OpenAIRealtimeWebRTC } from '@openai/agents-realtime';
 // VelvetOrb is shelved — kept in tree at ./orb/VelvetOrb for revert.
 // Active orb is RealtimeBlob — a shader-aware dispatcher between
-// CoralRealtimeBlob (Coral D shader) and NebularrBlob (Tube/Kyoto shader).
+// CoralRealtimeBlob (Coral D shader) and NebularrBlob (Tube shader).
 import {
   RealtimeBlob,
   RealtimeVoiceState as VoiceState,
@@ -29,7 +29,7 @@ type LoadedOrb =
       lastModified: number;
     }
   | {
-      shader: 'kyoto';
+      shader: 'tube';
       sourceVariant: 'realtime-state';
       id: string;
       name: string;
@@ -66,7 +66,7 @@ const CORAL_FALLBACK_ORB: LoadedOrb = {
 };
 
 const NEBULARR_FALLBACK_ORB: LoadedOrb = {
-  shader: 'kyoto',
+  shader: 'tube',
   sourceVariant: 'realtime-state',
   id: 'rt-nebularr-fallback',
   name: 'Nebularr',
@@ -163,7 +163,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
 
     const fetchVariant = async (
       variant: 'realtime-coral' | 'realtime-state',
-      shader: 'coral' | 'kyoto',
+      shader: 'coral' | 'tube',
     ): Promise<LoadedOrb[]> => {
       try {
         const r = await fetch(`/api/studio-profiles?variant=${variant}`);
@@ -181,7 +181,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           }));
         }
         return arr.map((p) => ({
-          shader: 'kyoto' as const,
+          shader: 'tube' as const,
           sourceVariant: 'realtime-state' as const,
           id: p.id,
           name: p.name,
@@ -196,18 +196,18 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
 
     Promise.allSettled([
       fetchVariant('realtime-coral', 'coral'),
-      fetchVariant('realtime-state', 'kyoto'),
-    ]).then(([coralRes, kyotoRes]) => {
+      fetchVariant('realtime-state', 'tube'),
+    ]).then(([coralRes, tubeRes]) => {
       if (cancelled) return;
       const coralOrbs =
         coralRes.status === 'fulfilled' && coralRes.value.length > 0
           ? coralRes.value
           : [CORAL_FALLBACK_ORB];
-      const kyotoOrbs =
-        kyotoRes.status === 'fulfilled' && kyotoRes.value.length > 0
-          ? kyotoRes.value
+      const tubeOrbs =
+        tubeRes.status === 'fulfilled' && tubeRes.value.length > 0
+          ? tubeRes.value
           : [NEBULARR_FALLBACK_ORB];
-      const merged = [...coralOrbs, ...kyotoOrbs];
+      const merged = [...coralOrbs, ...tubeOrbs];
       setOrbs(merged);
 
       // Live page only shows pinned orbs (explicit opt-in). The default
@@ -262,7 +262,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     if (activeOrb.shader === 'coral') {
       return { shader: 'coral', profile: activeOrb.settings };
     }
-    return { shader: 'kyoto', profile: activeOrb.settings };
+    return { shader: 'tube', profile: activeOrb.settings };
   }, [activeOrb]);
 
   // Audio visualization state

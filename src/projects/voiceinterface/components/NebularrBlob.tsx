@@ -1,5 +1,5 @@
 /**
- * NebularrBlob — Kyoto-style GentleOrbThicken orb for the realtime
+ * NebularrBlob — Tube-style GentleOrbThicken orb for the realtime
  * page. Same audioData/voiceState surface as RealtimeBlob so it can
  * drop in alongside the Coral variant. Fetches its profile (Nebularr)
  * from the saved realtime-state-profiles.json via the studio-profiles

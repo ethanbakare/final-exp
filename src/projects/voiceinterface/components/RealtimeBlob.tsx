@@ -1,7 +1,7 @@
 /**
  * RealtimeBlob — shader-aware dispatch for the realtime voice page.
  * Routes to <CoralRealtimeBlob> when the active orb is Coral D, or to
- * <NebularrBlob> when the active orb is Tube/Kyoto. Both wrappers own
+ * <NebularrBlob> when the active orb is Tube. Both wrappers own
  * their own canvas + shader; this component is a thin discriminator.
  *
  * The component-type swap (CoralRealtimeBlob ↔ NebularrBlob) is what
@@ -18,13 +18,13 @@ import type { LinkedProfile } from './useLinkedProfileAnimator';
 export type RealtimeVoiceState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking';
 
 /**
- * Discriminated union: every realtime orb is either Coral or Kyoto,
+ * Discriminated union: every realtime orb is either Coral or Tube,
  * with a per-shader profile shape. The dispatch below branches on
  * `orb.shader` and TypeScript narrows `orb.profile` accordingly.
  */
 export type RealtimeOrb =
   | { shader: 'coral'; profile: CoralRealtimeSettings | null }
-  | { shader: 'kyoto'; profile: LinkedProfile | null };
+  | { shader: 'tube'; profile: LinkedProfile | null };
 
 interface RealtimeBlobProps {
   audioData: AudioData;

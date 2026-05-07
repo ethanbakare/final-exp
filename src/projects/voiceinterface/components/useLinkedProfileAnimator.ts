@@ -1,5 +1,5 @@
 /**
- * Linked-profile animator hook — JS owns all motion for the Kyoto-
+ * Linked-profile animator hook — JS owns all motion for the Tube-
  * style blob (GentleOrbThicken). idle / listening / thinking-rest /
  * talking-rest share `profile.base`; thinking and talking each have
  * their own peak overrides. State changes glide smoothly with no
