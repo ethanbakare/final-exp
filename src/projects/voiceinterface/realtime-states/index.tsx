@@ -888,6 +888,38 @@ function RealtimeStatesEditor({
 
   const activeSkipIntro = activeOrb?.skipIntroOnSelect === true;
 
+  // Per-id skip-intro toggle for dropdown rows. Same shape as the
+  // togglePinned / togglePinnedCoral pair — so the dropdown can show
+  // and toggle the flag for every profile (not just the active one).
+  // Mirrors how bookmark works: visible per-row + on the bottom bar.
+  const toggleSkipIntroOnSelect = async (id: string) => {
+    const next = tubeProfiles.map((pr) =>
+      pr.id === id
+        ? {
+            ...pr,
+            skipIntroOnSelect: !(pr.skipIntroOnSelect === true),
+            lastModified: Date.now(),
+          }
+        : pr,
+    );
+    setTubeProfiles(next);
+    await persistProfiles(next);
+  };
+
+  const toggleSkipIntroOnSelectCoral = async (id: string) => {
+    const next = coralProfiles.map((pr) =>
+      pr.id === id
+        ? {
+            ...pr,
+            skipIntroOnSelect: !(pr.skipIntroOnSelect === true),
+            lastModified: Date.now(),
+          }
+        : pr,
+    );
+    setCoralProfiles(next);
+    await persistCoralProfiles(next);
+  };
+
   const commitRenameCoral = async (id: string, draft: string) => {
     const name = draft.trim();
     if (!name || profileNameExists(name, id)) return;
@@ -1308,6 +1340,24 @@ function RealtimeStatesEditor({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+                                toggleSkipIntroOnSelect(p.id);
+                              }}
+                              className={`shrink-0 transition-colors cursor-pointer ${
+                                p.skipIntroOnSelect === true
+                                  ? 'text-amber-500 hover:text-amber-600'
+                                  : 'text-gray-300 hover:text-gray-600'
+                              }`}
+                              title={
+                                p.skipIntroOnSelect === true
+                                  ? 'Skip-intro on (click to enable intro)'
+                                  : 'Skip the talking-to-idle intro for this profile'
+                              }
+                            >
+                              <RefreshCwOff size={12} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 beginRename(p);
                               }}
                               className="shrink-0 text-gray-300 hover:text-gray-600 transition-colors cursor-pointer"
@@ -1405,6 +1455,24 @@ function RealtimeStatesEditor({
                                 size={12}
                                 fill={p.pinned ? 'currentColor' : 'none'}
                               />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSkipIntroOnSelectCoral(p.id);
+                              }}
+                              className={`shrink-0 transition-colors cursor-pointer ${
+                                p.skipIntroOnSelect === true
+                                  ? 'text-amber-500 hover:text-amber-600'
+                                  : 'text-gray-300 hover:text-gray-600'
+                              }`}
+                              title={
+                                p.skipIntroOnSelect === true
+                                  ? 'Skip-intro on (click to enable intro)'
+                                  : 'Skip the talking-to-idle intro for this profile'
+                              }
+                            >
+                              <RefreshCwOff size={12} />
                             </button>
                             <button
                               onClick={(e) => {
