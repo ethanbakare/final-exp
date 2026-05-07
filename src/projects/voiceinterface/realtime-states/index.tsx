@@ -1584,6 +1584,7 @@ function RealtimeStatesEditor({
                     value={swatchValue(i)}
                     colorFormat={colorFormat}
                     onChange={(v) => swatchSet(i, v)}
+                    onColorFormatChange={chooseColorFormat}
                     title={state === 'idle' || state === 'listening' ? 'Rest' : 'Peak'}
                     swatchClassName="h-6 w-6 rounded-full"
                   />
