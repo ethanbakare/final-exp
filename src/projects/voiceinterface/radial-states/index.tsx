@@ -188,10 +188,19 @@ interface ProfileSnapshot {
   backdrop: Required<RadialBackdrop>;
 }
 
+/** Returns a fully-isolated snapshot of a profile's settings + backdrop.
+ *
+ *  CRITICAL: deep-clones every nested object so the snapshot does NOT
+ *  share references with the live profile. Without this, baseline and
+ *  the active profile point at the same idle/thinking/talking objects;
+ *  Discard or profile-switch then propagates a shared reference into
+ *  another profile, and persist serializes the cross-bleed. Mirrors
+ *  realtime-states which uses `structuredClone` at every boundary
+ *  where a profile is copied. */
 function snapshotOf(p: RadialLinkedProfile): ProfileSnapshot {
   return {
-    settings: settingsOf(p),
-    backdrop: resolveBackdrop(p.backdrop),
+    settings: structuredClone(settingsOf(p)),
+    backdrop: structuredClone(resolveBackdrop(p.backdrop)),
   };
 }
 
@@ -1249,7 +1258,9 @@ export default function RadialStatesReview() {
     if (!activeProfileId || !baseline) return;
     setProfiles((prev) =>
       prev.map((p) =>
-        p.id === activeProfileId ? { ...p, [focused]: baseline.settings[focused] } : p,
+        p.id === activeProfileId
+          ? { ...p, [focused]: structuredClone(baseline.settings[focused]) }
+          : p,
       ),
     );
   };
@@ -1271,10 +1282,10 @@ export default function RadialStatesReview() {
         p.id === activeProfileId
           ? {
               ...p,
-              idle: baseline.settings.idle,
-              thinking: baseline.settings.thinking,
-              talking: baseline.settings.talking,
-              backdrop: baseline.backdrop,
+              idle: structuredClone(baseline.settings.idle),
+              thinking: structuredClone(baseline.settings.thinking),
+              talking: structuredClone(baseline.settings.talking),
+              backdrop: structuredClone(baseline.backdrop),
             }
           : p,
       ),
@@ -1285,17 +1296,20 @@ export default function RadialStatesReview() {
     const p = profiles.find((x) => x.id === id);
     if (!p) return;
     // Discard any uncommitted edits on the previous profile by reverting
-    // it to its baseline before switching.
+    // it to its baseline before switching. Clone every nested object so
+    // the previous profile doesn't end up sharing references with the
+    // baseline — future edits would otherwise mutate baseline through
+    // the shared reference.
     if (activeProfileId && baseline) {
       setProfiles((prev) =>
         prev.map((q) =>
           q.id === activeProfileId
             ? {
                 ...q,
-                idle: baseline.settings.idle,
-                thinking: baseline.settings.thinking,
-                talking: baseline.settings.talking,
-                backdrop: baseline.backdrop,
+                idle: structuredClone(baseline.settings.idle),
+                thinking: structuredClone(baseline.settings.thinking),
+                talking: structuredClone(baseline.settings.talking),
+                backdrop: structuredClone(baseline.backdrop),
               }
             : q,
         ),
@@ -1309,13 +1323,19 @@ export default function RadialStatesReview() {
   const handleSaveAs = async () => {
     const name = saveName.trim();
     if (!name || !activeProfile) return;
+    // structuredClone every settings sub-object so the new profile is
+    // fully decoupled from the source. Without this, the source and
+    // the new profile share idle/thinking/talking/backdrop references,
+    // and any later cross-update path (Discard, profile switch) leaks
+    // changes between them. Mirrors realtime-states handleSave's
+    // structuredClone(profile) pattern.
     const newProfile: RadialLinkedProfile = {
       id: makeNewId(),
       name,
-      idle: activeProfile.idle,
-      thinking: activeProfile.thinking,
-      talking: activeProfile.talking,
-      backdrop: activeProfile.backdrop,
+      idle: structuredClone(activeProfile.idle),
+      thinking: structuredClone(activeProfile.thinking),
+      talking: structuredClone(activeProfile.talking),
+      backdrop: activeProfile.backdrop ? structuredClone(activeProfile.backdrop) : undefined,
       lastModified: Date.now(),
     };
     const next = [...profiles, newProfile];
