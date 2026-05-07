@@ -64,6 +64,10 @@ Zero application errors over the full session. The only console errors were `Err
 
 Done. Renamed the live page's `shader: 'kyoto'` discriminant to `shader: 'tube'` across `RealtimeBlob.tsx` (and its `RealtimeOrb` type), `VoiceRealtimeOpenAI.tsx` (8 discriminant uses + `kyotoRes`/`kyotoOrbs` variables), `NebularrBlob.tsx` and `useLinkedProfileAnimator.ts` (comment cleanups). The codebase is no longer half-renamed. Smoke-tested live: `/voiceinterface/realtime` renders the Nebularr Tube orb on load and switches to Coral correctly via the renamed dispatcher.
 
+### ~~4. Throttled-CPU reproduction~~ — VERIFIED
+
+Done. User ran the throttled reproduction in DevTools (4× CPU + Slow 3G), tested both persisted Coral and persisted Nebularr cases. Visual confirmation: no Kyoto/Tube content flash during the ~1.5s extended skeleton phase, no bg color flash, navbar didn't flash mid-load. Combined with CLS = 0 from the trace and the architectural guarantee (editor parent doesn't mount the child until `cascadeReady && activeOrb` both flip), the v2.2 first-paint plan's verification section is now complete.
+
 ### 2. Per-profile `forceIntroOnSelect` toggle
 
 Plan: `tasks/coral-unification-plan.md` Open Follow-ups section.
