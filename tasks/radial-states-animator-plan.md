@@ -473,7 +473,7 @@ Always visible regardless of focused state. Editing here updates every cell simu
 
 If §13(2) confirms "omit listening panel entirely," replace this section with: listening pill is a label-only flip; no panel; render path uses idle's per-state settings whenever `state === 'listening'`.
 
-**Morph subsection.** New section visible only in tune mode (Critical 2 transitions are tune-mode-only). Lives in the Style column (or as a new 6th block depending on space):
+**Morph subsection.** Visible only in tune mode AND only when the focused state is **thinking or talking** (the states involved in the morphs the knobs affect). Hidden on idle/listening — editing a knob with no visible connection to the watched cell is friction. Same underlying profile fields read/written from either thinking's panel or talking's panel; edits sync via the profile object.
 
 ```
 ┌─ Morph ─────────────────┐
@@ -482,6 +482,8 @@ If §13(2) confirms "omit listening panel entirely," replace this section with: 
 │  Reactive Start At [—◯—]│
 └─────────────────────────┘
 ```
+
+`Idle ↔ Thinking` duration is shown on thinking's panel only (talking has no idle-to-thinking morph in its scope). `Thinking ↔ Talking` and `Reactive Start At` show on both thinking's and talking's panels.
 
 **What disappears.** Per-state Bar Width, Bar Gap, Round Caps, Bar Color, Segments, Rotation Speed, Min Bar Length, Radius. (All moved to the shared strips.)
 
@@ -555,15 +557,18 @@ Imagine the implementation fails on the first attempt. Top three predicted failu
 - Moving radial profile editing into the realtime-states editor.
 - Schema versioning beyond v2 (the literal `schemaVersion: 2` works for v1; v3 would need a discriminated union).
 - Reverse-by-elapsed mid-morph behavior (clicking the from-state during a morph reverses by elapsed-time). v1 ships only the simple "abort + new lerp" path.
+- **Live-page timing instrumentation.** When the animator runs in production driven by realtime API state events, a slow morph + fast API can leave the user staring at an in-flight transition that's already obsolete. The plan's mid-morph interruption rule handles correctness (leg 2 captures leg 1's in-flight values), but there's no telemetry surfacing "this profile's morph durations are tuned longer than your API's typical state-transition cadence." The Coral parallel: thinking-cycle-time vs response-time was never measured, so users couldn't tell when a thinking pulse was being skipped. Defer to live-page wiring; flag as something to instrument when that work starts.
 
 ---
 
 ## 13. Open questions for the user
 
-1. **Bar color shared or per-state?** Plan defaults to shared for v1. Confirm or override.
-2. **Listening mirroring idle.** v1 ships listening as an exact mirror of idle (`idleListeningLinked = true` default). The "Break link" button is always available but unused for v1. Acceptable, or omit listening's panel entirely until a use case appears?
-3. **`reactiveStartAt` location in the UI.** Plan puts it in a Morph subsection always visible in tune mode. Confirm.
-4. **Composed transitions** (idle→talking direct). Plan composes them as two sequential morphs. Acceptable, or should clicking talking from idle skip thinking entirely and go through a single longer morph?
+All resolved as of the latest revision. Lock-in summary (so the reviewer can see what was decided):
+
+- **Bar color**: shared across states. Locked.
+- **Listening panel**: kept as a full per-state panel position (parallel to idle/thinking/talking). When `idleListeningLinked = true` (default), the panel renders the linked-notice + Break-link button. Locked.
+- **Morph subsection visibility**: visible on thinking and talking panels only; hidden on idle/listening. Locked.
+- **Composed transitions**: sequential (two back-to-back morphs sharing each leg's normal duration). Production-mode reasoning: the realtime API drives state transitions reactively, never asking for a pre-known blended path; composed = sequential matches that contract. Locked.
 
 ---
 
