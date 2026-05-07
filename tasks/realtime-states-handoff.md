@@ -60,18 +60,9 @@ Zero application errors over the full session. The only console errors were `Err
 
 ## Open follow-ups (priority order)
 
-### 1. Live realtime page — extend the Kyoto → Tube rename
+### 1. ~~Live realtime page — extend the Kyoto → Tube rename~~ — SHIPPED in `c119a70`
 
-The editor's `shader: 'kyoto'` discriminant was renamed to `shader: 'tube'`, but the LIVE realtime page (`src/projects/voiceinterface/components/RealtimeBlob.tsx`, `VoiceRealtimeOpenAI.tsx`) has its **own** internal `shader: 'kyoto'` discriminant (a separate type definition — they don't share `LoadedOrb`). The two are functionally independent, but the codebase is now half-renamed: editor uses `'tube'`, live page uses `'kyoto'`.
-
-A future contributor will read this and ask "why are these different?" — that's the kind of inconsistency to fix proactively.
-
-Surface area (audited via grep):
-
-- `src/projects/voiceinterface/components/RealtimeBlob.tsx:27` — `| { shader: 'kyoto'; profile: LinkedProfile | null };`
-- `src/projects/voiceinterface/components/VoiceRealtimeOpenAI.tsx:32, 69, 166, 184, 199, 265` — multiple uses of `shader: 'kyoto'` and one `fetchVariant('realtime-state', 'kyoto')` (the second arg is the shader label, not the API variant).
-
-Same rename rules as the editor: discriminant `'kyoto'` → `'tube'`. The `'realtime-state'` API variant string stays (matches the JSON file on disk). Probably an hour's work + a manual smoke test on `/voiceinterface/realtime`.
+Done. Renamed the live page's `shader: 'kyoto'` discriminant to `shader: 'tube'` across `RealtimeBlob.tsx` (and its `RealtimeOrb` type), `VoiceRealtimeOpenAI.tsx` (8 discriminant uses + `kyotoRes`/`kyotoOrbs` variables), `NebularrBlob.tsx` and `useLinkedProfileAnimator.ts` (comment cleanups). The codebase is no longer half-renamed. Smoke-tested live: `/voiceinterface/realtime` renders the Nebularr Tube orb on load and switches to Coral correctly via the renamed dispatcher.
 
 ### 2. Per-profile `forceIntroOnSelect` toggle
 
@@ -133,7 +124,8 @@ The plan-review skill at `~/.claude/skills/plan-review.skill.md` formalizes this
 ## Recent commit timeline (most recent first)
 
 ```
-<post-handoff>  chore(realtime-states): remove temporary cascade-resolved console.log; refresh handoff
+c119a70         refactor(realtime): rename Kyoto → Tube on the live realtime page
+e11bf8e         chore(realtime-states): remove temp cascade log + refresh handoff
 b504a3f         refactor(realtime-states): rename Kyoto → Tube for the shader (not the profile)
 5b6f088         refactor(realtime-states): split 3253-line page into six modules
 cca82ac         docs: refresh realtime-states handoff after Coral unification + first-paint fix
@@ -160,7 +152,6 @@ Open with: "Read `tasks/realtime-states-handoff.md` for context, then [next task
 
 Most likely next tasks, by descending value:
 
-- **"Extend the Kyoto → Tube rename to the live realtime page"** → small refactor, ~1 hour. Scope: `src/projects/voiceinterface/components/RealtimeBlob.tsx` + `VoiceRealtimeOpenAI.tsx`. Same rename pattern as the editor. Manual smoke test on `/voiceinterface/realtime` after.
 - **"Implement `forceIntroOnSelect`"** → small feature; brief plan, schema bump, UI toggle, wiring.
 - **"Implement fork-from-clean-A"** → small fix; no plan needed; just edit `handleSave`.
 - **"Mask the WebGL init blank with thumbnails"** → cosmetic polish; needs a small plan.
