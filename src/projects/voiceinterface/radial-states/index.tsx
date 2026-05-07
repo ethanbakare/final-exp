@@ -660,7 +660,18 @@ export default function RadialStatesReview() {
   // React reports a hydration mismatch). Real values land via the
   // post-mount load effect below.
   const [all, setAll] = useState<AllSettings>(DEFAULT_ALL);
-  const hydratedRef = useRef(false);
+  // `loaded` gates the persist effect — promotes to true only after
+  // the load effect has read localStorage AND the resulting setAll has
+  // committed. Using state (not a ref) so the persist effect
+  // re-evaluates when `loaded` flips. The two-step (state-as-gate)
+  // pattern is required because StrictMode double-invokes useEffect
+  // and a ref-based gate would let the persist's first run save
+  // DEFAULT_ALL over the user's saved values before the load's setAll
+  // re-renders. With a state gate, persist sees `loaded=false` on the
+  // first commit and bails; only after `loaded` flips to true does it
+  // start writing — and by then `all` already reflects the loaded
+  // value.
+  const [loaded, setLoaded] = useState(false);
 
   // Hydrate from localStorage AFTER mount.
   useEffect(() => {
@@ -677,19 +688,19 @@ export default function RadialStatesReview() {
     } catch {
       /* corrupt JSON / unavailable storage — fall back to defaults */
     }
-    hydratedRef.current = true;
+    setLoaded(true);
   }, []);
 
-  // Persist on every change — but only after the initial hydration
-  // pass, so we don't overwrite saved values with DEFAULT_ALL on mount.
+  // Persist on every change — gated on `loaded` so the initial
+  // mount-time DEFAULT_ALL never overwrites the user's saved values.
   useEffect(() => {
-    if (!hydratedRef.current) return;
+    if (!loaded) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     } catch {
       /* quota / private mode — ignore */
     }
-  }, [all]);
+  }, [all, loaded]);
 
   // Audio polling.
   useEffect(() => {
