@@ -47,6 +47,20 @@ interface RadialBars {
   segments: number;
   rotationSpeed: number;        // continues through morph
   minBarLength: number;         // == thinking length; also bars' floor at idle/talking
+  updateRate: number;           // render throttle (ms); shared because it's a perf knob
+}
+
+interface RadialDisplay {
+  // Display chrome — invariant across all states; not part of bar identity but cell-shared.
+  bgColor: string;
+  previewBg: string;
+  containerBg: string;
+  containerBgOpacity: number;
+  containerRadius: number;
+  containerPadding: number;
+  showOutline: boolean;
+  outlineColor: string;
+  outlineWidth: number;
 }
 
 interface RadialStateSettings {
@@ -65,14 +79,14 @@ interface RadialStateSettings {
   envelopeAmplitude: number;
   envelopeSensitivity: number;
   intensityOpacity: boolean;
-  updateRate: number;
 }
 
 interface RadialLinkedProfile {
   schemaVersion: 2;              // explicit version flag; legacy profiles lack this
   id: string;
   name: string;
-  bars: RadialBars;              // shared across states
+  bars: RadialBars;              // shared across states (identity + perf)
+  display: RadialDisplay;        // shared across states (display chrome)
   idle: RadialStateSettings;
   listening: RadialStateSettings; // NEW — was implicit before
   thinking: RadialStateSettings;
@@ -86,7 +100,7 @@ interface RadialLinkedProfile {
   morph: {
     idleToThinking: number;      // seconds, default 0.4 — also covers thinking→idle
     thinkingToTalking: number;   // seconds, default 0.6 — also covers talking→idle
-    reactiveStartAt: number;     // 0..1, default 1.0 — when Phase B begins relative to Phase A
+    reactiveStartAt: number;     // 0..1, default 0.75 — when Phase B begins relative to Phase A
   };
   lastModified: number;
 }
@@ -103,7 +117,7 @@ Per chat: idle and listening are visually identical *today*, but kept as distinc
 | `barWidth` | Bar identity | Bars visibly change thickness mid-morph |
 | `barGap` | Bar identity | Bar count derivation drifts; lockBarCount becomes inconsistent |
 | `roundCaps` | Bar identity | Caps morph awkwardly |
-| `barColor` | Bar identity (for v1) | Per-state color is a feature we *might* want; deferring as `barColorOverride?: string` is fine but adds a lerp-hex path. **Pushing this question to user.** |
+| `barColor` | Bar identity | Bars visibly change color mid-morph (resolved as shared per §13). |
 | `segments` | Symmetry parameter, not state-specific | Bars re-assigned to different frequency buckets mid-morph |
 | `rotationSpeed` | Should rotate continuously through morph | Snaps to a different speed at state change |
 | `minBarLength` | Defines the morph length | Phase A's translation length is ambiguous |
@@ -113,7 +127,9 @@ Per chat: idle and listening are visually identical *today*, but kept as distinc
 - `maxBarLength` — talking's max can legitimately be smaller (audio dynamic range tradeoff).
 - All wave/envelope params — the whole point of having states is for these to differ.
 - `sensitivity` — talking is reactive; idle/listening have their own; thinking forces 0.
-- `intensityOpacity`, `updateRate`, `smoothing` — render-time behavior that may differ per state.
+- `intensityOpacity`, `smoothing` — render-time stylistic choices that may differ per state.
+
+(`updateRate` was per-state in the old schema but is now shared in `bars` — it's a perf throttle, not a state behavior. `bgColor` and other display chrome are now shared in `display`.)
 
 ### Migration
 
@@ -122,16 +138,33 @@ The 7 existing profiles in `radial-states-profiles.json` need a one-time migrati
 For each legacy profile, `migrateLegacyProfile(p: any): RadialLinkedProfile`:
 
 1. Read the old idle, thinking, talking objects.
-2. Promote idle's bar-identity values into the new `bars` block. (Idle is canonical; it's been the source of truth for radius and bar count.) `bars.minBarLength` = `idle.minBarLength`.
-3. Synthesize `listening` by deep-cloning idle's per-state values. Set `idleListeningLinked = true`.
-4. Lift `idleRadius` from `idle.radius` into `geometry.idleRadius`. Carry `talkingInnerGap` over.
-5. Drop the deprecated keys from per-state objects (barWidth, barGap, roundCaps, barColor, segments, rotationSpeed, minBarLength, radius).
-6. Add `morph` defaults: `idleToThinking: 0.4`, `thinkingToTalking: 0.6`, `reactiveStartAt: 1.0`.
-7. Set `schemaVersion: 2`. Bump `lastModified`.
+2. Promote bar-identity values into the new `bars` block:
+   - `bars.barWidth`, `bars.barGap`, `bars.roundCaps`, `bars.barColor`, `bars.segments`, `bars.rotationSpeed`, `bars.updateRate` — take from `idle.*` (idle is canonical for these).
+   - **`bars.minBarLength` = `thinking.minBarLength`** (NOT idle's). Thinking's value is what defines the morph length; idle's typical value (3) would collapse the thinking sticks. Reviewer P1.2.
+3. Promote display chrome into the new `display` block: `bgColor`, `previewBg`, container fields, outline fields — take from `idle.*` (canonical for these too).
+4. Synthesize `listening` by deep-cloning idle's per-state values (post-strip). Set `idleListeningLinked = true`.
+5. Lift `idleRadius` from `idle.radius` into `geometry.idleRadius`. Carry `talkingInnerGap` over.
+6. Drop the deprecated keys from per-state objects (barWidth, barGap, roundCaps, barColor, segments, rotationSpeed, minBarLength, radius, updateRate, bgColor, previewBg, container*, outline*, inwardRatio).
+7. Add `morph` defaults: `idleToThinking: 0.4`, `thinkingToTalking: 0.6`, `reactiveStartAt: 0.75`.
+8. Set `schemaVersion: 2`. Bump `lastModified`.
 
-**Trigger.** Migration runs in-memory inside `fetchRadialLinkedProfiles` whenever a profile is read with `schemaVersion !== 2`. The on-disk file is **not rewritten** automatically — only the next user-initiated `Update` or `Save As` writes back the new shape. This gives the user a chance to inspect and roll back if migration corrupts a profile.
+**Trigger.** Migration runs in-memory inside `fetchRadialLinkedProfiles` whenever a profile is read with `schemaVersion !== 2`. **The first user-initiated `Update` or `Save As` writes the entire array back as v2** — because `persistRadialLinkedProfiles` POSTs the whole array (`api.ts:74`), there's no per-profile write. Acceptance criterion 16 must reflect this: it's all-at-once on first save, not per-profile (Reviewer P1.5).
 
-**Cross-state divergence on legacy profiles.** Legacy profiles may have idle/thinking/talking with diverged bar-identity values (the cross-profile leak history pre-`63a2394`). Migration takes idle's values; thinking's and talking's are dropped silently. A dev-mode console log lists the dropped values per profile so the user can spot-check.
+**Visual migration is real and reviewable.** Promoting bar-identity to shared values means existing profiles with diverged per-state values (`barWidth` differing across idle/thinking/talking, `minBarLength` differing, etc.) will look different after migration. This is unavoidable — see Reviewer P1.3. The static-mode acceptance criterion is changed accordingly.
+
+**Dev-mode migration report.** During migration in dev only, log a structured report per profile:
+
+```
+[radial-states migration] profile <id> "<name>"
+  bars.minBarLength: chose thinking=12 (idle was 3, talking was 3) — DIVERGED
+  bars.barWidth: 2 (all states agreed)
+  bars.barGap: 4 (all states agreed)
+  bars.barColor: chose idle=#FFFFFF (thinking was #FFFFFF, talking was #FFFFFF) — agreed
+  display.bgColor: idle=#0F0F11 (canonical)
+  ...dropped fields: ...
+```
+
+Format: profile id + name; for each promoted key, the chosen value, the source state, and the values from non-source states; flag DIVERGED when non-source states held different values; flag AGREED when all matched. Logged once per migrated profile at fetch time. Console-only; not persisted.
 
 ---
 
@@ -165,11 +198,15 @@ Why this matters: if length were lerped *and* derived from sensitivity, two path
 Two phases over total duration `morph.thinkingToTalking`. The phase boundary is `reactiveStartAt × morph.thinkingToTalking`.
 
 **Phase A — translation.** `t ∈ [0, reactiveStartAt]`, normalized to `tA ∈ [0, 1]`.
-- `anchor` lerps `geometry.idleRadius → talkingAnchor` linearly in `tA`.
+- `anchor` lerps `geometry.idleRadius → (talkingAnchor + bars.minBarLength)` linearly in `tA`. (NOT `→ talkingAnchor` — see §5 for why. With `inwardRatio=1`, the bar segment is `[anchor − minBarLength, anchor]`. To land the inner tip at `talkingAnchor`, anchor must reach `talkingAnchor + minBarLength`.)
 - `inwardRatio` stays 1.
-- `length = bars.minBarLength` (frozen).
+- `length = bars.minBarLength` (frozen — enforced by the renderer's `freezeAtMin` path, not by audio sensitivity alone).
 - `sensitivity = 0`.
-- All wave/envelope params: 0 / disabled.
+- All wave/envelope params: 0 / disabled. `ambientWave = false`.
+
+**End of Phase A** — anchor is at `talkingAnchor + minBarLength`, segment occupies `[talkingAnchor, talkingAnchor + minBarLength]`. This is the pre-flip state.
+
+**The flip** (instantaneous, between Phase A and Phase B) — `inwardRatio` flips 1 → 0, anchor reference jumps from `talkingAnchor + minBarLength` (outer-tip semantics) to `talkingAnchor` (inner-tip semantics). Same pixels — see §5 table.
 
 **Phase B — reactive-style transition.** `t ∈ [reactiveStartAt, 1]`, normalized to `tB ∈ [0, 1]`.
 - `anchor = talkingAnchor` (already there from end of Phase A).
@@ -179,9 +216,9 @@ Two phases over total duration `morph.thinkingToTalking`. The phase boundary is 
 - All wave/envelope params lerp `0 → talking's values` in `tB`. (Phase A zeroed them.)
 - `ambientWave` flips false → true at `tB = 0` (start of Phase B), so the wave is enabled but starts with zero amplitude and ramps up via the param lerps.
 
-When `reactiveStartAt = 1`, Phase B is instantaneous — bars finish translation, then snap into talking's reactive form.
-When `reactiveStartAt = 0`, Phase B starts immediately and runs in parallel — translation and reactive ramp-up happen together.
-Default `1.0`. Tunable per profile.
+When `reactiveStartAt = 1`, Phase B is instantaneous — bars finish translation, then SNAP into talking's reactive form. (Reviewer P2.1: this snap is why default 1.0 was wrong.)
+When `reactiveStartAt = 0`, Phase B starts immediately and runs in parallel — translation and reactive ramp-up happen together; degenerate (translation collapses to zero duration).
+**Default `0.75`** — translation runs 0→75% of the morph; reactive ramp runs 75→100%. No snap. Tunable per profile in `[0, 1]`.
 
 ### Transition: talking → idle/listening (return path)
 
@@ -192,7 +229,7 @@ Same two-phase shape as thinking → talking, in reverse, sharing `morph.thinkin
 - **Phase B (translation)** runs second, `t ∈ [1 - reactiveStartAt, 1]`. Anchor lerps `T + minBarLength → idleRadius`. Bars stay rigid at `minBarLength`. After arrival, idle's reactive form is already prepared (ambientWave true, sensitivity at idle's value).
 - After full duration, state is fully idle.
 
-This is the literal inverse so `reactiveStartAt = 1.0` means "reactive transition completes first, then translate" on return — a clean mirror of the forward path.
+This is the literal inverse, so `reactiveStartAt = 0.75` (default) means "reactive transition runs the first 25% of the return, then translation runs the last 75%" — a clean mirror of the forward path.
 
 ### Transition matrix
 
@@ -260,23 +297,17 @@ At the flip instant, length is still 12, so:
 
 **Pixels are identical.** The flip is visually invisible iff length is exactly `minBarLength` at the flip instant. The plan must guarantee this — Phase A keeps length pinned at `minBarLength`, and Phase B's length lerp starts from `minBarLength`. There's no window where length has drifted before the flip.
 
-**Edge case:** if Phase A and Phase B overlap (`reactiveStartAt < 1`), the length is no longer pinned at `minBarLength` for the overlapping window. During overlap, the renderer is using two different (anchor, direction) interpretations simultaneously, which is incoherent unless we pick one for the overlap window.
+**No overlap.** Phase A's lerp completes within its own window (`t ∈ [0, reactiveStartAt]`); during Phase B (`t ∈ [reactiveStartAt, 1]`), the anchor stays pinned at `talkingAnchor` (post-flip). Length is `minBarLength` exactly throughout Phase A (enforced by the renderer's `freezeAtMin` path), so the flip frame has no length ambiguity. Phase B's reactive lerp then runs from 0 → talking's values without any anchor motion.
 
-**Resolution.** During any frame where `reactiveStartAt < 1` and we're in the overlap:
-- Use Phase B's interpretation (anchor at `T`, outward). 
-- Anchor was lerping toward `T` during Phase A; at `t = reactiveStartAt × duration`, anchor has reached `T` only if Phase A's lerp completed. But Phase A's lerp duration is the full `morph.thinkingToTalking`, not the truncated Phase A window.
+This means: Phase A's lerp duration is `reactiveStartAt × morph.thinkingToTalking`; Phase B's lerp duration is `(1 − reactiveStartAt) × morph.thinkingToTalking`. The phase labels are accurate — translation is done before reactive-style begins.
 
-Two ways to handle this:
+This means the actual lerp speeds are not the same as the morph duration. Phase A's duration is `reactiveStartAt × morph.thinkingToTalking`. Phase B's duration is `(1 - reactiveStartAt) × morph.thinkingToTalking`.
 
-(a) **Anchor finishes within Phase A.** Phase A's lerp anchor `idleRadius → T` completes by `t = reactiveStartAt × duration`. Length stays pinned for the rest of Phase A (the gap between anchor arrival and Phase B start, if any). Phase B then fires with anchor already at `T`.
+Edge values:
+- `reactiveStartAt = 1`: Phase B duration is 0 — bars complete translation then SNAP into talking's reactive form. Pre-review default; rejected (Reviewer P2.1) because the snap is visible.
+- `reactiveStartAt = 0`: Phase A duration is 0 — translation is instantaneous (anchor teleports to `T + minBarLength`); Phase B's reactive ramp-up runs over the full duration. Bars look like they teleport then fade in audio reactivity. Acceptable for tester paths; not a sensible default.
 
-(b) **Anchor lerps over the full duration.** Phase A's anchor lerp uses the full duration regardless of `reactiveStartAt`. With overlap, anchor and length-lerp run in parallel.
-
-**Picking (a).** Cleaner contract: Phase A is "translation," Phase B is "reactive-style." When you set `reactiveStartAt = 0.5`, you're saying "translation finishes by 50% of the morph; reactive transition runs from 50% to 100%." If translation kept lerping through Phase B, the phase labels would be a lie.
-
-This means the actual lerp speeds are not the same as the morph duration. Phase A's duration is `reactiveStartAt × morph.thinkingToTalking`. Phase B's duration is `(1 - reactiveStartAt) × morph.thinkingToTalking`. When `reactiveStartAt = 1`, Phase B duration is 0 — meaning the reactive transition is instantaneous (snap into talking). That's an acceptable edge.
-
-When `reactiveStartAt = 0`, Phase A duration is 0 — translation is instantaneous (anchor snaps to T). Length stays at minBarLength. Then Phase B's reactive ramp-up runs over the full duration. **This is degenerate — it looks like an instant teleport followed by a fade-in of audio reactivity.** The user can set this if they want, but the default is 1.0 and the realistic range is `[0.5, 1.0]`. We don't clamp; we trust the user.
+**Default `0.75`** balances clear translation (visible inward slide) with a meaningful reactive ramp at the end. Realistic range `[0.4, 0.9]`. We don't clamp the slider; we trust the user.
 
 ---
 
@@ -296,6 +327,8 @@ export interface RadialRenderValues {
   maxBarLength: number;          // lerped per state
   // Audio
   sensitivity: number;           // 0 during thinking and Phase A
+  // Render gate
+  freezeAtMin: boolean;          // true during thinking and Phase A — see §7
   // Per-state behavior (lerped)
   ambientWave: boolean;
   waveSpeed: number;
@@ -380,17 +413,18 @@ The cell is the adapter between the animator's output and `RadialBidirectional`'
 |---|---|
 | `radius` | `RenderValues.anchor` |
 | `inwardRatio` | `RenderValues.inwardRatio` |
-| `barWidth`, `barGap`, `roundCaps`, `barColor`, `segments`, `rotationSpeed` | `profile.bars.*` |
+| `barWidth`, `barGap`, `roundCaps`, `barColor`, `segments`, `rotationSpeed`, `updateRate` | `profile.bars.*` |
 | `minBarLength` | `profile.bars.minBarLength` |
-| `maxBarLength`, `sensitivity`, `ambientWave`, `waveSpeed`, `waveAmplitude`, `waveHeight`, `waveMode`, `waveShape`, `waveLobes`, `smoothing`, `waveEnvelope`, `envelopeAmplitude`, `envelopeSensitivity`, `intensityOpacity`, `updateRate` | `RenderValues.*` (lerped) |
+| `maxBarLength`, `sensitivity`, `ambientWave`, `waveSpeed`, `waveAmplitude`, `waveHeight`, `waveMode`, `waveShape`, `waveLobes`, `smoothing`, `waveEnvelope`, `envelopeAmplitude`, `envelopeSensitivity`, `intensityOpacity` | `RenderValues.*` (lerped) |
+| `freezeAtMin` (new) | `RenderValues.freezeAtMin` |
 | `barCount` | derived once from `profile.bars` + `geometry.idleRadius`; passed in unchanged across the morph (locked by §"Geometry rules" in handoff) |
 | `frequencyData` | external — comes from the audio source, not the animator |
-| `bgColor` | profile-level (one bg for the cell) |
+| `bgColor` | `profile.display.bgColor` |
 | `showEnvelopeCeiling` | UI hover state, not from animator |
 
 ### File location
 
-`src/projects/voiceinterface/radial-states/useLinkedRadialAnimator.ts`. Sibling to `index.tsx`. Mirrors `useLinkedProfileAnimator.ts` placement (under `voiceinterface/components/`); we keep it inside `radial-states/` because v1 has only one consumer.
+`src/projects/voiceinterface/radial-states/useLinkedRadialAnimator.ts`. Sibling to `index.tsx`. v1 has only one consumer (the tune-mode cell), so the hook lives inside `radial-states/`. If/when the live page adopts it, the hook can be promoted to `voiceinterface/components/` later — defer the move until that consumer exists.
 
 ---
 
@@ -404,9 +438,20 @@ The static three-cell mode keeps its current renderers (`RadialInward` for idle/
 
 None. The existing prop surface covers everything the animator emits. Verified by reading `RadialBidirectional.tsx:5–37`.
 
-### Required behavior change in RadialBidirectional
+### Required behavior changes in RadialBidirectional
 
-- **Bar count override propagation.** Currently `RadialInward` and `RadialOutward` accept the `barCount?` override (per `types.ts:69`); `RadialBidirectional` does not destructure it. Need to add `barCount: barCountOverride` to its destructure and use `barCountOverride ?? Math.floor(...)` on line 79. One-line change.
+1. **Bar count override propagation.** Currently `RadialInward` and `RadialOutward` accept the `barCount?` override (per `types.ts:69`); `RadialBidirectional` does not destructure it. Add `barCount: barCountOverride` to the destructure, use `barCountOverride ?? Math.floor(...)` at line 79, **add `barCountOverride` to the `useEffect` dependency array (line ~200)**, and ensure `prevValuesRef.current.length !== barCount` reset (line 84) sees the overridden count (it already does because it reads `barCount` from the same scope — verified). Reviewer P2.4.
+
+2. **`freezeAtMin` prop (NEW).** Add a `freezeAtMin?: boolean` prop. When true, the renderer:
+   - Skips the audio + wave + envelope calculation entirely (the inner block from line 92 to line 127).
+   - Sets `value = 0` directly.
+   - Skips the smoothing block (line 129) — does not read or write `prevValuesRef`.
+   - Clears `prevValuesRef.current` to a zero array on the entering frame (so re-entering reactive state starts clean).
+   - Bar length collapses exactly to `minBarLength` because `value = 0`.
+
+   Driven by the animator: `freezeAtMin = true` during thinking and during Phase A of any thinking-related morph; false otherwise. Reviewer P1.4.
+
+   This is the renderer-level pinning that makes the Phase A → B flip pixel-stable regardless of the `smoothing` slider value.
 
 ---
 
@@ -421,6 +466,17 @@ In Tune mode:
 - The state pills become live transition triggers (currently they only switch which controls panel is visible). Clicking "Talking" while the cell is showing thinking begins the `thinkingToTalking` morph.
 - The controls panel still shows controls for the *focused* state. A user editing talking's `maxBarLength` while the cell is mid-morph sees the in-flight render keep using the lerped value (because the animator re-derives target from the live profile each frame).
 - A new "Morph" subsection in the controls panel exposes `morph.idleToThinking`, `morph.thinkingToTalking`, `reactiveStartAt`. These are profile-level (not per-state).
+
+### Focused state vs. animation target — v1 couples them
+
+Two conceptually distinct ideas (Reviewer P2.2):
+
+- `controlsFocusedState`: which state's controls the right panel is currently showing.
+- `animationTargetState`: which state the cell is morphing toward (or resting at).
+
+**v1 explicitly couples them.** Clicking a state pill sets BOTH at the same time. Consequence: in tune mode, you can't inspect another state's controls without firing a morph. This is acceptable for v1 because the workflow is "click pill → watch morph → tune controls → click again to retest." Decoupling (e.g., long-press or modifier-click to peek at controls without animating) is deferred.
+
+In static mode, only `controlsFocusedState` matters — there's no animation. The two-name distinction exists in the code so the future decoupling is a small change.
 
 ### What does NOT change
 
@@ -491,6 +547,29 @@ If §13(2) confirms "omit listening panel entirely," replace this section with: 
 
 **Implementation impact on `index.tsx`.** The `ControlsPanel` component (currently around `index.tsx:879`) gets a substantial restructure: header strip + per-state grid + listening branch + morph subsection. This is the largest single subtask in the plan.
 
+### §8b — Listening migration: the full code-site list
+
+Adding listening as a fourth state touches more than the controls panel (Reviewer P2.3). Concrete update sites in `index.tsx` (line numbers approximate, verify at edit time):
+
+| Symbol / function | Current shape | Update |
+|---|---|---|
+| `StateKey` type (~line 131) | `'idle' \| 'thinking' \| 'talking'` | add `'listening'` |
+| `AllSettings` type (~line 143) | three keys | add `listening: RadialStateSettings` |
+| `DEFAULT_ALL` const | three keys | seed listening from idle |
+| `STATE_LABEL` const | `{idle: 'Idle / Listening', thinking: 'Thinking', talking: 'Talking'}` | split into idle + listening labels |
+| `STATE_VARIANT` const | three mappings | listening uses same variant as idle (`RadialInward`) |
+| `Cell` rendering for static mode (~line 568) | three cells in a row | add fourth cell for listening |
+| Tune-mode rendering (NEW) | n/a | one cell, drives anim target from `controlsFocusedState` |
+| `snapshotOf` (~line 200) | reads idle/thinking/talking | add listening; also pull bars/display/geometry/idleListeningLinked/morph |
+| `ProfileSnapshot` type (~line 186) | settings × 3, backdrop, lockBarCount, talkingInnerGap | add listening; bars; display; geometry; idleListeningLinked; morph |
+| `handleSelectProfile` (~line 1423) | restores three states | restore listening too; restore bars/display/geometry/idleListeningLinked/morph |
+| `handleReset` / Discard (~line 1369) | reverts three states | revert listening too; revert all new shared blocks |
+| `handleSaveAs` (~line 1288) | clones idle/thinking/talking | clone listening; clone bars/display/geometry/idleListeningLinked/morph |
+| `updateFocused` mutator (~line 1549) | writes one state's settings | branch on link rule (Reviewer P2.3 / §8a link-propagation) |
+| `dirty` comparison (~line 1358) | compares old snapshot to current | compare new shape including all new fields |
+
+Reviewer P1.8 accepted: snapshot reshape is non-trivial; this list is the contract.
+
 ---
 
 ## 9. Ghost-bar correction
@@ -499,9 +578,11 @@ Per chat: the current ghost bars on max-bar-length hover (commit `b52b7ca`) bake
 
 ### Change
 
-In `GhostBars` (`index.tsx:234`), drop the envelope/wave math. Render N bars at length = `maxBarLength` (full). Per-bar value is constant `1.0`. The ghost is a ring of max-length sticks.
+In `GhostBars` (`index.tsx:234`), drop the envelope/wave math. Render N bars at length = `maxBarLength` (full). Per-bar value is constant `1.0`.
 
-This is a 5-line change inside the existing GhostBars effect. Doesn't depend on the animator.
+**Clamp behavior** (Reviewer P2.5): match the renderer's clamp, not the configured value. For inward variants, the renderer clamps inward length to `maxSafeInward = radius − minInnerRadius` (`RadialInward.tsx` and `RadialBidirectional.tsx:80–81`). The ghost should call the same clamp so what it shows is what the renderer can actually draw. The contract is "ghost = real-renderer max with audio frozen at 1.0," not "ghost = configured value."
+
+This is a small change inside the existing GhostBars effect. Doesn't depend on the animator.
 
 ### Why ship this with the animator
 
@@ -513,12 +594,12 @@ Because the animator surfaces the *travel space* explicitly (Phase A's bars are 
 
 Testable conditions, run by hand on the review page.
 
-1. **Schema migration**. Loading the page with the existing `radial-states-profiles.json` (pre-refactor) succeeds without errors. Each of the 7 profiles renders correctly in static mode after migration. The migrated JSON, when written, has the new shape.
-2. **Static mode unchanged**. The 3-cell view renders identically to the pre-refactor state for every profile. Bar count, radius, donut, controls, save/discard — no observable difference.
+1. **Schema migration**. Loading the page with the existing `radial-states-profiles.json` (pre-refactor) succeeds without errors. Each of the 7 profiles renders without console errors after migration in memory. The dev-mode migration report logs once per profile with the format specified in §3.
+2. **Static mode visual migration is reviewable** (Reviewer P1.3). The 3-cell view renders **with the migrated shared values**, which means profiles with previously-divergent per-state values (e.g. different barWidth on talking) will look different. Acceptance: each profile's visual diff is consistent with its dev-mode migration report (the chosen values came from idle for bar-identity; from thinking for `minBarLength`; from idle for display chrome). No silent visual changes — every diff is explained by the report.
 3. **Tune mode toggle**. The mode toggle is present in the bottom bar. Clicking it swaps the page from 3-cell to 1-cell. Clicking again swaps back. State persists via localStorage.
 4. **Idle → Thinking damp**. With the cell in idle, click the Thinking pill. Bars stop reacting to audio and damp to length 12 over `morph.idleToThinking` seconds. Anchor stays at idle radius. Rotation continues. No bars appear or disappear.
-5. **Thinking → Talking morph (default `reactiveStartAt = 1.0`)**. From thinking, click Talking. Bars (length 12) translate inward as a ring. Inner tip travels `idle.radius - 12` → `talking.radius` over `morph.thinkingToTalking × 1.0` seconds. At the moment of arrival, audio reactivity kicks in and bars start growing outward. No visual snap at the flip.
-6. **Thinking → Talking with `reactiveStartAt = 0.5`**. From thinking, click Talking. Translation completes by 50% of the morph. From 50% onward, audio reactivity ramps in over the second half. No visual snap at the flip; the only difference is the timing.
+5. **Thinking → Talking morph (default `reactiveStartAt = 0.75`)**. From thinking, click Talking. Bars (length = `bars.minBarLength`) translate inward as a ring during the first 75% of the morph; inner tip travels `geometry.idleRadius − minBarLength` → `talkingAnchor` (anchor in animator state lerps `idleRadius` → `talkingAnchor + minBarLength`). At 75%, the flip fires (anchor reference → `talkingAnchor`, inwardRatio → 0, freezeAtMin → false); over the last 25%, sensitivity / wave / maxBarLength lerp from 0 to talking's values. No visible snap at the flip.
+6. **Thinking → Talking with `reactiveStartAt = 1.0`**. Translation runs full duration; at `t = 1.0` the reactive params snap to talking's values instantly. Verifies the edge — bars may visibly snap; this is the explicit user-tunable degenerate behavior, not a default.
 7. **Talking → Idle return**. From talking, click Idle. Phase A (reverse-reactive): wave + audio fade out, length collapses to 12. Inverse flip. Phase B: bars translate outward to idle's radius. After arrival, idle's reactive form is already prepared. No visual snap.
 8. **Idle ↔ Listening label flip**. Switch focus from idle pill to listening pill. No visible motion (linked profile). Controls panel shows listening's panel with the linked-notice + Break link button.
 9. **Idle → Talking direct**. From idle, click Talking. Two sequential morphs run back-to-back: idle→thinking (damp) then thinking→talking (translate + reactive). No bars appear/disappear at the leg boundary.
@@ -528,7 +609,7 @@ Testable conditions, run by hand on the review page.
 13. **Ghost-bar correction**. Hovering Max Bar Length on idle's controls shows N bars at full max length, NOT modulated by wave envelope. Same on talking and thinking.
 14. **Rotation continues through every state**. No state freezes rotation.
 15. **Profile save/discard works post-refactor**. Save As creates a profile with `schemaVersion: 2` and the new shape; Update writes the new shape; Discard reverts the new-shape baseline.
-16. **Legacy profile load**. On first page load post-deploy, all 7 legacy profiles render correctly (migration ran in-memory). Disk file unchanged until next save. After one Update, disk file has new shape for that profile only; others remain legacy until edited.
+16. **Legacy profile load + first save** (Reviewer P1.5). On first page load post-deploy, all 7 legacy profiles render correctly (migration ran in-memory). Disk file unchanged until next user save. The first user-initiated `Update` or `Save As` triggers a whole-array POST: every profile is rewritten as v2 in one shot. After that, the on-disk file has all 7 profiles in the new shape. (We don't try to preserve untouched legacy entries through fetch+save because the persistence layer is whole-array.)
 17. **Mid-morph interruption**. From idle, click talking. While leg 1 (idle→thinking) is in flight (~halfway), click thinking. The composed morph aborts; the animator captures current values and lerps to thinking from there. No teleport, no double-fire of leg 2.
 18. **Same-target click during morph**. From idle, click talking. Mid-morph, click talking again. No-op — the morph continues uninterrupted. (`intendedFinalState` already equals `talking`.)
 
@@ -539,7 +620,15 @@ Testable conditions, run by hand on the review page.
 Imagine the implementation fails on the first attempt. Top three predicted failure modes:
 
 1. **Migration corrupts existing profiles.** A subtle field rename or a default mismatch silently breaks 7 saved profiles. Mitigation: write `migrateLegacyProfile` as a pure function with unit-style coverage (a small fixture file with one legacy profile and the expected migrated output, checked at runtime via console assert during dev). Don't write back to disk on first read — only on next user-initiated save. That gives a chance to inspect.
-2. **The flip at the Phase A → B boundary is visible.** If length isn't *exactly* `minBarLength` at the flip frame (rounding error, lerp interpolation, RAF dt skew), the bar will jump. Mitigation: in Phase A, the animator emits `sensitivity = 0` and `ambientWave = false` and zeroed wave amplitudes — the renderer's length math collapses to exactly `minBarLength` with no rounding window. At the flip, only `inwardRatio` and `anchor` change (anchor was already at `T` per the §4 commitment). Dev assertion at the flip: `assert(Math.abs(currentRenderedLength - bars.minBarLength) < 0.5, 'Phase A→B flip with non-min length')`. Logged once per flip event to avoid log spam.
+2. **The flip at the Phase A → B boundary is visible.** Two causes:
+   - (a) Length not at `minBarLength` because of `prevValuesRef` smoothing carrying residual `value > 0` (Reviewer P1.4).
+   - (b) Anchor not at `talkingAnchor + minBarLength` at the flip moment (Reviewer P1.1).
+
+   Mitigation for (a): the new `freezeAtMin` renderer prop bypasses smoothing entirely and zeroes prevValuesRef. The animator emits `freezeAtMin = true` throughout Phase A. Length is exactly `minBarLength` on the flip frame.
+
+   Mitigation for (b): Phase A's anchor target is `talkingAnchor + bars.minBarLength` (NOT `talkingAnchor`). At the flip, anchor reference jumps from `talkingAnchor + minBarLength` (outer-tip) to `talkingAnchor` (inner-tip). Same pixels under different semantics.
+
+   Dev assertion at the flip: `console.assert(Math.abs(currentRenderedLength - bars.minBarLength) < 0.5 && Math.abs(currentAnchor - (talkingAnchor + bars.minBarLength)) < 0.5, 'Phase A→B flip preconditions failed')`. Logged once per flip event.
 3. **Morph progress tracking double-fires on rapid state changes.** User clicks Talking mid-morph from idle → thinking. The hook needs to handle interrupted morphs cleanly: capture current render values as the new start, retarget to the new state, restart morphT. Mitigation: explicit `morphPhase` state machine in the hook; on state change, transition the phase atomically and reset `morphT = 0`.
 
 ---
@@ -576,11 +665,12 @@ All resolved as of the latest revision. Lock-in summary (so the reviewer can see
 
 | File | Change |
 |---|---|
-| `src/projects/voiceinterface/radial-states/api.ts` | Schema refactor; `migrateLegacyProfile`; new defaults |
+| `src/projects/voiceinterface/radial-states/api.ts` | Schema refactor (RadialBars, RadialDisplay, listening, geometry, idleListeningLinked, morph, schemaVersion); `migrateLegacyProfile`; in-memory normalization in `fetchRadialLinkedProfiles`; new defaults |
 | `src/projects/voiceinterface/radial-states/useLinkedRadialAnimator.ts` | NEW — animator hook |
-| `src/projects/voiceinterface/radial-states/index.tsx` | Tune-mode toggle; single-cell render path; controls panel additions; consume animator; ghost-bar fix; consume new schema |
-| `src/projects/radial-waveform/variants/RadialBidirectional.tsx` | Add `barCount` prop destructure + use override |
-| `radial-states-profiles.json` | Not modified by deploy; legacy profiles re-saved one-by-one as users edit them |
+| `src/projects/voiceinterface/radial-states/index.tsx` | Tune-mode toggle; single-cell render path; controls panel reshape (§8a); listening sites (§8b list); consume animator; ghost-bar fix (with maxSafeInward clamp); consume new schema; update snapshotOf, dirty comparison, save-as, reset, profile-switch |
+| `src/projects/radial-waveform/variants/RadialBidirectional.tsx` | Add `barCount` prop (destructure + dependency array + body); add `freezeAtMin` prop (skip audio/wave/smoothing blocks; zero prevValuesRef on entry) |
+| `src/projects/radial-waveform/types.ts` | Add `freezeAtMin?: boolean` to `RadialWaveformProps` |
+| `radial-states-profiles.json` | Rewritten on first user-initiated save post-deploy (whole-array POST migrates everything) |
 
 No new pages. No new API routes. No changes outside `voiceinterface/radial-states/` and one prop addition in `radial-waveform/variants/`.
 
@@ -593,21 +683,26 @@ For a plan this size, listing every named concept and the section(s) where it's 
 | Concept | Defined in | Also referenced in |
 |---|---|---|
 | `RadialBars` block | §3 | §4, §6, §8a, §10 |
+| `RadialDisplay` block | §3 | §6, §8a, §10 |
 | `RadialStateSettings` | §3 | §6, §8a, §10 |
 | `schemaVersion: 2` | §3 | §3 (migration) |
 | `geometry.idleRadius` | §3 | §4, §8a |
 | `idleListeningLinked` | §3 | §4 (transition matrix), §8a, §13 |
 | `morph.idleToThinking` | §3 | §4, §8a, §10, §11 |
 | `morph.thinkingToTalking` | §3 | §4, §5, §8a, §10 |
-| `reactiveStartAt` | §3 | §4, §5, §8a, §10 (3, 6), §13 |
+| `reactiveStartAt` (default 0.75) | §3 | §4, §5, §8a, §10, §13 |
 | Transition matrix | §4 | §10 |
-| Phase A (translation) | §4 | §5, §10, §11 |
-| Phase B (reactive-style) | §4 | §5, §10 |
+| Phase A (translation, anchor → talkingAnchor + minBarLength) | §4 | §5, §10, §11 |
+| Phase B (reactive-style, lerps from 0) | §4 | §5, §10 |
 | `inwardRatio` flip | §4 | §5, §11 |
+| `freezeAtMin` renderer path | §7 | §6, §11 |
 | `useLinkedRadialAnimator` | §6 | §7, §8, §10, §14 |
 | Adapter mapping | §6 | §7 |
 | Pause semantics | §6 | (v1 unused in UI) |
-| Tune mode | §8 | §8a, §10 (3), §14 |
+| Tune mode | §8 | §8a, §10, §14 |
+| `controlsFocusedState` / `animationTargetState` | §8 | §8a |
 | Controls panel reshape | §8a | §10 |
+| Listening migration sites | §8b | §14 |
 | `migrateLegacyProfile` | §3 | §11, §14 |
-| Ghost-bar correction | §9 | §10 (10) |
+| Migration report (dev-only) | §3 | §10 (1) |
+| Ghost-bar correction (with clamp) | §9 | §10 |
