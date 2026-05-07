@@ -17,6 +17,8 @@ const API = '/api/studio-profiles?variant=radial-states';
  *  objects) for backward compatibility with profiles persisted before
  *  the outer-ring feature shipped. */
 export interface RadialBackdrop {
+  /** When false, the backdrop SVG isn't rendered at all. Defaults true. */
+  enabled?: boolean;
   /** Inner edge shape. */
   shape?: 'circle' | 'segments';
   /** Inner edge lobe count when shape === 'segments'. */

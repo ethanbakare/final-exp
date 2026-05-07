@@ -31,6 +31,7 @@ import {
 } from './api';
 
 const DEFAULT_BACKDROP: Required<RadialBackdrop> = {
+  enabled: true,
   shape: 'circle',
   segments: 7,
   depth: 6,
@@ -41,6 +42,7 @@ const DEFAULT_BACKDROP: Required<RadialBackdrop> = {
 
 function resolveBackdrop(b: RadialBackdrop | undefined): Required<RadialBackdrop> {
   return {
+    enabled: b?.enabled ?? DEFAULT_BACKDROP.enabled,
     shape: b?.shape ?? DEFAULT_BACKDROP.shape,
     segments: b?.segments ?? DEFAULT_BACKDROP.segments,
     depth: b?.depth ?? DEFAULT_BACKDROP.depth,
@@ -385,6 +387,7 @@ interface CellProps {
   donutThickness: number;
   /** Backdrop config — both edges have independent shape/segments/depth.
    *  Resolved with defaults at the page level. */
+  backdropEnabled: boolean;
   backdropShape: 'circle' | 'segments';
   backdropSegments: number;
   backdropDepth: number;
@@ -412,6 +415,7 @@ function Cell({
   showMaxGhost,
   donutSize,
   donutThickness,
+  backdropEnabled,
   backdropShape,
   backdropSegments,
   backdropDepth,
@@ -466,17 +470,19 @@ function Cell({
         aria-pressed={focused}
         aria-label={`Focus ${label}`}
       >
-        <Backdrop
-          outerShape={backdropOuterShape}
-          outerR={backdropOuterR}
-          outerSegments={backdropOuterSegments}
-          outerDepth={backdropOuterDepth}
-          innerShape={backdropShape}
-          innerR={backdropInnerR}
-          innerSegments={backdropSegments}
-          innerDepth={backdropDepth}
-          color={DONUT_COLOR}
-        />
+        {backdropEnabled && (
+          <Backdrop
+            outerShape={backdropOuterShape}
+            outerR={backdropOuterR}
+            outerSegments={backdropOuterSegments}
+            outerDepth={backdropOuterDepth}
+            innerShape={backdropShape}
+            innerR={backdropInnerR}
+            innerSegments={backdropSegments}
+            innerDepth={backdropDepth}
+            color={DONUT_COLOR}
+          />
+        )}
         {showMaxGhost && (
           <GhostBars
             variant={variant}
@@ -539,6 +545,7 @@ function Slider({
   step,
   unit,
   onChange,
+  onReset,
 }: {
   label: string;
   value: number;
@@ -547,15 +554,104 @@ function Slider({
   step: number;
   unit?: string;
   onChange: (v: number) => void;
+  /** When provided, a small ↺ icon appears beside the value. The
+   *  caller decides when to pass it (typically: only when the field
+   *  diverges from baseline). Clicking calls the callback. */
+  onReset?: () => void;
 }) {
+  const decimals = step < 0.1 ? 3 : step < 1 ? 2 : 0;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const commit = () => {
+    setEditing(false);
+    const n = parseFloat(draft);
+    if (Number.isNaN(n)) return;
+    const clamped = Math.min(max, Math.max(min, n));
+    const stepped = Math.round(clamped / step) * step;
+    onChange(stepped);
+  };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, gap: 6 }}>
         <span style={{ color: '#9ca3af' }}>{label}</span>
-        <span style={{ color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>
-          {value}
-          {unit ?? ''}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {editing ? (
+            <input
+              type="text"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commit();
+                if (e.key === 'Escape') setEditing(false);
+              }}
+              autoFocus
+              style={{
+                width: 56,
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#fafafa',
+                fontFamily: 'inherit',
+                fontSize: 11,
+                fontVariantNumeric: 'tabular-nums',
+                padding: '1px 4px',
+                borderRadius: 3,
+                textAlign: 'right',
+                outline: 'none',
+              }}
+            />
+          ) : (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setDraft(value.toFixed(decimals));
+                setEditing(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setDraft(value.toFixed(decimals));
+                  setEditing(true);
+                }
+              }}
+              style={{
+                color: '#6b7280',
+                fontVariantNumeric: 'tabular-nums',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+              title="Click to edit"
+            >
+              {value}
+              {unit ?? ''}
+            </span>
+          )}
+          {onReset && (
+            <button
+              type="button"
+              onClick={onReset}
+              title="Reset to last saved"
+              aria-label={`Reset ${label} to last saved`}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9ca3af',
+                padding: 0,
+                fontSize: 11,
+                lineHeight: 1,
+                width: 14,
+                height: 14,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              ↺
+            </button>
+          )}
+        </div>
       </div>
       <input
         type="range"
@@ -667,19 +763,44 @@ function PillGroup<T extends string>({
 
 interface ControlsPanelProps {
   settings: RadialSettings;
+  /** Baseline (last-saved) values for the focused state — used to
+   *  decide which fields are dirty and to drive per-field reset. When
+   *  null, no reset icons render. */
+  baselineSettings: RadialSettings | null;
   onChange: (patch: Partial<RadialSettings>) => void;
-  onResetState: () => void;
   /** Hover signal for the Max Bar Length slider — drives the red ghost
    *  ring on the focused cell. */
   onMaxBarHover: (hover: boolean) => void;
   /** Profile-level backdrop config + setter (shared across all states). */
   backdrop: Required<RadialBackdrop>;
+  baselineBackdrop: Required<RadialBackdrop> | null;
   onBackdropChange: (patch: Partial<RadialBackdrop>) => void;
 }
 
-function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover, backdrop, onBackdropChange }: ControlsPanelProps) {
+function ControlsPanel({
+  settings,
+  baselineSettings,
+  onChange,
+  onMaxBarHover,
+  backdrop,
+  baselineBackdrop,
+  onBackdropChange,
+}: ControlsPanelProps) {
   const set = <K extends keyof RadialSettings>(key: K, value: RadialSettings[K]) =>
     onChange({ [key]: value } as Partial<RadialSettings>);
+  // Returns a reset callback for one settings field if (and only if)
+  // the current value differs from the baseline. Drives the ↺ icon
+  // visibility per-slider in this panel.
+  const settingReset = <K extends keyof RadialSettings>(key: K): (() => void) | undefined => {
+    if (!baselineSettings) return undefined;
+    if (settings[key] === baselineSettings[key]) return undefined;
+    return () => set(key, baselineSettings[key] as RadialSettings[K]);
+  };
+  const backdropReset = <K extends keyof Required<RadialBackdrop>>(key: K): (() => void) | undefined => {
+    if (!baselineBackdrop) return undefined;
+    if (backdrop[key] === baselineBackdrop[key]) return undefined;
+    return () => onBackdropChange({ [key]: baselineBackdrop[key] } as Partial<RadialBackdrop>);
+  };
 
   // 5-column grid. Items have been redistributed across sections so each
   // column lands at ~5 items, eliminating the empty space that the
@@ -717,24 +838,24 @@ function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover, backdr
     >
       <div style={columnStyle}>
         <h3 style={headerStyle}>Geometry</h3>
-        <Slider label="Radius" value={settings.radius} min={30} max={200} step={1} unit="px" onChange={(v) => set('radius', v)} />
-        <Slider label="Bar Width" value={settings.barWidth} min={0.5} max={10} step={0.5} unit="px" onChange={(v) => set('barWidth', v)} />
-        <Slider label="Bar Gap" value={settings.barGap} min={0} max={12} step={0.5} unit="px" onChange={(v) => set('barGap', v)} />
-        <Slider label="Min Bar Length" value={settings.minBarLength} min={0} max={30} step={1} unit="px" onChange={(v) => set('minBarLength', v)} />
+        <Slider label="Radius" value={settings.radius} min={30} max={200} step={1} unit="px" onChange={(v) => set('radius', v)} onReset={settingReset('radius')} />
+        <Slider label="Bar Width" value={settings.barWidth} min={0.5} max={10} step={0.5} unit="px" onChange={(v) => set('barWidth', v)} onReset={settingReset('barWidth')} />
+        <Slider label="Bar Gap" value={settings.barGap} min={0} max={12} step={0.5} unit="px" onChange={(v) => set('barGap', v)} onReset={settingReset('barGap')} />
+        <Slider label="Min Bar Length" value={settings.minBarLength} min={0} max={30} step={1} unit="px" onChange={(v) => set('minBarLength', v)} onReset={settingReset('minBarLength')} />
         <div
           onMouseEnter={() => onMaxBarHover(true)}
           onMouseLeave={() => onMaxBarHover(false)}
         >
-          <Slider label="Max Bar Length" value={settings.maxBarLength} min={10} max={120} step={1} unit="px" onChange={(v) => set('maxBarLength', v)} />
+          <Slider label="Max Bar Length" value={settings.maxBarLength} min={10} max={120} step={1} unit="px" onChange={(v) => set('maxBarLength', v)} onReset={settingReset('maxBarLength')} />
         </div>
       </div>
 
       <div style={columnStyle}>
         <h3 style={headerStyle}>Audio</h3>
-        <Slider label="Sensitivity" value={settings.sensitivity} min={0.1} max={5} step={0.1} unit="x" onChange={(v) => set('sensitivity', v)} />
-        <Slider label="Segments" value={settings.segments} min={1} max={16} step={1} onChange={(v) => set('segments', v)} />
-        <Slider label="Smoothing" value={settings.smoothing} min={0} max={0.99} step={0.01} onChange={(v) => set('smoothing', v)} />
-        <Slider label="Rotation" value={settings.rotationSpeed} min={0} max={30} step={0.5} unit="°/s" onChange={(v) => set('rotationSpeed', v)} />
+        <Slider label="Sensitivity" value={settings.sensitivity} min={0.1} max={5} step={0.1} unit="x" onChange={(v) => set('sensitivity', v)} onReset={settingReset('sensitivity')} />
+        <Slider label="Segments" value={settings.segments} min={1} max={16} step={1} onChange={(v) => set('segments', v)} onReset={settingReset('segments')} />
+        <Slider label="Smoothing" value={settings.smoothing} min={0} max={0.99} step={0.01} onChange={(v) => set('smoothing', v)} onReset={settingReset('smoothing')} />
+        <Slider label="Rotation" value={settings.rotationSpeed} min={0} max={30} step={0.5} unit="°/s" onChange={(v) => set('rotationSpeed', v)} onReset={settingReset('rotationSpeed')} />
         <Toggle label="Round Caps" checked={settings.roundCaps} onChange={(v) => set('roundCaps', v)} />
       </div>
 
@@ -750,26 +871,26 @@ function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover, backdr
               onChange={(v) => set('waveShape', v)}
             />
             {settings.waveShape !== 'segments' && (
-              <Slider label="Lobes" value={settings.waveLobes} min={1} max={16} step={1} onChange={(v) => set('waveLobes', v)} />
+              <Slider label="Lobes" value={settings.waveLobes} min={1} max={16} step={1} onChange={(v) => set('waveLobes', v)} onReset={settingReset('waveLobes')} />
             )}
-            <Slider label="Speed" value={settings.waveSpeed} min={0} max={10} step={0.1} unit=" rad/s" onChange={(v) => set('waveSpeed', v)} />
-            <Slider label="Amplitude" value={settings.waveAmplitude} min={0} max={1} step={0.01} onChange={(v) => set('waveAmplitude', v)} />
+            <Slider label="Speed" value={settings.waveSpeed} min={0} max={10} step={0.1} unit=" rad/s" onChange={(v) => set('waveSpeed', v)} onReset={settingReset('waveSpeed')} />
+            <Slider label="Amplitude" value={settings.waveAmplitude} min={0} max={1} step={0.01} onChange={(v) => set('waveAmplitude', v)} onReset={settingReset('waveAmplitude')} />
           </>
         )}
       </div>
 
       <div style={columnStyle}>
         <h3 style={headerStyle}>Envelope</h3>
-        <Slider label="Envelope" value={settings.waveEnvelope} min={0} max={1} step={0.01} onChange={(v) => set('waveEnvelope', v)} />
-        <Slider label="Env Amplitude" value={settings.envelopeAmplitude} min={0} max={1} step={0.01} onChange={(v) => set('envelopeAmplitude', v)} />
-        <Slider label="Env Sensitivity" value={settings.envelopeSensitivity} min={0} max={1} step={0.01} onChange={(v) => set('envelopeSensitivity', v)} />
+        <Slider label="Envelope" value={settings.waveEnvelope} min={0} max={1} step={0.01} onChange={(v) => set('waveEnvelope', v)} onReset={settingReset('waveEnvelope')} />
+        <Slider label="Env Amplitude" value={settings.envelopeAmplitude} min={0} max={1} step={0.01} onChange={(v) => set('envelopeAmplitude', v)} onReset={settingReset('envelopeAmplitude')} />
+        <Slider label="Env Sensitivity" value={settings.envelopeSensitivity} min={0} max={1} step={0.01} onChange={(v) => set('envelopeSensitivity', v)} onReset={settingReset('envelopeSensitivity')} />
         <PillGroup
           label="Mode"
           value={settings.waveMode}
           options={['additive', 'reactive'] as const}
           onChange={(v) => set('waveMode', v)}
         />
-        <Slider label="Peak Boost" value={settings.waveHeight} min={0.5} max={3} step={0.1} unit="x" onChange={(v) => set('waveHeight', v)} />
+        <Slider label="Peak Boost" value={settings.waveHeight} min={0.5} max={3} step={0.1} unit="x" onChange={(v) => set('waveHeight', v)} onReset={settingReset('waveHeight')} />
       </div>
 
       <div style={columnStyle}>
@@ -809,80 +930,80 @@ function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover, backdr
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onResetState}
-          style={{
-            padding: '4px 10px',
-            fontSize: 11,
-            borderRadius: 6,
-            background: 'rgba(255,255,255,0.05)',
-            color: '#9ca3af',
-            border: '1px solid rgba(255,255,255,0.1)',
-            cursor: 'pointer',
-            alignSelf: 'flex-start',
-          }}
-        >
-          Reset state
-        </button>
 
         {/* Backdrop subsection — profile-level (shared across all three
             states), tucked under Style as a sub-group with its own
-            header. Inner and outer rings are independent. */}
-        <h3 style={{ ...headerStyle, marginTop: 8 }}>Backdrop · Inner</h3>
-        <PillGroup
-          label="Shape"
-          value={backdrop.shape}
-          options={['circle', 'segments'] as const}
-          onChange={(v) => onBackdropChange({ shape: v })}
+            header. Inner and outer rings are independent. The Show
+            toggle hides the backdrop SVG entirely so the user can
+            preview the bars without it. */}
+        <h3 style={{ ...headerStyle, marginTop: 8 }}>Backdrop</h3>
+        <Toggle
+          label="Show"
+          checked={backdrop.enabled}
+          onChange={(v) => onBackdropChange({ enabled: v })}
         />
-        {backdrop.shape === 'segments' && (
+        {backdrop.enabled && (
           <>
-            <Slider
-              label="Segments"
-              value={backdrop.segments}
-              min={3}
-              max={16}
-              step={1}
-              onChange={(v) => onBackdropChange({ segments: v })}
+            <h3 style={{ ...headerStyle, marginTop: 4 }}>Backdrop · Inner</h3>
+            <PillGroup
+              label="Shape"
+              value={backdrop.shape}
+              options={['circle', 'segments'] as const}
+              onChange={(v) => onBackdropChange({ shape: v })}
             />
-            <Slider
-              label="Depth"
-              value={backdrop.depth}
-              min={0}
-              max={20}
-              step={0.5}
-              unit="px"
-              onChange={(v) => onBackdropChange({ depth: v })}
+            {backdrop.shape === 'segments' && (
+              <>
+                <Slider
+                  label="Segments"
+                  value={backdrop.segments}
+                  min={3}
+                  max={16}
+                  step={1}
+                  onChange={(v) => onBackdropChange({ segments: v })}
+                  onReset={backdropReset('segments')}
+                />
+                <Slider
+                  label="Depth"
+                  value={backdrop.depth}
+                  min={0}
+                  max={20}
+                  step={0.5}
+                  unit="px"
+                  onChange={(v) => onBackdropChange({ depth: v })}
+                  onReset={backdropReset('depth')}
+                />
+              </>
+            )}
+            <h3 style={{ ...headerStyle, marginTop: 4 }}>Backdrop · Outer</h3>
+            <PillGroup
+              label="Shape"
+              value={backdrop.outerShape}
+              options={['circle', 'segments'] as const}
+              onChange={(v) => onBackdropChange({ outerShape: v })}
             />
-          </>
-        )}
-        <h3 style={{ ...headerStyle, marginTop: 8 }}>Backdrop · Outer</h3>
-        <PillGroup
-          label="Shape"
-          value={backdrop.outerShape}
-          options={['circle', 'segments'] as const}
-          onChange={(v) => onBackdropChange({ outerShape: v })}
-        />
-        {backdrop.outerShape === 'segments' && (
-          <>
-            <Slider
-              label="Segments"
-              value={backdrop.outerSegments}
-              min={3}
-              max={16}
-              step={1}
-              onChange={(v) => onBackdropChange({ outerSegments: v })}
-            />
-            <Slider
-              label="Depth"
-              value={backdrop.outerDepth}
-              min={0}
-              max={20}
-              step={0.5}
-              unit="px"
-              onChange={(v) => onBackdropChange({ outerDepth: v })}
-            />
+            {backdrop.outerShape === 'segments' && (
+              <>
+                <Slider
+                  label="Segments"
+                  value={backdrop.outerSegments}
+                  min={3}
+                  max={16}
+                  step={1}
+                  onChange={(v) => onBackdropChange({ outerSegments: v })}
+                  onReset={backdropReset('outerSegments')}
+                />
+                <Slider
+                  label="Depth"
+                  value={backdrop.outerDepth}
+                  min={0}
+                  max={20}
+                  step={0.5}
+                  unit="px"
+                  onChange={(v) => onBackdropChange({ outerDepth: v })}
+                  onReset={backdropReset('outerDepth')}
+                />
+              </>
+            )}
           </>
         )}
       </div>
@@ -1152,6 +1273,7 @@ export default function RadialStatesReview() {
           showMaxGhost={focused === k && maxBarHovered}
           donutSize={donutSize}
           donutThickness={donutThickness}
+          backdropEnabled={backdrop.enabled}
           backdropShape={backdrop.shape}
           backdropSegments={backdrop.segments}
           backdropDepth={backdrop.depth}
@@ -1209,10 +1331,11 @@ export default function RadialStatesReview() {
         {!controlsCollapsed && (
           <ControlsPanel
             settings={all[focused]}
+            baselineSettings={baseline?.settings[focused] ?? null}
             onChange={updateFocused}
-            onResetState={resetFocused}
             onMaxBarHover={setMaxBarHovered}
             backdrop={backdrop}
+            baselineBackdrop={baseline?.backdrop ?? null}
             onBackdropChange={updateBackdrop}
           />
         )}
