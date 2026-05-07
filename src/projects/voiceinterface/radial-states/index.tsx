@@ -100,24 +100,24 @@ const STORAGE_KEY = 'radial-states-review-v1';
 
 // ── Ghost bars (Max Bar Length preview) ──────────────────────────
 //
-// Mirrors the geometry math from RadialInward / RadialOutward exactly:
-// same barCount derivation (circumference / (barWidth + barGap)), same
-// per-bar angle, same roundCaps. Every bar is drawn at maxBarLength so
-// the user sees the real bars' ceiling. Static (no rotation) — the
-// real bars' rotation just slides them through these guide positions.
+// Mirrors the geometry AND the envelope-ceiling math from
+// RadialInward / RadialOutward. Each bar's reach is capped at
+//   minBarLength + ceiling * (maxBarLength - minBarLength)
+// where ceiling is 1 unless the envelope is active, in which case
+//   ceiling = 1 - waveEnvelope * (1 - envValue)
+//   envValue = wave * envelopeAmplitude + envelopeAmplitude * 0.1
+// matching the renderer's `value = Math.min(value, effectiveCeiling)`
+// branch (RadialInward.tsx:117-121). Animated via RAF so the wave
+// moves and the ghost bars track the real ceiling over time.
 
 interface GhostBarsProps {
   variant: 'inward' | 'outward';
-  radius: number;
-  barWidth: number;
-  barGap: number;
-  maxBarLength: number;
-  roundCaps: boolean;
+  settings: RadialSettings;
   size: number;
   color: string;
 }
 
-function GhostBars({ variant, radius, barWidth, barGap, maxBarLength, roundCaps, size, color }: GhostBarsProps) {
+function GhostBars({ variant, settings, size, color }: GhostBarsProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -132,31 +132,89 @@ function GhostBars({ variant, radius, barWidth, barGap, maxBarLength, roundCaps,
     if (!ctx) return;
     ctx.scale(dpr, dpr);
 
+    const {
+      radius,
+      barWidth,
+      barGap,
+      minBarLength,
+      maxBarLength,
+      roundCaps,
+      ambientWave,
+      waveShape,
+      waveLobes,
+      segments,
+      waveSpeed,
+      envelopeAmplitude,
+      waveEnvelope,
+    } = settings;
+
     const cx = size / 2;
     const cy = size / 2;
     const circumference = 2 * Math.PI * radius;
     const barCount = Math.max(1, Math.floor(circumference / (barWidth + barGap)));
 
-    ctx.clearRect(0, 0, size, size);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = barWidth;
-    ctx.lineCap = roundCaps ? 'round' : 'butt';
+    let waveTime = 0;
+    let lastTs = performance.now();
+    let raf = 0;
 
-    for (let i = 0; i < barCount; i++) {
-      const angle = (i / barCount) * Math.PI * 2;
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(angle);
-      ctx.beginPath();
-      ctx.moveTo(0, -radius);
-      ctx.lineTo(
-        0,
-        variant === 'outward' ? -(radius + maxBarLength) : -(radius - maxBarLength),
-      );
-      ctx.stroke();
-      ctx.restore();
-    }
-  }, [variant, radius, barWidth, barGap, maxBarLength, roundCaps, size, color]);
+    const envelopeActive = ambientWave && waveEnvelope > 0 && envelopeAmplitude > 0;
+
+    const draw = (now: number) => {
+      const dt = Math.min((now - lastTs) / 1000, 1 / 30);
+      lastTs = now;
+      waveTime += dt;
+
+      ctx.clearRect(0, 0, size, size);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = barWidth;
+      ctx.lineCap = roundCaps ? 'round' : 'butt';
+
+      for (let i = 0; i < barCount; i++) {
+        const angle = (i / barCount) * Math.PI * 2;
+
+        let ceiling = 1;
+        if (envelopeActive) {
+          const lobes = waveShape === 'segments' ? segments : waveLobes;
+          const phase = angle * lobes - waveTime * waveSpeed;
+          let wave: number;
+          switch (waveShape) {
+            case 'sine':
+            case 'segments':
+              wave = (Math.sin(phase) + 1) / 2;
+              break;
+            case 'triangle': {
+              const t = ((phase % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+              wave = t < Math.PI ? t / Math.PI : 2 - t / Math.PI;
+              break;
+            }
+            case 'square':
+              wave = Math.sin(phase) >= 0 ? 1 : 0;
+              break;
+            default:
+              wave = 0;
+          }
+          const envValue = wave * envelopeAmplitude + envelopeAmplitude * 0.1;
+          ceiling = 1 - waveEnvelope * (1 - envValue);
+        }
+
+        const barLen = minBarLength + ceiling * (maxBarLength - minBarLength);
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.moveTo(0, -radius);
+        ctx.lineTo(0, variant === 'outward' ? -(radius + barLen) : -(radius - barLen));
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      raf = requestAnimationFrame(draw);
+    };
+
+    raf = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf);
+  }, [variant, settings, size, color]);
 
   return (
     <canvas
@@ -264,11 +322,7 @@ function Cell({ label, settings, frequencyData, variant, focused, onClick, showM
         {showMaxGhost && (
           <GhostBars
             variant={variant}
-            radius={settings.radius}
-            barWidth={settings.barWidth}
-            barGap={settings.barGap}
-            maxBarLength={settings.maxBarLength}
-            roundCaps={settings.roundCaps}
+            settings={settings}
             size={ghostCanvasSize}
             color="rgba(239, 68, 68, 0.18)"
           />
