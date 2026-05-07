@@ -1,10 +1,10 @@
 # Realtime-states — handoff
 
-> Snapshot for picking up in a new conversation. Captures what's shipped, what's open, where to read context, and what to verify when you have time. Replaces the previous handoff doc (the older Kyoto-only one from May 2026 — the entire Coral unification effort, Phase 4, and first-paint flash fix all happened after that).
+> Snapshot for picking up in a new conversation. Captures what's shipped, what's open, where to read context, and what to verify when you have time. Replaces v2 (which described the file split as the biggest remaining mechanical task — that just shipped).
 
-## Current state (as of commit `559afde`)
+## Current state (as of commit `b504a3f`, plus the post-handoff console-log cleanup commit)
 
-All planned phases of the Coral unification plan are **shipped**:
+All planned phases of the Coral unification plan are **shipped**. Plus the file-split refactor and the Kyoto→Tube rename.
 
 - **Phase 1–3**: data layer + live page renderer + editor wiring (Coral entries appear in the dropdown, canvas dispatches by shader, save routing per shader).
 - **Phase 3D-0 / 3D-1 / 3E / 3F**: editor state-model migration → Coral controls panel → save routing → new-profile shader-choice modal.
@@ -13,49 +13,67 @@ All planned phases of the Coral unification plan are **shipped**:
 - **`talking.settleSpeed` peak slider** on Coral Talking pill; direction-aware `morphSpeed` via state-machine on previous voice state.
 - **Editor controls polish**: clearer directional labels (`Settle Speed (→ idle)`, `Morph Speed (→ talking)`, `Pulse Speed (thin → thick)`), Tube-style color names (Highlight / Mid Tone / Edge), Torus Radius hidden on Talking pill.
 - **Editor first-paint flash fix** (`559afde`): parent/child component split, `cascadeReady` gate, skeleton until cascade resolves, lazy `colorFormat` init.
+- **File-split refactor** (`5b6f088`): 3253-line page → 3-line shim + six modules under `src/projects/voiceinterface/realtime-states/`. Plan in `tasks/realtime-states-file-split-plan.md` (v7).
+- **Kyoto → Tube rename** (`b504a3f`): the editor's shader discriminant was using `'kyoto'` as a synonym for the Tube/`GentleOrbThicken` shader. Renamed `'kyoto'` → `'tube'` everywhere it meant the shader (LoadedOrb / BaselineSnapshot / DropdownRow discriminants, `KYOTO_SEED` → `TUBE_SEED`, all `kyotoX` variables → `tubeX`, comments), while keeping the literal "Kyoto Realtime" profile name and its persisted `id: 'rt-kyoto'`. Zero behavior change — `shader` is never persisted.
+- **Cascade-resolved console.log removed** (post-`b504a3f` commit): the temporary first-paint verification log is gone now that 14-scenario manual verification confirmed the fix works for persisted Tube, persisted Coral, and clean-localStorage paths.
 
-## Architecture (post first-paint fix)
+## Architecture (post file-split)
 
-`src/pages/voiceinterface/realtime-states.tsx` is now structured as:
+The editor now lives at `src/projects/voiceinterface/realtime-states/`. The page at `src/pages/voiceinterface/realtime-states.tsx` is a 2-line re-export shim that preserves the existing route.
 
-- **`RealtimeStates` (parent, default export, ~158 lines)** — owns the data layer:
-  - `kyotoProfiles` / `coralProfiles` source arrays + loaded flags.
-  - `activeOrbKey`, `activeBaseline`, `cascadeReady` state.
-  - `externalProfileNames` (gallery name collision detection).
-  - `colorFormat` (lazy-init from localStorage).
-  - First-load fetch effect, gallery-names effect, cascade-once effect, persist-on-change effect.
-  - Renders `<RealtimeStatesSkeleton />` until `cascadeReady && activeOrb` resolves; then mounts `<RealtimeStatesEditor>` with resolved data as props.
+Six modules:
 
-- **`RealtimeStatesEditor` (child, ~3000 lines, internal — not exported)** — owns visual + animator + JSX:
-  - All UI state (state pill, render, replayCounter, autoLoop, expanded, activeTab, thinkingPaused, audio, dialog).
-  - All eased hooks + thinking pulse + JS animator effect.
-  - All slider helpers + action handlers (`selectProfile`, `handleSave`, etc.).
-  - Lazy useState init for `render` from `activeOrb.settings` (Tube path) — fixes the Nebularr-render-from-KYOTO_SEED bug.
-  - Lazy useRef init for `activeTauOverrideRef` from `activeOrb.settings.talking.settleSpeed`.
-  - Post-mount `useEffect` watching `activeOrb.id` / `activeOrb.shader` runs `restartIntro` on Kyoto transitions only (first mount handled by lazy init).
+- **`types.ts`** (~142 lines) — types only. `BaseSettings`, `BaselineSnapshot`, `ColorFormat`, `ControlTab`, `DropdownRow`, `LinkedProfile`, `LoadedOrb`, `PeakOverrides`, `PeakScope`, `PreviewState`, `RenderValues`, `SavedCoralProfile`, `SavedProfile`. Plus re-exports of `AudioData` and `CoralRealtimeSettings` from sibling projects (single source of truth).
+- **`constants.ts`** (~40 lines) — `TUBE_SEED`, `STATES`, `TALKING_GEOMETRY`, `SILENT`, `REALTIME_SEED_NAME`, `COLOR_FORMATS`, `SETTLE_DURATION_MULTIPLIER`.
+- **`helpers.ts`** (~299 lines) — pure render math (`baseRender`, `lerp`, `lerpHex`, `lerpRender`, `pickPeak`, `talkingRenderForProfile`), color math (`hexToRgb`, `rgbToHex`, color-space converters, `formatColorValue`, `parseColorValue`, `colorFieldValues`, `colorDraftsToHex`, `clampNumber`), and name/key helpers (`compositeKey`, `normalizeProfileName`).
+- **`api.ts`** (~68 lines) — fetch/persist wrappers (`fetchProfiles`, `persistProfiles`, `fetchCoralProfiles`, `persistCoralProfiles`, `fetchProfileNames`). API URL constants are module-private `const`s, NOT exported.
+- **`controls.tsx`** (~1218 lines) — leaf UI components (`PeakSliderRow`, `ColorFormatControl`, `EditableColorValue`, `ColorChannelFields`, `ColorPickerButton`, `RealtimeColorRow`, `PeakColorRow`) + the two prop-driven tab panels: **`TubeTabPanel`** (was `renderTabControls`) and **`CoralTabPanel`** (was `renderCoralTabControls`). Each panel takes a `controller` prop bundle (`TubeController` / `CoralController`) so the closures-from-the-old-arrow-function become explicit props.
+- **`index.tsx`** (~1746 lines) — the page component. Owns:
+  - **`RealtimeStates` (parent, default export)** — data layer (kyoto + coral profile arrays, loaded flags, cascade, `cascadeReady` gate, `colorFormat` lazy-init from localStorage, gallery-names effect, persist-on-change effect). Renders `<RealtimeStatesSkeleton />` until `cascadeReady && activeOrb` resolves; then mounts the editor child with resolved data as props.
+  - **`RealtimeStatesEditor` (child, internal — not exported)** — visual + animator + JSX. All UI state, eased hooks, thinking pulse, JS animator effect, slider helpers, action handlers (`selectProfile`, `handleSave`, etc.), the bottom bar JSX, the canvas dispatch. Constructs `tubeController` / `coralController` as plain object literals (no `useMemo` — see plan v7 §13 for the rationale).
+  - **`RealtimeStatesSkeleton`** — neutral page bg + empty 328×328 canvas slot.
 
-- **`RealtimeStatesSkeleton`** — neutral page bg + empty 328×328 canvas slot. No bottom bar (the real one is `position: fixed`, so its absence cannot reflow other content).
+## Manual verification — completed
+
+All 14 scenarios from `tasks/realtime-states-file-split-plan.md` §11.2 ran live in the browser via the preview MCP (post-rename, post-split, with the console.log still in place at the time of verification):
+
+| Scenario | Result |
+| --- | --- |
+| First-paint cascade — persisted Tube/Kyoto | ✅ |
+| First-paint cascade — persisted Coral | ✅ |
+| First-paint cascade — clean localStorage | ✅ falls back to "Kyoto Realtime" |
+| Slider edit dirty + Update (Tube path) | ✅ persisted |
+| Discard reverts edit | ✅ |
+| Save-as-new, two-step shader modal (Tube path) | ✅ |
+| Profile rename | ✅ |
+| Pin / unpin (active profile) | ✅ |
+| State pills + auto-loop | ✅ |
+| Tube Replay (no Canvas remount) | ✅ same canvas DOM survived |
+| Coral Replay (Canvas remount + intro) | ✅ |
+| Audio mode toggle (mic permission denied in headless preview; service logs gracefully) | ✅ wiring verified |
+| Color format switch (HEX → HSL) | ✅ values reformatted, localStorage persisted |
+| Thinking pulse — both shaders | ✅ pause/resume titles flip |
+| Cross-shader switch (both directions) | ✅ |
+| In-progress inline edit during animator | ✅ input stayed focused, draft survived ~36 frames |
+
+Zero application errors over the full session. The only console errors were `Error accessing microphone: NotAllowedError: Permission denied` from the headless preview's mic-permission denial, caught and logged gracefully by `audioService` — not an application error.
 
 ## Open follow-ups (priority order)
 
-### 1. File split refactor — biggest remaining mechanical task
+### 1. Live realtime page — extend the Kyoto → Tube rename
 
-Plan: `tasks/coral-unification-plan.md` Open Follow-ups section.
+The editor's `shader: 'kyoto'` discriminant was renamed to `shader: 'tube'`, but the LIVE realtime page (`src/projects/voiceinterface/components/RealtimeBlob.tsx`, `VoiceRealtimeOpenAI.tsx`) has its **own** internal `shader: 'kyoto'` discriminant (a separate type definition — they don't share `LoadedOrb`). The two are functionally independent, but the codebase is now half-renamed: editor uses `'tube'`, live page uses `'kyoto'`.
 
-Current file: `src/pages/voiceinterface/realtime-states.tsx` is **3253 lines**. Proposed 4-file split (shader-agnostic naming — no "Kyoto" / "Coral" in module names, since shaders are stable but profile names aren't):
+A future contributor will read this and ask "why are these different?" — that's the kind of inconsistency to fix proactively.
 
-- **`realtime-states/types.ts`** (~250 lines) — type defs (`LoadedOrb`, `BaselineSnapshot`, `SavedProfile`, `SavedCoralProfile`, `DropdownRow`, `RenderValues`, `ControlTab`, `PeakScope`) + small pure helpers (`compositeKey`, `normalizeProfileName`, color utilities).
-- **`realtime-states/api.ts`** (~80 lines) — `fetchProfiles`, `persistProfiles`, `fetchCoralProfiles`, `persistCoralProfiles`, `fetchProfileNames`.
-- **`realtime-states/controls.tsx`** (~1000 lines) — both tab renderers (Tube + Coral) plus shared UI primitives (`SliderRow`, `PeakSliderRow`, `ColorFormatControl`, etc.).
-- **`realtime-states/index.tsx`** (~1500 lines) — page component (parent + child).
+Surface area (audited via grep):
 
-Pure refactor; zero behavior change. **Should have its own plan + reviewer pass before starting.** Inline-extracted components and hooks need to come along — care needed because some hooks have closures over component-scoped variables.
+- `src/projects/voiceinterface/components/RealtimeBlob.tsx:27` — `| { shader: 'kyoto'; profile: LinkedProfile | null };`
+- `src/projects/voiceinterface/components/VoiceRealtimeOpenAI.tsx:32, 69, 166, 184, 199, 265` — multiple uses of `shader: 'kyoto'` and one `fetchVariant('realtime-state', 'kyoto')` (the second arg is the shader label, not the API variant).
 
-### 2. Verification cleanup
+Same rename rules as the editor: discriminant `'kyoto'` → `'tube'`. The `'realtime-state'` API variant string stays (matches the JSON file on disk). Probably an hour's work + a manual smoke test on `/voiceinterface/realtime`.
 
-- **Remove the temporary `console.log`** in the cascade effect at `realtime-states.tsx` (~line 3217, inside the cascade `useEffect`). It logs `'cascade resolved: target=..., persisted=...'` for first-paint-fix verification. Once you've confirmed the fix works on persisted Coral and persisted Nebularr (throttled-CPU reproduction), delete it.
-
-### 3. Per-profile `forceIntroOnSelect` toggle
+### 2. Per-profile `forceIntroOnSelect` toggle
 
 Plan: `tasks/coral-unification-plan.md` Open Follow-ups section.
 
@@ -67,7 +85,7 @@ Same-shader switches (Kyoto Realtime ↔ Nebularr, Coral A ↔ Coral B) are prop
 
 Schema bump on both `realtime-state-profiles.json` and `realtime-coral-profiles.json`. Out of scope for current commits; revisit when actually wanted.
 
-### 4. Fork-from-clean-A semantics
+### 3. Fork-from-clean-A semantics
 
 Plan: `tasks/coral-unification-plan.md` Open Follow-ups section.
 
@@ -77,30 +95,26 @@ Fix: in `handleSave`'s same-shader-fork branch, build the persist array with the
 
 Small fix when prioritized.
 
+### 4. Throttled-CPU reproduction (manual verification still owed)
+
+DevTools Performance, 4× CPU slowdown + Slow 3G network — confirm no Tube-content flash during the longer skeleton phase. The first-paint fix has been working organically through normal use; this is the one scripted check still owed from the v2.2 plan's verification section.
+
 ### 5. R3F WebGL init blank rectangle
 
 Plan: `tasks/first-paint-flash-plan.md` "What this does NOT change" section.
 
-The `<Canvas>` takes ~50ms to initialize WebGL on first mount. With the recent first-paint fix, the Canvas now mounts AFTER cascadeReady flips, so this blank period is more isolated/visible than before.
+The `<Canvas>` takes ~50ms to initialize WebGL on first mount. With the first-paint fix, the Canvas now mounts AFTER cascadeReady flips, so this blank period is more isolated/visible than before.
 
 To fully mask: render the active orb's saved thumbnail PNG (`/public/thumbnails/realtime-states/<slug>.png`) in the canvas slot during the skeleton phase + the WebGL init period. Fade it out as the orb renders. Polish-only; pure cosmetic.
 
-### 6. Manual verification items still owed
+### 6. Optional: deduplicate the `orbs` useMemo
 
-From the v2.2 plan's verification section:
-
-- Persist Coral Realtime → reload → confirm neutral skeleton briefly → Coral with intro animation (sphere starting at `talking.scale`, growing to `base.scale`).
-- Persist Nebularr → reload → skeleton → Nebularr with Tube `render` correctly seeded from Nebularr's talking values (not `KYOTO_SEED`).
-- First-ever visit (clear localStorage) → skeleton → "Kyoto Realtime" fallback.
-- Throttled-CPU reproduction (DevTools Performance, 4× CPU slowdown + Slow 3G network) — confirm no Kyoto-content flash during the longer skeleton phase.
-- HSL/HSB persisted color format → reload → Colours tab opens at persisted format (no HEX flash).
-- Slider edits, Save, Discard, profile switching, Replay, bookmark, rename — all unchanged behaviorally.
-
-User has been verifying organically through normal use; throttled-CPU reproduction is the one scripted check still owed.
+`src/projects/voiceinterface/realtime-states/index.tsx` defines an `orbs = useMemo<LoadedOrb[]>(...)` in BOTH the parent (~L1641) and the editor child (~L211). Duplication migrated as-is from the pre-split file. Cleaning it up would require the parent to pass `orbs` (or just `tubeProfiles + coralProfiles` as it already does and let the child re-derive — which is what happens today). Not a priority; flagged for a future pass.
 
 ## Key plan documents in repo
 
-- **`tasks/coral-unification-plan.md`** — main plan (v8, 7+ rounds of reviewer feedback). Canonical reference for everything Coral-related: schema, ownership rules, dirty contract, immutability rule, hook conventions, peak helpers, name-collision rules, save routing, Phase 4 thinking pulse spec, all Open Follow-ups.
+- **`tasks/realtime-states-file-split-plan.md`** — v7. Six-file split of the editor; mechanical refactor; zero behavior change. Shipped as commit `5b6f088`. Plan kept for reference.
+- **`tasks/coral-unification-plan.md`** — v8, 7+ rounds of reviewer feedback. Canonical reference for everything Coral-related: schema, ownership rules, dirty contract, immutability rule, hook conventions, peak helpers, name-collision rules, save routing, Phase 4 thinking pulse spec, all Open Follow-ups.
 - **`tasks/first-paint-flash-plan.md`** — v2.2 with 3 rounds of reviewer iteration. Architecture is shipped; plan kept for reference.
 
 ## Reviewer-iteration discipline
@@ -119,23 +133,25 @@ The plan-review skill at `~/.claude/skills/plan-review.skill.md` formalizes this
 ## Recent commit timeline (most recent first)
 
 ```
-559afde  editor first-paint flash fix (parent/child split + cascadeReady)
-0a1f863  plan: first-paint flash v2.2
-419f97e  plan: first-paint flash v2.1
-b07a4df  plan: first-paint flash v2
-3147980  plan: first-paint flash v1
-eef527f  Coral controls labels + settle peak + remove hidden-Torus note
-a125790  user tuning — Coral talking.scale=0.75, Kyoto unpinned
-d1d53e7  hide Torus Radius slider on Coral Talking pill
-bed12f6  user-tuned talking.scale=0.5
-d02f7c3  defer live page orb mount until profiles loaded
-37f4164  mount eased props at talking values so intro plays talking→base
-8997fab  ease scale / waveIntensity / color3 on Coral state changes
-b4f8a00  Phase 4C — editor controls for thinking pulse
-904ff76  Phase 4B — useCoralThinkingPulse hook + wire into both consumers
-b85b057  Phase 4A — schema additions for thinking pulse
-87b9aea  plan: Phase 4 amendments from plan-review pass
-2a5a9c9  plan: Phase 4 — Coral thinking pulse spec
+<post-handoff>  chore(realtime-states): remove temporary cascade-resolved console.log; refresh handoff
+b504a3f         refactor(realtime-states): rename Kyoto → Tube for the shader (not the profile)
+5b6f088         refactor(realtime-states): split 3253-line page into six modules
+cca82ac         docs: refresh realtime-states handoff after Coral unification + first-paint fix
+559afde         editor first-paint flash fix (parent/child split + cascadeReady)
+0a1f863         plan: first-paint flash v2.2
+419f97e         plan: first-paint flash v2.1
+b07a4df         plan: first-paint flash v2
+3147980         plan: first-paint flash v1
+eef527f         Coral controls labels + settle peak + remove hidden-Torus note
+a125790         user tuning — Coral talking.scale=0.75, Kyoto unpinned
+d1d53e7         hide Torus Radius slider on Coral Talking pill
+bed12f6         user-tuned talking.scale=0.5
+d02f7c3         defer live page orb mount until profiles loaded
+37f4164         mount eased props at talking values so intro plays talking→base
+8997fab         ease scale / waveIntensity / color3 on Coral state changes
+b4f8a00         Phase 4C — editor controls for thinking pulse
+904ff76         Phase 4B — useCoralThinkingPulse hook + wire into both consumers
+b85b057         Phase 4A — schema additions for thinking pulse
 ```
 
 ## Picking up in a new conversation
@@ -144,8 +160,8 @@ Open with: "Read `tasks/realtime-states-handoff.md` for context, then [next task
 
 Most likely next tasks, by descending value:
 
-- **"Plan and implement the file split refactor"** → start with reading `coral-unification-plan.md` Open Follow-ups, write a focused split plan, get reviewer pass, then implement.
-- **"Remove the temporary cascade-resolved console.log"** → tiny cleanup; one-line edit + commit.
+- **"Extend the Kyoto → Tube rename to the live realtime page"** → small refactor, ~1 hour. Scope: `src/projects/voiceinterface/components/RealtimeBlob.tsx` + `VoiceRealtimeOpenAI.tsx`. Same rename pattern as the editor. Manual smoke test on `/voiceinterface/realtime` after.
 - **"Implement `forceIntroOnSelect`"** → small feature; brief plan, schema bump, UI toggle, wiring.
 - **"Implement fork-from-clean-A"** → small fix; no plan needed; just edit `handleSave`.
 - **"Mask the WebGL init blank with thumbnails"** → cosmetic polish; needs a small plan.
+- **"Run the throttled-CPU repro"** → 15-minute manual check; no code change.

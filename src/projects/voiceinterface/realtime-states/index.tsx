@@ -1706,14 +1706,6 @@ export default function RealtimeStates() {
     // Flip cascadeReady LAST, after activeOrbKey + baseline have
     // been scheduled. Triggers child mount on next render.
     setCascadeReady(true);
-
-    // Temporary verification log (round-3 F3 — uses targetKey +
-    // persisted, both in scope here). Remove after confirming the
-    // first-paint fix works on persisted Coral and persisted
-    // Nebularr.
-    if (typeof window !== 'undefined') {
-      console.log('cascade resolved: target=', targetKey, 'persisted=', persisted);
-    }
   }, [tubeLoaded, coralLoaded, orbs]);
 
   // Persist activeOrbKey on change. Gated on cascadeReady so the
