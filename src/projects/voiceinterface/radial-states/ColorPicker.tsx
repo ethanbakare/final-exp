@@ -101,11 +101,13 @@ export function ColorPickerButton({
           <div
             ref={popoverRef}
             onMouseDown={(e) => e.stopPropagation()}
-            className="fixed z-[100] w-72 rounded-lg border border-gray-200 bg-white p-3 shadow-xl"
+            className="fixed z-[100] w-72 rounded-lg p-3 shadow-xl"
             style={{
               left: position?.left ?? -9999,
               top: position?.top ?? 8,
               visibility: position ? 'visible' : 'hidden',
+              background: '#1a1a1e',
+              border: '1px solid rgba(255,255,255,0.1)',
             }}
           >
             <ColorArea
@@ -115,9 +117,10 @@ export function ColorPickerButton({
               yChannel="brightness"
               value={pickerValue}
               onChange={commitColor}
-              className="relative h-36 w-full overflow-hidden rounded-md border border-gray-200"
+              className="relative h-36 w-full overflow-hidden rounded-md"
+              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
             >
-              <ColorThumb className="h-4 w-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.55)]" />
+              <ColorThumb className="h-4 w-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.6)]" />
             </ColorArea>
             <ColorSlider
               aria-label="Hue"
@@ -128,7 +131,7 @@ export function ColorPickerButton({
               className="mt-3"
             >
               <SliderTrack className="relative h-3 rounded-full bg-[linear-gradient(90deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000)]">
-                <ColorThumb className="top-1/2 h-5 w-5 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]" />
+                <ColorThumb className="top-1/2 h-5 w-5 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.5)]" />
               </SliderTrack>
             </ColorSlider>
             <div className="mt-3">
@@ -141,9 +144,23 @@ export function ColorPickerButton({
                     onChange(v.startsWith('#') ? v.toLowerCase() : `#${v.toLowerCase()}`);
                   }
                 }}
-                className="w-full rounded-md border border-gray-200 px-2 py-1 text-center text-sm tabular-nums text-gray-700 outline-none focus:border-gray-400"
+                className="w-full rounded-md px-2 py-1 text-center text-sm tabular-nums outline-none"
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#e5e7eb',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                }}
               />
-              <span className="mt-1 block text-center text-[10px] font-medium uppercase text-gray-400">
+              <span
+                className="mt-1 block text-center text-[10px] font-medium uppercase tracking-wider"
+                style={{ color: '#6b7280' }}
+              >
                 HEX
               </span>
             </div>
