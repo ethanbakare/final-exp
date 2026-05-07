@@ -63,11 +63,11 @@ const THORN: RadialSettings = {
   previewBg: '#f7f6f4',
 };
 
-// Thorn with ambientWave off, minBarLength doubled (3 → 6) so the
-// rotating ring reads with more presence at rest.
+// Thorn with ambientWave off, minBarLength bumped (3 → 12) so the
+// rotating ring reads with strong presence at rest.
 const PLAIN_THORN: RadialSettings = {
   ...THORN,
-  minBarLength: 6,
+  minBarLength: 12,
   ambientWave: false,
   waveSpeed: 1.9,
 };
