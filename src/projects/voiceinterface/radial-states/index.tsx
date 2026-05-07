@@ -102,29 +102,19 @@ interface CellProps {
 }
 
 const CELL_SIZE = 360;
-// Padding between the bar zone (full possible range across min/max) and
-// each edge of the static donut envelope behind the bars. Kept tight
-// so the donut hugs the bars but never gets clipped at peak audio.
-const DONUT_PADDING = 5;
+// Donut envelope is shared across ALL cells (idle/listening, thinking,
+// talking). Anchored to Thorn's bar range so idle/listening/thinking
+// have 10px padding outside outer reach + 10px past inner reach. The
+// talking cell's smaller bar range sits inside this same donut.
+const DONUT_PADDING = 10;
 const DONUT_COLOR = 'rgba(38, 36, 36, 0.03)'; // #262424 at 3%
+const DONUT_OUTER = THORN.radius + DONUT_PADDING;
+const DONUT_INNER = Math.max(0, THORN.radius - THORN.maxBarLength - DONUT_PADDING);
+const DONUT_SIZE = DONUT_OUTER * 2;
+const DONUT_THICKNESS = DONUT_OUTER - DONUT_INNER;
 
 function Cell({ label, settings, frequencyData, variant }: CellProps) {
   const Renderer = variant === 'outward' ? RadialOutward : RadialInward;
-
-  // Donut envelope sits behind the canvas. Outer edge is DONUT_PADDING
-  // beyond the bars' outermost reach; inner edge is DONUT_PADDING past
-  // their innermost reach. Inward: bars live in [radius - maxBarLength,
-  // radius]. Outward: [radius, radius + maxBarLength]. The donut frames
-  // the full possible range so it stays static regardless of bar
-  // animation.
-  const barOuter =
-    variant === 'outward' ? settings.radius + settings.maxBarLength : settings.radius;
-  const barInner =
-    variant === 'outward' ? settings.radius : settings.radius - settings.maxBarLength;
-  const donutOuter = barOuter + DONUT_PADDING;
-  const donutInner = Math.max(0, barInner - DONUT_PADDING);
-  const donutSize = donutOuter * 2;
-  const donutThickness = donutOuter - donutInner;
 
   return (
     <div
@@ -154,11 +144,11 @@ function Cell({ label, settings, frequencyData, variant }: CellProps) {
             position: 'absolute',
             top: '50%',
             left: '50%',
-            width: donutSize,
-            height: donutSize,
+            width: DONUT_SIZE,
+            height: DONUT_SIZE,
             transform: 'translate(-50%, -50%)',
             borderRadius: '50%',
-            border: `${donutThickness}px solid ${DONUT_COLOR}`,
+            border: `${DONUT_THICKNESS}px solid ${DONUT_COLOR}`,
             boxSizing: 'border-box',
             pointerEvents: 'none',
             zIndex: 0,
