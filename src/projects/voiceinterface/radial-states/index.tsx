@@ -941,7 +941,16 @@ function ControlsPanel({
           <Slider label="Radius" value={settings.radius} min={30} max={200} step={1} unit="px" onChange={(v) => set('radius', v)} onReset={settingReset('radius')} />
         )}
         <Slider label="Bar Width" value={settings.barWidth} min={0.5} max={10} step={0.5} unit="px" onChange={(v) => set('barWidth', v)} onReset={settingReset('barWidth')} />
-        <Slider label="Bar Gap" value={settings.barGap} min={0} max={12} step={0.5} unit="px" onChange={(v) => set('barGap', v)} onReset={settingReset('barGap')} />
+        {focused === 'talking' && lockBarCount ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280' }}>
+            <span style={{ color: '#9ca3af' }}>Bar Gap</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {settings.barGap}px <span style={{ color: '#4b5563' }}>(locked)</span>
+            </span>
+          </div>
+        ) : (
+          <Slider label="Bar Gap" value={settings.barGap} min={0} max={12} step={0.5} unit="px" onChange={(v) => set('barGap', v)} onReset={settingReset('barGap')} />
+        )}
         <Slider label="Min Bar Length" value={settings.minBarLength} min={0} max={30} step={1} unit="px" onChange={(v) => set('minBarLength', v)} onReset={settingReset('minBarLength')} />
         <div
           onMouseEnter={() => onMaxBarHover(true)}
