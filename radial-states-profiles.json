@@ -228,11 +228,11 @@
       "outlineWidth": 2,
       "previewBg": "#f7f6f4"
     },
-    "lastModified": 1778171792034,
+    "lastModified": 1778173922087,
     "backdrop": {
       "enabled": true,
       "color": "#262424",
-      "opacity": 0.02,
+      "opacity": 0.03,
       "shape": "circle",
       "segments": 7,
       "depth": 6,
