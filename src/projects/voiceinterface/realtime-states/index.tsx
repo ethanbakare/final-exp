@@ -216,6 +216,9 @@ function RealtimeStatesEditor({
       id: p.id,
       name: p.name,
       pinned: p.pinned === true,
+      // Optional pass-through — undefined / true / false flow through
+      // unchanged. Reads use `=== true` defensively (force-intro plan §3).
+      forceIntroOnSelect: p.forceIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
     }));
@@ -225,6 +228,7 @@ function RealtimeStatesEditor({
       id: p.id,
       name: p.name,
       pinned: p.pinned === true,
+      forceIntroOnSelect: p.forceIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
     }));
@@ -598,19 +602,43 @@ function RealtimeStatesEditor({
   const selectCoralProfile = (id: string) => {
     const found = coralProfiles.find((p) => p.id === id);
     if (!found) return;
+    // Force-intro plan §5.2 — self-select guard. Clicking the
+    // already-active Coral profile in the dropdown short-circuits BOTH
+    // the state flip and the counter bump below. That's intentional:
+    // self-select on a force-intro profile is a no-op (user has the
+    // Replay button for manual replay).
+    if (activeOrb?.shader === 'coral' && activeOrb.id === id) {
+      setShowProfileDropdown(false);
+      return;
+    }
     setActiveOrbKey(`realtime-coral:${id}`);
     setActiveBaseline({
       key: `realtime-coral:${id}`,
       shader: 'coral',
       settings: structuredClone(found.settings),
     });
-    // Plan v8 (F1): same-shader Coral switch is prop-only — no remount,
-    // no intro replay. The new profile's settings flow into the
-    // already-mounted CoralStoneMorph and the orb smoothly transitions
-    // to the new values. Replay button is the only same-shader remount
-    // path. Cross-shader switching (Coral ↔ Tube) still remounts
-    // naturally because the canvas branches between two component
-    // types.
+    // Plan v8 (F1): same-shader Coral switch is prop-only by default —
+    // no remount, no intro replay. The new profile's settings flow
+    // into the already-mounted CoralStoneMorph and the orb smoothly
+    // transitions to the new values. Cross-shader switching (Coral ↔
+    // Tube) still remounts naturally because the canvas branches
+    // between two component types.
+    //
+    // Force-intro plan §5.2 — opt-in override. Two conditions required:
+    //  1. activeOrb is already Coral (same-shader switch). On cross-
+    //     shader Tube → Coral, the canvas naturally remounts via
+    //     component-type swap; bumping the counter is redundant and
+    //     contradicts §10's "cross-shader unchanged" contract.
+    //  2. Target profile has the flag enabled.
+    // The state flip mirrors the Replay button (below): the Coral
+    // canvas computes `goal = state === 'talking' ? 0 : 1`. If the
+    // user is on the talking pill, remounting alone keeps goal=0 →
+    // sphere stays sphere, NO intro. Flipping state to 'idle' targets
+    // goal=1 so the freshly-mounted blob plays sphere → torus.
+    if (activeOrb?.shader === 'coral' && found.forceIntroOnSelect === true) {
+      setState('idle');
+      setReplayCounter((c) => c + 1);
+    }
     setShowProfileDropdown(false);
   };
 
@@ -789,6 +817,31 @@ function RealtimeStatesEditor({
     // Same as togglePinned but routes to the Coral profile file.
     const next = coralProfiles.map((pr) =>
       pr.id === id ? { ...pr, pinned: !pr.pinned, lastModified: Date.now() } : pr,
+    );
+    setCoralProfiles(next);
+    await persistCoralProfiles(next);
+  };
+
+  // Force-intro plan §5.4 — flip the optional `forceIntroOnSelect`
+  // field on the named Coral profile. Three runtime states cycle
+  // correctly because we always compare against `=== true`:
+  //   undefined → true (first toggle on)
+  //   true      → false (toggle off)
+  //   false     → true (toggle on again)
+  // Toggle path writes both directions explicitly (true and false);
+  // Save-as-new omits the field. No matching Tube mutator —
+  // Tube rows don't render the toggle (per plan §5.1). If Tube
+  // same-shader behavior is ever changed to prop-only, add a parallel
+  // toggleForceIntroOnSelect for Tube + render the icon on Tube rows.
+  const toggleForceIntroOnSelectCoral = async (id: string) => {
+    const next = coralProfiles.map((pr) =>
+      pr.id === id
+        ? {
+            ...pr,
+            forceIntroOnSelect: !(pr.forceIntroOnSelect === true),
+            lastModified: Date.now(),
+          }
+        : pr,
     );
     setCoralProfiles(next);
     await persistCoralProfiles(next);
@@ -1312,6 +1365,29 @@ function RealtimeStatesEditor({
                                 fill={p.pinned ? 'currentColor' : 'none'}
                               />
                             </button>
+                            {/* Force-intro plan §4 — Coral-only toggle.
+                                Flips the optional `forceIntroOnSelect`
+                                field on the persisted profile. Active
+                                state amber matches the bookmark active
+                                color (same metadata-toggle pattern). */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleForceIntroOnSelectCoral(p.id);
+                              }}
+                              className={`shrink-0 transition-colors cursor-pointer ${
+                                p.forceIntroOnSelect === true
+                                  ? 'text-amber-500 hover:text-amber-600'
+                                  : 'text-gray-300 hover:text-gray-600'
+                              }`}
+                              title={
+                                p.forceIntroOnSelect === true
+                                  ? 'Force-intro on — intro replays every time this profile is selected (click to disable)'
+                                  : 'Force intro replay on select'
+                              }
+                            >
+                              <RotateCcw size={12} />
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1654,6 +1730,9 @@ export default function RealtimeStates() {
       id: p.id,
       name: p.name,
       pinned: p.pinned === true,
+      // Optional pass-through — undefined / true / false flow through
+      // unchanged. Reads use `=== true` defensively (force-intro plan §3).
+      forceIntroOnSelect: p.forceIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
     }));
@@ -1663,6 +1742,7 @@ export default function RealtimeStates() {
       id: p.id,
       name: p.name,
       pinned: p.pinned === true,
+      forceIntroOnSelect: p.forceIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
     }));

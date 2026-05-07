@@ -68,17 +68,16 @@ Done. Renamed the live page's `shader: 'kyoto'` discriminant to `shader: 'tube'`
 
 Done. User ran the throttled reproduction in DevTools (4× CPU + Slow 3G), tested both persisted Coral and persisted Nebularr cases. Visual confirmation: no Kyoto/Tube content flash during the ~1.5s extended skeleton phase, no bg color flash, navbar didn't flash mid-load. Combined with CLS = 0 from the trace and the architectural guarantee (editor parent doesn't mount the child until `cascadeReady && activeOrb` both flip), the v2.2 first-paint plan's verification section is now complete.
 
-### 2. Per-profile `forceIntroOnSelect` toggle
+### ~~2. Per-profile `forceIntroOnSelect` toggle~~ — SHIPPED
 
-Plan: `tasks/coral-unification-plan.md` Open Follow-ups section.
+Done. Plan signed off in `tasks/realtime-states-force-intro-plan.md` v5; implementation followed §7 migration steps verbatim.
 
-Same-shader switches (Kyoto Realtime ↔ Nebularr, Coral A ↔ Coral B) are prop-only by design — no intro replay. User wants an opt-in override per profile. Proposed shape:
+- `SavedProfile` / `SavedCoralProfile` / both `LoadedOrb` arms gain optional `forceIntroOnSelect?: boolean`. Reads use `=== true` defensively; absent / true / false all behave correctly.
+- Editor: Coral dropdown rows show a third icon button (lucide `RotateCcw`) between bookmark and pencil; Tube rows unchanged. `selectCoralProfile` now has a self-select guard + same-shader-and-flag gate that flips state to idle and bumps `replayCounter`. New `toggleForceIntroOnSelectCoral` mutator persists to `realtime-coral-profiles.json`.
+- Live page: `VoiceRealtimeOpenAI` owns a new `selectionReplayCounter`, `handleThumbnailClick(orb)` with the four-condition guard (flag + non-self-select + same-shader + non-speaking), passed as `selectionReplayKey` into `RealtimeBlob` which threads it onto the inner blob's React `key` for surgical remount.
+- Tube path is forward-compat only: schema field on `SavedProfile`, no toggle UI, no mutator. If Tube same-shader is ever changed to prop-only, two things flip together — `selectProfile` gates on the field, dropdown JSX renders the toggle on Tube rows.
 
-- New `forceIntroOnSelect: boolean` field on persisted records (same level as `pinned`), defaulting to `false`.
-- When `true`, clicking that profile's thumbnail forces a remount via a counter on the React key.
-- UI: small toggle next to the bookmark icon in the editor's profile row.
-
-Schema bump on both `realtime-state-profiles.json` and `realtime-coral-profiles.json`. Out of scope for current commits; revisit when actually wanted.
+Smoke-tested live: tube rows show 2 icons (bookmark + pencil), coral row shows 3 (bookmark + force-intro + pencil), toggle persists `true` then `false` to JSON, toggling does NOT show Discard/Update (metadata, not settings), live page renders clean.
 
 ### 3. Fork-from-clean-A semantics
 
