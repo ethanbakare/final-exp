@@ -19,6 +19,11 @@ const API = '/api/studio-profiles?variant=radial-states';
 export interface RadialBackdrop {
   /** When false, the backdrop SVG isn't rendered at all. Defaults true. */
   enabled?: boolean;
+  /** Hex fill color (e.g. '#262424'). The opacity is applied separately
+   *  so the picker doesn't have to deal with rgba math. */
+  color?: string;
+  /** Opacity in [0, 1]. Combined with `color` to produce the final fill. */
+  opacity?: number;
   /** Inner edge shape. */
   shape?: 'circle' | 'segments';
   /** Inner edge lobe count when shape === 'segments'. */

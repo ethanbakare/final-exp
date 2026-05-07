@@ -17,7 +17,7 @@
  * minBarLength and just rotate).
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Menu, X, ChevronDown, Save, RotateCcw, Check } from 'lucide-react';
+import { Menu, X, ChevronDown, Save, RotateCcw, Check, Pencil } from 'lucide-react';
 import RadialInward from '@/projects/radial-waveform/variants/RadialInward';
 import RadialOutward from '@/projects/radial-waveform/variants/RadialOutward';
 import RadialGalleryAudioControls from '@/projects/radial-waveform/components/RadialGalleryAudioControls';
@@ -32,6 +32,8 @@ import {
 
 const DEFAULT_BACKDROP: Required<RadialBackdrop> = {
   enabled: true,
+  color: '#262424',
+  opacity: 0.03,
   shape: 'circle',
   segments: 7,
   depth: 6,
@@ -43,6 +45,8 @@ const DEFAULT_BACKDROP: Required<RadialBackdrop> = {
 function resolveBackdrop(b: RadialBackdrop | undefined): Required<RadialBackdrop> {
   return {
     enabled: b?.enabled ?? DEFAULT_BACKDROP.enabled,
+    color: b?.color ?? DEFAULT_BACKDROP.color,
+    opacity: b?.opacity ?? DEFAULT_BACKDROP.opacity,
     shape: b?.shape ?? DEFAULT_BACKDROP.shape,
     segments: b?.segments ?? DEFAULT_BACKDROP.segments,
     depth: b?.depth ?? DEFAULT_BACKDROP.depth,
@@ -50,6 +54,18 @@ function resolveBackdrop(b: RadialBackdrop | undefined): Required<RadialBackdrop
     outerSegments: b?.outerSegments ?? DEFAULT_BACKDROP.outerSegments,
     outerDepth: b?.outerDepth ?? DEFAULT_BACKDROP.outerDepth,
   };
+}
+
+/** Compose hex `color` + scalar `opacity` into a CSS rgba() string for
+ *  the SVG fill. Tolerant of bad input — falls back to transparent. */
+function backdropFill(color: string, opacity: number): string {
+  const hex = color.replace('#', '');
+  if (hex.length !== 6) return `rgba(38, 36, 36, ${opacity})`;
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  if ([r, g, b].some(Number.isNaN)) return `rgba(38, 36, 36, ${opacity})`;
+  return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, opacity))})`;
 }
 
 // ── Presets (defaults) ────────────────────────────────────────────
@@ -129,6 +145,37 @@ const ACTIVE_ID_STORAGE_KEY = 'radial-states-active-profile-id';
 
 function makeNewId(): string {
   return `rs-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// 50 curated names dedicated to radial-states. None overlap with the
+// radial-waveform CURATED_NAMES list (which covers 100 names already
+// used by Thorn / Peak / Kite / etc.). Same auto-pick pattern as the
+// blob gallery / realtime-states use: pick a fresh name from the list,
+// fall back to "<name> 2" if all are used.
+const CURATED_NAMES = [
+  'Aether', 'Astra', 'Boreal', 'Bramble', 'Cascade',
+  'Caldera', 'Citrine', 'Clarion', 'Cobalt', 'Crescent',
+  'Cyan', 'Dynasty', 'Elixir', 'Fathom', 'Flint',
+  'Galaxy', 'Garnet', 'Glimmer', 'Hazel', 'Hyacinth',
+  'Indigo', 'Kerria', 'Larkspur', 'Lattice', 'Lichen',
+  'Lilac', 'Mariner', 'Maven', 'Mosaic', 'Nimbus',
+  'Onyx', 'Oracle', 'Pearl', 'Pivot', 'Polaris',
+  'Ravine', 'Sable', 'Saffron', 'Sapphire', 'Seraph',
+  'Shimmer', 'Solstice', 'Sonata', 'Specter', 'Spire',
+  'Tempo', 'Tonic', 'Verdant', 'Voyage', 'Yarrow',
+] as const;
+
+function pickFreshName(profiles: { name: string }[]): string {
+  const used = new Set(profiles.map((p) => p.name.toLowerCase()));
+  const available = CURATED_NAMES.filter((n) => !used.has(n.toLowerCase()));
+  if (available.length > 0) {
+    return available[Math.floor(Math.random() * available.length)];
+  }
+  // All names in use — fall back to "<curated> 2", "<curated> 3"…
+  const base = CURATED_NAMES[Math.floor(Math.random() * CURATED_NAMES.length)];
+  let i = 2;
+  while (used.has(`${base} ${i}`.toLowerCase())) i++;
+  return `${base} ${i}`;
 }
 
 function settingsOf(p: RadialLinkedProfile): AllSettings {
@@ -388,6 +435,8 @@ interface CellProps {
   /** Backdrop config — both edges have independent shape/segments/depth.
    *  Resolved with defaults at the page level. */
   backdropEnabled: boolean;
+  backdropColor: string;
+  backdropOpacity: number;
   backdropShape: 'circle' | 'segments';
   backdropSegments: number;
   backdropDepth: number;
@@ -416,6 +465,8 @@ function Cell({
   donutSize,
   donutThickness,
   backdropEnabled,
+  backdropColor,
+  backdropOpacity,
   backdropShape,
   backdropSegments,
   backdropDepth,
@@ -480,7 +531,7 @@ function Cell({
             innerR={backdropInnerR}
             innerSegments={backdropSegments}
             innerDepth={backdropDepth}
-            color={DONUT_COLOR}
+            color={backdropFill(backdropColor, backdropOpacity)}
           />
         )}
         {showMaxGhost && (
@@ -969,6 +1020,29 @@ function ControlsPanel({
         </div>
         {backdrop.enabled && (
           <>
+            {/* Color + opacity row — inline so they share one line. The
+             *  swatch shows the actual rendered fill (color × opacity)
+             *  rather than just the hex; keeps the affordance honest. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af' }}>
+                <span>Color</span>
+                <div style={{ position: 'relative', width: 18, height: 18, borderRadius: 9, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ position: 'absolute', inset: 0, backgroundColor: backdropFill(backdrop.color, backdrop.opacity) }} />
+                  <input type="color" value={backdrop.color} onChange={(e) => onBackdropChange({ color: e.target.value })} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} />
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <Slider
+                  label="Opacity"
+                  value={backdrop.opacity}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={(v) => onBackdropChange({ opacity: v })}
+                  onReset={backdropReset('opacity')}
+                />
+              </div>
+            </div>
             <PillGroup
               label="Inner"
               value={backdrop.shape}
@@ -1063,6 +1137,7 @@ export default function RadialStatesReview() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const [renameDraft, setRenameDraft] = useState<string | null>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   // Load profiles from disk on mount. Falls back to a single seed
@@ -1248,6 +1323,24 @@ export default function RadialStatesReview() {
     await persistRadialLinkedProfiles(next);
   };
 
+  const handleRenameCommit = async () => {
+    const name = (renameDraft ?? '').trim();
+    if (!name || !activeProfile) {
+      setRenameDraft(null);
+      return;
+    }
+    if (name === activeProfile.name) {
+      setRenameDraft(null);
+      return;
+    }
+    const next = profiles.map((p) =>
+      p.id === activeProfile.id ? { ...p, name, lastModified: Date.now() } : p,
+    );
+    setProfiles(next);
+    setRenameDraft(null);
+    await persistRadialLinkedProfiles(next);
+  };
+
   // Donut envelope dimensions — anchored on the IDLE state's current
   // settings, so as the user dials idle.maxBarLength down (e.g. 60 →
   // 43), the donut's inner edge tracks at the same DONUT_PADDING (14px)
@@ -1297,6 +1390,8 @@ export default function RadialStatesReview() {
           donutSize={donutSize}
           donutThickness={donutThickness}
           backdropEnabled={backdrop.enabled}
+          backdropColor={backdrop.color}
+          backdropOpacity={backdrop.opacity}
           backdropShape={backdrop.shape}
           backdropSegments={backdrop.segments}
           backdropDepth={backdrop.depth}
@@ -1422,7 +1517,10 @@ export default function RadialStatesReview() {
 
           <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
 
-          {/* Profile dropdown */}
+          {/* Profile dropdown — three states:
+           *    showSaveDialog  → input for new profile name
+           *    renameDraft !== null → input for renaming the active profile
+           *    default         → button showing active name + chevron */}
           <div style={{ position: 'relative' }} ref={profileMenuRef}>
             {showSaveDialog ? (
               <input
@@ -1446,6 +1544,29 @@ export default function RadialStatesReview() {
                   background: 'rgba(255,255,255,0.05)',
                   color: '#fafafa',
                   border: '1px solid rgba(255,255,255,0.15)',
+                  outline: 'none',
+                }}
+              />
+            ) : renameDraft !== null ? (
+              <input
+                type="text"
+                value={renameDraft}
+                onChange={(e) => setRenameDraft(e.target.value)}
+                onBlur={handleRenameCommit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleRenameCommit();
+                  if (e.key === 'Escape') setRenameDraft(null);
+                }}
+                placeholder="Rename profile"
+                autoFocus
+                style={{
+                  width: 140,
+                  padding: '4px 8px',
+                  fontSize: 12,
+                  borderRadius: 6,
+                  background: 'rgba(250,204,21,0.1)',
+                  color: '#fafafa',
+                  border: '1px solid rgba(250,204,21,0.4)',
                   outline: 'none',
                 }}
               />
@@ -1572,11 +1693,32 @@ export default function RadialStatesReview() {
                   Update
                 </button>
               )}
-              {/* Save (Save As) */}
+              {/* Rename (active profile, in place) */}
+              {activeProfile && (
+                <button
+                  type="button"
+                  onClick={() => setRenameDraft(activeProfile.name)}
+                  style={{
+                    padding: 6,
+                    borderRadius: 6,
+                    background: 'rgba(255,255,255,0.05)',
+                    color: '#9ca3af',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  aria-label="Rename current profile"
+                  title="Rename current profile"
+                >
+                  <Pencil size={12} />
+                </button>
+              )}
+              {/* Save (Save As — auto-pick a fresh curated name) */}
               <button
                 type="button"
                 onClick={() => {
-                  setSaveName(activeProfile ? `${activeProfile.name} copy` : '');
+                  setSaveName(pickFreshName(profiles));
                   setShowSaveDialog(true);
                 }}
                 style={{
@@ -1609,10 +1751,14 @@ export default function RadialStatesReview() {
                     color: '#9ca3af',
                     border: 'none',
                     cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
                   }}
                   aria-label="Discard unsaved edits"
                   title="Discard unsaved edits"
                 >
+                  <RotateCcw size={12} />
                   Discard
                 </button>
               )}
