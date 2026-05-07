@@ -23,6 +23,7 @@ import RadialOutward from '@/projects/radial-waveform/variants/RadialOutward';
 import RadialGalleryAudioControls from '@/projects/radial-waveform/components/RadialGalleryAudioControls';
 import { audioService } from '@/projects/radial-waveform/services/audioService';
 import type { RadialSettings } from '@/projects/radial-waveform/types';
+import { ColorPickerButton } from './ColorPicker';
 import {
   fetchRadialLinkedProfiles,
   persistRadialLinkedProfiles,
@@ -192,107 +193,6 @@ function snapshotOf(p: RadialLinkedProfile): ProfileSnapshot {
     settings: settingsOf(p),
     backdrop: resolveBackdrop(p.backdrop),
   };
-}
-
-// ── Color picker (native + hex input) ────────────────────────────
-//
-// Two-part picker that mirrors the realtime-states picker SHAPE without
-// pulling react-aria-components into this bundle (cross-project import
-// of the realtime-states ColorPickerButton triggered a dev-build
-// 'getStaticProps with getServerSideProps' error). Native <input
-// type=color> drives the saturation/value picker (browser-supplied
-// flyout), and an editable hex input below the swatch lets the user
-// type colors directly. Same affordance — circular swatch — same
-// editability, no extra deps.
-
-interface ColorPickerButtonProps {
-  value: string;
-  onChange: (v: string) => void;
-  title?: string;
-  swatchSize?: number;
-}
-
-function ColorPickerButton({
-  value,
-  onChange,
-  title = 'Open colour picker',
-  swatchSize = 18,
-}: ColorPickerButtonProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [hexDraft, setHexDraft] = useState(value);
-  useEffect(() => {
-    setHexDraft(value);
-  }, [value]);
-
-  return (
-    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        title={title}
-        style={{
-          position: 'relative',
-          width: swatchSize,
-          height: swatchSize,
-          borderRadius: '50%',
-          overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.15)',
-          padding: 0,
-          cursor: 'pointer',
-          background: 'transparent',
-        }}
-      >
-        <span style={{ position: 'absolute', inset: 0, backgroundColor: value }} />
-      </button>
-      <input
-        ref={inputRef}
-        type="color"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          position: 'absolute',
-          width: 0,
-          height: 0,
-          padding: 0,
-          border: 0,
-          opacity: 0,
-          pointerEvents: 'none',
-        }}
-        aria-label={title}
-      />
-      <input
-        type="text"
-        value={hexDraft}
-        onChange={(e) => setHexDraft(e.target.value)}
-        onBlur={() => {
-          const v = hexDraft.trim();
-          if (/^#?[0-9a-fA-F]{6}$/.test(v)) {
-            onChange(v.startsWith('#') ? v.toLowerCase() : `#${v.toLowerCase()}`);
-          } else {
-            setHexDraft(value);
-          }
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-          if (e.key === 'Escape') {
-            setHexDraft(value);
-            (e.target as HTMLInputElement).blur();
-          }
-        }}
-        style={{
-          width: 64,
-          padding: '2px 4px',
-          fontSize: 10,
-          fontVariantNumeric: 'tabular-nums',
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 4,
-          color: '#d1d5db',
-          outline: 'none',
-        }}
-      />
-    </div>
-  );
 }
 
 // ── Ghost bars (Max Bar Length preview) ──────────────────────────
