@@ -51,6 +51,23 @@ export interface LinkedProfile {
   talking: PeakOverrides;
 }
 
+/** SCHEMA RULE — when adding a field to SavedProfile / SavedCoralProfile:
+ *
+ *   1. Mark it optional (`field?: T`) unless paired with a JSON
+ *      migration. Persisted JSON files predate the field and will read
+ *      it as `undefined` until the next save rewrites them.
+ *   2. Read defensively at every consumer: `=== true` for booleans,
+ *      `?? fallback` for values. Don't truthy-check.
+ *   3. Mirror the field in BOTH `orbs` useMemo projections — there are
+ *      currently two duplicates (parent at ~L1858, editor child at
+ *      ~L226). Forgetting one causes silent field-loss between source
+ *      array and runtime LoadedOrb.
+ *   4. If the field affects a fetch-driven code path, ensure the
+ *      fetches use `cache: 'no-store'`. Browser-cached responses
+ *      predating the field will silently drop it (real bug — see
+ *      commit 19dc15a).
+ *
+ *  See tasks/realtime-states-seam-audit.md §5.1 for context. */
 export interface SavedProfile {
   id: string;
   name: string;

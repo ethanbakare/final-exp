@@ -223,6 +223,10 @@ function RealtimeStatesEditor({
   // into the LoadedOrb discriminated union. activeOrb is passed in as
   // a prop by the parent (already resolved before this child mounts —
   // see RealtimeStates parent and the cascadeReady gate).
+  //
+  // DUPLICATE PROJECTION: mirrored in the parent (RealtimeStates). When
+  // adding a SavedProfile field, edit BOTH projections. See seam audit
+  // §6.1.
   const orbs = useMemo<LoadedOrb[]>(() => {
     const tubeOrbs: LoadedOrb[] = tubeProfiles.map((p) => ({
       shader: 'tube' as const,
@@ -231,7 +235,7 @@ function RealtimeStatesEditor({
       name: p.name,
       pinned: p.pinned === true,
       // Optional pass-through — undefined / true / false flow through
-      // unchanged. Reads use `=== true` defensively (force-intro plan §3).
+      // unchanged. Reads use `=== true` defensively.
       skipIntroOnSelect: p.skipIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
@@ -266,17 +270,36 @@ function RealtimeStatesEditor({
     setRender(next);
   };
 
+  /**
+   * Restart the talking → idle intro for the active Tube profile.
+   *
+   * Side effects (deliberate):
+   *   - lastTsRef reset: avoids a stale-mount-time dt on the next RAF
+   *     tick. Without this, the first frame after Replay would see
+   *     `dt = (now - mountTime)` clamped to 1/30s, producing a visible
+   *     jump in render values.
+   *   - pulseRef reset: thinking pulse re-enters from rest.
+   *   - autoLoop / thinkingPaused: cancelled — Replay is an explicit
+   *     manual action, treat as a fresh start.
+   *   - activeTauOverrideRef set: ensures animator settles via
+   *     talking.settleSpeed even when state is already 'idle' (in which
+   *     case setState('idle') is a no-op and the talking-exit effect
+   *     never re-fires to set the override).
+   *   - previousStateRef = 'talking' (only when state IS changing): if
+   *     setState('idle') triggers a re-render, the talking-exit effect
+   *     will see prev='talking' and re-arm the override. When state is
+   *     already idle, setState is a no-op so this fixup isn't needed.
+   *   - setState('idle'): may be a no-op. RELIES on React's state-
+   *     equality short-circuit. Don't refactor this to setState((p) =>
+   *     'idle') or similar — the no-op behavior is load-bearing.
+   *   - setRenderNow(talking): seeds render to talking values; animator
+   *     morphs back to base from there.
+   */
   const restartIntro = (nextProfile = profileRef.current) => {
     lastTsRef.current = performance.now();
     pulseRef.current = { phase: 0, dir: 1 };
     setAutoLoop(false);
     setThinkingPaused(false);
-    // Replay seeds talking values into render with state=idle, so the
-    // settle back to base must use talking.settleSpeed (with
-    // base.thickenSpeed as fallback). Arm the override directly so it
-    // is in effect even when setState('idle') is a no-op (state
-    // already idle). When state IS changing, lie that previousState
-    // was 'talking' so the state-effect re-arms instead of clearing.
     activeTauOverrideRef.current =
       nextProfile.talking.settleSpeed ?? nextProfile.base.thickenSpeed;
     if (stateRef.current !== 'idle') {
@@ -1855,6 +1878,13 @@ export default function RealtimeStates() {
   // Derived orbs list (passed to child as activeOrb prop after
   // resolution; child also re-derives orbs internally for the
   // dropdown).
+  //
+  // DUPLICATE PROJECTION: this useMemo is mirrored in the editor child
+  // (search for the other `orbs = useMemo<LoadedOrb[]>` in this file).
+  // When adding a SavedProfile field, edit BOTH projections. Until the
+  // duplication is consolidated (handoff open follow-up #6), forgetting
+  // one causes silent field-loss between source array and runtime
+  // LoadedOrb. See tasks/realtime-states-seam-audit.md §6.1.
   const orbs = useMemo<LoadedOrb[]>(() => {
     const tubeOrbs: LoadedOrb[] = tubeProfiles.map((p) => ({
       shader: 'tube' as const,
@@ -1863,7 +1893,7 @@ export default function RealtimeStates() {
       name: p.name,
       pinned: p.pinned === true,
       // Optional pass-through — undefined / true / false flow through
-      // unchanged. Reads use `=== true` defensively (force-intro plan §3).
+      // unchanged. Reads use `=== true` defensively.
       skipIntroOnSelect: p.skipIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
