@@ -177,7 +177,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       shader: 'coral' | 'tube',
     ): Promise<LoadedOrb[]> => {
       try {
-        const r = await fetch(`/api/studio-profiles?variant=${variant}`);
+        const r = await fetch(`/api/studio-profiles?variant=${variant}`, { cache: 'no-store' });
         const arr = await r.json();
         if (!Array.isArray(arr)) return [];
         if (shader === 'coral') {

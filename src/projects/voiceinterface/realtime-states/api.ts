@@ -13,7 +13,11 @@ const CORAL_API = '/api/studio-profiles?variant=realtime-coral';
 
 export async function fetchProfiles(): Promise<SavedProfile[]> {
   try {
-    const r = await fetch(API);
+    // cache:'no-store' so a stale browser-cached response (lacking
+    // newer schema fields like skipIntroOnSelect) doesn't propagate
+    // through setTubeProfiles → orbs → activeOrb. This was a real bug:
+    // the API returned the field, but the cached fetch did not.
+    const r = await fetch(API, { cache: 'no-store' });
     const j = await r.json();
     return Array.isArray(j) ? j : [];
   } catch {
@@ -23,7 +27,7 @@ export async function fetchProfiles(): Promise<SavedProfile[]> {
 
 export async function fetchProfileNames(variant: string): Promise<string[]> {
   try {
-    const r = await fetch(`/api/studio-profiles?variant=${variant}`);
+    const r = await fetch(`/api/studio-profiles?variant=${variant}`, { cache: 'no-store' });
     const j = await r.json();
     return Array.isArray(j)
       ? j.map((p) => (typeof p?.name === 'string' ? p.name : '')).filter(Boolean)
@@ -47,7 +51,7 @@ export async function persistProfiles(arr: SavedProfile[]) {
 
 export async function fetchCoralProfiles(): Promise<SavedCoralProfile[]> {
   try {
-    const r = await fetch(CORAL_API);
+    const r = await fetch(CORAL_API, { cache: 'no-store' });
     const j = await r.json();
     return Array.isArray(j) ? j : [];
   } catch {
