@@ -26,8 +26,23 @@ import type { RadialSettings } from '@/projects/radial-waveform/types';
 import {
   fetchRadialLinkedProfiles,
   persistRadialLinkedProfiles,
+  type RadialBackdrop,
   type RadialLinkedProfile,
 } from './api';
+
+const DEFAULT_BACKDROP: Required<RadialBackdrop> = {
+  shape: 'circle',
+  segments: 7,
+  depth: 6,
+};
+
+function resolveBackdrop(b: RadialBackdrop | undefined): Required<RadialBackdrop> {
+  return {
+    shape: b?.shape ?? DEFAULT_BACKDROP.shape,
+    segments: b?.segments ?? DEFAULT_BACKDROP.segments,
+    depth: b?.depth ?? DEFAULT_BACKDROP.depth,
+  };
+}
 
 // ── Presets (defaults) ────────────────────────────────────────────
 
@@ -110,6 +125,18 @@ function makeNewId(): string {
 
 function settingsOf(p: RadialLinkedProfile): AllSettings {
   return { idle: p.idle, thinking: p.thinking, talking: p.talking };
+}
+
+interface ProfileSnapshot {
+  settings: AllSettings;
+  backdrop: Required<RadialBackdrop>;
+}
+
+function snapshotOf(p: RadialLinkedProfile): ProfileSnapshot {
+  return {
+    settings: settingsOf(p),
+    backdrop: resolveBackdrop(p.backdrop),
+  };
 }
 
 // ── Ghost bars (Max Bar Length preview) ──────────────────────────
@@ -245,6 +272,67 @@ function GhostBars({ variant, settings, size, color }: GhostBarsProps) {
   );
 }
 
+// ── Backdrop (static donut ring) ──────────────────────────────────
+//
+// SVG-based replacement for the previous CSS donut. Outer contour is
+// always a perfect circle; inner contour is either a perfect circle or
+// a parametric wavy curve with N lobes (cos(N*θ) modulating r). Even-
+// odd fillRule cuts the inner shape out of the outer disc.
+
+interface BackdropProps {
+  shape: 'circle' | 'segments';
+  outerR: number;
+  innerR: number;
+  segments: number;
+  depth: number;
+  color: string;
+}
+
+function Backdrop({ shape, outerR, innerR, segments, depth, color }: BackdropProps) {
+  const size = outerR * 2;
+
+  // Outer circle path. Two half-arcs cover the full circle.
+  const outerPath = `M ${outerR} 0 A ${outerR} ${outerR} 0 1 1 ${-outerR} 0 A ${outerR} ${outerR} 0 1 1 ${outerR} 0 Z`;
+
+  let innerPath: string;
+  if (shape === 'circle' || segments < 1 || depth <= 0) {
+    innerPath = `M ${innerR} 0 A ${innerR} ${innerR} 0 1 0 ${-innerR} 0 A ${innerR} ${innerR} 0 1 0 ${innerR} 0 Z`;
+  } else {
+    // Parametric wavy inner contour: r(θ) = innerR + depth * cos(N*θ).
+    // 360 samples gives a smooth curve at the sizes we work with.
+    const samples = 360;
+    const pts: string[] = [];
+    for (let i = 0; i <= samples; i++) {
+      const t = (i / samples) * Math.PI * 2;
+      const r = innerR + depth * Math.cos(segments * t);
+      const x = r * Math.cos(t);
+      const y = r * Math.sin(t);
+      pts.push(i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : `L ${x.toFixed(2)} ${y.toFixed(2)}`);
+    }
+    pts.push('Z');
+    innerPath = pts.join(' ');
+  }
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`${-outerR} ${-outerR} ${size} ${size}`}
+      style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }}
+      aria-hidden
+    >
+      <path d={`${outerPath} ${innerPath}`} fill={color} fillRule="evenodd" />
+    </svg>
+  );
+}
+
 // ── Cell ──────────────────────────────────────────────────────────
 
 interface CellProps {
@@ -265,6 +353,11 @@ interface CellProps {
    *  idle.radius - idle.maxBarLength - DONUT_PADDING. */
   donutSize: number;
   donutThickness: number;
+  /** Backdrop config — shape ('circle' | 'segments'), lobe count, and
+   *  lobe depth. Resolved with defaults at the page level. */
+  backdropShape: 'circle' | 'segments';
+  backdropSegments: number;
+  backdropDepth: number;
 }
 
 const CELL_SIZE = 360;
@@ -276,8 +369,10 @@ const CELL_SIZE = 360;
 const DONUT_PADDING = 14;
 const DONUT_COLOR = 'rgba(38, 36, 36, 0.03)'; // #262424 at 3%
 
-function Cell({ label, settings, frequencyData, variant, focused, onClick, showMaxGhost, donutSize, donutThickness }: CellProps) {
+function Cell({ label, settings, frequencyData, variant, focused, onClick, showMaxGhost, donutSize, donutThickness, backdropShape, backdropSegments, backdropDepth }: CellProps) {
   const Renderer = variant === 'outward' ? RadialOutward : RadialInward;
+  const backdropOuterR = donutSize / 2;
+  const backdropInnerR = backdropOuterR - donutThickness;
 
   // Max-reach ghost: individual bars at maxBarLength shown via the
   // GhostBars overlay below. Sized to fit both inward and outward
@@ -322,21 +417,13 @@ function Cell({ label, settings, frequencyData, variant, focused, onClick, showM
         aria-pressed={focused}
         aria-label={`Focus ${label}`}
       >
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            width: donutSize,
-            height: donutSize,
-            transform: 'translate(-50%, -50%)',
-            borderRadius: '50%',
-            border: `${donutThickness}px solid ${DONUT_COLOR}`,
-            boxSizing: 'border-box',
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
+        <Backdrop
+          shape={backdropShape}
+          outerR={backdropOuterR}
+          innerR={backdropInnerR}
+          segments={backdropSegments}
+          depth={backdropDepth}
+          color={DONUT_COLOR}
         />
         {showMaxGhost && (
           <GhostBars
@@ -533,9 +620,12 @@ interface ControlsPanelProps {
   /** Hover signal for the Max Bar Length slider — drives the red ghost
    *  ring on the focused cell. */
   onMaxBarHover: (hover: boolean) => void;
+  /** Profile-level backdrop config + setter (shared across all states). */
+  backdrop: Required<RadialBackdrop>;
+  onBackdropChange: (patch: Partial<RadialBackdrop>) => void;
 }
 
-function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover }: ControlsPanelProps) {
+function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover, backdrop, onBackdropChange }: ControlsPanelProps) {
   const set = <K extends keyof RadialSettings>(key: K, value: RadialSettings[K]) =>
     onChange({ [key]: value } as Partial<RadialSettings>);
 
@@ -569,7 +659,7 @@ function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover }: Cont
         borderTop: '1px solid rgba(255,255,255,0.1)',
         padding: '16px 24px',
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
         gap: 20,
       }}
     >
@@ -652,6 +742,38 @@ function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover }: Cont
           Reset this state
         </button>
       </div>
+
+      {/* Backdrop — profile-level (shared across all three states). */}
+      <div style={columnStyle}>
+        <h3 style={headerStyle}>Backdrop</h3>
+        <PillGroup
+          label="Shape"
+          value={backdrop.shape}
+          options={['circle', 'segments'] as const}
+          onChange={(v) => onBackdropChange({ shape: v })}
+        />
+        {backdrop.shape === 'segments' && (
+          <>
+            <Slider
+              label="Segments"
+              value={backdrop.segments}
+              min={3}
+              max={16}
+              step={1}
+              onChange={(v) => onBackdropChange({ segments: v })}
+            />
+            <Slider
+              label="Depth"
+              value={backdrop.depth}
+              min={0}
+              max={20}
+              step={0.5}
+              unit="px"
+              onChange={(v) => onBackdropChange({ depth: v })}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -678,7 +800,7 @@ export default function RadialStatesReview() {
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   // Baseline snapshot of the active profile's settings at last save / load.
   // Used for dirty detection (compared against current activeProfile.settings).
-  const [baseline, setBaseline] = useState<AllSettings | null>(null);
+  const [baseline, setBaseline] = useState<ProfileSnapshot | null>(null);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [controlsCollapsed, setControlsCollapsed] = useState(false);
   const [maxBarHovered, setMaxBarHovered] = useState(false);
@@ -714,7 +836,7 @@ export default function RadialStatesReview() {
       const savedId = window.localStorage.getItem(ACTIVE_ID_STORAGE_KEY);
       const initial = initialList.find((p) => p.id === savedId) ?? initialList[0];
       setActiveProfileId(initial.id);
-      setBaseline(settingsOf(initial));
+      setBaseline(snapshotOf(initial));
       setProfilesLoaded(true);
     });
     return () => {
@@ -739,10 +861,11 @@ export default function RadialStatesReview() {
   );
   const all: AllSettings = activeProfile ? settingsOf(activeProfile) : DEFAULT_ALL;
 
-  // Dirty detection: shallow JSON-compare current vs baseline.
+  // Dirty detection: shallow JSON-compare current snapshot (settings +
+  // backdrop) vs baseline.
   const isDirty = useMemo(() => {
     if (!activeProfile || !baseline) return false;
-    return JSON.stringify(settingsOf(activeProfile)) !== JSON.stringify(baseline);
+    return JSON.stringify(snapshotOf(activeProfile)) !== JSON.stringify(baseline);
   }, [activeProfile, baseline]);
 
   // Audio polling.
@@ -791,7 +914,7 @@ export default function RadialStatesReview() {
     if (!activeProfileId || !baseline) return;
     setProfiles((prev) =>
       prev.map((p) =>
-        p.id === activeProfileId ? { ...p, [focused]: baseline[focused] } : p,
+        p.id === activeProfileId ? { ...p, [focused]: baseline.settings[focused] } : p,
       ),
     );
   };
@@ -802,7 +925,7 @@ export default function RadialStatesReview() {
       p.id === activeProfile.id ? { ...p, lastModified: Date.now() } : p,
     );
     setProfiles(next);
-    setBaseline(settingsOf(activeProfile));
+    setBaseline(snapshotOf(activeProfile));
     await persistRadialLinkedProfiles(next);
   };
 
@@ -811,7 +934,13 @@ export default function RadialStatesReview() {
     setProfiles((prev) =>
       prev.map((p) =>
         p.id === activeProfileId
-          ? { ...p, idle: baseline.idle, thinking: baseline.thinking, talking: baseline.talking }
+          ? {
+              ...p,
+              idle: baseline.settings.idle,
+              thinking: baseline.settings.thinking,
+              talking: baseline.settings.talking,
+              backdrop: baseline.backdrop,
+            }
           : p,
       ),
     );
@@ -828,16 +957,17 @@ export default function RadialStatesReview() {
           q.id === activeProfileId
             ? {
                 ...q,
-                idle: baseline.idle,
-                thinking: baseline.thinking,
-                talking: baseline.talking,
+                idle: baseline.settings.idle,
+                thinking: baseline.settings.thinking,
+                talking: baseline.settings.talking,
+                backdrop: baseline.backdrop,
               }
             : q,
         ),
       );
     }
     setActiveProfileId(id);
-    setBaseline(settingsOf(p));
+    setBaseline(snapshotOf(p));
     setShowProfileDropdown(false);
   };
 
@@ -850,12 +980,13 @@ export default function RadialStatesReview() {
       idle: activeProfile.idle,
       thinking: activeProfile.thinking,
       talking: activeProfile.talking,
+      backdrop: activeProfile.backdrop,
       lastModified: Date.now(),
     };
     const next = [...profiles, newProfile];
     setProfiles(next);
     setActiveProfileId(newProfile.id);
-    setBaseline(settingsOf(newProfile));
+    setBaseline(snapshotOf(newProfile));
     setShowSaveDialog(false);
     setSaveName('');
     await persistRadialLinkedProfiles(next);
@@ -869,6 +1000,22 @@ export default function RadialStatesReview() {
   const donutInner = Math.max(0, all.idle.radius - all.idle.maxBarLength - DONUT_PADDING);
   const donutSize = donutOuter * 2;
   const donutThickness = donutOuter - donutInner;
+  const backdrop = resolveBackdrop(activeProfile?.backdrop);
+
+  const updateBackdrop = (patch: Partial<RadialBackdrop>) => {
+    if (!activeProfileId) return;
+    setProfiles((prev) =>
+      prev.map((p) =>
+        p.id === activeProfileId
+          ? {
+              ...p,
+              backdrop: { ...resolveBackdrop(p.backdrop), ...patch },
+              lastModified: Date.now(),
+            }
+          : p,
+      ),
+    );
+  };
 
   const cellsRow = (
     <div
@@ -893,6 +1040,9 @@ export default function RadialStatesReview() {
           showMaxGhost={focused === k && maxBarHovered}
           donutSize={donutSize}
           donutThickness={donutThickness}
+          backdropShape={backdrop.shape}
+          backdropSegments={backdrop.segments}
+          backdropDepth={backdrop.depth}
         />
       ))}
     </div>
@@ -947,6 +1097,8 @@ export default function RadialStatesReview() {
             onChange={updateFocused}
             onResetState={resetFocused}
             onMaxBarHover={setMaxBarHovered}
+            backdrop={backdrop}
+            onBackdropChange={updateBackdrop}
           />
         )}
         <div
