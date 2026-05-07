@@ -205,7 +205,7 @@ function Cell({ label, settings, frequencyData, variant, focused, onClick, showM
               height: ghostSize,
               transform: 'translate(-50%, -50%)',
               borderRadius: '50%',
-              border: `${ghostThickness}px solid rgba(239, 68, 68, 0.18)`,
+              border: `${ghostThickness}px solid rgba(239, 68, 68, 0.08)`,
               boxSizing: 'border-box',
               pointerEvents: 'none',
               zIndex: 2,
