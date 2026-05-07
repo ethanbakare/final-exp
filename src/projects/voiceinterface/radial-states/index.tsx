@@ -103,9 +103,10 @@ interface CellProps {
 
 const CELL_SIZE = 360;
 // Padding between the bar zone (full possible range across min/max) and
-// each edge of the static donut envelope behind the bars.
-const DONUT_PADDING = 10;
-const DONUT_COLOR = 'rgba(0, 0, 0, 0.05)';
+// each edge of the static donut envelope behind the bars. Kept tight
+// so the donut hugs the bars but never gets clipped at peak audio.
+const DONUT_PADDING = 5;
+const DONUT_COLOR = 'rgba(38, 36, 36, 0.03)'; // #262424 at 3%
 
 function Cell({ label, settings, frequencyData, variant }: CellProps) {
   const Renderer = variant === 'outward' ? RadialOutward : RadialInward;
@@ -160,35 +161,38 @@ function Cell({ label, settings, frequencyData, variant }: CellProps) {
             border: `${donutThickness}px solid ${DONUT_COLOR}`,
             boxSizing: 'border-box',
             pointerEvents: 'none',
+            zIndex: 0,
           }}
         />
-        <Renderer
-          frequencyData={frequencyData}
-          radius={settings.radius}
-          barWidth={settings.barWidth}
-          barGap={settings.barGap}
-          minBarLength={settings.minBarLength}
-          maxBarLength={settings.maxBarLength}
-          sensitivity={settings.sensitivity}
-          barColor={settings.barColor}
-          bgColor={settings.bgColor}
-          segments={settings.segments}
-          roundCaps={settings.roundCaps}
-          intensityOpacity={settings.intensityOpacity}
-          updateRate={settings.updateRate}
-          rotationSpeed={settings.rotationSpeed}
-          ambientWave={settings.ambientWave}
-          waveSpeed={settings.waveSpeed}
-          waveAmplitude={settings.waveAmplitude}
-          waveHeight={settings.waveHeight}
-          waveMode={settings.waveMode}
-          waveShape={settings.waveShape}
-          waveLobes={settings.waveLobes}
-          smoothing={settings.smoothing}
-          waveEnvelope={settings.waveEnvelope}
-          envelopeAmplitude={settings.envelopeAmplitude}
-          envelopeSensitivity={settings.envelopeSensitivity}
-        />
+        <div style={{ position: 'relative', zIndex: 1, lineHeight: 0 }}>
+          <Renderer
+            frequencyData={frequencyData}
+            radius={settings.radius}
+            barWidth={settings.barWidth}
+            barGap={settings.barGap}
+            minBarLength={settings.minBarLength}
+            maxBarLength={settings.maxBarLength}
+            sensitivity={settings.sensitivity}
+            barColor={settings.barColor}
+            bgColor={settings.bgColor}
+            segments={settings.segments}
+            roundCaps={settings.roundCaps}
+            intensityOpacity={settings.intensityOpacity}
+            updateRate={settings.updateRate}
+            rotationSpeed={settings.rotationSpeed}
+            ambientWave={settings.ambientWave}
+            waveSpeed={settings.waveSpeed}
+            waveAmplitude={settings.waveAmplitude}
+            waveHeight={settings.waveHeight}
+            waveMode={settings.waveMode}
+            waveShape={settings.waveShape}
+            waveLobes={settings.waveLobes}
+            smoothing={settings.smoothing}
+            waveEnvelope={settings.waveEnvelope}
+            envelopeAmplitude={settings.envelopeAmplitude}
+            envelopeSensitivity={settings.envelopeSensitivity}
+          />
+        </div>
       </div>
       <div
         style={{
