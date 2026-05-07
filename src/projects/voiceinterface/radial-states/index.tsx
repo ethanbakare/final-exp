@@ -659,7 +659,7 @@ function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover, backdr
         borderTop: '1px solid rgba(255,255,255,0.1)',
         padding: '16px 24px',
         display: 'grid',
-        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+        gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
         gap: 20,
       }}
     >
@@ -722,30 +722,62 @@ function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover, backdr
 
       <div style={columnStyle}>
         <h3 style={headerStyle}>Style</h3>
-        <Toggle label="Intensity Opacity" checked={settings.intensityOpacity} onChange={(v) => set('intensityOpacity', v)} />
-        <ColorSwatch label="Bar Color" value={settings.barColor} onChange={(v) => set('barColor', v)} />
-        <ColorSwatch label="Cell BG" value={settings.previewBg} onChange={(v) => set('previewBg', v)} />
+        {/* Compact row: Intensity toggle + Bar / Cell color swatches in one line. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 11,
+              color: '#9ca3af',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={settings.intensityOpacity}
+              onChange={(e) => set('intensityOpacity', e.target.checked)}
+              style={{ accentColor: '#FACC15' }}
+            />
+            Intensity
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af' }}>
+            <span>Bar</span>
+            <div style={{ position: 'relative', width: 18, height: 18, borderRadius: 9, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ position: 'absolute', inset: 0, backgroundColor: settings.barColor }} />
+              <input type="color" value={settings.barColor} onChange={(e) => set('barColor', e.target.value)} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af' }}>
+            <span>BG</span>
+            <div style={{ position: 'relative', width: 18, height: 18, borderRadius: 9, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ position: 'absolute', inset: 0, backgroundColor: settings.previewBg }} />
+              <input type="color" value={settings.previewBg} onChange={(e) => set('previewBg', e.target.value)} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} />
+            </div>
+          </div>
+        </div>
         <button
           type="button"
           onClick={onResetState}
           style={{
-            marginTop: 6,
-            padding: '6px 10px',
+            padding: '4px 10px',
             fontSize: 11,
             borderRadius: 6,
             background: 'rgba(255,255,255,0.05)',
             color: '#9ca3af',
             border: '1px solid rgba(255,255,255,0.1)',
             cursor: 'pointer',
+            alignSelf: 'flex-start',
           }}
         >
-          Reset this state
+          Reset state
         </button>
-      </div>
 
-      {/* Backdrop — profile-level (shared across all three states). */}
-      <div style={columnStyle}>
-        <h3 style={headerStyle}>Backdrop</h3>
+        {/* Backdrop subsection — profile-level (shared across all three
+            states), tucked under Style as a sub-group with its own
+            header. */}
+        <h3 style={{ ...headerStyle, marginTop: 8 }}>Backdrop</h3>
         <PillGroup
           label="Shape"
           value={backdrop.shape}
