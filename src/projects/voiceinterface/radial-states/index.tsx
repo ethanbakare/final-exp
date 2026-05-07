@@ -854,6 +854,10 @@ interface ControlsPanelProps {
    *  only on the Talking state's Geometry panel. */
   lockBarCount: boolean;
   onLockBarCountChange: (v: boolean) => void;
+  /** When focused === 'talking' and lockBarCount is on, the effective
+   *  bar gap is derived from the locked count over talking's smaller
+   *  circumference. Undefined otherwise (slider is live). */
+  talkingDerivedGap: number | undefined;
   /** Profile-level backdrop config + setter (shared across all states). */
   backdrop: Required<RadialBackdrop>;
   baselineBackdrop: Required<RadialBackdrop> | null;
@@ -868,6 +872,7 @@ function ControlsPanel({
   focused,
   lockBarCount,
   onLockBarCountChange,
+  talkingDerivedGap,
   backdrop,
   baselineBackdrop,
   onBackdropChange,
@@ -941,11 +946,11 @@ function ControlsPanel({
           <Slider label="Radius" value={settings.radius} min={30} max={200} step={1} unit="px" onChange={(v) => set('radius', v)} onReset={settingReset('radius')} />
         )}
         <Slider label="Bar Width" value={settings.barWidth} min={0.5} max={10} step={0.5} unit="px" onChange={(v) => set('barWidth', v)} onReset={settingReset('barWidth')} />
-        {focused === 'talking' && lockBarCount ? (
+        {focused === 'talking' && talkingDerivedGap != null ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280' }}>
             <span style={{ color: '#9ca3af' }}>Bar Gap</span>
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {settings.barGap}px <span style={{ color: '#4b5563' }}>(locked)</span>
+              {talkingDerivedGap.toFixed(1)}px <span style={{ color: '#4b5563' }}>(calculated)</span>
             </span>
           </div>
         ) : (
@@ -1459,6 +1464,16 @@ export default function RadialStatesReview() {
     ...all.talking,
     radius: talkingDerivedRadius,
   };
+  // When bar count is locked, talking's bar gap is also derived rather
+  // than free. The bars are spread evenly over talking's (smaller)
+  // circumference, so the effective gap is:
+  //   talkingCircumference / lockedBarCount - barWidth
+  // We surface this computed value as read-only so the user sees the
+  // real spacing rather than the stored (now-irrelevant) barGap.
+  const talkingDerivedGap =
+    lockBarCount && barCountOverride != null
+      ? Math.max(0, (2 * Math.PI * talkingDerivedRadius) / barCountOverride - effectiveTalkingSettings.barWidth)
+      : undefined;
 
   const updateLockBarCount = (next: boolean) => {
     if (!activeProfileId) return;
@@ -1574,6 +1589,7 @@ export default function RadialStatesReview() {
             focused={focused}
             lockBarCount={lockBarCount}
             onLockBarCountChange={updateLockBarCount}
+            talkingDerivedGap={talkingDerivedGap}
             backdrop={backdrop}
             baselineBackdrop={baseline?.backdrop ?? null}
             onBackdropChange={updateBackdrop}
