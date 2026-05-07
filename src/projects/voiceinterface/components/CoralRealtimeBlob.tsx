@@ -74,6 +74,14 @@ interface CoralRealtimeBlobProps {
   profile: CoralRealtimeSettings | null;
   width?: number;
   height?: number;
+  /** When true, suppress the talking → idle intro on mount: eased
+   *  scale / waveIntensity / color3 mount at base values rather than
+   *  talking values, so the orb appears at idle without the sphere →
+   *  torus crossfade. Note: CoralStoneMorph's internal morphRef still
+   *  initializes to 0 (sphere) on mount, but with goal=1 (idle) the
+   *  geometric morph completes within ~one frame at base.morphSpeed,
+   *  which is much less perceptible than the eased prop animation. */
+  skipIntro?: boolean;
 }
 
 /**
@@ -347,6 +355,7 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   profile,
   width = 328,
   height = 328,
+  skipIntro = false,
 }) => {
   const active = profile ?? CORAL_FALLBACK_PROFILE;
   const isTalking = voiceState === 'ai_speaking';
@@ -417,9 +426,21 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   // scale/wave/color, then eases to the idle/base values concurrent
   // with the geometric morph (sphere → torus). This is the intro
   // animation the user expects.
-  const startScale = active.talking?.scale ?? active.base.scale;
-  const startWave = active.talking?.waveIntensity ?? active.base.waveIntensity;
-  const startColor3 = active.talking?.color3 ?? active.base.color3;
+  //
+  // When skipIntro is set, mount the eased values at BASE values
+  // instead — the orb appears immediately at idle/base. The geometric
+  // morph (morphRef 0 → 1) still happens internally but runs much
+  // faster than the eased prop animation, so the visible result is
+  // "no intro" from the user's perspective.
+  const startScale = skipIntro
+    ? active.base.scale
+    : (active.talking?.scale ?? active.base.scale);
+  const startWave = skipIntro
+    ? active.base.waveIntensity
+    : (active.talking?.waveIntensity ?? active.base.waveIntensity);
+  const startColor3 = skipIntro
+    ? active.base.color3
+    : (active.talking?.color3 ?? active.base.color3);
 
   const effectiveScale = useEasedNumber(targetScale, transitionDuration, { startValue: startScale });
   const effectiveWaveIntensity = useEasedNumber(targetWaveIntensity, transitionDuration, { startValue: startWave });

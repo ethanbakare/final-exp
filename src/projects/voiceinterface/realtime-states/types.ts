@@ -59,17 +59,19 @@ export interface SavedProfile {
    *  entry in the dropdown. Default false (a profile must be explicitly
    *  pinned to show on the live page). */
   pinned?: boolean;
-  /** When true, selecting this profile via dropdown (editor) or
-   *  thumbnail (live page) forces the talking-to-idle intro to replay
-   *  even on a same-shader switch — overriding the round-7 F1 "no-intro"
-   *  contract. Default false (read via `=== true` defensively).
+  /** When true, the talking-to-idle intro animation is SUPPRESSED on
+   *  every mount of this profile — first-paint cascade, cross-shader
+   *  switch, Tube `selectProfile`. The orb mounts directly at base/idle
+   *  values with no sphere → torus morph. Default false (read via
+   *  `=== true` defensively).
    *
-   *  Tube schema-only / forward-compat in this pass: today's `selectProfile`
-   *  already calls `restartIntro` unconditionally, so the toggle UI is
-   *  hidden on Tube rows (would be misleading no-op). If Tube same-shader
-   *  behavior is ever changed to prop-only, this field is ready to gate
-   *  the replay mechanism. */
-  forceIntroOnSelect?: boolean;
+   *  Replay button is unaffected — explicit user action always plays
+   *  the intro regardless of this flag.
+   *
+   *  Same field on Tube (`SavedProfile`) and Coral (`SavedCoralProfile`)
+   *  with identical semantics; both shaders show the toggle on the
+   *  bottom bar. */
+  skipIntroOnSelect?: boolean;
   settings: LinkedProfile;
   lastModified: number;
 }
@@ -79,11 +81,9 @@ export interface SavedCoralProfile {
   id: string;
   name: string;
   pinned?: boolean;
-  /** Same semantics as SavedProfile.forceIntroOnSelect — but actively
-   *  used: toggle UI is rendered on Coral dropdown rows, and the field
-   *  gates the same-shader replay path in selectCoralProfile (editor)
-   *  and handleThumbnailClick (live page). */
-  forceIntroOnSelect?: boolean;
+  /** Same semantics as SavedProfile.skipIntroOnSelect — see that
+   *  field's docstring. Suppresses sphere → torus morph on mount. */
+  skipIntroOnSelect?: boolean;
   settings: CoralRealtimeSettings;
   lastModified: number;
 }
@@ -119,10 +119,10 @@ export type LoadedOrb =
       id: string;
       name: string;
       pinned: boolean;
-      /** Optional pass-through of the schema field — `undefined` /
-       *  `true` / `false` all flow through unchanged (no normalization
-       *  at projection time). All read sites use `=== true` defensively. */
-      forceIntroOnSelect?: boolean;
+      /** Optional pass-through of the schema field — undefined /
+       *  true / false flow through unchanged (no normalization at
+       *  projection time). All read sites use `=== true` defensively. */
+      skipIntroOnSelect?: boolean;
       settings: LinkedProfile;
       lastModified: number;
     }
@@ -132,7 +132,7 @@ export type LoadedOrb =
       id: string;
       name: string;
       pinned: boolean;
-      forceIntroOnSelect?: boolean;
+      skipIntroOnSelect?: boolean;
       settings: CoralRealtimeSettings;
       lastModified: number;
     };

@@ -33,6 +33,10 @@ interface NebularrBlobProps {
   profile: LinkedProfile | null;
   width?: number;
   height?: number;
+  /** When true, suppress the talking → idle intro crossfade on mount;
+   *  display the animator output directly without lerping from the
+   *  introTalking shape. */
+  skipIntro?: boolean;
 }
 
 const STATE_MAP: Record<RealtimeVoiceState, LinkedState> = {
@@ -71,6 +75,7 @@ export const NebularrBlob: React.FC<NebularrBlobProps> = ({
   profile,
   width = 328,
   height = 328,
+  skipIntro = false,
 }) => {
   const linkedState = STATE_MAP[voiceState];
   const activeProfile = profile ?? NEBULARR_FALLBACK_PROFILE;
@@ -116,7 +121,13 @@ export const NebularrBlob: React.FC<NebularrBlobProps> = ({
   // Until the first animator frame lands, fall back to the talking
   // shape too (so we don't pop briefly to base before the crossfade).
   const animatorOrBase = animatorRender ?? baseRender(activeProfile.base);
-  const display = lerpRender(introTalking, animatorOrBase, introT);
+  // When skipIntro is set, bypass the talking → animator crossfade
+  // entirely and display the animator output directly. The first frame
+  // falls back to base (animator hasn't run yet), so the orb mounts
+  // visibly at idle/base — no sphere → torus morph.
+  const display = skipIntro
+    ? animatorOrBase
+    : lerpRender(introTalking, animatorOrBase, introT);
 
   return (
     <div className="realtime-blob" style={{ width, height, position: 'relative' }}>

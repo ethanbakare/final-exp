@@ -60,6 +60,7 @@
         "settleSpeed": 0.5
       }
     },
-    "lastModified": 1778053105545
+    "lastModified": 1778141489952,
+    "skipIntroOnSelect": false
   }
 ]

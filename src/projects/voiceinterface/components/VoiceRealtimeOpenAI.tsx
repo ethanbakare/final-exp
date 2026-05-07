@@ -25,13 +25,12 @@ type LoadedOrb =
       id: string;
       name: string;
       pinned: boolean;
-      /** Optional schema field — when true, clicking this thumbnail
-       *  (on a same-shader switch, when not ai_speaking) bumps
-       *  selectionReplayCounter so the inner blob remounts and the
-       *  intro animation replays. See force-intro-plan §5.3 for the
-       *  full four-condition guard. Reads use `=== true` defensively
-       *  so absent / true / false all behave correctly. */
-      forceIntroOnSelect?: boolean;
+      /** When true on the active profile, the talking-to-idle intro
+       *  animation is suppressed — eased props mount at base values
+       *  rather than talking values, no sphere → torus morph plays
+       *  on first mount. Reads use `=== true` defensively so
+       *  absent / true / false all behave correctly. */
+      skipIntroOnSelect?: boolean;
       settings: CoralRealtimeSettings;
       lastModified: number;
     }
@@ -41,7 +40,7 @@ type LoadedOrb =
       id: string;
       name: string;
       pinned: boolean;
-      forceIntroOnSelect?: boolean;
+      skipIntroOnSelect?: boolean;
       settings: LinkedProfile;
       lastModified: number;
     };
@@ -63,10 +62,10 @@ const PLACEHOLDER_THUMB = '/thumbnails/realtime-states/_placeholder.png';
 const thumbSrcFor = (orb: LoadedOrb) =>
   `/thumbnails/realtime-states/${slug(orb.name)}.png`;
 
-// Fallback orbs intentionally omit `forceIntroOnSelect` — the field is
+// Fallback orbs intentionally omit `skipIntroOnSelect` — the field is
 // optional on LoadedOrb, and all read sites use `=== true` so the
-// missing field reads as off. Don't add the field here without also
-// considering the per-shader fallback semantics.
+// missing field reads as off (= intro plays). Don't add the field here
+// without also considering the per-shader fallback semantics.
 const CORAL_FALLBACK_ORB: LoadedOrb = {
   shader: 'coral',
   sourceVariant: 'realtime-coral',
@@ -166,15 +165,6 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   const [orbs, setOrbs] = useState<LoadedOrb[]>([]);
   const [activeOrbKey, setActiveOrbKey] = useState<string | null>(null);
 
-  // Force-intro plan §5.3 — counter bumped when the user clicks a
-  // force-intro thumbnail under the four-condition guard
-  // (handleThumbnailClick below). Threaded into RealtimeBlob as
-  // `selectionReplayKey`, applied to the inner blob's React `key` so
-  // that bumping it remounts the blob → fresh morphRef → talking-to-idle
-  // intro replays. Same mechanism as the editor's replayCounter, just
-  // surgical to the inner blob, not the dispatcher.
-  const [selectionReplayCounter, setSelectionReplayCounter] = useState(0);
-
   // Parallel fetch of both shader profile files via Promise.allSettled
   // so a single failure on one variant doesn't erase the other shader's
   // entries. Each shader gets an independent fallback if its list is
@@ -199,7 +189,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             pinned: p.pinned === true,
             // Pass-through of optional schema field — undefined / true /
             // false all flow through unchanged. Reads use `=== true`.
-            forceIntroOnSelect: p.forceIntroOnSelect,
+            skipIntroOnSelect: p.skipIntroOnSelect,
             settings: p.settings as CoralRealtimeSettings,
             lastModified: p.lastModified ?? 0,
           }));
@@ -210,7 +200,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           id: p.id,
           name: p.name,
           pinned: p.pinned === true,
-          forceIntroOnSelect: p.forceIntroOnSelect,
+          skipIntroOnSelect: p.skipIntroOnSelect,
           settings: p.settings as LinkedProfile,
           lastModified: p.lastModified ?? 0,
         }));
@@ -629,39 +619,6 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   };
 
   /**
-   * Force-intro plan §5.3 — thumbnail click handler.
-   *
-   * Four conditions must ALL hold to bump selectionReplayCounter:
-   *  1. The target profile has the flag enabled.
-   *  2. The user is NOT clicking the currently-active profile
-   *     (composite-key check; ids are scoped per source file).
-   *  3. The switch is same-shader. Cross-shader switches already
-   *     remount the canvas via component-type swap in RealtimeBlob;
-   *     bumping the counter on top would be redundant noise and would
-   *     muddy the "cross-shader unchanged" contract.
-   *  4. The voice state is not currently 'ai_speaking'. Mid-AI-response
-   *     remounts would sit as a sphere (goal=0 in CoralRealtimeBlob)
-   *     until the AI finishes speaking, then morph at the timing of
-   *     the conversation-state transition rather than the click —
-   *     confusing UX. Documented as a known limitation in §5.3a.
-   *
-   * Profile data still flows through props on every click — this only
-   * gates the remount/replay mechanism.
-   */
-  const handleThumbnailClick = (orb: LoadedOrb) => {
-    const targetKey = orbKey(orb);
-    if (
-      orb.forceIntroOnSelect === true &&
-      activeOrbKey !== targetKey &&
-      activeOrb?.shader === orb.shader &&
-      getVoiceState() !== 'ai_speaking'
-    ) {
-      setSelectionReplayCounter((c) => c + 1);
-    }
-    setActiveOrbKey(targetKey);
-  };
-
-  /**
    * Map app state to VoiceState for Velvet orb
    */
   const getVoiceState = (): VoiceState => {
@@ -706,7 +663,11 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
                   audioData={audioData}
                   voiceState={getVoiceState()}
                   orb={realtimeOrb}
-                  selectionReplayKey={selectionReplayCounter}
+                  // Skip-intro flag from the active orb's persisted
+                  // schema — when true, the inner blob mounts at base
+                  // values rather than talking values (no sphere → torus
+                  // morph). Threaded down through RealtimeBlob.
+                  skipIntro={activeOrb?.skipIntroOnSelect === true}
                 />
               )}
             </div>
@@ -743,7 +704,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
               <button
                 key={key}
                 type="button"
-                onClick={() => handleThumbnailClick(thumb)}
+                onClick={() => setActiveOrbKey(key)}
                 className={`profile-thumb ${isActive ? 'is-active' : ''}`}
                 aria-label={`Switch to ${thumb.name} orb`}
                 aria-pressed={isActive}

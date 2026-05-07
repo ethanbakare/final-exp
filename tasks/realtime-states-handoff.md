@@ -68,16 +68,19 @@ Done. Renamed the live page's `shader: 'kyoto'` discriminant to `shader: 'tube'`
 
 Done. User ran the throttled reproduction in DevTools (4× CPU + Slow 3G), tested both persisted Coral and persisted Nebularr cases. Visual confirmation: no Kyoto/Tube content flash during the ~1.5s extended skeleton phase, no bg color flash, navbar didn't flash mid-load. Combined with CLS = 0 from the trace and the architectural guarantee (editor parent doesn't mount the child until `cascadeReady && activeOrb` both flip), the v2.2 first-paint plan's verification section is now complete.
 
-### ~~2. Per-profile `forceIntroOnSelect` toggle~~ — SHIPPED
+### ~~2. Per-profile `skipIntroOnSelect` toggle~~ — SHIPPED
 
-Done. Plan signed off in `tasks/realtime-states-force-intro-plan.md` v5; implementation followed §7 migration steps verbatim.
+Done. Initial v5 implementation (`forceIntroOnSelect`) was the inverse of what was wanted; reverted and rebuilt with corrected semantics.
 
-- `SavedProfile` / `SavedCoralProfile` / both `LoadedOrb` arms gain optional `forceIntroOnSelect?: boolean`. Reads use `=== true` defensively; absent / true / false all behave correctly.
-- Editor: Coral dropdown rows show a third icon button (lucide `RotateCcw`) between bookmark and pencil; Tube rows unchanged. `selectCoralProfile` now has a self-select guard + same-shader-and-flag gate that flips state to idle and bumps `replayCounter`. New `toggleForceIntroOnSelectCoral` mutator persists to `realtime-coral-profiles.json`.
-- Live page: `VoiceRealtimeOpenAI` owns a new `selectionReplayCounter`, `handleThumbnailClick(orb)` with the four-condition guard (flag + non-self-select + same-shader + non-speaking), passed as `selectionReplayKey` into `RealtimeBlob` which threads it onto the inner blob's React `key` for surgical remount.
-- Tube path is forward-compat only: schema field on `SavedProfile`, no toggle UI, no mutator. If Tube same-shader is ever changed to prop-only, two things flip together — `selectProfile` gates on the field, dropdown JSX renders the toggle on Tube rows.
+**Inverted spec — the toggle SUPPRESSES the talking-to-idle intro on mount, rather than forcing it.**
 
-Smoke-tested live: tube rows show 2 icons (bookmark + pencil), coral row shows 3 (bookmark + force-intro + pencil), toggle persists `true` then `false` to JSON, toggling does NOT show Discard/Update (metadata, not settings), live page renders clean.
+- `SavedProfile` / `SavedCoralProfile` / both `LoadedOrb` arms have an optional `skipIntroOnSelect?: boolean`. When `true` on the active profile, the talking-to-idle intro animation is suppressed every time that profile mounts (cascade-on-load, cross-shader switch, Tube `selectProfile`). Reads use `=== true` defensively.
+- Replay button is unaffected — explicit user action always plays the intro regardless of the flag. For Coral, a one-shot `replayForceIntro` state in the editor child overrides the eased-hook startValues for the single render in which `replayCounter` bumps.
+- UI: single bottom-bar toggle button (lucide `RefreshCwOff`) between Pin and Replay, acting on the active profile (mirrors the Pin button pattern). Both shaders show the toggle. New `toggleActiveSkipIntro` mutator routes to the right shader's source array and persist endpoint.
+- Editor wiring: Tube `selectProfile`'s `restartIntro` and the post-mount-on-id-change effect both gate on `!skipIntroOnSelect`. Tube animator's lazy-init `render` seeds from `baseRender` (not `talkingRenderForProfile`) when skip is on; the Tube tau override seeds null. Coral `coralStart{Scale,Wave,Color3}` use base values when skip is on, so the eased hooks mount at base + ease to base = no animation.
+- Live page wiring: `RealtimeBlob` accepts a new `skipIntro?: boolean` prop, threaded into both `<NebularrBlob>` and `<CoralRealtimeBlob>`. NebularrBlob's intro overlay (`display = lerpRender(introTalking, animatorOrBase, introT)`) is bypassed when `skipIntro` — display goes directly to `animatorOrBase`. CoralRealtimeBlob's `startScale/Wave/Color3` use base values when `skipIntro`. `VoiceRealtimeOpenAI` passes `skipIntro={activeOrb?.skipIntroOnSelect === true}`. Fallback orbs intentionally omit the field (reads as off via `=== true`).
+
+Smoke-tested live: bottom-bar toggle shows for both Tube (Nebularr active) and Coral (Coral Realtime active); each routes to its own JSON file; `true` and `false` both persist explicitly (not absent on toggle-off).
 
 ### 3. Fork-from-clean-A semantics
 

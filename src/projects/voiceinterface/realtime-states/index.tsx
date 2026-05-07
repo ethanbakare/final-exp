@@ -13,7 +13,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, Pencil, Bookmark, Disc, Circle } from 'lucide-react';
+import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, RefreshCwOff, Pencil, Bookmark, Disc, Circle } from 'lucide-react';
 import GentleOrbThicken from '@/projects/blob-orb/variants/GentleOrbThicken';
 import CoralStoneMorph from '@/projects/blob-orb/variants/CoralStoneMorph';
 import GalleryAudioControls from '@/projects/blob-orb/components/GalleryAudioControls';
@@ -141,6 +141,16 @@ function RealtimeStatesEditor({
   colorFormat,
   setColorFormat,
 }: EditorProps) {
+  // Skip-intro Replay override — when the active Coral profile has
+  // skipIntroOnSelect on, the eased-hook startValues are derived from
+  // base (not talking), so a Replay click would snap to base + animate
+  // to base = no visible intro. This one-shot state flips the
+  // derivation back to talking for the single render in which
+  // replayCounter bumps; it's cleared on the next tick by a useEffect
+  // below so subsequent renders revert to the skip-intro behavior.
+  // Tube Replay path is unaffected — restartIntro() seeds talking
+  // values directly into render via setRenderNow regardless.
+  const [replayForceIntro, setReplayForceIntro] = useState(false);
   // Replay counter for Coral (forces canvas remount → morphRef resets
   // to 0 → sphere → torus intro replays).
   const [replayCounter, setReplayCounter] = useState(0);
@@ -154,11 +164,21 @@ function RealtimeStatesEditor({
   // first paint matches the morph that follows. Coral path: render
   // isn't read by the Coral canvas, but the lazy-init still resolves
   // a sensible value from TUBE_SEED.
-  const [render, setRender] = useState<RenderValues>(() =>
-    activeOrb.shader === 'tube'
-      ? talkingRenderForProfile(activeOrb.settings)
-      : talkingRenderForProfile(TUBE_SEED),
-  );
+  // Skip-intro plan — when activeOrb.skipIntroOnSelect === true, seed
+  // render from BASE values rather than talking values so the animator
+  // mounts at idle directly (no talking → idle morph). For Coral
+  // activeOrb this branch isn't observed (Tube renderer is gated to
+  // Tube activeOrb), but we still respect the flag for consistency.
+  const [render, setRender] = useState<RenderValues>(() => {
+    if (activeOrb.shader === 'tube') {
+      return activeOrb.skipIntroOnSelect === true
+        ? baseRender(activeOrb.settings.base)
+        : talkingRenderForProfile(activeOrb.settings);
+    }
+    return activeOrb.skipIntroOnSelect === true
+      ? baseRender(TUBE_SEED.base)
+      : talkingRenderForProfile(TUBE_SEED);
+  });
   const [activeTab, setActiveTab] = useState<ControlTab | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -194,8 +214,12 @@ function RealtimeStatesEditor({
   // override from the RESOLVED Tube profile so the first morph back
   // to idle uses the correct settle speed. For Coral activeOrb this
   // is null (Coral has its own native morph; this ref isn't read).
+  //
+  // Skip-intro plan — when the active profile has skipIntroOnSelect on,
+  // there's no talking → idle morph to settle, so leave the override
+  // null and let the animator use the target's natural thickenSpeed.
   const activeTauOverrideRef = useRef<number | null>(
-    activeOrb.shader === 'tube'
+    activeOrb.shader === 'tube' && activeOrb.skipIntroOnSelect !== true
       ? activeOrb.settings.talking.settleSpeed ?? activeOrb.settings.base.thickenSpeed
       : null,
   );
@@ -218,7 +242,7 @@ function RealtimeStatesEditor({
       pinned: p.pinned === true,
       // Optional pass-through — undefined / true / false flow through
       // unchanged. Reads use `=== true` defensively (force-intro plan §3).
-      forceIntroOnSelect: p.forceIntroOnSelect,
+      skipIntroOnSelect: p.skipIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
     }));
@@ -228,7 +252,7 @@ function RealtimeStatesEditor({
       id: p.id,
       name: p.name,
       pinned: p.pinned === true,
-      forceIntroOnSelect: p.forceIntroOnSelect,
+      skipIntroOnSelect: p.skipIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
     }));
@@ -291,16 +315,20 @@ function RealtimeStatesEditor({
   // activeOrb prop changes) trigger restartIntro for Tube only.
   // Coral keeps its existing replayCounter mechanism for explicit
   // Replay; same-shader Coral switching stays prop-only per F1.
+  //
+  // Skip-intro plan — when the new active profile has the flag on,
+  // skip the restartIntro call so the orb settles into the new
+  // settings without a talking-shape flash.
   const isFirstEditorRenderRef = useRef(true);
   useEffect(() => {
     if (isFirstEditorRenderRef.current) {
       isFirstEditorRenderRef.current = false;
       return;
     }
-    if (activeOrb.shader === 'tube') {
+    if (activeOrb.shader === 'tube' && activeOrb.skipIntroOnSelect !== true) {
       restartIntro(activeOrb.settings);
     }
-  }, [activeOrb.id, activeOrb.shader]);
+  }, [activeOrb.id, activeOrb.shader, activeOrb.skipIntroOnSelect]);
 
   // Audio data polling
   useEffect(() => {
@@ -595,50 +623,41 @@ function RealtimeStatesEditor({
       shader: 'tube',
       settings: structuredClone(found.settings),
     });
-    restartIntro(found.settings);
+    // Skip-intro plan — Tube's selectProfile historically called
+    // restartIntro unconditionally, replaying the talking → idle
+    // animation on every same-shader select. Skip-intro suppresses
+    // that. When the target profile opts in, just settle the active
+    // baseline; the post-mount effect that watches activeOrb.id is
+    // also gated, so the orb sits at its current state values without
+    // a replay flash.
+    if (found.skipIntroOnSelect !== true) {
+      restartIntro(found.settings);
+    }
     setShowProfileDropdown(false);
   };
 
   const selectCoralProfile = (id: string) => {
     const found = coralProfiles.find((p) => p.id === id);
     if (!found) return;
-    // Force-intro plan §5.2 — self-select guard. Clicking the
-    // already-active Coral profile in the dropdown short-circuits BOTH
-    // the state flip and the counter bump below. That's intentional:
-    // self-select on a force-intro profile is a no-op (user has the
-    // Replay button for manual replay).
-    if (activeOrb?.shader === 'coral' && activeOrb.id === id) {
-      setShowProfileDropdown(false);
-      return;
-    }
     setActiveOrbKey(`realtime-coral:${id}`);
     setActiveBaseline({
       key: `realtime-coral:${id}`,
       shader: 'coral',
       settings: structuredClone(found.settings),
     });
-    // Plan v8 (F1): same-shader Coral switch is prop-only by default —
-    // no remount, no intro replay. The new profile's settings flow
-    // into the already-mounted CoralStoneMorph and the orb smoothly
-    // transitions to the new values. Cross-shader switching (Coral ↔
-    // Tube) still remounts naturally because the canvas branches
-    // between two component types.
+    // Plan v8 (F1): same-shader Coral switch is prop-only — no remount,
+    // no intro replay. The new profile's settings flow into the
+    // already-mounted CoralStoneMorph and the orb smoothly transitions
+    // to the new values. Replay button is the only same-shader remount
+    // path. Cross-shader switching (Coral ↔ Tube) still remounts
+    // naturally because the canvas branches between two component
+    // types.
     //
-    // Force-intro plan §5.2 — opt-in override. Two conditions required:
-    //  1. activeOrb is already Coral (same-shader switch). On cross-
-    //     shader Tube → Coral, the canvas naturally remounts via
-    //     component-type swap; bumping the counter is redundant and
-    //     contradicts §10's "cross-shader unchanged" contract.
-    //  2. Target profile has the flag enabled.
-    // The state flip mirrors the Replay button (below): the Coral
-    // canvas computes `goal = state === 'talking' ? 0 : 1`. If the
-    // user is on the talking pill, remounting alone keeps goal=0 →
-    // sphere stays sphere, NO intro. Flipping state to 'idle' targets
-    // goal=1 so the freshly-mounted blob plays sphere → torus.
-    if (activeOrb?.shader === 'coral' && found.forceIntroOnSelect === true) {
-      setState('idle');
-      setReplayCounter((c) => c + 1);
-    }
+    // Skip-intro is honoured via the eased-hooks `startValue` (see
+    // coralStartScale/Wave/Color3 below) — at mount/cross-shader the
+    // eased values seed at base instead of talking values, so no
+    // sphere → torus animation plays. Same-shader switches don't
+    // re-trigger mount, so skip-intro is N/A on that path.
     setShowProfileDropdown(false);
   };
 
@@ -717,9 +736,26 @@ function RealtimeStatesEditor({
   // Same-shader profile switch (Coral A → Coral B) does NOT change
   // resetKey — eases smoothly from current to new target instead
   // of replaying the intro, matching the round-7 F1 contract.
-  const coralStartScale = activeCoralSettings?.talking?.scale ?? activeCoralSettings?.base.scale ?? CORAL_FALLBACK_PROFILE.base.scale;
-  const coralStartWave = activeCoralSettings?.talking?.waveIntensity ?? activeCoralSettings?.base.waveIntensity ?? CORAL_FALLBACK_PROFILE.base.waveIntensity;
-  const coralStartColor3 = activeCoralSettings?.talking?.color3 ?? activeCoralSettings?.base.color3 ?? CORAL_FALLBACK_PROFILE.base.color3;
+  //
+  // Skip-intro plan — when the active Coral profile has the flag on,
+  // mount the eased values at BASE values rather than talking values,
+  // so cross-shader / cascade mounts settle directly at idle (no
+  // sphere → torus animation). Replay button still bumps replayCounter
+  // unconditionally → resetKey changes → eased values snap back to
+  // startValue. The skip-intro flag governs the *startValue*: when on,
+  // even a Replay would mount at base — but the Replay button is the
+  // user's explicit "play intro" action, so it short-circuits the
+  // skip flag inline (see the Replay button onClick handler).
+  const skipCoralIntro = activeOrb?.skipIntroOnSelect === true && !replayForceIntro;
+  const coralStartScale = skipCoralIntro
+    ? (activeCoralSettings?.base.scale ?? CORAL_FALLBACK_PROFILE.base.scale)
+    : (activeCoralSettings?.talking?.scale ?? activeCoralSettings?.base.scale ?? CORAL_FALLBACK_PROFILE.base.scale);
+  const coralStartWave = skipCoralIntro
+    ? (activeCoralSettings?.base.waveIntensity ?? CORAL_FALLBACK_PROFILE.base.waveIntensity)
+    : (activeCoralSettings?.talking?.waveIntensity ?? activeCoralSettings?.base.waveIntensity ?? CORAL_FALLBACK_PROFILE.base.waveIntensity);
+  const coralStartColor3 = skipCoralIntro
+    ? (activeCoralSettings?.base.color3 ?? CORAL_FALLBACK_PROFILE.base.color3)
+    : (activeCoralSettings?.talking?.color3 ?? activeCoralSettings?.base.color3 ?? CORAL_FALLBACK_PROFILE.base.color3);
   const coralResetKey = `${activeOrb?.shader ?? 'none'}-${replayCounter}`;
 
   const coralEasedScale = useEasedNumber(coralTargetScale, coralTransitionDuration, {
@@ -734,6 +770,18 @@ function RealtimeStatesEditor({
     startValue: coralStartColor3,
     resetKey: coralResetKey,
   });
+
+  // Clear the one-shot replayForceIntro flag on the tick AFTER it's
+  // set. The eased hooks above run their effects in declaration order,
+  // so by the time this effect runs, useEasedNumber/useEasedColor have
+  // already captured startValue=talking and snapped current to it. We
+  // can safely flip back to skip-intro semantics for any subsequent
+  // re-renders without disturbing the in-flight animation.
+  useEffect(() => {
+    if (!replayForceIntro) return;
+    const id = setTimeout(() => setReplayForceIntro(false), 0);
+    return () => clearTimeout(id);
+  }, [replayForceIntro]);
 
   const handleSave = async () => {
     const name = saveName.trim();
@@ -822,30 +870,45 @@ function RealtimeStatesEditor({
     await persistCoralProfiles(next);
   };
 
-  // Force-intro plan §5.4 — flip the optional `forceIntroOnSelect`
-  // field on the named Coral profile. Three runtime states cycle
-  // correctly because we always compare against `=== true`:
+  // Skip-intro plan — flip the optional `skipIntroOnSelect` field on
+  // the active profile (Tube or Coral). Three runtime states cycle
+  // correctly because reads compare with `=== true`:
   //   undefined → true (first toggle on)
   //   true      → false (toggle off)
   //   false     → true (toggle on again)
-  // Toggle path writes both directions explicitly (true and false);
-  // Save-as-new omits the field. No matching Tube mutator —
-  // Tube rows don't render the toggle (per plan §5.1). If Tube
-  // same-shader behavior is ever changed to prop-only, add a parallel
-  // toggleForceIntroOnSelect for Tube + render the icon on Tube rows.
-  const toggleForceIntroOnSelectCoral = async (id: string) => {
-    const next = coralProfiles.map((pr) =>
-      pr.id === id
-        ? {
-            ...pr,
-            forceIntroOnSelect: !(pr.forceIntroOnSelect === true),
-            lastModified: Date.now(),
-          }
-        : pr,
-    );
-    setCoralProfiles(next);
-    await persistCoralProfiles(next);
+  // Toggle path writes both directions explicitly; Save-as-new omits
+  // the field. Mirrors `toggleActivePinned` — single bottom-bar
+  // button that routes to the right shader's source array.
+  const toggleActiveSkipIntro = async () => {
+    if (!activeOrb) return;
+    if (activeOrb.shader === 'coral') {
+      const next = coralProfiles.map((pr) =>
+        pr.id === activeOrb.id
+          ? {
+              ...pr,
+              skipIntroOnSelect: !(pr.skipIntroOnSelect === true),
+              lastModified: Date.now(),
+            }
+          : pr,
+      );
+      setCoralProfiles(next);
+      await persistCoralProfiles(next);
+    } else {
+      const next = tubeProfiles.map((pr) =>
+        pr.id === activeOrb.id
+          ? {
+              ...pr,
+              skipIntroOnSelect: !(pr.skipIntroOnSelect === true),
+              lastModified: Date.now(),
+            }
+          : pr,
+      );
+      setTubeProfiles(next);
+      await persistProfiles(next);
+    }
   };
+
+  const activeSkipIntro = activeOrb?.skipIntroOnSelect === true;
 
   const commitRenameCoral = async (id: string, draft: string) => {
     const name = draft.trim();
@@ -1365,29 +1428,6 @@ function RealtimeStatesEditor({
                                 fill={p.pinned ? 'currentColor' : 'none'}
                               />
                             </button>
-                            {/* Force-intro plan §4 — Coral-only toggle.
-                                Flips the optional `forceIntroOnSelect`
-                                field on the persisted profile. Active
-                                state amber matches the bookmark active
-                                color (same metadata-toggle pattern). */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleForceIntroOnSelectCoral(p.id);
-                              }}
-                              className={`shrink-0 transition-colors cursor-pointer ${
-                                p.forceIntroOnSelect === true
-                                  ? 'text-amber-500 hover:text-amber-600'
-                                  : 'text-gray-300 hover:text-gray-600'
-                              }`}
-                              title={
-                                p.forceIntroOnSelect === true
-                                  ? 'Force-intro on — intro replays every time this profile is selected (click to disable)'
-                                  : 'Force intro replay on select'
-                              }
-                            >
-                              <RotateCcw size={12} />
-                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1475,14 +1515,42 @@ function RealtimeStatesEditor({
               <Bookmark size={14} fill={activePinned ? 'currentColor' : 'none'} />
             </button>
 
+            {/* Skip-intro toggle — when on, the talking → idle intro
+                animation is suppressed every time this profile mounts
+                (cascade-on-load, cross-shader switch, Tube selectProfile).
+                Replay button is unaffected — explicit user action still
+                plays the intro. Per-profile, both shaders. Mirrors the
+                Pin button pattern: bottom-bar UI acts on the active
+                profile, persists immediately. */}
+            <button
+              onClick={toggleActiveSkipIntro}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ml-2 ${
+                activeSkipIntro
+                  ? 'bg-amber-50 text-amber-500 hover:text-amber-600'
+                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+              }`}
+              title={
+                activeSkipIntro
+                  ? 'Skip-intro on — talking-to-idle intro is suppressed when this profile mounts (click to enable intro)'
+                  : 'Skip the talking-to-idle intro for this profile'
+              }
+            >
+              <RefreshCwOff size={14} />
+            </button>
+
             {/* Replay first-load talking → idle intro for the active
                 profile. Branches by shader: Tube uses the existing JS
                 animator's seed-render trick; Coral forces previewState
                 to idle (so goal=1) and bumps replayCounter to remount
                 the canvas → morphRef resets to 0 → sphere → torus
-                intro plays via Coral's native animator. */}
+                intro plays via Coral's native animator.
+                Skip-intro override: replayForceIntro is set on every
+                Replay click (one-shot, harmless on Tube path), so the
+                Coral eased-hook startValues snap to talking values for
+                this render even if skipIntroOnSelect is on. */}
             <button
               onClick={() => {
+                setReplayForceIntro(true);
                 if (activeOrb?.shader === 'coral') {
                   setState('idle');
                   setReplayCounter((c) => c + 1);
@@ -1732,7 +1800,7 @@ export default function RealtimeStates() {
       pinned: p.pinned === true,
       // Optional pass-through — undefined / true / false flow through
       // unchanged. Reads use `=== true` defensively (force-intro plan §3).
-      forceIntroOnSelect: p.forceIntroOnSelect,
+      skipIntroOnSelect: p.skipIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
     }));
@@ -1742,7 +1810,7 @@ export default function RealtimeStates() {
       id: p.id,
       name: p.name,
       pinned: p.pinned === true,
-      forceIntroOnSelect: p.forceIntroOnSelect,
+      skipIntroOnSelect: p.skipIntroOnSelect,
       settings: p.settings,
       lastModified: p.lastModified,
     }));
