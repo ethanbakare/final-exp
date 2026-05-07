@@ -295,7 +295,7 @@
       "roundCaps": true,
       "intensityOpacity": false,
       "updateRate": 0,
-      "ambientWave": true,
+      "ambientWave": false,
       "waveSpeed": 1.9,
       "waveAmplitude": 0.36,
       "waveHeight": 1.5,
@@ -318,6 +318,6 @@
       "inwardRatio": 0,
       "rotationSpeed": 6
     },
-    "lastModified": 1778154879498
+    "lastModified": 1778157133317
   }
 ]
