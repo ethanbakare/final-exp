@@ -186,9 +186,11 @@ function settingsOf(p: RadialLinkedProfile): AllSettings {
 interface ProfileSnapshot {
   settings: AllSettings;
   backdrop: Required<RadialBackdrop>;
+  lockBarCount: boolean;
 }
 
-/** Returns a fully-isolated snapshot of a profile's settings + backdrop.
+/** Returns a fully-isolated snapshot of a profile's settings + backdrop
+ *  + flags.
  *
  *  CRITICAL: deep-clones every nested object so the snapshot does NOT
  *  share references with the live profile. Without this, baseline and
@@ -201,6 +203,7 @@ function snapshotOf(p: RadialLinkedProfile): ProfileSnapshot {
   return {
     settings: structuredClone(settingsOf(p)),
     backdrop: structuredClone(resolveBackdrop(p.backdrop)),
+    lockBarCount: p.lockBarCount ?? true,
   };
 }
 
@@ -447,12 +450,10 @@ interface CellProps {
   donutSize: number;
   donutThickness: number;
   /** Bar-count override applied to all three cells, computed once at
-   *  the page level from the active profile's idle settings. Talking
-   *  has a smaller radius than idle, which would otherwise compute
-   *  fewer bars; using a shared override keeps the angular density
-   *  consistent across all three cells (talking just gets a smaller
-   *  computed gap to fit the same count on its smaller circumference). */
-  barCountOverride: number;
+   *  the page level from the active profile's idle settings. Undefined
+   *  when lockBarCount is off — each cell then auto-computes from its
+   *  own circumference. */
+  barCountOverride: number | undefined;
   /** Backdrop config — both edges have independent shape/segments/depth.
    *  Resolved with defaults at the page level. */
   backdropEnabled: boolean;
@@ -846,6 +847,13 @@ interface ControlsPanelProps {
   /** Hover signal for the Max Bar Length slider — drives the red ghost
    *  ring on the focused cell. */
   onMaxBarHover: (hover: boolean) => void;
+  /** Which state the panel is currently editing — used to conditionally
+   *  show talking-only controls (e.g. the bar-count lock). */
+  focused: StateKey;
+  /** Profile-level: lock all cells to idle's bar count. Toggle visible
+   *  only on the Talking state's Geometry panel. */
+  lockBarCount: boolean;
+  onLockBarCountChange: (v: boolean) => void;
   /** Profile-level backdrop config + setter (shared across all states). */
   backdrop: Required<RadialBackdrop>;
   baselineBackdrop: Required<RadialBackdrop> | null;
@@ -857,6 +865,9 @@ function ControlsPanel({
   baselineSettings,
   onChange,
   onMaxBarHover,
+  focused,
+  lockBarCount,
+  onLockBarCountChange,
   backdrop,
   baselineBackdrop,
   onBackdropChange,
@@ -923,6 +934,13 @@ function ControlsPanel({
         >
           <Slider label="Max Bar Length" value={settings.maxBarLength} min={10} max={120} step={1} unit="px" onChange={(v) => set('maxBarLength', v)} onReset={settingReset('maxBarLength')} />
         </div>
+        {focused === 'talking' && (
+          <Toggle
+            label="Lock bars to idle"
+            checked={lockBarCount}
+            onChange={onLockBarCountChange}
+          />
+        )}
       </div>
 
       <div style={columnStyle}>
@@ -1300,6 +1318,7 @@ export default function RadialStatesReview() {
               thinking: structuredClone(baseline.settings.thinking),
               talking: structuredClone(baseline.settings.talking),
               backdrop: structuredClone(baseline.backdrop),
+              lockBarCount: baseline.lockBarCount,
             }
           : p,
       ),
@@ -1324,6 +1343,7 @@ export default function RadialStatesReview() {
                 thinking: structuredClone(baseline.settings.thinking),
                 talking: structuredClone(baseline.settings.talking),
                 backdrop: structuredClone(baseline.backdrop),
+                lockBarCount: baseline.lockBarCount,
               }
             : q,
         ),
@@ -1350,6 +1370,7 @@ export default function RadialStatesReview() {
       thinking: structuredClone(activeProfile.thinking),
       talking: structuredClone(activeProfile.talking),
       backdrop: activeProfile.backdrop ? structuredClone(activeProfile.backdrop) : undefined,
+      lockBarCount: activeProfile.lockBarCount,
       lastModified: Date.now(),
     };
     const next = [...profiles, newProfile];
@@ -1389,14 +1410,23 @@ export default function RadialStatesReview() {
   const donutThickness = donutOuter - donutInner;
   // Shared bar count — anchored on idle's circumference so talking
   // (smaller radius) packs the same number of bars on its smaller
-  // ring. Without this, talking computes ~38 bars where idle has 54,
-  // and the spokes look spaced unevenly between cells.
+  // ring. Lock can be toggled off via the Talking-state Geometry
+  // panel; when off, each cell auto-computes its own count.
+  const lockBarCount = activeProfile?.lockBarCount ?? true;
   const idleCircumference = 2 * Math.PI * all.idle.radius;
-  const barCountOverride = Math.max(
-    1,
-    Math.floor(idleCircumference / (all.idle.barWidth + all.idle.barGap)),
-  );
+  const barCountOverride = lockBarCount
+    ? Math.max(1, Math.floor(idleCircumference / (all.idle.barWidth + all.idle.barGap)))
+    : undefined;
   const backdrop = resolveBackdrop(activeProfile?.backdrop);
+
+  const updateLockBarCount = (next: boolean) => {
+    if (!activeProfileId) return;
+    setProfiles((prev) =>
+      prev.map((p) =>
+        p.id === activeProfileId ? { ...p, lockBarCount: next, lastModified: Date.now() } : p,
+      ),
+    );
+  };
 
   const updateBackdrop = (patch: Partial<RadialBackdrop>) => {
     if (!activeProfileId) return;
@@ -1500,6 +1530,9 @@ export default function RadialStatesReview() {
             baselineSettings={baseline?.settings[focused] ?? null}
             onChange={updateFocused}
             onMaxBarHover={setMaxBarHovered}
+            focused={focused}
+            lockBarCount={lockBarCount}
+            onLockBarCountChange={updateLockBarCount}
             backdrop={backdrop}
             baselineBackdrop={baseline?.backdrop ?? null}
             onBackdropChange={updateBackdrop}

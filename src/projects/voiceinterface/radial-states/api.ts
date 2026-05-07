@@ -46,6 +46,13 @@ export interface RadialLinkedProfile {
   thinking: RadialSettings;
   talking: RadialSettings;
   backdrop?: RadialBackdrop;
+  /** When true (default), all three cells share a bar count computed
+   *  from idle's circumference. When false, each cell auto-computes
+   *  from its own circumference (talking ends up with fewer bars
+   *  because its smaller radius). Lock matters for morphing — bars
+   *  can interpolate radius/direction smoothly when the count is
+   *  fixed across states. */
+  lockBarCount?: boolean;
   lastModified: number;
 }
 
