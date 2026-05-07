@@ -279,5 +279,45 @@
       "envelopeSensitivity": 0
     },
     "lastModified": 1770139230814
+  },
+  {
+    "id": "r-f4dff6a7-98db-498a-93e8-f4b0a6386cd0",
+    "name": "plain thorn",
+    "settings": {
+      "radius": 134,
+      "barWidth": 6.5,
+      "barGap": 9,
+      "minBarLength": 3,
+      "sensitivity": 0.7,
+      "barColor": "#0f0f11",
+      "bgColor": "#0F0F11",
+      "segments": 7,
+      "roundCaps": true,
+      "intensityOpacity": false,
+      "updateRate": 0,
+      "ambientWave": true,
+      "waveSpeed": 1.9,
+      "waveAmplitude": 0.36,
+      "waveHeight": 1.5,
+      "waveMode": "additive",
+      "waveShape": "segments",
+      "waveLobes": 2,
+      "smoothing": 0.95,
+      "waveEnvelope": 0.4,
+      "envelopeAmplitude": 1,
+      "envelopeSensitivity": 0.5,
+      "containerBg": "",
+      "containerBgOpacity": 1,
+      "containerRadius": 0,
+      "containerPadding": 0,
+      "showOutline": false,
+      "outlineColor": "#FFFFFF",
+      "outlineWidth": 2,
+      "previewBg": "#f7f6f4",
+      "maxBarLength": 60,
+      "inwardRatio": 0,
+      "rotationSpeed": 6
+    },
+    "lastModified": 1778154879498
   }
 ]
