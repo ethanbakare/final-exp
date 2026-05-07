@@ -550,6 +550,8 @@ export default function RadialStatesReview() {
     if (window.confirm('Reset all three states to defaults?')) setAll(DEFAULT_ALL);
   };
 
+  const [controlsCollapsed, setControlsCollapsed] = useState(false);
+
   const cellsRow = useMemo(
     () => (
       <div
@@ -583,7 +585,7 @@ export default function RadialStatesReview() {
       style={{
         minHeight: '100vh',
         background: '#0F0F11',
-        padding: '32px 16px 360px',
+        padding: controlsCollapsed ? '32px 16px 80px' : '32px 16px 360px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -670,12 +672,37 @@ export default function RadialStatesReview() {
           <span style={{ fontSize: 11, color: '#6b7280' }}>
             Editing: {STATE_LABEL[focused]} — saved to localStorage
           </span>
+          <button
+            type="button"
+            onClick={() => setControlsCollapsed((c) => !c)}
+            style={{
+              padding: '4px 10px',
+              fontSize: 11,
+              borderRadius: 6,
+              background: 'rgba(255,255,255,0.05)',
+              color: '#9ca3af',
+              border: '1px solid rgba(255,255,255,0.1)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            aria-expanded={!controlsCollapsed}
+            aria-controls="controls-panel"
+          >
+            <span style={{ display: 'inline-block', transform: controlsCollapsed ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 150ms' }}>▾</span>
+            {controlsCollapsed ? 'Show controls' : 'Hide controls'}
+          </button>
         </div>
-        <ControlsPanel
-          settings={all[focused]}
-          onChange={updateFocused}
-          onResetState={resetFocused}
-        />
+        {!controlsCollapsed && (
+          <div id="controls-panel">
+            <ControlsPanel
+              settings={all[focused]}
+              onChange={updateFocused}
+              onResetState={resetFocused}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
