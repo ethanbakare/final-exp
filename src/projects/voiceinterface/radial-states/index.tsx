@@ -102,9 +102,29 @@ interface CellProps {
 }
 
 const CELL_SIZE = 360;
+// Padding between the bar zone (full possible range across min/max) and
+// each edge of the static donut envelope behind the bars.
+const DONUT_PADDING = 10;
+const DONUT_COLOR = 'rgba(0, 0, 0, 0.05)';
 
 function Cell({ label, settings, frequencyData, variant }: CellProps) {
   const Renderer = variant === 'outward' ? RadialOutward : RadialInward;
+
+  // Donut envelope sits behind the canvas. Outer edge is DONUT_PADDING
+  // beyond the bars' outermost reach; inner edge is DONUT_PADDING past
+  // their innermost reach. Inward: bars live in [radius - maxBarLength,
+  // radius]. Outward: [radius, radius + maxBarLength]. The donut frames
+  // the full possible range so it stays static regardless of bar
+  // animation.
+  const barOuter =
+    variant === 'outward' ? settings.radius + settings.maxBarLength : settings.radius;
+  const barInner =
+    variant === 'outward' ? settings.radius : settings.radius - settings.maxBarLength;
+  const donutOuter = barOuter + DONUT_PADDING;
+  const donutInner = Math.max(0, barInner - DONUT_PADDING);
+  const donutSize = donutOuter * 2;
+  const donutThickness = donutOuter - donutInner;
+
   return (
     <div
       style={{
@@ -124,8 +144,24 @@ function Cell({ label, settings, frequencyData, variant }: CellProps) {
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
+          position: 'relative',
         }}
       >
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: donutSize,
+            height: donutSize,
+            transform: 'translate(-50%, -50%)',
+            borderRadius: '50%',
+            border: `${donutThickness}px solid ${DONUT_COLOR}`,
+            boxSizing: 'border-box',
+            pointerEvents: 'none',
+          }}
+        />
         <Renderer
           frequencyData={frequencyData}
           radius={settings.radius}
