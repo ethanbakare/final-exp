@@ -34,6 +34,9 @@ const DEFAULT_BACKDROP: Required<RadialBackdrop> = {
   shape: 'circle',
   segments: 7,
   depth: 6,
+  outerShape: 'circle',
+  outerSegments: 7,
+  outerDepth: 6,
 };
 
 function resolveBackdrop(b: RadialBackdrop | undefined): Required<RadialBackdrop> {
@@ -41,6 +44,9 @@ function resolveBackdrop(b: RadialBackdrop | undefined): Required<RadialBackdrop
     shape: b?.shape ?? DEFAULT_BACKDROP.shape,
     segments: b?.segments ?? DEFAULT_BACKDROP.segments,
     depth: b?.depth ?? DEFAULT_BACKDROP.depth,
+    outerShape: b?.outerShape ?? DEFAULT_BACKDROP.outerShape,
+    outerSegments: b?.outerSegments ?? DEFAULT_BACKDROP.outerSegments,
+    outerDepth: b?.outerDepth ?? DEFAULT_BACKDROP.outerDepth,
   };
 }
 
@@ -274,50 +280,74 @@ function GhostBars({ variant, settings, size, color }: GhostBarsProps) {
 
 // ── Backdrop (static donut ring) ──────────────────────────────────
 //
-// SVG-based replacement for the previous CSS donut. Outer contour is
-// always a perfect circle; inner contour is either a perfect circle or
-// a parametric wavy curve with N lobes (cos(N*θ) modulating r). Even-
-// odd fillRule cuts the inner shape out of the outer disc.
+// SVG-based replacement for the previous CSS donut. BOTH outer and
+// inner contours can independently be a perfect circle or a parametric
+// wavy curve with N lobes (cos(N*θ) modulating r). Even-odd fillRule
+// cuts the inner shape out of the outer shape, leaving the donut band.
+
+/** Build an SVG path 'd' string for one closed contour at base radius
+ *  baseR. When shape='circle' (or segments < 1 / depth ≤ 0), emits two
+ *  half-arcs. Otherwise emits a 360-sample polyline tracing
+ *  r(θ) = baseR + depth * cos(N * θ). */
+function buildBackdropContour(
+  shape: 'circle' | 'segments',
+  baseR: number,
+  segments: number,
+  depth: number,
+): string {
+  if (shape === 'circle' || segments < 1 || depth <= 0) {
+    return `M ${baseR} 0 A ${baseR} ${baseR} 0 1 1 ${-baseR} 0 A ${baseR} ${baseR} 0 1 1 ${baseR} 0 Z`;
+  }
+  const samples = 360;
+  const pts: string[] = [];
+  for (let i = 0; i <= samples; i++) {
+    const t = (i / samples) * Math.PI * 2;
+    const r = baseR + depth * Math.cos(segments * t);
+    const x = r * Math.cos(t);
+    const y = r * Math.sin(t);
+    pts.push(i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : `L ${x.toFixed(2)} ${y.toFixed(2)}`);
+  }
+  pts.push('Z');
+  return pts.join(' ');
+}
 
 interface BackdropProps {
-  shape: 'circle' | 'segments';
+  outerShape: 'circle' | 'segments';
   outerR: number;
+  outerSegments: number;
+  outerDepth: number;
+  innerShape: 'circle' | 'segments';
   innerR: number;
-  segments: number;
-  depth: number;
+  innerSegments: number;
+  innerDepth: number;
   color: string;
 }
 
-function Backdrop({ shape, outerR, innerR, segments, depth, color }: BackdropProps) {
-  const size = outerR * 2;
+function Backdrop({
+  outerShape,
+  outerR,
+  outerSegments,
+  outerDepth,
+  innerShape,
+  innerR,
+  innerSegments,
+  innerDepth,
+  color,
+}: BackdropProps) {
+  // The outer wavy contour can bulge OUTWARD by `outerDepth` past
+  // outerR. Size the SVG to cover that maximum extent so peaks aren't
+  // clipped.
+  const outerExtent = outerR + Math.max(0, outerDepth);
+  const size = outerExtent * 2;
 
-  // Outer circle path. Two half-arcs cover the full circle.
-  const outerPath = `M ${outerR} 0 A ${outerR} ${outerR} 0 1 1 ${-outerR} 0 A ${outerR} ${outerR} 0 1 1 ${outerR} 0 Z`;
-
-  let innerPath: string;
-  if (shape === 'circle' || segments < 1 || depth <= 0) {
-    innerPath = `M ${innerR} 0 A ${innerR} ${innerR} 0 1 0 ${-innerR} 0 A ${innerR} ${innerR} 0 1 0 ${innerR} 0 Z`;
-  } else {
-    // Parametric wavy inner contour: r(θ) = innerR + depth * cos(N*θ).
-    // 360 samples gives a smooth curve at the sizes we work with.
-    const samples = 360;
-    const pts: string[] = [];
-    for (let i = 0; i <= samples; i++) {
-      const t = (i / samples) * Math.PI * 2;
-      const r = innerR + depth * Math.cos(segments * t);
-      const x = r * Math.cos(t);
-      const y = r * Math.sin(t);
-      pts.push(i === 0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : `L ${x.toFixed(2)} ${y.toFixed(2)}`);
-    }
-    pts.push('Z');
-    innerPath = pts.join(' ');
-  }
+  const outerPath = buildBackdropContour(outerShape, outerR, outerSegments, outerDepth);
+  const innerPath = buildBackdropContour(innerShape, innerR, innerSegments, innerDepth);
 
   return (
     <svg
       width={size}
       height={size}
-      viewBox={`${-outerR} ${-outerR} ${size} ${size}`}
+      viewBox={`${-outerExtent} ${-outerExtent} ${size} ${size}`}
       style={{
         position: 'absolute',
         top: '50%',
@@ -353,11 +383,14 @@ interface CellProps {
    *  idle.radius - idle.maxBarLength - DONUT_PADDING. */
   donutSize: number;
   donutThickness: number;
-  /** Backdrop config — shape ('circle' | 'segments'), lobe count, and
-   *  lobe depth. Resolved with defaults at the page level. */
+  /** Backdrop config — both edges have independent shape/segments/depth.
+   *  Resolved with defaults at the page level. */
   backdropShape: 'circle' | 'segments';
   backdropSegments: number;
   backdropDepth: number;
+  backdropOuterShape: 'circle' | 'segments';
+  backdropOuterSegments: number;
+  backdropOuterDepth: number;
 }
 
 const CELL_SIZE = 360;
@@ -369,7 +402,23 @@ const CELL_SIZE = 360;
 const DONUT_PADDING = 14;
 const DONUT_COLOR = 'rgba(38, 36, 36, 0.03)'; // #262424 at 3%
 
-function Cell({ label, settings, frequencyData, variant, focused, onClick, showMaxGhost, donutSize, donutThickness, backdropShape, backdropSegments, backdropDepth }: CellProps) {
+function Cell({
+  label,
+  settings,
+  frequencyData,
+  variant,
+  focused,
+  onClick,
+  showMaxGhost,
+  donutSize,
+  donutThickness,
+  backdropShape,
+  backdropSegments,
+  backdropDepth,
+  backdropOuterShape,
+  backdropOuterSegments,
+  backdropOuterDepth,
+}: CellProps) {
   const Renderer = variant === 'outward' ? RadialOutward : RadialInward;
   const backdropOuterR = donutSize / 2;
   const backdropInnerR = backdropOuterR - donutThickness;
@@ -418,11 +467,14 @@ function Cell({ label, settings, frequencyData, variant, focused, onClick, showM
         aria-label={`Focus ${label}`}
       >
         <Backdrop
-          shape={backdropShape}
+          outerShape={backdropOuterShape}
           outerR={backdropOuterR}
+          outerSegments={backdropOuterSegments}
+          outerDepth={backdropOuterDepth}
+          innerShape={backdropShape}
           innerR={backdropInnerR}
-          segments={backdropSegments}
-          depth={backdropDepth}
+          innerSegments={backdropSegments}
+          innerDepth={backdropDepth}
           color={DONUT_COLOR}
         />
         {showMaxGhost && (
@@ -776,8 +828,8 @@ function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover, backdr
 
         {/* Backdrop subsection — profile-level (shared across all three
             states), tucked under Style as a sub-group with its own
-            header. */}
-        <h3 style={{ ...headerStyle, marginTop: 8 }}>Backdrop</h3>
+            header. Inner and outer rings are independent. */}
+        <h3 style={{ ...headerStyle, marginTop: 8 }}>Backdrop · Inner</h3>
         <PillGroup
           label="Shape"
           value={backdrop.shape}
@@ -802,6 +854,34 @@ function ControlsPanel({ settings, onChange, onResetState, onMaxBarHover, backdr
               step={0.5}
               unit="px"
               onChange={(v) => onBackdropChange({ depth: v })}
+            />
+          </>
+        )}
+        <h3 style={{ ...headerStyle, marginTop: 8 }}>Backdrop · Outer</h3>
+        <PillGroup
+          label="Shape"
+          value={backdrop.outerShape}
+          options={['circle', 'segments'] as const}
+          onChange={(v) => onBackdropChange({ outerShape: v })}
+        />
+        {backdrop.outerShape === 'segments' && (
+          <>
+            <Slider
+              label="Segments"
+              value={backdrop.outerSegments}
+              min={3}
+              max={16}
+              step={1}
+              onChange={(v) => onBackdropChange({ outerSegments: v })}
+            />
+            <Slider
+              label="Depth"
+              value={backdrop.outerDepth}
+              min={0}
+              max={20}
+              step={0.5}
+              unit="px"
+              onChange={(v) => onBackdropChange({ outerDepth: v })}
             />
           </>
         )}
@@ -1075,6 +1155,9 @@ export default function RadialStatesReview() {
           backdropShape={backdrop.shape}
           backdropSegments={backdrop.segments}
           backdropDepth={backdrop.depth}
+          backdropOuterShape={backdrop.outerShape}
+          backdropOuterSegments={backdrop.outerSegments}
+          backdropOuterDepth={backdrop.outerDepth}
         />
       ))}
     </div>

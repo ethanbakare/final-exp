@@ -8,18 +8,28 @@ import type { RadialSettings } from '@/projects/radial-waveform/types';
 const API = '/api/studio-profiles?variant=radial-states';
 
 /** Static backdrop ring shared across all three cells in a profile.
- *  Optional — older profiles read defaults at the consumer site. */
+ *  Optional — older profiles read defaults at the consumer site.
+ *
+ *  Inner ring fields (shape / segments / depth) and outer ring fields
+ *  (outerShape / outerSegments / outerDepth) are independent — both
+ *  edges can be circle or segments; both can have their own lobe
+ *  count and depth. Flat naming kept (rather than nested inner/outer
+ *  objects) for backward compatibility with profiles persisted before
+ *  the outer-ring feature shipped. */
 export interface RadialBackdrop {
-  /** 'circle' = perfect inner circle (the original donut).
-   *  'segments' = parametric wavy inner edge with N lobes. */
+  /** Inner edge shape. */
   shape?: 'circle' | 'segments';
-  /** Number of lobes when shape === 'segments'. Independent of the
-   *  per-state audio segments (which control mapFrequencyToBars
-   *  symmetry); the user can dial these separately. */
+  /** Inner edge lobe count when shape === 'segments'. */
   segments?: number;
-  /** Lobe depth in px — peak-to-trough deviation from the base inner
-   *  radius. 0 collapses to a circle regardless of shape. */
+  /** Inner edge lobe depth in px (peak-to-trough deviation from the
+   *  base inner radius). 0 collapses to a circle regardless of shape. */
   depth?: number;
+  /** Outer edge shape. */
+  outerShape?: 'circle' | 'segments';
+  /** Outer edge lobe count when outerShape === 'segments'. */
+  outerSegments?: number;
+  /** Outer edge lobe depth in px. 0 collapses to a circle. */
+  outerDepth?: number;
 }
 
 export interface RadialLinkedProfile {
