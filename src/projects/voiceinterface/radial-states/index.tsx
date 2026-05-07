@@ -5,10 +5,10 @@
  * the bottom controls panel — pick a state tab, edit its sliders and
  * toggles, and see the change land in the corresponding cell live.
  *
- * Persistence is local (localStorage key `radial-states-review-v1`) so
- * iteration survives reloads. Save-as-disk-profile is intentionally
- * deferred — once values stabilize, this moves to the realtime-states
- * editor with a proper linked-profile schema (base + per-state peaks).
+ * Persistence is by linked-profile to disk
+ * (`/api/studio-profiles?variant=radial-states` →
+ * `radial-states-profiles.json`). One profile bundles idle + thinking +
+ * talking RadialSettings. Active profile id persists in localStorage.
  *
  * Audio is shared across cells via the radial-waveform audioService.
  * Cell 1 (idle/listening) and cell 3 (talking) consume frequencyData;
@@ -17,11 +17,17 @@
  * minBarLength and just rotate).
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Menu, X, ChevronDown, Save, RotateCcw, Check } from 'lucide-react';
 import RadialInward from '@/projects/radial-waveform/variants/RadialInward';
 import RadialOutward from '@/projects/radial-waveform/variants/RadialOutward';
 import RadialGalleryAudioControls from '@/projects/radial-waveform/components/RadialGalleryAudioControls';
 import { audioService } from '@/projects/radial-waveform/services/audioService';
 import type { RadialSettings } from '@/projects/radial-waveform/types';
+import {
+  fetchRadialLinkedProfiles,
+  persistRadialLinkedProfiles,
+  type RadialLinkedProfile,
+} from './api';
 
 // ── Presets (defaults) ────────────────────────────────────────────
 
@@ -96,7 +102,15 @@ const DEFAULT_ALL: AllSettings = {
   talking: TALKING_SPOKE,
 };
 
-const STORAGE_KEY = 'radial-states-review-v1';
+const ACTIVE_ID_STORAGE_KEY = 'radial-states-active-profile-id';
+
+function makeNewId(): string {
+  return `rs-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function settingsOf(p: RadialLinkedProfile): AllSettings {
+  return { idle: p.idle, thinking: p.thinking, talking: p.talking };
+}
 
 // ── Ghost bars (Max Bar Length preview) ──────────────────────────
 //
@@ -655,52 +669,76 @@ export default function RadialStatesReview() {
   const [audioActive, setAudioActive] = useState(false);
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
   const [focused, setFocused] = useState<StateKey>('idle');
-  // Always init with defaults so SSR and the first client render agree
-  // (otherwise localStorage values diverge from the server HTML and
-  // React reports a hydration mismatch). Real values land via the
-  // post-mount load effect below.
-  const [all, setAll] = useState<AllSettings>(DEFAULT_ALL);
-  // `loaded` gates the persist effect — promotes to true only after
-  // the load effect has read localStorage AND the resulting setAll has
-  // committed. Using state (not a ref) so the persist effect
-  // re-evaluates when `loaded` flips. The two-step (state-as-gate)
-  // pattern is required because StrictMode double-invokes useEffect
-  // and a ref-based gate would let the persist's first run save
-  // DEFAULT_ALL over the user's saved values before the load's setAll
-  // re-renders. With a state gate, persist sees `loaded=false` on the
-  // first commit and bails; only after `loaded` flips to true does it
-  // start writing — and by then `all` already reflects the loaded
-  // value.
-  const [loaded, setLoaded] = useState(false);
+  const [profiles, setProfiles] = useState<RadialLinkedProfile[]>([]);
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+  // Baseline snapshot of the active profile's settings at last save / load.
+  // Used for dirty detection (compared against current activeProfile.settings).
+  const [baseline, setBaseline] = useState<AllSettings | null>(null);
+  const [profilesLoaded, setProfilesLoaded] = useState(false);
+  const [controlsCollapsed, setControlsCollapsed] = useState(false);
+  const [maxBarHovered, setMaxBarHovered] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
-  // Hydrate from localStorage AFTER mount.
+  // Load profiles from disk on mount. Falls back to a single seed
+  // profile if the API returns an empty list.
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<AllSettings>;
-        setAll({
-          idle: { ...DEFAULT_ALL.idle, ...(parsed.idle ?? {}) },
-          thinking: { ...DEFAULT_ALL.thinking, ...(parsed.thinking ?? {}) },
-          talking: { ...DEFAULT_ALL.talking, ...(parsed.talking ?? {}) },
-        });
+    let cancelled = false;
+    fetchRadialLinkedProfiles().then((arr) => {
+      if (cancelled) return;
+      let initialList: RadialLinkedProfile[];
+      if (arr.length === 0) {
+        initialList = [
+          {
+            id: 'rs-default',
+            name: 'Default',
+            idle: DEFAULT_ALL.idle,
+            thinking: DEFAULT_ALL.thinking,
+            talking: DEFAULT_ALL.talking,
+            lastModified: Date.now(),
+          },
+        ];
+        // Persist the seed so the file exists for next load.
+        persistRadialLinkedProfiles(initialList);
+      } else {
+        initialList = arr;
       }
-    } catch {
-      /* corrupt JSON / unavailable storage — fall back to defaults */
-    }
-    setLoaded(true);
+      setProfiles(initialList);
+      const savedId = window.localStorage.getItem(ACTIVE_ID_STORAGE_KEY);
+      const initial = initialList.find((p) => p.id === savedId) ?? initialList[0];
+      setActiveProfileId(initial.id);
+      setBaseline(settingsOf(initial));
+      setProfilesLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Persist on every change — gated on `loaded` so the initial
-  // mount-time DEFAULT_ALL never overwrites the user's saved values.
+  // Persist active profile id selection.
   useEffect(() => {
-    if (!loaded) return;
+    if (!profilesLoaded || !activeProfileId) return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+      window.localStorage.setItem(ACTIVE_ID_STORAGE_KEY, activeProfileId);
     } catch {
-      /* quota / private mode — ignore */
+      /* ignore */
     }
-  }, [all, loaded]);
+  }, [activeProfileId, profilesLoaded]);
+
+  // Active profile + derived `all`.
+  const activeProfile = useMemo<RadialLinkedProfile | null>(
+    () => profiles.find((p) => p.id === activeProfileId) ?? null,
+    [profiles, activeProfileId],
+  );
+  const all: AllSettings = activeProfile ? settingsOf(activeProfile) : DEFAULT_ALL;
+
+  // Dirty detection: shallow JSON-compare current vs baseline.
+  const isDirty = useMemo(() => {
+    if (!activeProfile || !baseline) return false;
+    return JSON.stringify(settingsOf(activeProfile)) !== JSON.stringify(baseline);
+  }, [activeProfile, baseline]);
 
   // Audio polling.
   useEffect(() => {
@@ -718,48 +756,130 @@ export default function RadialStatesReview() {
     return () => cancelAnimationFrame(raf);
   }, [audioActive]);
 
+  // Outside-click close for profile dropdown.
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setShowProfileDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Mutators: edit the focused state of the active profile (immutable
+  // update of profiles[]). Settings live on disk per save; in-memory
+  // edits are preserved across profile switches via the profiles array
+  // until the user explicitly Saves or Resets.
   const updateFocused = (patch: Partial<RadialSettings>) => {
-    setAll((prev) => ({ ...prev, [focused]: { ...prev[focused], ...patch } }));
+    if (!activeProfileId) return;
+    setProfiles((prev) =>
+      prev.map((p) =>
+        p.id === activeProfileId
+          ? { ...p, [focused]: { ...p[focused], ...patch }, lastModified: Date.now() }
+          : p,
+      ),
+    );
   };
 
   const resetFocused = () => {
-    setAll((prev) => ({ ...prev, [focused]: DEFAULT_ALL[focused] }));
+    if (!activeProfileId || !baseline) return;
+    setProfiles((prev) =>
+      prev.map((p) =>
+        p.id === activeProfileId ? { ...p, [focused]: baseline[focused] } : p,
+      ),
+    );
   };
 
-  const resetAll = () => {
-    if (window.confirm('Reset all three states to defaults?')) setAll(DEFAULT_ALL);
+  const handleUpdate = async () => {
+    if (!activeProfile) return;
+    const next = profiles.map((p) =>
+      p.id === activeProfile.id ? { ...p, lastModified: Date.now() } : p,
+    );
+    setProfiles(next);
+    setBaseline(settingsOf(activeProfile));
+    await persistRadialLinkedProfiles(next);
   };
 
-  const [controlsCollapsed, setControlsCollapsed] = useState(false);
-  const [maxBarHovered, setMaxBarHovered] = useState(false);
+  const handleReset = () => {
+    if (!activeProfileId || !baseline) return;
+    setProfiles((prev) =>
+      prev.map((p) =>
+        p.id === activeProfileId
+          ? { ...p, idle: baseline.idle, thinking: baseline.thinking, talking: baseline.talking }
+          : p,
+      ),
+    );
+  };
 
-  const cellsRow = useMemo(
-    () => (
-      <div
-        style={{
-          display: 'flex',
-          gap: 32,
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          marginTop: 24,
-        }}
-      >
-        {(['idle', 'thinking', 'talking'] as const).map((k) => (
-          <Cell
-            key={k}
-            label={STATE_LABEL[k]}
-            settings={all[k]}
-            // Thinking is intentionally fed null so audio doesn't reach it.
-            frequencyData={k === 'thinking' ? null : frequencyData}
-            variant={STATE_VARIANT[k]}
-            focused={focused === k}
-            onClick={() => setFocused(k)}
-            showMaxGhost={focused === k && maxBarHovered}
-          />
-        ))}
-      </div>
-    ),
-    [all, frequencyData, focused, maxBarHovered],
+  const handleSelectProfile = (id: string) => {
+    const p = profiles.find((x) => x.id === id);
+    if (!p) return;
+    // Discard any uncommitted edits on the previous profile by reverting
+    // it to its baseline before switching.
+    if (activeProfileId && baseline) {
+      setProfiles((prev) =>
+        prev.map((q) =>
+          q.id === activeProfileId
+            ? {
+                ...q,
+                idle: baseline.idle,
+                thinking: baseline.thinking,
+                talking: baseline.talking,
+              }
+            : q,
+        ),
+      );
+    }
+    setActiveProfileId(id);
+    setBaseline(settingsOf(p));
+    setShowProfileDropdown(false);
+  };
+
+  const handleSaveAs = async () => {
+    const name = saveName.trim();
+    if (!name || !activeProfile) return;
+    const newProfile: RadialLinkedProfile = {
+      id: makeNewId(),
+      name,
+      idle: activeProfile.idle,
+      thinking: activeProfile.thinking,
+      talking: activeProfile.talking,
+      lastModified: Date.now(),
+    };
+    const next = [...profiles, newProfile];
+    setProfiles(next);
+    setActiveProfileId(newProfile.id);
+    setBaseline(settingsOf(newProfile));
+    setShowSaveDialog(false);
+    setSaveName('');
+    await persistRadialLinkedProfiles(next);
+  };
+
+  const cellsRow = (
+    <div
+      style={{
+        display: 'flex',
+        gap: 32,
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        marginTop: 24,
+      }}
+    >
+      {(['idle', 'thinking', 'talking'] as const).map((k) => (
+        <Cell
+          key={k}
+          label={STATE_LABEL[k]}
+          settings={all[k]}
+          // Thinking is intentionally fed null so audio doesn't reach it.
+          frequencyData={k === 'thinking' ? null : frequencyData}
+          variant={STATE_VARIANT[k]}
+          focused={focused === k}
+          onClick={() => setFocused(k)}
+          showMaxGhost={focused === k && maxBarHovered}
+        />
+      ))}
+    </div>
   );
 
   return (
@@ -780,9 +900,6 @@ export default function RadialStatesReview() {
 
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
           color: '#fafafa',
           fontFamily: 'system-ui, -apple-system, sans-serif',
           fontSize: 16,
@@ -790,27 +907,14 @@ export default function RadialStatesReview() {
           marginTop: 16,
         }}
       >
-        <span>Radial states — review</span>
-        <button
-          type="button"
-          onClick={resetAll}
-          style={{
-            padding: '4px 10px',
-            fontSize: 11,
-            borderRadius: 6,
-            background: 'rgba(255,255,255,0.05)',
-            color: '#9ca3af',
-            border: '1px solid rgba(255,255,255,0.1)',
-            cursor: 'pointer',
-          }}
-        >
-          Reset all
-        </button>
+        Radial states — review
       </div>
 
       {cellsRow}
 
-      {/* Fixed bottom controls panel — state tabs + sliders for the focused state. */}
+      {/* Fixed bottom dock — controls panel (when expanded) above the
+       *  main bar. Main bar mirrors the realtime-states layout: hamburger,
+       *  state pills, profile dropdown + save controls, all in one row. */}
       <div
         style={{
           position: 'fixed',
@@ -821,6 +925,14 @@ export default function RadialStatesReview() {
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
+        {!controlsCollapsed && (
+          <ControlsPanel
+            settings={all[focused]}
+            onChange={updateFocused}
+            onResetState={resetFocused}
+            onMaxBarHover={setMaxBarHovered}
+          />
+        )}
         <div
           style={{
             background: '#1a1a1e',
@@ -829,63 +941,254 @@ export default function RadialStatesReview() {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
+            flexWrap: 'wrap',
           }}
         >
-          {(['idle', 'thinking', 'talking'] as const).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setFocused(k)}
-              style={{
-                padding: '4px 12px',
-                fontSize: 12,
-                borderRadius: 9999,
-                border: 'none',
-                cursor: 'pointer',
-                background: focused === k ? '#FACC15' : 'rgba(255,255,255,0.05)',
-                color: focused === k ? '#000' : '#9ca3af',
-                fontWeight: focused === k ? 500 : 400,
-              }}
-            >
-              {STATE_LABEL[k]}
-            </button>
-          ))}
-          <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 11, color: '#6b7280' }}>
-            Editing: {STATE_LABEL[focused]} — saved to localStorage
-          </span>
+          {/* Hamburger */}
           <button
             type="button"
             onClick={() => setControlsCollapsed((c) => !c)}
             style={{
-              padding: '4px 10px',
-              fontSize: 11,
+              padding: 6,
               borderRadius: 6,
               background: 'rgba(255,255,255,0.05)',
               color: '#9ca3af',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
+              justifyContent: 'center',
             }}
             aria-expanded={!controlsCollapsed}
             aria-controls="controls-panel"
+            aria-label={controlsCollapsed ? 'Show controls' : 'Hide controls'}
           >
-            <span style={{ display: 'inline-block', transform: controlsCollapsed ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 150ms' }}>▾</span>
-            {controlsCollapsed ? 'Show controls' : 'Hide controls'}
+            {controlsCollapsed ? <Menu size={14} /> : <X size={14} />}
           </button>
-        </div>
-        {!controlsCollapsed && (
-          <div id="controls-panel">
-            <ControlsPanel
-              settings={all[focused]}
-              onChange={updateFocused}
-              onResetState={resetFocused}
-              onMaxBarHover={setMaxBarHovered}
-            />
+
+          <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
+
+          {/* State pills */}
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['idle', 'thinking', 'talking'] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setFocused(k)}
+                style={{
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  borderRadius: 9999,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: focused === k ? '#FACC15' : 'rgba(255,255,255,0.05)',
+                  color: focused === k ? '#000' : '#9ca3af',
+                  fontWeight: focused === k ? 500 : 400,
+                }}
+              >
+                {STATE_LABEL[k]}
+              </button>
+            ))}
           </div>
-        )}
+
+          <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
+
+          {/* Profile dropdown */}
+          <div style={{ position: 'relative' }} ref={profileMenuRef}>
+            {showSaveDialog ? (
+              <input
+                type="text"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveAs();
+                  if (e.key === 'Escape') {
+                    setShowSaveDialog(false);
+                    setSaveName('');
+                  }
+                }}
+                placeholder="Profile name"
+                autoFocus
+                style={{
+                  width: 140,
+                  padding: '4px 8px',
+                  fontSize: 12,
+                  borderRadius: 6,
+                  background: 'rgba(255,255,255,0.05)',
+                  color: '#fafafa',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  outline: 'none',
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowProfileDropdown((p) => !p)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  borderRadius: 6,
+                  background: 'rgba(255,255,255,0.05)',
+                  color: '#d1d5db',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  cursor: 'pointer',
+                  minWidth: 100,
+                }}
+              >
+                <span style={{ flex: 1, textAlign: 'left' }}>
+                  {activeProfile?.name ?? '—'}
+                </span>
+                <ChevronDown size={12} style={{ color: '#9ca3af' }} />
+              </button>
+            )}
+            {showProfileDropdown && !showSaveDialog && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: 0,
+                  marginBottom: 4,
+                  width: 200,
+                  background: '#1a1a1e',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 6,
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+                  maxHeight: 240,
+                  overflowY: 'auto',
+                  zIndex: 60,
+                }}
+              >
+                {profiles.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => handleSelectProfile(p.id)}
+                    style={{
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      color: p.id === activeProfileId ? '#fafafa' : '#9ca3af',
+                      fontWeight: p.id === activeProfileId ? 500 : 400,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    {p.name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {showSaveDialog ? (
+            <>
+              <button
+                type="button"
+                onClick={handleSaveAs}
+                disabled={!saveName.trim()}
+                style={{
+                  padding: 6,
+                  borderRadius: 6,
+                  background: 'transparent',
+                  color: saveName.trim() ? '#22c55e' : '#4b5563',
+                  border: 'none',
+                  cursor: saveName.trim() ? 'pointer' : 'default',
+                }}
+                aria-label="Confirm save"
+              >
+                <Check size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSaveDialog(false);
+                  setSaveName('');
+                }}
+                style={{
+                  padding: 6,
+                  borderRadius: 6,
+                  background: 'transparent',
+                  color: '#ef4444',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+                aria-label="Cancel save"
+              >
+                <X size={14} />
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Update — only visible when dirty */}
+              {isDirty && (
+                <button
+                  type="button"
+                  onClick={handleUpdate}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: 11,
+                    borderRadius: 6,
+                    background: 'rgba(245,158,11,0.2)',
+                    color: '#facc15',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Update
+                </button>
+              )}
+              {/* Save (Save As) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSaveName(activeProfile ? `${activeProfile.name} copy` : '');
+                  setShowSaveDialog(true);
+                }}
+                style={{
+                  padding: 6,
+                  borderRadius: 6,
+                  background: 'rgba(255,255,255,0.05)',
+                  color: '#9ca3af',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                aria-label="Save as new profile"
+                title="Save as new profile"
+              >
+                <Save size={14} />
+              </button>
+              {/* Reset — only visible when dirty */}
+              {isDirty && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  style={{
+                    padding: 6,
+                    borderRadius: 6,
+                    background: 'rgba(255,255,255,0.05)',
+                    color: '#9ca3af',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  aria-label="Reset to last saved"
+                  title="Reset to last saved"
+                >
+                  <RotateCcw size={12} />
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

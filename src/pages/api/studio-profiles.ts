@@ -24,6 +24,8 @@ const VARIANT_FILES: Record<string, string> = {
   "realtime-state": "realtime-state-profiles.json",
   // Realtime Coral D preview (Coral-specific schema; parallel to realtime-state)
   "realtime-coral": "realtime-coral-profiles.json",
+  // Radial-states preview (linked profile: idle + thinking + talking)
+  "radial-states": "radial-states-profiles.json",
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
