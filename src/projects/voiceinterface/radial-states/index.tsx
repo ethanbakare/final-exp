@@ -655,25 +655,35 @@ export default function RadialStatesReview() {
   const [audioActive, setAudioActive] = useState(false);
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
   const [focused, setFocused] = useState<StateKey>('idle');
-  const [all, setAll] = useState<AllSettings>(() => {
-    if (typeof window === 'undefined') return DEFAULT_ALL;
+  // Always init with defaults so SSR and the first client render agree
+  // (otherwise localStorage values diverge from the server HTML and
+  // React reports a hydration mismatch). Real values land via the
+  // post-mount load effect below.
+  const [all, setAll] = useState<AllSettings>(DEFAULT_ALL);
+  const hydratedRef = useRef(false);
+
+  // Hydrate from localStorage AFTER mount.
+  useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return DEFAULT_ALL;
-      const parsed = JSON.parse(raw) as Partial<AllSettings>;
-      return {
-        idle: { ...DEFAULT_ALL.idle, ...(parsed.idle ?? {}) },
-        thinking: { ...DEFAULT_ALL.thinking, ...(parsed.thinking ?? {}) },
-        talking: { ...DEFAULT_ALL.talking, ...(parsed.talking ?? {}) },
-      };
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<AllSettings>;
+        setAll({
+          idle: { ...DEFAULT_ALL.idle, ...(parsed.idle ?? {}) },
+          thinking: { ...DEFAULT_ALL.thinking, ...(parsed.thinking ?? {}) },
+          talking: { ...DEFAULT_ALL.talking, ...(parsed.talking ?? {}) },
+        });
+      }
     } catch {
-      return DEFAULT_ALL;
+      /* corrupt JSON / unavailable storage — fall back to defaults */
     }
-  });
+    hydratedRef.current = true;
+  }, []);
 
-  // Persist on every change.
+  // Persist on every change — but only after the initial hydration
+  // pass, so we don't overwrite saved values with DEFAULT_ALL on mount.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!hydratedRef.current) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     } catch {
