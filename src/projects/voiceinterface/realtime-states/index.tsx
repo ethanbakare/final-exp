@@ -354,8 +354,17 @@ function RealtimeStatesEditor({
   }, [state]);
 
   // Talking-exit tau override (mirrors useLinkedProfileAnimator).
+  // Only mutates the override on actual state transitions (prev !==
+  // state). On first mount and StrictMode double-invocation, prev ===
+  // state, so the override stays at its useRef init value — which for
+  // Tube + skip-intro off is talking.settleSpeed, used by the cascade
+  // morph from talking to idle. Without this guard, profiles with
+  // base.thickenSpeed=0 (e.g. Nebularr) collapsed the cascade morph
+  // into ~25ms because the override was nulled and the animator fell
+  // back to base.thickenSpeed=0.
   useEffect(() => {
     const prev = previousStateRef.current;
+    if (prev === state) return;
     const p = profileRef.current;
     if (prev === 'talking' && state !== 'talking') {
       activeTauOverrideRef.current =

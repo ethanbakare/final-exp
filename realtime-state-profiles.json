@@ -26,8 +26,8 @@
         "waveCount": 14
       }
     },
-    "lastModified": 1778141813546,
-    "skipIntroOnSelect": true
+    "lastModified": 1778143233663,
+    "skipIntroOnSelect": false
   },
   {
     "id": "rt-ee41ea96-4906-448f-bf60-d6ddc07019e1",
@@ -61,7 +61,7 @@
         "settleSpeed": 0.5
       }
     },
-    "lastModified": 1778142814917,
+    "lastModified": 1778143082561,
     "skipIntroOnSelect": false
   }
 ]
