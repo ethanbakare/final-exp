@@ -924,7 +924,22 @@ function ControlsPanel({
     >
       <div style={columnStyle}>
         <h3 style={headerStyle}>Geometry</h3>
-        <Slider label="Radius" value={settings.radius} min={30} max={200} step={1} unit="px" onChange={(v) => set('radius', v)} onReset={settingReset('radius')} />
+        {/* Radius is editable on idle/thinking. On talking it's derived
+         *  from idle (talking.radius = idle.radius - idle.maxBarLength)
+         *  so the bars start exactly 14px outside the donut's inner
+         *  edge. Showing the slider would let the user fight the
+         *  derivation; instead we surface the computed value as a
+         *  read-only line below. */}
+        {focused === 'talking' ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b7280' }}>
+            <span style={{ color: '#9ca3af' }}>Radius</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {settings.radius}px <span style={{ color: '#4b5563' }}>(from idle)</span>
+            </span>
+          </div>
+        ) : (
+          <Slider label="Radius" value={settings.radius} min={30} max={200} step={1} unit="px" onChange={(v) => set('radius', v)} onReset={settingReset('radius')} />
+        )}
         <Slider label="Bar Width" value={settings.barWidth} min={0.5} max={10} step={0.5} unit="px" onChange={(v) => set('barWidth', v)} onReset={settingReset('barWidth')} />
         <Slider label="Bar Gap" value={settings.barGap} min={0} max={12} step={0.5} unit="px" onChange={(v) => set('barGap', v)} onReset={settingReset('barGap')} />
         <Slider label="Min Bar Length" value={settings.minBarLength} min={0} max={30} step={1} unit="px" onChange={(v) => set('minBarLength', v)} onReset={settingReset('minBarLength')} />
@@ -1419,6 +1434,23 @@ export default function RadialStatesReview() {
     : undefined;
   const backdrop = resolveBackdrop(activeProfile?.backdrop);
 
+  // Talking's radius is DERIVED from idle, not stored on the profile.
+  // The rule: talking's bar root sits 14px outside the donut's inner
+  // edge — same 14px rule as the donut/bar relationship on
+  // idle/thinking, just inverted (donut dictates talking, bars dictate
+  // donut on idle). The 14s cancel:
+  //   talking.radius = donut.inner + 14
+  //                  = (idle.radius - idle.maxBarLength - 14) + 14
+  //                  = idle.radius - idle.maxBarLength
+  // We override talking's radius at render time. The stored value on
+  // the profile is ignored; the Radius slider on the Talking panel is
+  // hidden so the user can't fight the derivation.
+  const talkingDerivedRadius = Math.max(1, all.idle.radius - all.idle.maxBarLength);
+  const effectiveTalkingSettings: RadialSettings = {
+    ...all.talking,
+    radius: talkingDerivedRadius,
+  };
+
   const updateLockBarCount = (next: boolean) => {
     if (!activeProfileId) return;
     setProfiles((prev) =>
@@ -1457,7 +1489,7 @@ export default function RadialStatesReview() {
         <Cell
           key={k}
           label={STATE_LABEL[k]}
-          settings={all[k]}
+          settings={k === 'talking' ? effectiveTalkingSettings : all[k]}
           // Thinking is intentionally fed null so audio doesn't reach it.
           frequencyData={k === 'thinking' ? null : frequencyData}
           variant={STATE_VARIANT[k]}
@@ -1526,7 +1558,7 @@ export default function RadialStatesReview() {
       >
         {!controlsCollapsed && (
           <ControlsPanel
-            settings={all[focused]}
+            settings={focused === 'talking' ? effectiveTalkingSettings : all[focused]}
             baselineSettings={baseline?.settings[focused] ?? null}
             onChange={updateFocused}
             onMaxBarHover={setMaxBarHovered}
