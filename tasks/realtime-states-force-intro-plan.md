@@ -1,8 +1,8 @@
-# `forceIntroOnSelect` per-profile toggle — plan v3
+# `forceIntroOnSelect` per-profile toggle — plan v4
 
 > Per-profile boolean flag that forces the talking-to-idle intro animation to replay when the user selects that profile, even on a same-shader switch. Opt-in (default off; **Coral-only** behavioral change — see §5.1). Lands as a small feature with a schema bump on both profile JSON files. No behavior change for existing profiles.
 >
-> Status: **v3 — external reviewer round-1 applied (9 findings) + 2 self-found.**
+> Status: **v4 — external reviewer round-2 applied (5 findings + 2 reviewer calls locked in) + 1 self-found.**
 
 ## 0. Concept index
 
@@ -33,7 +33,7 @@ This adds an opt-in per-profile override. Default off preserves today's behavior
 ## 2. Out of scope (explicit)
 
 - Toggling the field on the **active** profile to force an immediate intro replay — covered by the existing Replay button.
-- Cross-shader switches — these already remount and play the intro; the toggle has no effect on cross-shader paths.
+- Cross-shader switches — these already remount the canvas via component-type swap; the toggle has no effect on cross-shader paths. (Caveat: cross-shader Tube → Coral on the talking pill has a pre-existing intro-doesn't-play bug — see §5.2a. Force-intro doesn't address it.)
 - Editor cascade-resolved first-paint — already plays the intro by lazy-init design (see `RealtimeStatesEditor`'s `useState<RenderValues>` initializer).
 - A symmetric `pinnedOnLivePage` or any other unrelated schema change — purely the one new field.
 - A "force intro on save" or "force intro on rename" toggle — those are separate features. The trigger is *selection*, not modification.
@@ -64,7 +64,9 @@ interface SavedCoralProfile {
 
 Field is **optional**. Existing JSON entries lack the field; they read as `undefined` → treated as `false`. **No file migration needed.** Save-as-new omits the field entirely (per §5.4); the toggle path is the only writer and writes both `true` and `false` explicitly when the user toggles.
 
-The `LoadedOrb` discriminated union in both editor and live page also needs the field, so `selectCoralProfile` and the live page's `handleThumbnailClick` can read it from the active orb without a separate dropdown-row lookup.
+The `LoadedOrb` discriminated union (in both editor and live page) gains the optional field — but only the **live page** actually reads it via `LoadedOrb` (the `handleThumbnailClick(orb)` handler reads `orb.forceIntroOnSelect === true`). The **editor** reads the field directly from the source-array profile entry inside `selectCoralProfile`: `const found = coralProfiles.find(...); if (found.forceIntroOnSelect === true) ...`. The dropdown row JSX likewise renders from `coralProfiles.map(...)` directly, not from a `LoadedOrb` projection. `LoadedOrb` carries the field in the editor purely for type-shape consistency / forward use (e.g. if a future change wants to read flags off `activeOrb` directly).
+
+**Optional-on-LoadedOrb contract:** the field is `forceIntroOnSelect?: boolean` everywhere — `SavedProfile`, `SavedCoralProfile`, both arms of `LoadedOrb`. The `orbs` useMemo construction passes the value through unchanged (`forceIntroOnSelect: p.forceIntroOnSelect`, no normalization), so `LoadedOrb` instances may have `undefined`, `true`, or `false`. **All runtime reads use `=== true` defensively** — never truthy check, never `?? false` rewrites — so missing/false/true all behave correctly. This contract makes fallback orbs (`CORAL_FALLBACK_ORB`, `NEBULARR_FALLBACK_ORB`) work without modification.
 
 ## 4. UI — editor dropdown row toggle
 
@@ -88,7 +90,7 @@ Tube row:   [Disc icon]   [Profile name]    [Bookmark]                       [Pe
 
 **Behavior.**
 
-- Click toggles the field, persists immediately via `persistProfiles` / `persistCoralProfiles` (same path as `togglePinned` / `togglePinnedCoral`).
+- Click toggles the field, persists immediately via `persistCoralProfiles` (Tube has no toggle UI per §5.1, so `persistProfiles` is not part of this feature; the schema field on `SavedProfile` is forward-compat only).
 - Bumps `lastModified` (same as bookmark/rename).
 - Does **not** mark the editor dirty — the field isn't part of `settings`, just like `pinned`. The `isDirty` IIFE compares only `activeOrb.settings` vs. `activeBaseline.settings`, so this naturally works without changes. **Explicit verification** (§9.2 scenario): toggling the field on the active profile must NOT show the Discard/Update buttons.
 
@@ -148,13 +150,19 @@ const selectCoralProfile = (id: string) => {
   }
   setActiveOrbKey(`realtime-coral:${id}`);
   setActiveBaseline({ key: ..., shader: 'coral', settings: structuredClone(found.settings) });
-  if (found.forceIntroOnSelect) {
-    // Mirror the existing Replay button (index.tsx:1408-1417): the
-    // Coral canvas computes `goal = state === 'talking' ? 0 : 1`. If
-    // the user is currently on the talking pill, remounting alone
-    // keeps goal=0 → sphere stays sphere, NO intro. We must also
-    // flip state to 'idle' so the freshly mounted blob targets
-    // goal=1 (torus) and the morphRef-from-zero plays sphere → torus.
+  // Force-intro bump path. Two conditions required:
+  //  1. Active orb is already Coral (same-shader switch). On cross-shader
+  //     Tube → Coral, the canvas naturally remounts via component-type
+  //     swap; bumping the counter is redundant and contradicts §10's
+  //     "cross-shader unchanged" contract.
+  //  2. Target profile has the flag enabled.
+  // The state flip mirrors the existing Replay button (index.tsx:1408-1417):
+  // the Coral canvas computes `goal = state === 'talking' ? 0 : 1`. If
+  // the user is currently on the talking pill, remounting alone keeps
+  // goal=0 → sphere stays sphere, NO intro. So we also flip state to
+  // 'idle' so the freshly mounted blob targets goal=1 and morphRef-from-zero
+  // plays sphere → torus.
+  if (activeOrb?.shader === 'coral' && found.forceIntroOnSelect === true) {
     setState('idle');
     setReplayCounter((c) => c + 1);  // bumps Canvas key, forces remount
   }
@@ -162,7 +170,28 @@ const selectCoralProfile = (id: string) => {
 };
 ```
 
-The `replayCounter` is already a React state in `RealtimeStatesEditor` and is already wired into the Canvas's `<CoralStoneMorph key={`coral-${replayCounter}`}>`. Bumping it forces the canvas remount, which is the existing same-shader replay mechanism (used by the Replay button). The `setState('idle')` call mirrors the Replay button's path; without it, mid-talking force-intro fails silently. No new state, no new prop plumbing — guard + state flip + bump.
+The `replayCounter` is already a React state in `RealtimeStatesEditor` and is already wired into the Canvas's `<CoralStoneMorph key={`coral-${replayCounter}`}>`. Bumping it forces the canvas remount, which is the existing same-shader replay mechanism (used by the Replay button). The `setState('idle')` call mirrors the Replay button's path; without it, mid-talking force-intro fails silently. No new state, no new prop plumbing — self-select guard + same-shader/flag gate + state flip + bump.
+
+**Note on cross-shader behavior:** when `activeOrb?.shader === 'tube'` and the user selects a Coral profile (with or without force-intro), the same-shader guard above rejects the bump — the cross-shader natural remount handles the canvas swap. See §5.2a for a known limitation in this path.
+
+### 5.2a Cross-shader Coral on talking pill — known limitation (pre-existing, out of scope)
+
+This plan does **not** fix an existing bug: cross-shader Tube → Coral while the user is on the `talking` state pill, with or without `forceIntroOnSelect`, fails to play the sphere → torus intro.
+
+Reasoning:
+
+1. `selectCoralProfile` (today's behavior) doesn't flip state on cross-shader.
+2. Canvas dispatches by shader → fresh `<CoralStoneMorph>` mounts.
+3. But state is still `'talking'` → `goal=0` → sphere stays sphere; no morph fires.
+
+This is asymmetric with Tube: cross-shader Coral → Tube DOES replay because `selectProfile` (Tube path) calls `restartIntro` unconditionally, which reseeds render values regardless of state.
+
+**Why out of scope here:** force-intro's purpose is to override the *same-shader-no-replay contract*. The cross-shader-talking-pill bug is an asymmetry between Tube and Coral cross-shader behavior — different concern, separate fix. Two scope-clean options for a follow-up plan:
+
+- (a) Always `setState('idle')` on cross-shader Coral selection (matches Tube's restartIntro path).
+- (b) Add a Coral equivalent of `restartIntro` that's invoked from `selectCoralProfile` on cross-shader paths.
+
+Either way, that work is independent of this plan. **Force-intro's contract here is: "when the editor or live page is in a non-talking state and the user selects this profile, the intro replays on same-shader switches that wouldn't otherwise replay."** Talking-pill cross-shader behavior is what it is today; force-intro doesn't promise to fix it.
 
 ### 5.3 Live page — both shaders
 
@@ -272,31 +301,31 @@ const entry: SavedProfile = {
 };
 ```
 
-After this change: **Save-as-new omits the field entirely** — new profiles default off via the `?? false` read. **No fork inheritance** — even when forking from a profile with `forceIntroOnSelect: true`, the new B profile starts off (the toggle is a per-profile preference, not a "settings" attribute, and inheriting it would be surprising). Same shape as `pinned` already does (Save creates with `pinned: false`, not by inheriting the source's pinned state).
+After this change: **Save-as-new omits the field entirely** — new profiles default off (the `=== true` runtime read returns `false` when the field is `undefined`). **No fork inheritance** — even when forking from a profile with `forceIntroOnSelect: true`, the new B profile starts off (the toggle is a per-profile preference, not a "settings" attribute, and inheriting it would be surprising). Same shape as `pinned` already does (Save creates with `pinned: false`, not by inheriting the source's pinned state).
 
 The toggle path itself does write the field (both directions), so a profile's persisted JSON ends up in one of three states over its lifetime:
 
-| Source action | Persisted state | Read-as |
+| Source action | Persisted state | Behavior |
 | --- | --- | --- |
-| Created by Save-as-new (or pre-existing legacy entry) | `{ ... }` (field absent) | `false` via `?? false` |
-| Toggled on by user, never toggled off | `{ ..., forceIntroOnSelect: true }` | `true` |
-| Toggled on then off | `{ ..., forceIntroOnSelect: false }` | `false` |
+| Created by Save-as-new (or pre-existing legacy entry) | `{ ... }` (field absent) | `=== true` is `false` → off |
+| Toggled on by user, never toggled off | `{ ..., forceIntroOnSelect: true }` | `=== true` is `true` → on |
+| Toggled on then off | `{ ..., forceIntroOnSelect: false }` | `=== true` is `false` → off |
 
-All three states behave identically at runtime. The user's toggle UI reads `pr.forceIntroOnSelect ?? false` so the absent and explicit-`false` cases are indistinguishable in the editor.
+All three states behave identically at runtime per the §3 `=== true` contract. The user's toggle UI display checks `pr.forceIntroOnSelect === true` so absent/false/true read consistently.
 
 Implementer notes:
 
 - `togglePinned`'s pattern: `{ ...pr, pinned: !pr.pinned, lastModified: Date.now() }`.
-- New `toggleForceIntroOnSelectCoral` follows the same shape: `{ ...pr, forceIntroOnSelect: !(pr.forceIntroOnSelect ?? false), lastModified: Date.now() }`. The `?? false` handles the "missing field reads as false" contract for the toggle's source-of-truth read. (No matching `toggleForceIntroOnSelect` for Tube per §5.1; the toggle UI doesn't render on Tube rows so the mutator isn't needed.)
+- New `toggleForceIntroOnSelectCoral` follows the same shape, but with explicit `=== true` to handle the optional field cleanly: `{ ...pr, forceIntroOnSelect: !(pr.forceIntroOnSelect === true), lastModified: Date.now() }`. (`!(undefined === true)` = `true` on first toggle; `!(true === true)` = `false` on next; `!(false === true)` = `true` again. Three states cycle correctly.) (No matching `toggleForceIntroOnSelect` for Tube per §5.1; the toggle UI doesn't render on Tube rows so the mutator isn't needed.)
 
 ## 6. Files touched
 
 - `src/projects/voiceinterface/realtime-states/types.ts` — add `forceIntroOnSelect?: boolean` to `SavedProfile`, `SavedCoralProfile`, and both arms of `LoadedOrb`. **Do NOT touch `DropdownRow`** — it's defined at L79 but unused outside its own type definition (verified: only self-references in comments). Adding the field there would propagate dead code; cleaning up `DropdownRow` is a separate concern.
 - `src/projects/voiceinterface/realtime-states/index.tsx`:
-  - State flip + bump `replayCounter` in `selectCoralProfile` when target's `forceIntroOnSelect === true` (per §5.2).
+  - In `selectCoralProfile`: add the same-shader-and-flag gate (`activeOrb?.shader === 'coral' && found.forceIntroOnSelect === true`) → `setState('idle')` + bump `replayCounter` (per §5.2).
   - New `toggleForceIntroOnSelectCoral` mutator (mirrors `togglePinnedCoral`). **No matching `toggleForceIntroOnSelect` for Tube** — Tube rows don't render the toggle (per §5.1).
-  - Pass `forceIntroOnSelect` through the `orbs` useMemo so the dropdown row can read it.
-  - Render the toggle button in the Coral dropdown row JSX only — between bookmark and pencil. Tube rows remain unchanged (no third icon).
+  - Pass `forceIntroOnSelect` through the `orbs` useMemo (pass-through, no normalization). Note: this is for `LoadedOrb` type-shape consistency; the dropdown JSX reads from `coralProfiles.map(...)` directly, not from `orbs`.
+  - Render the toggle button in the Coral dropdown row JSX only — between bookmark and pencil. The toggle reads `p.forceIntroOnSelect === true` directly from the `coralProfiles.map` callback's `p` argument. Tube rows (which iterate `tubeProfiles.map(...)` separately) remain unchanged — no third icon, no read.
 - `src/projects/voiceinterface/realtime-states/controls.tsx` — no changes (this is the panels file; the toggle lives in the dropdown row, which is in `index.tsx`'s bottom-bar JSX).
 - `src/projects/voiceinterface/components/RealtimeBlob.tsx` — accept new `selectionReplayKey?: number` prop (number only; see §10), thread into the inner blob's `key` (via `coral-${replayKey}` and `tube-${replayKey}`).
 - `src/projects/voiceinterface/components/VoiceRealtimeOpenAI.tsx`:
@@ -314,10 +343,10 @@ Single commit:
 
 1. Add `forceIntroOnSelect?: boolean` to types in `realtime-states/types.ts` (`SavedProfile`, `SavedCoralProfile`, both arms of `LoadedOrb`).
 2. Add the field to `LoadedOrb` in `VoiceRealtimeOpenAI.tsx`.
-3. Add the field to `LoadedOrb`'s `orbs` useMemo construction in both editor and live page (read from `p.forceIntroOnSelect === true`, default false).
+3. Add the field to `LoadedOrb`'s `orbs` useMemo construction in both editor and live page — **pass-through, no normalization**: `forceIntroOnSelect: p.forceIntroOnSelect` (LoadedOrb's field is also optional, so `undefined`/`true`/`false` flow through unchanged). All read sites use `=== true` defensively (per §3 contract).
 4. Add `toggleForceIntroOnSelectCoral` mutator in `realtime-states/index.tsx` (mirrors `togglePinnedCoral`). **No matching Tube mutator** — Tube rows don't render the toggle.
-5. Add the icon button to the **Coral** dropdown row JSX in `realtime-states/index.tsx` (between bookmark and pencil). **Tube rows are unchanged** (no third icon).
-6. Add the self-select guard + `setState('idle')` + `setReplayCounter` bump to `selectCoralProfile` (per §5.2). Both the state flip AND the counter bump must happen together; missing the state flip causes silent failure when user is on the talking pill.
+5. Add the icon button to the **Coral** dropdown row JSX in `realtime-states/index.tsx` (between bookmark and pencil). The button reads `p.forceIntroOnSelect === true` from the map callback's `p` argument (a `SavedCoralProfile` from `coralProfiles`). **Tube rows are unchanged** (no third icon, separate `tubeProfiles.map` call site).
+6. Update `selectCoralProfile` (per §5.2): add the self-select guard, the same-shader-and-flag gate (`activeOrb?.shader === 'coral' && found.forceIntroOnSelect === true`), `setState('idle')`, and `setReplayCounter` bump. All four parts must be present; missing the same-shader gate causes redundant remounts on cross-shader, missing the state flip causes silent failure on talking pill.
 7. (Tube `selectProfile`: no change — already plays intro on every select via `restartIntro` call.)
 8. Add `selectionReplayKey?: number` prop to `RealtimeBlob.tsx`, thread into both inner blob keys (`coral-${replayKey}` and `tube-${replayKey}`).
 9. Add `selectionReplayCounter` state + `handleThumbnailClick(orb)` with the four-condition guard (composite key + same-shader + non-speaking + flag) in `VoiceRealtimeOpenAI.tsx`. Pass `selectionReplayKey={selectionReplayCounter}` to `<RealtimeBlob>`.
@@ -352,7 +381,10 @@ Numbered globally for easy citation.
 3. **Coral force-intro on, on the talking pill.** Same setup as scenario 2, but switch to the `talking` pill before clicking the second Coral. Then click the second Coral. Then click `Coral Realtime`. **Expected:** Coral Realtime's selection flips state to `idle` AND remounts → sphere → torus intro plays. (Without the §5.2 `setState('idle')` fix, the orb would stay sphere because `goal=0` on talking.)
 4. **Coral force-intro off, switch from another Coral.** Toggle off for `Coral Realtime`. Switch from the second Coral → `Coral Realtime`. **Expected:** prop-only smooth interpolation, no intro replay (today's contract).
 5. **Self-select with toggle on.** Coral profile with toggle on, currently active. Click the same profile in the dropdown again. **Expected:** no replay — the self-select guard in `selectCoralProfile` (§5.2) early-returns before flipping state or bumping the counter. Equivalent expected behavior on the live page via the composite-key guard (§5.3).
-6. **Cross-shader switch with target force-intro on.** Coral profile has force-intro on. Currently active is a Tube profile. Switch to the Coral. **Expected:** intro plays (cross-shader natural remount handles it). Counter is NOT bumped — only same-shader switches go through the bump path (§5.3 same-shader guard). Editor: this scenario is N/A because the editor's Tube `selectProfile` doesn't reach `selectCoralProfile`. Live page: confirm via console-tagged counter that it didn't bump.
+6. **Cross-shader switch with target Coral force-intro on — counter NOT bumped (§5.2 + §5.3 same-shader guards).**
+   - **Editor:** make a Coral profile have `forceIntroOnSelect: true`. Make active a Tube profile (e.g. `Kyoto Realtime`), state pill on `idle`. Click the Coral profile in the dropdown — `selectCoralProfile` IS called (the dropdown route always runs `selectCoralProfile` for Coral rows, regardless of active shader). **Expected:** the same-shader gate (`activeOrb?.shader === 'coral'`) rejects, so neither `setState('idle')` nor `setReplayCounter` fires. Cross-shader natural component-type swap mounts a fresh `<CoralStoneMorph>`; with state at `idle`, goal=1 and morphRef-from-zero plays sphere → torus naturally. Verify by tagging `replayCounter` value (via temporary `console.log` or React DevTools) — should NOT have incremented.
+   - **Live page:** same setup. Click the cross-shader thumbnail with the flag on. **Expected:** `selectionReplayCounter` does NOT increment (verifiable via temporary log). Cross-shader remount happens naturally via the `<RealtimeBlob>` shader-dispatch.
+   - **Talking-pill caveat (per §5.2a):** repeating the editor case while on the `talking` pill exposes a pre-existing limitation — the cross-shader Coral mount is goal=0 (sphere), no morph fires until state flips. Force-intro doesn't fix this; it's a separate concern. Document but don't treat as a regression.
 7. **Save fork doesn't inherit the field.** Toggle on for one profile (e.g. `Coral Realtime`). Save-as-new under a different name. **Expected:** source's flag unchanged; new fork has `forceIntroOnSelect` absent (= false), toggle icon shows off state.
 8. **Toggle does not mark editor dirty.** With the active profile, toggle the force-intro icon on. **Expected:** bottom-bar Discard/Update buttons do NOT appear. Confirms the toggle is metadata, not a settings change.
 9. **Live page: pinned + force-intro round-trip across both shaders.** Pin two Coral profiles + two Tube profiles. Toggle force-intro on for one Coral. From the live page thumbnail strip, switch to each. **Expected:** the toggled-on Coral's selection (when coming from another Coral) forces a remount + intro. The toggled-off profiles' selections are prop-only smooth. Tube selections behave today's way (NebularrBlob remounts on cross-shader, prop-only on same-shader).
@@ -369,13 +401,15 @@ Numbered globally for easy citation.
 
 3. **The live page's `selectionReplayKey` prop is forgotten on the cross-shader path.** When user goes Coral → Tube on the live page with `forceIntroOnSelect: true` on the Tube target, the cross-shader switch already remounts; the additional key bump is redundant. Not a bug — just a no-op double trigger. But worth noting that the field's effect only matters on same-shader paths. The if-guard in §5.3 (`activeOrb?.id !== orb.id`) makes this work correctly for both cross-shader and same-shader.
 
-## 10. Open questions for the reviewer
+## 10. Open questions
 
 1. ~~Field omitted vs persisted as `false` when off?~~ Resolved in v2 §5.4 (table).
-2. ~~Should `selectProfile` (Tube) gate `restartIntro` on the field?~~ Resolved in v2 §5.1; refined in v3 — Tube toggle is hidden entirely (rather than shown as a no-op).
+2. ~~Should `selectProfile` (Tube) gate `restartIntro` on the field?~~ Resolved in v2 §5.1; refined in v3 — Tube toggle hidden entirely.
 3. ~~`selectionReplayKey` typed `number | string`?~~ Resolved in v2: `number`.
-4. **Real open question.** Should the toggle icon use lucide `RotateCcw` (matches Replay button) or `Repeat` (matches auto-loop)? Both are conceptually adjacent. Slight preference for `RotateCcw` since it's literally the same action ("replay the intro"). Reviewer's call.
-5. **Live-page voiceState gate (v3 round-1 P1b — option a vs b).** v3 §5.3a commits to gating force-intro on `voiceState !== 'ai_speaking'`. Reviewer's original feedback offered two options: (a) gate on non-speaking, or (b) temporary intro override that feeds idle/listening to the blob during the intro window. Plan picked (a) for simplicity + UX coherence (mid-conversation intro would be jarring). If the reviewer prefers (b), happy to revise. (c — defer the bump until next non-speaking transition — is also possible but adds more state.)
+4. ~~Lucide `RotateCcw` or `Repeat`?~~ Resolved in v4 by reviewer round-2: **`RotateCcw`** — matches Replay button, communicates "run this intro again." `Repeat` is associated with auto-loop in this editor; reusing it for force-intro would blur two different concepts.
+5. ~~Live-page voiceState gate option (a) vs (b)?~~ Resolved in v4 by reviewer round-2: **(a) — non-speaking gate.** Simpler, less invasive, avoids interrupting an active response with a theatrical visual replay. Kept as explicit limitation in §5.3a, verified manually in §9.2 scenario 10.
+
+All open questions resolved. Plan is implementation-ready pending reviewer round-3 sanity check on the v4 patches.
 
 ---
 
@@ -422,3 +456,23 @@ All 9 reviewer findings accepted; 2 were Critical (P1) and required real semanti
 **Self-found, mine-1 [B] — Editor self-select guard interaction with state-flip.** Documented in §5.2 code comment that the guard short-circuits BOTH the state flip and the counter bump on self-select. That's intentional — self-select should be a no-op; user has the Replay button for manual replay.
 
 **Self-found, mine-2 [B] — Cascade-on-load + force-intro = no double intro.** Cascade calls `setActiveOrbKey()` directly, bypassing `handleThumbnailClick`/`selectCoralProfile`, so the counter doesn't bump on first paint. The first-paint design already plays the intro via lazy-init seeding. Two paths to "intro on first mount" don't stack — already documented in §2 out-of-scope.
+
+### Round 4 — external reviewer round-2 (5 findings + 2 reviewer calls + 1 self-found)
+
+All 5 findings accepted with code-level verification before patching. Both reviewer calls (icon choice, voiceState gate option) locked in. One additional self-found surfaced.
+
+**[P1] Editor cross-shader Coral selection still bumps replayCounter.** Confirmed: my v3 §5.2 lacked the same-shader guard the live page already had. Cross-shader Tube → Coral with the flag would bump unnecessarily, contradicting §10's "cross-shader unchanged" contract. **Patched** by adding `activeOrb?.shader === 'coral'` to the bump gate. The same-shader-and-flag combined check now protects both the contract and the redundant-remount concern.
+
+**[P2] Scenario 6 wrong about editor path.** Confirmed: I claimed the editor scenario was N/A because Tube `selectProfile` doesn't reach `selectCoralProfile` — but the dropdown calls `selectCoralProfile` for any Coral row regardless of active shader. **Rewrote scenario 6** to cover both editor and live page cross-shader cases explicitly, including the talking-pill caveat from new §5.2a.
+
+**[P2] Editor dropdown doesn't read from `orbs`.** Confirmed at index.tsx:1132 (Tube `tubeProfiles.map`) and L1234 (Coral `coralProfiles.map`). Dropdown JSX never iterates `orbs`. **Rewrote §3 + §6 + §7 step 3 + step 5** to clarify the read-source split: editor reads via source arrays directly; live page reads via `LoadedOrb` in `handleThumbnailClick`. `LoadedOrb` carries the field for type-shape consistency + live-page use.
+
+**[P2] LoadedOrb optional-vs-normalized ambiguity.** Confirmed: §3 said optional but §7 step 3 said `=== true` which sounded like normalization. **Patched §3 + §7 step 3**: field is optional everywhere, projection is pass-through (`forceIntroOnSelect: p.forceIntroOnSelect`, no `=== true` rewrite at projection time), all reads use `=== true` defensively. Three runtime states (`undefined` / `true` / `false`) all behave correctly. Fallback orbs unchanged.
+
+**[P3] §4 mentions `persistProfiles`.** Confirmed: Tube has no toggle (per v3 §5.1) so only `persistCoralProfiles` is in scope. **Patched §4** to call out the Tube-schema-only-forward-compat contract.
+
+**Reviewer call §10 q4: lucide icon = `RotateCcw`.** Locked in. Matches Replay button; `Repeat` is auto-loop iconography, would blur concepts.
+
+**Reviewer call §10 q5: voiceState gate option (a).** Locked in. Documented as explicit known limitation (§5.3a + §9.2 scenario 10); manually verified in scenario 10.
+
+**Self-found, mine-3 [B] — Cross-shader Coral on talking pill is a pre-existing bug.** Surfaced during my [P1] thinking. Even with the [P1] fix, cross-shader Tube → Coral with force-intro on, while on talking pill, won't replay the intro — because `selectCoralProfile` doesn't flip state on cross-shader (today's behavior, not introduced by this plan), so the freshly-mounted `<CoralStoneMorph>` sees state='talking', goal=0, sphere stays sphere. Asymmetric with Tube cross-shader (which replays via `selectProfile`'s unconditional `restartIntro`). **Documented as new §5.2a** + scope-clean follow-up options (always-flip-state-on-cross-shader-Coral, or add a Coral `restartIntro` equivalent). Force-intro's contract here is narrowed to "non-talking-pill same-shader same-shader switches"; talking-pill cross-shader is its own concern.
