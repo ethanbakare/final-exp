@@ -38,3 +38,15 @@ export const COLOR_FORMATS: ColorFormat[] = ['hex', 'rgb', 'hsl', 'hsb'];
 // user perceives is approximately value * 1.5 seconds. We surface this
 // number under each speed slider so the labelled "s" stays honest.
 export const SETTLE_DURATION_MULTIPLIER = 1.5;
+
+/** thickenSpeed value passed to GentleOrbThicken in the editor canvas.
+ *  GentleOrbThicken has its own internal `thicken` animator (interpolates
+ *  uniforms between thin and thick parameter sets, controlled by `goal`
+ *  and this speed). The editor pins `goal={1}` and runs all visible
+ *  morph animation through `render.thickRadius` (driven by the JS
+ *  animator effect in index.tsx). With this speed value (~0.05s) the
+ *  internal animator converges to its goal in ~3 frames, effectively
+ *  becoming a no-op so the only visible animation is the externally-
+ *  controlled `thickRadius`. Don't change without understanding the
+ *  Tube morph architecture (see seam audit §4.1, §4.4). */
+export const TUBE_INTERNAL_THICKEN_SPEED = 0.05;

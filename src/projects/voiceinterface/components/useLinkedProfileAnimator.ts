@@ -142,6 +142,15 @@ export function lerpRender(a: RenderValues, b: RenderValues, t: number): RenderV
  * GentleOrbThicken shader; the shader's internal animator stays out
  * of the way (caller should pin `goal=1` and `thickenSpeed=0.05`).
  */
+/**
+ * PARALLEL IMPLEMENTATION: the editor (`realtime-states/index.tsx`) has
+ * its own inline animator that's functionally equivalent to this hook,
+ * with editor-specific extensions (Replay counter, talking-exit override
+ * arming via restartIntro, thinking-pulse pause). Bugs in either should
+ * be checked in both — they share enough math (lerp, baseRender,
+ * pickPeak) that a fix in one often applies to the other. See the
+ * project's seam-audit §6.2.
+ */
 export function useLinkedProfileAnimator(
   profile: LinkedProfile | null,
   state: LinkedState,

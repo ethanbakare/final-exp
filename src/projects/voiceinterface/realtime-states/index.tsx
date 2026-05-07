@@ -28,6 +28,7 @@ import {
 import {
   COLOR_FORMATS,
   TUBE_SEED,
+  TUBE_INTERNAL_THICKEN_SPEED,
   REALTIME_SEED_NAME,
   SILENT,
   STATES,
@@ -199,6 +200,11 @@ function RealtimeStatesEditor({
   // when the previous state was 'talking' and the new state isn't —
   // lets talking → idle settle on talking.settleSpeed instead of the
   // target's own thickenSpeed (which for Nebularr is 0 → instant snap).
+  // Init must equal state's default ('idle'). The talking-exit
+  // useEffect short-circuits when prev === state (so first-mount and
+  // StrictMode double-invocation don't disturb activeTauOverrideRef);
+  // that short-circuit relies on this init matching state's default.
+  // If state's default changes, this init must follow.
   const previousStateRef = useRef<PreviewState>(state);
   // Plan v2.2 first-paint fix — initialize the talking-exit tau
   // override from the RESOLVED Tube profile so the first morph back
@@ -409,7 +415,16 @@ function RealtimeStatesEditor({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Animator — JS owns all motion (§3)
+  // Animator — JS owns all motion (§3).
+  //
+  // PARALLEL IMPLEMENTATION: this inline animator is functionally
+  // equivalent to `useLinkedProfileAnimator` (live page Tube). They
+  // diverged for editor-specific needs (replayCounter, talking-exit
+  // override, thinking pulse pause). Bugs in either should be checked
+  // in both — the Nebularr morph-collapse (commit adc9208) existed
+  // here but not in the hook because the hook is mounted with a
+  // resolved profile, no first-paint-cascade-with-talking-seed step.
+  // See seam audit §6.2.
   useEffect(() => {
     let raf = 0;
     const animate = (ts: number) => {
@@ -1155,13 +1170,21 @@ function RealtimeStatesEditor({
               );
             })()
           ) : (
+            // Tube morph architecture: visible animation lives in
+            // `render.thickRadius` (driven by the JS animator at
+            // ~L380), not in GentleOrbThicken's internal thicken
+            // animator. We pin `goal={1}` and use a near-instant
+            // thickenSpeed so the internal animator converges
+            // immediately and stops contributing. Don't change without
+            // understanding the asymmetry vs Coral (which animates
+            // goal=0/1 internally). See seam audit §4.1.
             <GentleOrbThicken
               audioData={blobAudioData}
               goal={1}
               scale={render.scale}
               thinRadius={profile.base.thinRadius}
               thickRadius={render.thickRadius}
-              thickenSpeed={0.05}
+              thickenSpeed={TUBE_INTERNAL_THICKEN_SPEED}
               waveIntensity={render.waveIntensity}
               waveCount={render.waveCount}
               breathAmp={render.breathAmp}
@@ -1930,6 +1953,11 @@ export default function RealtimeStates() {
     if (cascadeAppliedRef.current) return;
     if (!tubeLoaded || !coralLoaded) return; // wait for BOTH sources
 
+    // Editor's active-orb key is INTENTIONALLY DISTINCT from the live
+    // page's `realtime-active-orb-key`. Editor and live page have
+    // independent active-orb selections by design (designer can edit
+    // a profile in the editor without changing what shows on the live
+    // page). Don't merge these keys without product input.
     const persisted = window.localStorage.getItem('realtime-states-active-orb-key');
     const persistedOrb = persisted
       ? orbs.find((o) => compositeKey(o) === persisted)
@@ -1963,6 +1991,12 @@ export default function RealtimeStates() {
     window.localStorage.setItem('realtime-states-active-orb-key', activeOrbKey);
   }, [activeOrbKey, cascadeReady]);
 
+  // Cascade gate — child mounts only when cascadeReady is true AND
+  // activeOrb is non-null. The early return narrows activeOrb's type
+  // from `LoadedOrb | null` to `LoadedOrb` for the JSX below, which is
+  // what the child's prop type expects. Don't refactor this gate to a
+  // ternary or remove either condition without considering the child's
+  // lazy-init dependency on a resolved activeOrb (seam audit §2.1).
   if (!cascadeReady || !activeOrb) {
     return <RealtimeStatesSkeleton />;
   }
