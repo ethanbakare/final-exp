@@ -109,7 +109,7 @@ interface CellProps {
   onClick: () => void;
 }
 
-const CELL_SIZE = 360;
+const CELL_SIZE = 308;
 // Donut envelope is shared across ALL cells, anchored to Thorn's bar
 // range. Talking's smaller bar range sits inside this same donut.
 const DONUT_PADDING = 10;
@@ -230,6 +230,7 @@ function Slider({
   step,
   unit,
   onChange,
+  width = 120,
 }: {
   label: string;
   value: number;
@@ -238,10 +239,11 @@ function Slider({
   step: number;
   unit?: string;
   onChange: (v: number) => void;
+  width?: number;
 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width, flexShrink: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, lineHeight: 1.2 }}>
         <span style={{ color: '#9ca3af' }}>{label}</span>
         <span style={{ color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>
           {value}
@@ -255,7 +257,7 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{ width: '100%', accentColor: '#FACC15' }}
+        style={{ width: '100%', accentColor: '#FACC15', height: 4 }}
       />
     </div>
   );
@@ -275,19 +277,21 @@ function Toggle({
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        fontSize: 11,
+        gap: 6,
+        fontSize: 10,
         color: '#9ca3af',
         cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
       }}
     >
-      <span>{label}</span>
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        style={{ accentColor: '#FACC15' }}
+        style={{ accentColor: '#FACC15', margin: 0 }}
       />
+      <span>{label}</span>
     </label>
   );
 }
@@ -302,9 +306,9 @@ function ColorSwatch({
   onChange: (v: string) => void;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#9ca3af', flexShrink: 0 }}>
       <span>{label}</span>
-      <div style={{ position: 'relative', width: 22, height: 22, borderRadius: 11, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+      <div style={{ position: 'relative', width: 18, height: 18, borderRadius: 9, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ position: 'absolute', inset: 0, backgroundColor: value }} />
         <input
           type="color"
@@ -329,17 +333,17 @@ function PillGroup<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: '#9ca3af', flexShrink: 0 }}>
       <span>{label}</span>
-      <div style={{ display: 'flex', gap: 4 }}>
+      <div style={{ display: 'flex', gap: 2 }}>
         {options.map((o) => (
           <button
             key={o}
             type="button"
             onClick={() => onChange(o)}
             style={{
-              padding: '2px 8px',
-              fontSize: 10,
+              padding: '2px 6px',
+              fontSize: 9,
               borderRadius: 9999,
               border: 'none',
               cursor: 'pointer',
@@ -362,40 +366,70 @@ interface ControlsPanelProps {
   onResetState: () => void;
 }
 
+function SectionTag({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        fontSize: 9,
+        fontWeight: 500,
+        color: '#6b7280',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginRight: 4,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Divider() {
+  return <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />;
+}
+
 function ControlsPanel({ settings, onChange, onResetState }: ControlsPanelProps) {
   const set = <K extends keyof RadialSettings>(key: K, value: RadialSettings[K]) =>
     onChange({ [key]: value } as Partial<RadialSettings>);
+
+  const rowStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
+    rowGap: 10,
+  };
 
   return (
     <div
       style={{
         background: '#1a1a1e',
         borderTop: '1px solid rgba(255,255,255,0.1)',
-        padding: '16px 24px',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 24,
+        padding: '10px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h3 style={{ fontSize: 10, fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, margin: 0, marginBottom: 4 }}>Geometry</h3>
+      {/* Row 1 — Geometry + Audio */}
+      <div style={rowStyle}>
+        <SectionTag>Geometry</SectionTag>
         <Slider label="Radius" value={settings.radius} min={30} max={200} step={1} unit="px" onChange={(v) => set('radius', v)} />
-        <Slider label="Bar Width" value={settings.barWidth} min={0.5} max={10} step={0.5} unit="px" onChange={(v) => set('barWidth', v)} />
+        <Slider label="Bar W" value={settings.barWidth} min={0.5} max={10} step={0.5} unit="px" onChange={(v) => set('barWidth', v)} />
         <Slider label="Bar Gap" value={settings.barGap} min={0} max={12} step={0.5} unit="px" onChange={(v) => set('barGap', v)} />
-        <Slider label="Min Bar Length" value={settings.minBarLength} min={0} max={30} step={1} unit="px" onChange={(v) => set('minBarLength', v)} />
-        <Slider label="Max Bar Length" value={settings.maxBarLength} min={10} max={120} step={1} unit="px" onChange={(v) => set('maxBarLength', v)} />
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h3 style={{ fontSize: 10, fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, margin: 0, marginBottom: 4 }}>Audio</h3>
+        <Slider label="Min Len" value={settings.minBarLength} min={0} max={30} step={1} unit="px" onChange={(v) => set('minBarLength', v)} />
+        <Slider label="Max Len" value={settings.maxBarLength} min={10} max={120} step={1} unit="px" onChange={(v) => set('maxBarLength', v)} />
+        <Divider />
+        <SectionTag>Audio</SectionTag>
         <Slider label="Sensitivity" value={settings.sensitivity} min={0.1} max={5} step={0.1} unit="x" onChange={(v) => set('sensitivity', v)} />
         <Slider label="Segments" value={settings.segments} min={1} max={16} step={1} onChange={(v) => set('segments', v)} />
         <Slider label="Smoothing" value={settings.smoothing} min={0} max={0.99} step={0.01} onChange={(v) => set('smoothing', v)} />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h3 style={{ fontSize: 10, fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, margin: 0, marginBottom: 4 }}>Wave</h3>
-        <Toggle label="Ambient Wave" checked={settings.ambientWave} onChange={(v) => set('ambientWave', v)} />
+      {/* Row 2 — Wave + Envelope */}
+      <div style={rowStyle}>
+        <SectionTag>Wave</SectionTag>
+        <Toggle label="Ambient" checked={settings.ambientWave} onChange={(v) => set('ambientWave', v)} />
         {settings.ambientWave && (
           <>
             <PillGroup
@@ -408,17 +442,15 @@ function ControlsPanel({ settings, onChange, onResetState }: ControlsPanelProps)
               <Slider label="Lobes" value={settings.waveLobes} min={1} max={16} step={1} onChange={(v) => set('waveLobes', v)} />
             )}
             <Slider label="Speed" value={settings.waveSpeed} min={0} max={10} step={0.1} unit=" rad/s" onChange={(v) => set('waveSpeed', v)} />
-            <Slider label="Amplitude" value={settings.waveAmplitude} min={0} max={1} step={0.01} onChange={(v) => set('waveAmplitude', v)} />
-            <Slider label="Peak Boost" value={settings.waveHeight} min={0.5} max={3} step={0.1} unit="x" onChange={(v) => set('waveHeight', v)} />
+            <Slider label="Amp" value={settings.waveAmplitude} min={0} max={1} step={0.01} onChange={(v) => set('waveAmplitude', v)} />
+            <Slider label="Peak" value={settings.waveHeight} min={0.5} max={3} step={0.1} unit="x" onChange={(v) => set('waveHeight', v)} />
           </>
         )}
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h3 style={{ fontSize: 10, fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, margin: 0, marginBottom: 4 }}>Envelope</h3>
-        <Slider label="Envelope" value={settings.waveEnvelope} min={0} max={1} step={0.01} onChange={(v) => set('waveEnvelope', v)} />
-        <Slider label="Env Amplitude" value={settings.envelopeAmplitude} min={0} max={1} step={0.01} onChange={(v) => set('envelopeAmplitude', v)} />
-        <Slider label="Env Sensitivity" value={settings.envelopeSensitivity} min={0} max={1} step={0.01} onChange={(v) => set('envelopeSensitivity', v)} />
+        <Divider />
+        <SectionTag>Envelope</SectionTag>
+        <Slider label="Env" value={settings.waveEnvelope} min={0} max={1} step={0.01} onChange={(v) => set('waveEnvelope', v)} />
+        <Slider label="Env Amp" value={settings.envelopeAmplitude} min={0} max={1} step={0.01} onChange={(v) => set('envelopeAmplitude', v)} />
+        <Slider label="Env Sens" value={settings.envelopeSensitivity} min={0} max={1} step={0.01} onChange={(v) => set('envelopeSensitivity', v)} />
         <PillGroup
           label="Mode"
           value={settings.waveMode}
@@ -427,28 +459,30 @@ function ControlsPanel({ settings, onChange, onResetState }: ControlsPanelProps)
         />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <h3 style={{ fontSize: 10, fontWeight: 500, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1, margin: 0, marginBottom: 4 }}>Style</h3>
-        <Toggle label="Round Caps" checked={settings.roundCaps} onChange={(v) => set('roundCaps', v)} />
-        <Toggle label="Intensity Opacity" checked={settings.intensityOpacity} onChange={(v) => set('intensityOpacity', v)} />
+      {/* Row 3 — Style */}
+      <div style={rowStyle}>
+        <SectionTag>Style</SectionTag>
         <Slider label="Rotation" value={settings.rotationSpeed} min={0} max={30} step={0.5} unit="°/s" onChange={(v) => set('rotationSpeed', v)} />
-        <ColorSwatch label="Bar Color" value={settings.barColor} onChange={(v) => set('barColor', v)} />
-        <ColorSwatch label="Cell BG" value={settings.previewBg} onChange={(v) => set('previewBg', v)} />
+        <Toggle label="Round Caps" checked={settings.roundCaps} onChange={(v) => set('roundCaps', v)} />
+        <Toggle label="Intensity" checked={settings.intensityOpacity} onChange={(v) => set('intensityOpacity', v)} />
+        <ColorSwatch label="Bar" value={settings.barColor} onChange={(v) => set('barColor', v)} />
+        <ColorSwatch label="BG" value={settings.previewBg} onChange={(v) => set('previewBg', v)} />
+        <div style={{ flex: 1 }} />
         <button
           type="button"
           onClick={onResetState}
           style={{
-            marginTop: 6,
-            padding: '6px 10px',
-            fontSize: 11,
+            padding: '4px 10px',
+            fontSize: 10,
             borderRadius: 6,
             background: 'rgba(255,255,255,0.05)',
             color: '#9ca3af',
             border: '1px solid rgba(255,255,255,0.1)',
             cursor: 'pointer',
+            whiteSpace: 'nowrap',
           }}
         >
-          Reset this state
+          Reset state
         </button>
       </div>
     </div>
@@ -560,7 +594,7 @@ export default function RadialStatesReview() {
       style={{
         minHeight: '100vh',
         background: '#0F0F11',
-        padding: '32px 16px 360px',
+        padding: '24px 16px 280px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
