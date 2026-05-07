@@ -187,6 +187,7 @@ interface ProfileSnapshot {
   settings: AllSettings;
   backdrop: Required<RadialBackdrop>;
   lockBarCount: boolean;
+  talkingInnerGap: number;
 }
 
 /** Returns a fully-isolated snapshot of a profile's settings + backdrop
@@ -204,6 +205,7 @@ function snapshotOf(p: RadialLinkedProfile): ProfileSnapshot {
     settings: structuredClone(settingsOf(p)),
     backdrop: structuredClone(resolveBackdrop(p.backdrop)),
     lockBarCount: p.lockBarCount ?? true,
+    talkingInnerGap: p.talkingInnerGap ?? DONUT_PADDING,
   };
 }
 
@@ -858,6 +860,10 @@ interface ControlsPanelProps {
    *  bar gap is derived from the locked count over talking's smaller
    *  circumference. Undefined otherwise (slider is live). */
   talkingDerivedGap: number | undefined;
+  /** Gap between the donut's inner edge and talking's bar root.
+   *  Only shown / editable when focused === 'talking'. */
+  talkingInnerGap: number;
+  onTalkingInnerGapChange: (v: number) => void;
   /** Profile-level backdrop config + setter (shared across all states). */
   backdrop: Required<RadialBackdrop>;
   baselineBackdrop: Required<RadialBackdrop> | null;
@@ -873,6 +879,8 @@ function ControlsPanel({
   lockBarCount,
   onLockBarCountChange,
   talkingDerivedGap,
+  talkingInnerGap,
+  onTalkingInnerGapChange,
   backdrop,
   baselineBackdrop,
   onBackdropChange,
@@ -944,6 +952,17 @@ function ControlsPanel({
           </div>
         ) : (
           <Slider label="Radius" value={settings.radius} min={30} max={200} step={1} unit="px" onChange={(v) => set('radius', v)} onReset={settingReset('radius')} />
+        )}
+        {focused === 'talking' && (
+          <Slider
+            label="Inner gap"
+            value={talkingInnerGap}
+            min={0}
+            max={60}
+            step={1}
+            unit="px"
+            onChange={onTalkingInnerGapChange}
+          />
         )}
         <Slider label="Bar Width" value={settings.barWidth} min={0.5} max={10} step={0.5} unit="px" onChange={(v) => set('barWidth', v)} onReset={settingReset('barWidth')} />
         {focused === 'talking' && talkingDerivedGap != null ? (
@@ -1348,6 +1367,7 @@ export default function RadialStatesReview() {
               talking: structuredClone(baseline.settings.talking),
               backdrop: structuredClone(baseline.backdrop),
               lockBarCount: baseline.lockBarCount,
+              talkingInnerGap: baseline.talkingInnerGap,
             }
           : p,
       ),
@@ -1373,6 +1393,7 @@ export default function RadialStatesReview() {
                 talking: structuredClone(baseline.settings.talking),
                 backdrop: structuredClone(baseline.backdrop),
                 lockBarCount: baseline.lockBarCount,
+                talkingInnerGap: baseline.talkingInnerGap,
               }
             : q,
         ),
@@ -1400,6 +1421,7 @@ export default function RadialStatesReview() {
       talking: structuredClone(activeProfile.talking),
       backdrop: activeProfile.backdrop ? structuredClone(activeProfile.backdrop) : undefined,
       lockBarCount: activeProfile.lockBarCount,
+      talkingInnerGap: activeProfile.talkingInnerGap,
       lastModified: Date.now(),
     };
     const next = [...profiles, newProfile];
@@ -1448,18 +1470,16 @@ export default function RadialStatesReview() {
     : undefined;
   const backdrop = resolveBackdrop(activeProfile?.backdrop);
 
-  // Talking's radius is DERIVED from idle, not stored on the profile.
-  // The rule: talking's bar root sits 14px outside the donut's inner
-  // edge — same 14px rule as the donut/bar relationship on
-  // idle/thinking, just inverted (donut dictates talking, bars dictate
-  // donut on idle). The 14s cancel:
-  //   talking.radius = donut.inner + 14
-  //                  = (idle.radius - idle.maxBarLength - 14) + 14
-  //                  = idle.radius - idle.maxBarLength
-  // We override talking's radius at render time. The stored value on
-  // the profile is ignored; the Radius slider on the Talking panel is
-  // hidden so the user can't fight the derivation.
-  const talkingDerivedRadius = Math.max(1, all.idle.radius - all.idle.maxBarLength);
+  // Talking's radius is DERIVED from the donut's inner edge + a
+  // configurable per-profile gap (talkingInnerGap, default 14px).
+  // donutInner = idle.radius - idle.maxBarLength - DONUT_PADDING
+  // talkingRadius = donutInner + talkingInnerGap
+  // At the default gap of 14 the 14s cancel and we get the same result
+  // as before (idle.radius - idle.maxBarLength). Increasing the gap
+  // pushes talking bars toward the center; decreasing brings them
+  // closer to or past the donut ring.
+  const talkingInnerGap = activeProfile?.talkingInnerGap ?? DONUT_PADDING;
+  const talkingDerivedRadius = Math.max(1, donutInner + talkingInnerGap);
   const effectiveTalkingSettings: RadialSettings = {
     ...all.talking,
     radius: talkingDerivedRadius,
@@ -1480,6 +1500,15 @@ export default function RadialStatesReview() {
     setProfiles((prev) =>
       prev.map((p) =>
         p.id === activeProfileId ? { ...p, lockBarCount: next, lastModified: Date.now() } : p,
+      ),
+    );
+  };
+
+  const updateTalkingInnerGap = (next: number) => {
+    if (!activeProfileId) return;
+    setProfiles((prev) =>
+      prev.map((p) =>
+        p.id === activeProfileId ? { ...p, talkingInnerGap: next, lastModified: Date.now() } : p,
       ),
     );
   };
@@ -1590,6 +1619,8 @@ export default function RadialStatesReview() {
             lockBarCount={lockBarCount}
             onLockBarCountChange={updateLockBarCount}
             talkingDerivedGap={talkingDerivedGap}
+            talkingInnerGap={talkingInnerGap}
+            onTalkingInnerGapChange={updateTalkingInnerGap}
             backdrop={backdrop}
             baselineBackdrop={baseline?.backdrop ?? null}
             onBackdropChange={updateBackdrop}

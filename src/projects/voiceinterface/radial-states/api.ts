@@ -53,6 +53,11 @@ export interface RadialLinkedProfile {
    *  can interpolate radius/direction smoothly when the count is
    *  fixed across states. */
   lockBarCount?: boolean;
+  /** Gap between the donut's inner edge and talking's bar root, in px.
+   *  Defaults to 14 (matching DONUT_PADDING, the same rule used on the
+   *  idle side). Increasing this pushes talking bars toward the center;
+   *  decreasing brings them closer to / past the donut ring. */
+  talkingInnerGap?: number;
   lastModified: number;
 }
 
