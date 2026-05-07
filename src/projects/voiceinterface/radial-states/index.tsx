@@ -112,7 +112,7 @@ interface CellProps {
 const CELL_SIZE = 360;
 // Donut envelope is shared across ALL cells, anchored to Thorn's bar
 // range. Talking's smaller bar range sits inside this same donut.
-const DONUT_PADDING = 20;
+const DONUT_PADDING = 14;
 const DONUT_COLOR = 'rgba(38, 36, 36, 0.03)'; // #262424 at 3%
 const DONUT_OUTER = THORN.radius + DONUT_PADDING;
 const DONUT_INNER = Math.max(0, THORN.radius - THORN.maxBarLength - DONUT_PADDING);
