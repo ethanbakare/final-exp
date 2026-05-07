@@ -108,6 +108,12 @@ To fully mask: render the active orb's saved thumbnail PNG (`/public/thumbnails/
 
 `src/projects/voiceinterface/realtime-states/index.tsx` defines an `orbs = useMemo<LoadedOrb[]>(...)` in BOTH the parent (~L1641) and the editor child (~L211). Duplication migrated as-is from the pre-split file. Cleaning it up would require the parent to pass `orbs` (or just `tubeProfiles + coralProfiles` as it already does and let the child re-derive — which is what happens today). Not a priority; flagged for a future pass.
 
+### 7. z-index tier convention (from seam audit §8.2)
+
+The voice interface mixes fixed-position elements (`z-40` for the bottom bar, `z-50` for top-right audio controls) with un-z-indexed `absolute` popovers and modal dialogs. Nothing currently conflicts but there's no written tier convention, so the next fixed-position element added could overlap unpredictably.
+
+A small spec-doc + audit pass to define tiers (e.g. 5–9 component-internal, 40 chrome, 50 modals, 60+ reserved) and apply them across `voiceinterface/` would close this. ~15–30 min when motivated by an actual conflict; not worth doing preemptively.
+
 ## Key plan documents in repo
 
 - **`tasks/realtime-states-file-split-plan.md`** — v7. Six-file split of the editor; mechanical refactor; zero behavior change. Shipped as commit `5b6f088`. Plan kept for reference.
