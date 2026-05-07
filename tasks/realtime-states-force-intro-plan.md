@@ -1,15 +1,15 @@
-# `forceIntroOnSelect` per-profile toggle — plan v4
+# `forceIntroOnSelect` per-profile toggle — plan v5
 
 > Per-profile boolean flag that forces the talking-to-idle intro animation to replay when the user selects that profile, even on a same-shader switch. Opt-in (default off; **Coral-only** behavioral change — see §5.1). Lands as a small feature with a schema bump on both profile JSON files. No behavior change for existing profiles.
 >
-> Status: **v4 — external reviewer round-2 applied (5 findings + 2 reviewer calls locked in) + 1 self-found.**
+> Status: **v5 — external reviewer round-3 cleanup applied (3 P3 wording fixes; reviewer signed off as implementation-ready in round-3).**
 
 ## 0. Concept index
 
 | Concept | First defined | Notes |
 | --- | --- | --- |
 | `forceIntroOnSelect` | §3 | New optional boolean field on both `SavedProfile` and `SavedCoralProfile`. |
-| `selectionReplayCounter` | §5 | New per-shader counter in the editor + live page. Bumps when a force-intro profile is selected. |
+| `selectionReplayCounter` | §5.3 | New counter on the **live page only**. Bumps when a force-intro profile is selected (subject to §5.3's four-condition guard). The editor reuses its existing `replayCounter` for the same purpose; no new editor counter is introduced. |
 | `restartIntro()` | §5 | Existing helper in the editor (Tube path); called by Replay button and cascade. |
 | `replayCounter` | §5 | Existing counter for Coral remount; the editor already uses it for the Replay button. |
 | `selectionReplayKey` | §5.3 | New prop on `RealtimeBlob` (live page). Lifts the editor's `replayCounter` pattern into the dispatcher. Type: `number`. |
@@ -389,17 +389,17 @@ Numbered globally for easy citation.
 8. **Toggle does not mark editor dirty.** With the active profile, toggle the force-intro icon on. **Expected:** bottom-bar Discard/Update buttons do NOT appear. Confirms the toggle is metadata, not a settings change.
 9. **Live page: pinned + force-intro round-trip across both shaders.** Pin two Coral profiles + two Tube profiles. Toggle force-intro on for one Coral. From the live page thumbnail strip, switch to each. **Expected:** the toggled-on Coral's selection (when coming from another Coral) forces a remount + intro. The toggled-off profiles' selections are prop-only smooth. Tube selections behave today's way (NebularrBlob remounts on cross-shader, prop-only on same-shader).
 10. **Live page during AI speaking — known limitation (gate).** Start a conversation. While the AI is actively speaking (`voiceState === 'ai_speaking'`), click a force-intro Coral thumbnail. **Expected:** profile switches (data flows through props), but no remount / no sphere → torus animation interrupting the AI response. When the AI finishes and `voiceState` transitions to `listening`, the orb morphs naturally to torus along the new profile's values. Confirms §5.3a's intentional gate.
-11. **JSON: toggle on persists the field.** Toggle on for a profile in the editor. Inspect `realtime-state-profiles.json` or `realtime-coral-profiles.json` directly. **Expected:** the entry has `forceIntroOnSelect: true` written.
-12. **JSON: toggle off persists `false` (not absence).** Toggle the same profile off. **Expected:** the entry now has `forceIntroOnSelect: false` (the toggle path writes both directions explicitly per §5.4 table). Both `false` and absent read as `false` — verify the dropdown UI reflects the persisted state correctly across reload.
-13. **JSON: existing entries (no field) read as off.** Verify any pre-existing profile entries in either JSON file (created before this change) don't have the field, and their dropdown toggle UI shows the off state. Confirms the optional-field-defaults-false contract.
+11. **JSON: toggle on persists the field (Coral file only).** Toggle on for a Coral profile in the editor. Inspect `realtime-coral-profiles.json` directly. **Expected:** the entry has `forceIntroOnSelect: true` written. Note: `realtime-state-profiles.json` (Tube) is NOT a writable target in this pass — Tube has no toggle UI per §5.1; the schema field on `SavedProfile` is forward-compat-only.
+12. **JSON: toggle off persists `false` (not absence).** Toggle the same Coral profile off. **Expected:** the entry now has `forceIntroOnSelect: false` (the toggle path writes both directions explicitly per §5.4 table). Both `false` and absent read identically via `=== true` — verify the dropdown UI reflects the persisted state correctly across reload.
+13. **JSON: existing Coral entries (no field) read as off.** Verify any pre-existing Coral profile entries in `realtime-coral-profiles.json` (created before this change) don't have the field, and their dropdown toggle UI shows the off state. Confirms the optional-field default contract.
 
-### 9.3 Pre-mortem — three ways this could fail
+### 9.3 Pre-mortem — three ways this could fail on first implementation attempt
 
-1. **The "self-select" guard is missed in the editor.** Editor's `selectCoralProfile` doesn't check if `id === activeOrb.id` before bumping. Today's `setActiveOrbKey` to the same key is a no-op (React useState bails on identical values), but bumping `replayCounter` ALWAYS triggers a re-render and a Canvas remount. So clicking the active thumbnail when the active profile has `forceIntroOnSelect: true` would needlessly remount on every click. *Mitigation:* add `if (id === activeOrb?.id) return;` early in `selectCoralProfile`, or guard the `setReplayCounter` call. Same shape as the live page guard in §5.3.
+1. **The self-select guard is skipped during implementation.** §5.2 specifies an explicit `if (activeOrb?.shader === 'coral' && activeOrb.id === id) { setShowProfileDropdown(false); return; }` early-return in `selectCoralProfile`. Today's `setActiveOrbKey(same-key)` is a React useState no-op, but bumping `replayCounter` ALWAYS re-renders and remounts the Canvas. Without the guard, clicking the active thumbnail (when the active profile has `forceIntroOnSelect: true`) would needlessly remount on every click. *Mitigation:* §5.2 has the explicit guard; verification scenario 5 catches this if missed.
 
-2. **The field is dropped on Save.** If `handleSave`'s same-shader fork branch builds the new entry from the active settings without including `forceIntroOnSelect`, a forked profile loses its parent's flag. *Mitigation:* `forceIntroOnSelect` is intentionally NOT inherited on fork — the new B is its own profile, defaults off. Document this explicitly in §5.4.
+2. **The `setState('idle')` flip is omitted and only the bump is added.** §5.2's bump path requires BOTH `setState('idle')` AND `setReplayCounter((c) => c + 1)`. If the implementer adds only the bump, force-intro will silently fail when the user is on the talking pill — fresh `<CoralStoneMorph>` mounts with `goal={state === 'talking' ? 0 : 1}` evaluating to `0` (sphere stays sphere), no morph fires. *Mitigation:* §5.2 explicit pseudocode + verification scenario 3 (talking-pill case) catches this immediately.
 
-3. **The live page's `selectionReplayKey` prop is forgotten on the cross-shader path.** When user goes Coral → Tube on the live page with `forceIntroOnSelect: true` on the Tube target, the cross-shader switch already remounts; the additional key bump is redundant. Not a bug — just a no-op double trigger. But worth noting that the field's effect only matters on same-shader paths. The if-guard in §5.3 (`activeOrb?.id !== orb.id`) makes this work correctly for both cross-shader and same-shader.
+3. **The fork path drops the flag.** If `handleSave`'s same-shader fork branch builds the new entry from the active settings without explicitly omitting `forceIntroOnSelect`, a forked profile could either inherit the parent's flag (surprising) or lose it silently. *Mitigation:* §5.4 specifies "Save-as-new omits the field entirely" — the new entry shape literally doesn't include the field, and the runtime `=== true` read handles the absent case as off. Verification scenario 7 confirms.
 
 ## 10. Open questions
 
@@ -476,3 +476,13 @@ All 5 findings accepted with code-level verification before patching. Both revie
 **Reviewer call §10 q5: voiceState gate option (a).** Locked in. Documented as explicit known limitation (§5.3a + §9.2 scenario 10); manually verified in scenario 10.
 
 **Self-found, mine-3 [B] — Cross-shader Coral on talking pill is a pre-existing bug.** Surfaced during my [P1] thinking. Even with the [P1] fix, cross-shader Tube → Coral with force-intro on, while on talking pill, won't replay the intro — because `selectCoralProfile` doesn't flip state on cross-shader (today's behavior, not introduced by this plan), so the freshly-mounted `<CoralStoneMorph>` sees state='talking', goal=0, sphere stays sphere. Asymmetric with Tube cross-shader (which replays via `selectProfile`'s unconditional `restartIntro`). **Documented as new §5.2a** + scope-clean follow-up options (always-flip-state-on-cross-shader-Coral, or add a Coral `restartIntro` equivalent). Force-intro's contract here is narrowed to "non-talking-pill same-shader same-shader switches"; talking-pill cross-shader is its own concern.
+
+### Round 5 — external reviewer round-3 (3 P3 cleanup; no blockers)
+
+Reviewer signed off as implementation-ready. Three small wording fixes applied:
+
+- **P3-1: Pre-mortem item 3 was stale.** It described a v2-era concern about the live-page cross-shader path that v4's same-shader guard structurally prevents. **Replaced** with a fresh pre-mortem item: "the `setState('idle')` flip is omitted and only the bump is added" — a real implementation risk that would cause silent talking-pill failure. Also tightened item 1 to reference the §5.2 mitigation explicitly.
+- **P3-2: JSON scenario 11 mentioned `realtime-state-profiles.json`.** Since v4 hides the toggle on Tube rows and only implements `toggleForceIntroOnSelectCoral`, the only writable JSON target is `realtime-coral-profiles.json`. **Patched** scenarios 11–13 to target the Coral file specifically, with a note that `realtime-state-profiles.json` is schema-only forward-compat in this pass.
+- **P3-3: Concept index `selectionReplayCounter` wording.** v3+ uses the editor's existing `replayCounter` for force-intro; `selectionReplayCounter` is only a new live-page state. **Patched** the concept-index entry to clarify "live page only" + cross-reference §5.3.
+
+No code-level changes implied. Plan is now implementation-ready.
