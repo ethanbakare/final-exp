@@ -259,19 +259,24 @@ interface CellProps {
    *  to preview where Max Bar Length lands while the user is hovering
    *  the Max Bar Length slider. */
   showMaxGhost?: boolean;
+  /** Donut envelope dimensions, computed once at the page level from
+   *  the active profile's idle settings so all three cells render the
+   *  same envelope. Outer = idle.radius + DONUT_PADDING; inner =
+   *  idle.radius - idle.maxBarLength - DONUT_PADDING. */
+  donutSize: number;
+  donutThickness: number;
 }
 
 const CELL_SIZE = 360;
-// Donut envelope is shared across ALL cells, anchored to Thorn's bar
-// range. Talking's smaller bar range sits inside this same donut.
+// Donut envelope is shared across ALL cells, anchored to the IDLE
+// state's current bar range (radius + maxBarLength). Both edges use the
+// same padding so the band hugs the bar zone symmetrically. Computed
+// per render at the page level (not as module constants) so it tracks
+// live edits to idle.radius / idle.maxBarLength.
 const DONUT_PADDING = 14;
 const DONUT_COLOR = 'rgba(38, 36, 36, 0.03)'; // #262424 at 3%
-const DONUT_OUTER = THORN.radius + DONUT_PADDING;
-const DONUT_INNER = Math.max(0, THORN.radius - THORN.maxBarLength - DONUT_PADDING);
-const DONUT_SIZE = DONUT_OUTER * 2;
-const DONUT_THICKNESS = DONUT_OUTER - DONUT_INNER;
 
-function Cell({ label, settings, frequencyData, variant, focused, onClick, showMaxGhost }: CellProps) {
+function Cell({ label, settings, frequencyData, variant, focused, onClick, showMaxGhost, donutSize, donutThickness }: CellProps) {
   const Renderer = variant === 'outward' ? RadialOutward : RadialInward;
 
   // Max-reach ghost: individual bars at maxBarLength shown via the
@@ -323,11 +328,11 @@ function Cell({ label, settings, frequencyData, variant, focused, onClick, showM
             position: 'absolute',
             top: '50%',
             left: '50%',
-            width: DONUT_SIZE,
-            height: DONUT_SIZE,
+            width: donutSize,
+            height: donutSize,
             transform: 'translate(-50%, -50%)',
             borderRadius: '50%',
-            border: `${DONUT_THICKNESS}px solid ${DONUT_COLOR}`,
+            border: `${donutThickness}px solid ${DONUT_COLOR}`,
             boxSizing: 'border-box',
             pointerEvents: 'none',
             zIndex: 0,
@@ -856,6 +861,15 @@ export default function RadialStatesReview() {
     await persistRadialLinkedProfiles(next);
   };
 
+  // Donut envelope dimensions — anchored on the IDLE state's current
+  // settings, so as the user dials idle.maxBarLength down (e.g. 60 →
+  // 43), the donut's inner edge tracks at the same DONUT_PADDING (14px)
+  // distance past the new innermost reach. All three cells share these.
+  const donutOuter = all.idle.radius + DONUT_PADDING;
+  const donutInner = Math.max(0, all.idle.radius - all.idle.maxBarLength - DONUT_PADDING);
+  const donutSize = donutOuter * 2;
+  const donutThickness = donutOuter - donutInner;
+
   const cellsRow = (
     <div
       style={{
@@ -877,6 +891,8 @@ export default function RadialStatesReview() {
           focused={focused === k}
           onClick={() => setFocused(k)}
           showMaxGhost={focused === k && maxBarHovered}
+          donutSize={donutSize}
+          donutThickness={donutThickness}
         />
       ))}
     </div>
