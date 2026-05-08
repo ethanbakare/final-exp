@@ -77,12 +77,14 @@ function backdropFill(color: string, opacity: number): string {
   return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, opacity))})`;
 }
 
-// ── State key (Phase 1: still 3 cells; listening shares idle's cell) ──
+// ── State key — 4 pills total; static-mode cell count stays 3 because
+// idle/listening share visually while idleListeningLinked is true. ──
 
-type StateKey = 'idle' | 'thinking' | 'talking';
+type StateKey = 'idle' | 'listening' | 'thinking' | 'talking';
 
 interface AllSettings {
   idle: RadialSettings;
+  listening: RadialSettings;
   thinking: RadialSettings;
   talking: RadialSettings;
 }
@@ -94,7 +96,7 @@ interface AllSettings {
  *  inward variants, 0 for talking) — Phase 1 doesn't lerp it. */
 function materializeState(
   profile: RadialLinkedProfile,
-  state: 'idle' | 'thinking' | 'talking',
+  state: StateKey,
 ): RadialSettings {
   const s = profile[state];
   const radius =
@@ -253,6 +255,7 @@ function pickFreshName(profiles: { name: string }[]): string {
 function settingsOf(p: RadialLinkedProfile): AllSettings {
   return {
     idle: materializeState(p, 'idle'),
+    listening: materializeState(p, 'listening'),
     thinking: materializeState(p, 'thinking'),
     talking: materializeState(p, 'talking'),
   };
@@ -313,21 +316,7 @@ function GhostBars({ variant, settings, size, color, barCountOverride }: GhostBa
     if (!ctx) return;
     ctx.scale(dpr, dpr);
 
-    const {
-      radius,
-      barWidth,
-      barGap,
-      minBarLength,
-      maxBarLength,
-      roundCaps,
-      ambientWave,
-      waveShape,
-      waveLobes,
-      segments,
-      waveSpeed,
-      envelopeAmplitude,
-      waveEnvelope,
-    } = settings;
+    const { radius, barWidth, barGap, maxBarLength, roundCaps } = settings;
 
     const cx = size / 2;
     const cy = size / 2;
@@ -335,67 +324,34 @@ function GhostBars({ variant, settings, size, color, barCountOverride }: GhostBa
     const barCount =
       barCountOverride ?? Math.max(1, Math.floor(circumference / (barWidth + barGap)));
 
-    let waveTime = 0;
-    let lastTs = performance.now();
-    let raf = 0;
+    // Match the renderer's clamp so ghost shows what the renderer can
+    // actually draw (R5 P2.5 / R7 — pure geometric envelope, no audio,
+    // no wave, no envelope-modulation; just full max length, clamped
+    // by maxSafeInward for inward variants).
+    const minInnerRadius = (barCount * barGap) / (2 * Math.PI);
+    const maxSafeInward = Math.max(0, radius - minInnerRadius);
+    const barLen =
+      variant === 'outward' ? maxBarLength : Math.min(maxBarLength, maxSafeInward);
 
-    const envelopeActive = ambientWave && waveEnvelope > 0 && envelopeAmplitude > 0;
+    ctx.clearRect(0, 0, size, size);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = barWidth;
+    ctx.lineCap = roundCaps ? 'round' : 'butt';
 
-    const draw = (now: number) => {
-      const dt = Math.min((now - lastTs) / 1000, 1 / 30);
-      lastTs = now;
-      waveTime += dt;
-
-      ctx.clearRect(0, 0, size, size);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = barWidth;
-      ctx.lineCap = roundCaps ? 'round' : 'butt';
-
-      for (let i = 0; i < barCount; i++) {
-        const angle = (i / barCount) * Math.PI * 2;
-
-        let ceiling = 1;
-        if (envelopeActive) {
-          const lobes = waveShape === 'segments' ? segments : waveLobes;
-          const phase = angle * lobes - waveTime * waveSpeed;
-          let wave: number;
-          switch (waveShape) {
-            case 'sine':
-            case 'segments':
-              wave = (Math.sin(phase) + 1) / 2;
-              break;
-            case 'triangle': {
-              const t = ((phase % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-              wave = t < Math.PI ? t / Math.PI : 2 - t / Math.PI;
-              break;
-            }
-            case 'square':
-              wave = Math.sin(phase) >= 0 ? 1 : 0;
-              break;
-            default:
-              wave = 0;
-          }
-          const envValue = wave * envelopeAmplitude + envelopeAmplitude * 0.1;
-          ceiling = 1 - waveEnvelope * (1 - envValue);
-        }
-
-        const barLen = minBarLength + ceiling * (maxBarLength - minBarLength);
-
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(angle);
-        ctx.beginPath();
-        ctx.moveTo(0, -radius);
-        ctx.lineTo(0, variant === 'outward' ? -(radius + barLen) : -(radius - barLen));
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      raf = requestAnimationFrame(draw);
-    };
-
-    raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
+    for (let i = 0; i < barCount; i++) {
+      const angle = (i / barCount) * Math.PI * 2;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(0, -radius);
+      ctx.lineTo(0, variant === 'outward' ? -(radius + barLen) : -(radius - barLen));
+      ctx.stroke();
+      ctx.restore();
+    }
+    // Static draw — no RAF loop needed since the ghost is the
+    // geometric envelope, not an animated ceiling.
+    return undefined;
   }, [variant, settings, size, color, barCountOverride]);
 
   return (
@@ -935,6 +891,17 @@ interface ControlsPanelProps {
   backdrop: Required<RadialBackdrop>;
   baselineBackdrop: Required<RadialBackdrop> | null;
   onBackdropChange: (patch: Partial<RadialBackdrop>) => void;
+  /** Morph subsection — visible only in tune mode AND only when focused
+   *  is thinking or talking (the states involved in the morphs). */
+  showMorphSubsection: boolean;
+  morph: { idleToThinking: number; thinkingToTalking: number; reactiveStartAt: number };
+  onMorphChange: (
+    patch: Partial<{ idleToThinking: number; thinkingToTalking: number; reactiveStartAt: number }>,
+  ) => void;
+  /** Listening-link state. When focused is listening and link is on,
+   *  the panel renders read-only with a Break-link button. */
+  idleListeningLinked: boolean;
+  onBreakLink: () => void;
 }
 
 function ControlsPanel({
@@ -951,7 +918,51 @@ function ControlsPanel({
   backdrop,
   baselineBackdrop,
   onBackdropChange,
+  showMorphSubsection,
+  morph,
+  onMorphChange,
+  idleListeningLinked,
+  onBreakLink,
 }: ControlsPanelProps) {
+  // Listening + linked: render the linked-notice + Break-link button
+  // and bail. Idle's edits propagate to listening via applyPatch's
+  // link-propagation rule, so listening's panel doesn't need editable
+  // inputs while linked.
+  if (focused === 'listening' && idleListeningLinked) {
+    return (
+      <div
+        id="controls-panel"
+        style={{
+          background: '#0F0F11',
+          padding: '20px 32px',
+          color: '#9ca3af',
+          fontSize: 13,
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+        }}
+      >
+        <span>Linked to Idle — listening mirrors idle's settings while linked.</span>
+        <button
+          type="button"
+          onClick={onBreakLink}
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: '#e5e7eb',
+            borderRadius: 999,
+            padding: '4px 14px',
+            fontSize: 12,
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
+          Break link
+        </button>
+      </div>
+    );
+  }
   const set = <K extends keyof RadialSettings>(key: K, value: RadialSettings[K]) =>
     onChange({ [key]: value } as Partial<RadialSettings>);
   // Returns a reset callback for one settings field if (and only if)
@@ -1264,6 +1275,44 @@ function ControlsPanel({
           </>
         )}
       </div>
+
+      {/* Morph subsection — visible only in tune mode AND only when the
+       *  focused state is thinking or talking. Editing knobs that don't
+       *  affect what's currently watched is friction (R5 / user
+       *  clarification). Edits sync via the profile object. */}
+      {showMorphSubsection && (
+        <div style={columnStyle}>
+          <h3 style={headerStyle}>Morph</h3>
+          {focused === 'thinking' && (
+            <Slider
+              label="Idle ↔ Thinking"
+              value={morph.idleToThinking}
+              min={0.05}
+              max={2}
+              step={0.05}
+              unit="s"
+              onChange={(v) => onMorphChange({ idleToThinking: v })}
+            />
+          )}
+          <Slider
+            label="Thinking ↔ Talking"
+            value={morph.thinkingToTalking}
+            min={0.1}
+            max={3}
+            step={0.05}
+            unit="s"
+            onChange={(v) => onMorphChange({ thinkingToTalking: v })}
+          />
+          <Slider
+            label="Reactive Start"
+            value={morph.reactiveStartAt}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={(v) => onMorphChange({ reactiveStartAt: v })}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -1372,12 +1421,14 @@ function TuneCell({
 
 const STATE_VARIANT: Record<StateKey, 'inward' | 'outward'> = {
   idle: 'inward',
+  listening: 'inward',
   thinking: 'inward',
   talking: 'outward',
 };
 
 const STATE_LABEL: Record<StateKey, string> = {
-  idle: 'Idle / Listening',
+  idle: 'Idle',
+  listening: 'Listening',
   thinking: 'Thinking',
   talking: 'Talking',
 };
@@ -1663,6 +1714,35 @@ export default function RadialStatesReview() {
     );
   };
 
+  /** Morph durations + reactiveStartAt (profile-level). Visible only in
+   *  tune mode on thinking/talking panels. */
+  const updateMorph = (
+    patch: Partial<{ idleToThinking: number; thinkingToTalking: number; reactiveStartAt: number }>,
+  ) => {
+    if (!activeProfileId) return;
+    setProfiles((prev) =>
+      prev.map((p) =>
+        p.id === activeProfileId
+          ? { ...p, morph: { ...p.morph, ...patch }, lastModified: Date.now() }
+          : p,
+      ),
+    );
+  };
+
+  /** Break the idle/listening link. Listening keeps its current values
+   *  (which equal idle's at the moment of break) and becomes
+   *  independently editable from then on. */
+  const breakIdleListeningLink = () => {
+    if (!activeProfileId) return;
+    setProfiles((prev) =>
+      prev.map((p) =>
+        p.id === activeProfileId
+          ? { ...p, idleListeningLinked: false, lastModified: Date.now() }
+          : p,
+      ),
+    );
+  };
+
   const updateBackdrop = (patch: Partial<RadialBackdrop>) => {
     if (!activeProfileId) return;
     setProfiles((prev) =>
@@ -1718,19 +1798,21 @@ export default function RadialStatesReview() {
       <div
         style={{
           display: 'flex',
-          gap: 32,
+          gap: 24,
           flexWrap: 'wrap',
           justifyContent: 'center',
           marginTop: 24,
         }}
       >
-        {(['idle', 'thinking', 'talking'] as const).map((k) => (
+        {(['idle', 'listening', 'thinking', 'talking'] as const).map((k) => (
           <Cell
             key={k}
             label={STATE_LABEL[k]}
             settings={k === 'talking' ? effectiveTalkingSettings : all[k]}
             // Thinking is intentionally fed null so audio doesn't reach it.
-            frequencyData={k === 'thinking' ? null : frequencyData}
+            // Idle is also silent (it's the resting state); listening
+            // reacts to audio. Talking reacts when audio is active.
+            frequencyData={k === 'idle' || k === 'thinking' ? null : frequencyData}
             variant={STATE_VARIANT[k]}
             focused={focused === k}
             onClick={() => setFocused(k)}
@@ -1844,6 +1926,11 @@ export default function RadialStatesReview() {
             backdrop={backdrop}
             baselineBackdrop={baseline ? resolveBackdrop(baseline.backdrop) : null}
             onBackdropChange={updateBackdrop}
+            showMorphSubsection={mode === 'tune' && (focused === 'thinking' || focused === 'talking')}
+            morph={activeProfile?.morph ?? { idleToThinking: 0.4, thinkingToTalking: 0.6, reactiveStartAt: 0.75 }}
+            onMorphChange={updateMorph}
+            idleListeningLinked={activeProfile?.idleListeningLinked ?? true}
+            onBreakLink={breakIdleListeningLink}
           />
         )}
         <div
@@ -1883,7 +1970,7 @@ export default function RadialStatesReview() {
 
           {/* State pills */}
           <div style={{ display: 'flex', gap: 4 }}>
-            {(['idle', 'thinking', 'talking'] as const).map((k) => (
+            {(['idle', 'listening', 'thinking', 'talking'] as const).map((k) => (
               <button
                 key={k}
                 type="button"

@@ -109,6 +109,10 @@ interface AnimatorState {
   morphDuration: number;
   intendedFinalState: RadialState | null;
   currentlyIn: RadialState;
+  /** Frames since freezeAtMin became true; reset to 0 when false.
+   *  Used as flip-precondition proxy (R7 P1.2): smoothing converges
+   *  within ~6 frames at default. */
+  minPinnedFor: number;
 }
 
 export function useLinkedRadialAnimator(
@@ -164,18 +168,44 @@ export function useLinkedRadialAnimator(
           morphDuration: 0.3,
           intendedFinalState: null,
           currentlyIn: targetState,
+          minPinnedFor: 0,
         }),
         currentlyIn: targetState,
       };
       return;
     }
 
-    // Determine first leg. For composed transitions (idle→talking), set
-    // intendedFinalState and start leg 1 toward the intermediate state.
+    // Classify captured frame (R5 P1.5 + R7 P1.2/P1.3):
+    // - inwardRatio === 0 OR active leg involves talking → talking-like
+    // - else → idle-like (use currentlyIn as classifiedSource)
     const fromState = anim?.currentlyIn ?? targetState;
-    const intermediate = nextLegFrom(fromState, targetState);
-    const legTarget = intermediate ?? targetState;
-    const legFrom = fromState;
+    const isTalkingLike =
+      cur.inwardRatio === 0 ||
+      anim?.morphFrom === 'talking' ||
+      anim?.morphTarget === 'talking';
+    const classifiedSource: RadialState = isTalkingLike ? 'talking' : fromState;
+
+    // Flip-precondition for transitions INTO talking (R6 P1.2 + R7 P1.3):
+    // if captured frame is not min-pinned, insert a collapse-to-min
+    // pre-leg so Phase A starts cleanly. We model this by routing to
+    // 'thinking' first (pre-leg) and letting intendedFinalState carry
+    // us into talking once thinking's resting state (freezeAtMin=true)
+    // is reached. This avoids the snap that would happen if Phase A
+    // engaged freezeAtMin while length is still > minBarLength.
+    const minPinnedFor = anim?.minPinnedFor ?? 0;
+    let legTarget: RadialState;
+    if (
+      targetState === 'talking' &&
+      classifiedSource !== 'talking' &&
+      classifiedSource !== 'thinking' &&
+      minPinnedFor < 6
+    ) {
+      legTarget = 'thinking';
+    } else {
+      const intermediate = nextLegFrom(classifiedSource, targetState);
+      legTarget = intermediate ?? targetState;
+    }
+    const legFrom = classifiedSource;
 
     animRef.current = {
       morphActive: true,
@@ -186,6 +216,7 @@ export function useLinkedRadialAnimator(
       morphDuration: pickDuration(legFrom, legTarget, p),
       intendedFinalState: targetState,
       currentlyIn: legFrom,
+      minPinnedFor,
     };
   }, [requestedState]);
 
@@ -214,6 +245,9 @@ export function useLinkedRadialAnimator(
       const t = anim.morphT;
 
       const next = computeMorphFrame(p, anim, t);
+      // Maintain minPinnedFor counter (R7 P1.2 — flip-precondition proxy).
+      if (next.freezeAtMin) anim.minPinnedFor += 1;
+      else anim.minPinnedFor = 0;
       renderRef.current = next;
       setRender(next);
 
