@@ -47,7 +47,11 @@ export interface RadialBackdrop {
 }
 
 /** Bar identity — shared across all four states. Editing any of these
- *  updates every cell simultaneously. */
+ *  updates every cell simultaneously. minBarLength is INTENTIONALLY
+ *  per-state (RadialStateSettings) so idle's silent-state bars can stay
+ *  short while thinking's frozen bars stay larger. The animator lerps
+ *  minBarLength during transitions; Phase A pins to thinking's value
+ *  specifically (the morph length). */
 export interface RadialBars {
   barWidth: number;
   barGap: number;
@@ -55,9 +59,6 @@ export interface RadialBars {
   barColor: string;
   segments: number;
   rotationSpeed: number;
-  /** Minimum bar length when silent. Also defines the morph length
-   *  (Phase A bars are pinned at exactly this value). */
-  minBarLength: number;
   /** Render throttle (ms). Perf knob, not state behavior. */
   updateRate: number;
 }
@@ -77,8 +78,13 @@ export interface RadialDisplay {
 
 /** Per-state behavior — only properties meant to differ between states. */
 export interface RadialStateSettings {
-  /** Audio dynamic-range ceiling. Invariant: must be >= bars.minBarLength
-   *  (enforced by the shared-bars mutator + per-state slider min). */
+  /** Minimum bar length when silent. Idle/listening/talking typically
+   *  short (3); thinking larger (12) since thinking bars are frozen at
+   *  this value. Animator lerps it across damps; Phase A pins to
+   *  thinking's value specifically as the morph length. Invariant:
+   *  maxBarLength >= minBarLength. */
+  minBarLength: number;
+  /** Audio dynamic-range ceiling. Invariant: must be >= minBarLength. */
   maxBarLength: number;
   /** 0 for thinking (frozen). */
   sensitivity: number;
@@ -140,7 +146,6 @@ export const DEFAULT_BARS: RadialBars = {
   barColor: '#0f0f11',
   segments: 7,
   rotationSpeed: 6,
-  minBarLength: 12,
   updateRate: 0,
 };
 
@@ -157,6 +162,7 @@ export const DEFAULT_DISPLAY: RadialDisplay = {
 };
 
 export const DEFAULT_IDLE_STATE: RadialStateSettings = {
+  minBarLength: 3,
   maxBarLength: 60,
   sensitivity: 0.7,
   ambientWave: true,
@@ -175,6 +181,7 @@ export const DEFAULT_IDLE_STATE: RadialStateSettings = {
 
 export const DEFAULT_THINKING_STATE: RadialStateSettings = {
   ...DEFAULT_IDLE_STATE,
+  minBarLength: 12,
   maxBarLength: 12, // pinned at min — thinking is frozen
   ambientWave: false,
   waveSpeed: 1.9,
@@ -183,6 +190,7 @@ export const DEFAULT_THINKING_STATE: RadialStateSettings = {
 
 export const DEFAULT_TALKING_STATE: RadialStateSettings = {
   ...DEFAULT_IDLE_STATE,
+  minBarLength: 3,
   maxBarLength: 40,
   sensitivity: 1.7,
   waveShape: 'sine',
@@ -223,9 +231,12 @@ export function makeDefaultProfile(id: string, name: string): RadialLinkedProfil
 // ── Migration ─────────────────────────────────────────────────────
 
 /** Strip the per-state fields that v1 had and v2 has promoted to shared
- *  blocks (bars/display/geometry). Returns a v2 RadialStateSettings. */
+ *  blocks (bars/display/geometry). Returns a v2 RadialStateSettings.
+ *  minBarLength is PRESERVED per-state — idle's silent-state bars stay
+ *  at their original short value, thinking stays large. */
 function stripStateSettings(s: RadialSettings): RadialStateSettings {
   return {
+    minBarLength: s.minBarLength,
     maxBarLength: s.maxBarLength,
     sensitivity: s.sensitivity,
     ambientWave: s.ambientWave,
@@ -256,9 +267,10 @@ interface LegacyProfile {
 }
 
 /** Convert a v1 (legacy) profile to v2 in-memory. Bar identity is
- *  promoted from idle's values; minBarLength is taken from THINKING (not
- *  idle) because thinking's value defines the morph length. Display
- *  chrome from idle. Listening synthesized as a deep clone of idle. */
+ *  promoted from idle's values. Display chrome from idle. Listening
+ *  synthesized as a deep clone of idle. minBarLength is PRESERVED
+ *  per-state (idle keeps its original short value, thinking keeps its
+ *  larger value); the animator handles transitions. */
 function migrateLegacyProfile(p: LegacyProfile): RadialLinkedProfile {
   const bars: RadialBars = {
     barWidth: p.idle.barWidth,
@@ -267,8 +279,6 @@ function migrateLegacyProfile(p: LegacyProfile): RadialLinkedProfile {
     barColor: p.idle.barColor,
     segments: p.idle.segments,
     rotationSpeed: p.idle.rotationSpeed,
-    // R2 P1.2: thinking's minBarLength is canonical (defines morph length).
-    minBarLength: p.thinking.minBarLength,
     updateRate: p.idle.updateRate,
   };
   const display: RadialDisplay = {
@@ -305,27 +315,20 @@ function migrateLegacyProfile(p: LegacyProfile): RadialLinkedProfile {
     lastModified: p.lastModified,
   };
 
-  // Enforce maxBarLength >= bars.minBarLength invariant (v1 profiles
-  // could have idle.minBarLength = 3, thinking.minBarLength = 12; after
-  // promoting thinking's value to shared min, idle/talking maxBarLength
-  // may already be >= 12 in practice but belt-and-braces).
+  // Enforce per-state maxBarLength >= minBarLength invariant.
   for (const state of ['idle', 'listening', 'thinking', 'talking'] as const) {
-    if (migrated[state].maxBarLength < bars.minBarLength) {
-      migrated[state].maxBarLength = bars.minBarLength;
+    if (migrated[state].maxBarLength < migrated[state].minBarLength) {
+      migrated[state].maxBarLength = migrated[state].minBarLength;
     }
   }
 
   if (typeof console !== 'undefined' && process.env.NODE_ENV !== 'production') {
-    const minDiverged =
-      p.idle.minBarLength !== p.thinking.minBarLength ||
-      p.thinking.minBarLength !== p.talking.minBarLength;
     const widthDiverged =
       p.idle.barWidth !== p.thinking.barWidth || p.thinking.barWidth !== p.talking.barWidth;
     console.log(
       `[radial-states migration] profile ${p.id} "${p.name}"`,
-      `\n  bars.minBarLength: chose thinking=${p.thinking.minBarLength}` +
-        ` (idle=${p.idle.minBarLength}, talking=${p.talking.minBarLength})` +
-        (minDiverged ? ' — DIVERGED' : ' — agreed'),
+      `\n  per-state minBarLength preserved: idle=${p.idle.minBarLength},` +
+        ` thinking=${p.thinking.minBarLength}, talking=${p.talking.minBarLength}`,
       widthDiverged
         ? `\n  bars.barWidth: chose idle=${p.idle.barWidth}` +
             ` (thinking=${p.thinking.barWidth}, talking=${p.talking.barWidth}) — DIVERGED`
@@ -380,7 +383,7 @@ export function composeBaseWaveformProps(
     barColor: profile.bars.barColor,
     segments: profile.bars.segments,
     rotationSpeed: profile.bars.rotationSpeed,
-    minBarLength: profile.bars.minBarLength,
+    minBarLength: s.minBarLength,
     updateRate: profile.bars.updateRate,
     bgColor: profile.display.bgColor,
     containerBg: profile.display.containerBg,

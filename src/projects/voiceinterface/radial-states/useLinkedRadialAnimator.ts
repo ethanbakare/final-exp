@@ -63,7 +63,7 @@ function restingValues(profile: RadialLinkedProfile, state: RadialState): Radial
   return {
     anchor,
     inwardRatio: isTalking ? 0 : 1,
-    minBarLength: profile.bars.minBarLength,
+    minBarLength: s.minBarLength,
     maxBarLength: s.maxBarLength,
     sensitivity: isThinking ? 0 : s.sensitivity,
     freezeAtMin: isThinking,
@@ -299,32 +299,33 @@ function computeMorphFrame(
   if (anim.morphFrom === 'thinking' && anim.morphTarget === 'talking') {
     const talkingAnchor = deriveTalkingAnchor(profile);
     const phaseAEnd = reactiveStartAt;
+    // Phase A pins to THINKING's minBarLength (the morph length).
+    const morphPinLength = profile.thinking.minBarLength;
     if (t < phaseAEnd) {
-      // Phase A: translate, freezeAtMin, anchor → talkingAnchor + min
       const tA = phaseAEnd > 0 ? t / phaseAEnd : 1;
-      const anchorTarget = talkingAnchor + profile.bars.minBarLength;
+      const anchorTarget = talkingAnchor + morphPinLength;
       return {
         ...start,
         anchor: lerp(start.anchor, anchorTarget, tA),
         inwardRatio: 1,
         freezeAtMin: true,
+        minBarLength: morphPinLength,
         sensitivity: 0,
         ambientWave: false,
         waveAmplitude: 0,
         waveEnvelope: 0,
         envelopeAmplitude: 0,
-        // Full-morph maxBarLength lerp (not phase-scoped) — never zero
         maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
       };
     } else {
-      // Phase B: anchor pinned at talkingAnchor (post-flip), inwardRatio 0,
-      // freezeAtMin off, reactive params ramp from 0 → talking values.
       const tB = (1 - phaseAEnd) > 0 ? (t - phaseAEnd) / (1 - phaseAEnd) : 1;
       return {
         ...target,
         anchor: talkingAnchor,
         inwardRatio: 0,
         freezeAtMin: false,
+        // minBarLength lerps from morph pin → talking's resting min
+        minBarLength: lerp(morphPinLength, target.minBarLength, tB),
         sensitivity: lerp(0, target.sensitivity, tB),
         ambientWave: target.ambientWave,
         waveAmplitude: lerp(0, target.waveAmplitude, tB),
@@ -339,15 +340,18 @@ function computeMorphFrame(
   if (anim.morphFrom === 'talking' && (anim.morphTarget === 'idle' || anim.morphTarget === 'listening')) {
     const talkingAnchor = deriveTalkingAnchor(profile);
     const reverseAEnd = 1 - reactiveStartAt;
+    // Morph-pin length: thinking's value (the pinned-min length used
+    // through the inverse flip + translation).
+    const morphPinLength = profile.thinking.minBarLength;
     if (t < reverseAEnd) {
-      // Reverse Phase A: anchor pinned at talkingAnchor, reactive fade
       const tA = reverseAEnd > 0 ? t / reverseAEnd : 1;
-      const tailClamp = tA >= 0.9; // last 10% of Phase A
+      const tailClamp = tA >= 0.9;
       return {
         ...start,
         anchor: talkingAnchor,
         inwardRatio: 0,
         freezeAtMin: tailClamp,
+        minBarLength: lerp(start.minBarLength, morphPinLength, tA),
         sensitivity: lerp(start.sensitivity, 0, tA),
         ambientWave: tA < 0.5 ? start.ambientWave : false,
         waveAmplitude: lerp(start.waveAmplitude, 0, tA),
@@ -356,14 +360,15 @@ function computeMorphFrame(
         maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
       };
     } else {
-      // Reverse Phase B: translation, parallel idle-params lerp.
       const tB = reactiveStartAt > 0 ? (t - reverseAEnd) / reactiveStartAt : 1;
-      const startAnchor = talkingAnchor + profile.bars.minBarLength;
+      const startAnchor = talkingAnchor + morphPinLength;
       return {
         ...target,
         anchor: lerp(startAnchor, target.anchor, tB),
         inwardRatio: 1,
-        freezeAtMin: tB < 1, // freeze through translation; release at completion
+        freezeAtMin: tB < 1,
+        // minBarLength lerps from morph pin → idle/listening's resting min
+        minBarLength: lerp(morphPinLength, target.minBarLength, tB),
         sensitivity: lerp(0, target.sensitivity, tB),
         ambientWave: tB > 0.5 ? target.ambientWave : false,
         waveAmplitude: lerp(0, target.waveAmplitude, tB),
@@ -374,11 +379,11 @@ function computeMorphFrame(
     }
   }
 
-  // --- everything else: simple lerp ---
+  // --- everything else: simple lerp (idle/listening ↔ thinking damp) ---
   return {
     anchor: lerp(start.anchor, target.anchor, t),
     inwardRatio: t < 0.5 ? start.inwardRatio : target.inwardRatio,
-    minBarLength: target.minBarLength,
+    minBarLength: lerp(start.minBarLength, target.minBarLength, t),
     maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
     sensitivity: lerp(start.sensitivity, target.sensitivity, t),
     freezeAtMin: t >= 0.9 && target.freezeAtMin ? true : start.freezeAtMin && target.freezeAtMin,

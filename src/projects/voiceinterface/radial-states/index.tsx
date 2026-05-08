@@ -105,7 +105,7 @@ function materializeState(
     radius,
     barWidth: profile.bars.barWidth,
     barGap: profile.bars.barGap,
-    minBarLength: profile.bars.minBarLength,
+    minBarLength: s.minBarLength,
     maxBarLength: s.maxBarLength,
     sensitivity: s.sensitivity,
     barColor: profile.bars.barColor,
@@ -142,9 +142,11 @@ function materializeState(
 // edit to the right slot in the v2 schema. Every field on RadialSettings
 // is in exactly one of these (or is the special `radius` / `inwardRatio`
 // case handled inline).
+// minBarLength is per-state (RadialStateSettings), not bar identity —
+// idle's silent-state min stays short, thinking's frozen min stays large.
 const BAR_IDENTITY_FIELDS: ReadonlySet<keyof RadialBars> = new Set([
   'barWidth', 'barGap', 'roundCaps', 'barColor', 'segments',
-  'rotationSpeed', 'minBarLength', 'updateRate',
+  'rotationSpeed', 'updateRate',
 ]);
 const DISPLAY_FIELDS: ReadonlySet<keyof RadialDisplay> = new Set([
   'bgColor', 'previewBg', 'containerBg', 'containerBgOpacity',
@@ -188,9 +190,19 @@ function applyPatch(
   for (const [k, v] of Object.entries(patch) as [keyof RadialSettings, any][]) {
     if (BAR_IDENTITY_FIELDS.has(k as any)) {
       (next.bars as any)[k] = v;
-      if (k === 'minBarLength' && typeof v === 'number') {
-        for (const st of ['idle', 'listening', 'thinking', 'talking'] as const) {
-          if (next[st].maxBarLength < v) next[st] = { ...next[st], maxBarLength: v };
+    } else if (k === 'minBarLength') {
+      // Per-state: write to focused, optionally mirror to listening,
+      // and clamp focused's maxBarLength upward if it dropped below.
+      if (typeof v === 'number') {
+        (next[focused] as any).minBarLength = v;
+        if (next[focused].maxBarLength < v) {
+          next[focused] = { ...next[focused], maxBarLength: v };
+        }
+        if (focused === 'idle' && next.idleListeningLinked) {
+          (next.listening as any).minBarLength = v;
+          if (next.listening.maxBarLength < v) {
+            next.listening = { ...next.listening, maxBarLength: v };
+          }
         }
       }
     } else if (DISPLAY_FIELDS.has(k as any)) {
@@ -1386,7 +1398,7 @@ function TuneCell({
           radius={anim.anchor}
           barWidth={profile.bars.barWidth}
           barGap={profile.bars.barGap}
-          minBarLength={profile.bars.minBarLength}
+          minBarLength={anim.minBarLength}
           maxBarLength={anim.maxBarLength}
           sensitivity={anim.sensitivity}
           barColor={profile.bars.barColor}
