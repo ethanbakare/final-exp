@@ -67,6 +67,14 @@ export interface RadialWaveformProps {
    *  with a smaller computed gap). When undefined, the variant
    *  computes its own count from circumference / (barWidth+barGap). */
   barCount?: number;
+  /** Pin all bars at minBarLength regardless of audio. Used by the
+   *  radial-states animator for thinking + Phase A morphs. */
+  freezeAtMin?: boolean;
+  /** Stable canvas extent in px (canvas size = renderExtent * 2). When
+   *  undefined, each variant uses its own fallback computed from radius
+   *  + maxBarLength at mount. radial-states callers always pass this so
+   *  live edits to radius/maxBarLength resize the canvas correctly. */
+  renderExtent?: number;
 }
 
 // ── Variant type ──────────────────────────────────────────────

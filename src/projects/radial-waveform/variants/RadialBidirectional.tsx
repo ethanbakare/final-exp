@@ -4,37 +4,34 @@ import { mapFrequencyToBars } from "../mapFrequency";
 
 export interface RadialBidirectionalProps extends RadialWaveformProps {
   inwardRatio: number;
+  /** Pin all bars at minBarLength regardless of audio/wave state. Used by
+   *  the radial-states animator to enforce frozen-min during thinking and
+   *  Phase A of any thinking-related morph. Bypasses the smoothing block
+   *  entirely; on the false→true transition, zeros prevValuesRef so
+   *  re-entry to reactive state starts clean. */
+  freezeAtMin?: boolean;
 }
 
-export default function RadialBidirectional({
-  frequencyData,
-  radius,
-  barWidth,
-  barGap,
-  minBarLength,
-  maxBarLength,
-  sensitivity,
-  barColor,
-  bgColor,
-  segments,
-  roundCaps,
-  intensityOpacity,
-  updateRate,
-  rotationSpeed,
-  ambientWave,
-  waveSpeed,
-  waveAmplitude,
-  waveHeight,
-  waveMode,
-  waveShape,
-  waveLobes,
-  smoothing,
-  waveEnvelope,
-  envelopeAmplitude,
-  envelopeSensitivity,
-  showEnvelopeCeiling,
-  inwardRatio,
-}: RadialBidirectionalProps) {
+/**
+ * Refs-based renderer (post tasks/radial-states-animator-plan.md §6.5).
+ * Main draw effect depends only on `effectiveRenderExtent` — every other
+ * live prop, including `frequencyData`, flows through `propsRef` so
+ * per-frame parent re-renders never tear down the canvas + RAF loop.
+ */
+export default function RadialBidirectional(props: RadialBidirectionalProps) {
+  const {
+    radius,
+    barWidth,
+    barGap,
+    minBarLength,
+    maxBarLength,
+    barColor,
+    bgColor,
+    roundCaps,
+    showEnvelopeCeiling,
+    renderExtent,
+  } = props;
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
   const lastDrawRef = useRef(0);
@@ -42,13 +39,23 @@ export default function RadialBidirectional({
   const lastTimeRef = useRef(0);
   const waveTimeRef = useRef(0);
   const prevValuesRef = useRef<number[]>([]);
+  const wasFreezeAtMinRef = useRef(false);
+
+  // Live props ref — synced every render, read inside the RAF loop.
+  const propsRef = useRef(props);
+  propsRef.current = props;
+
+  // Per-variant fallback: bars extend BOTH inward (limited) and outward;
+  // canvas needs to fit radius + maxBarLength outward + padding.
+  const effectiveRenderExtent =
+    renderExtent ?? radius + maxBarLength + 20;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const size = (radius + maxBarLength + 20) * 2;
+    const size = effectiveRenderExtent * 2;
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;
@@ -64,37 +71,54 @@ export default function RadialBidirectional({
 
     const draw = (now: number) => {
       rafRef.current = requestAnimationFrame(draw);
+      const p = propsRef.current;
 
       const dt = (now - lastTimeRef.current) / 1000;
       lastTimeRef.current = now;
-      rotationRef.current += (rotationSpeed * Math.PI) / 180 * dt;
+      rotationRef.current += (p.rotationSpeed * Math.PI) / 180 * dt;
       waveTimeRef.current += dt;
 
-      if (updateRate > 0 && now - lastDrawRef.current < updateRate) return;
+      if (p.updateRate > 0 && now - lastDrawRef.current < p.updateRate) return;
       lastDrawRef.current = now;
 
       ctx.clearRect(0, 0, size, size);
 
-      const circumference = 2 * Math.PI * radius;
-      const barCount = Math.max(1, Math.floor(circumference / (barWidth + barGap)));
-      const minInnerRadius = (barCount * barGap) / (2 * Math.PI);
-      const maxSafeInward = Math.max(0, radius - minInnerRadius);
-      const values = mapFrequencyToBars(frequencyData, barCount, sensitivity, segments);
+      const circumference = 2 * Math.PI * p.radius;
+      const barCount =
+        p.barCount ?? Math.max(1, Math.floor(circumference / (p.barWidth + p.barGap)));
+      const minInnerRadius = (barCount * p.barGap) / (2 * Math.PI);
+      const maxSafeInward = Math.max(0, p.radius - minInnerRadius);
+
+      // Entry-frame zero rule: when freezeAtMin transitions false→true,
+      // wipe prevValuesRef so re-entry to reactive state has no residue.
+      if (p.freezeAtMin && !wasFreezeAtMinRef.current) {
+        prevValuesRef.current = new Array(barCount).fill(0);
+      }
+      wasFreezeAtMinRef.current = !!p.freezeAtMin;
+
+      let values: number[];
+      if (p.freezeAtMin) {
+        values = new Array(barCount).fill(0);
+      } else {
+        values = mapFrequencyToBars(p.frequencyData, barCount, p.sensitivity, p.segments);
+      }
 
       if (prevValuesRef.current.length !== barCount) {
         prevValuesRef.current = new Array(barCount).fill(0);
       }
 
+      const inwardRatio = (p as RadialBidirectionalProps).inwardRatio ?? 0;
+
       for (let i = 0; i < barCount; i++) {
         const angle = (i / barCount) * Math.PI * 2 + rotationRef.current;
         let value = values[i];
 
-        if (ambientWave) {
-          const lobes = waveShape === "segments" ? segments : waveLobes;
-          const phase = angle * lobes - waveTimeRef.current * waveSpeed;
+        if (!p.freezeAtMin && p.ambientWave) {
+          const lobes = p.waveShape === "segments" ? p.segments : p.waveLobes;
+          const phase = angle * lobes - waveTimeRef.current * p.waveSpeed;
 
           let wave: number;
-          switch (waveShape) {
+          switch (p.waveShape) {
             case "sine":
             case "segments":
               wave = (Math.sin(phase) + 1) / 2;
@@ -109,30 +133,30 @@ export default function RadialBidirectional({
               break;
           }
 
-          if (envelopeSensitivity > 0) {
-            const sensFactor = 1 - envelopeSensitivity * (1 - wave);
+          if (p.envelopeSensitivity > 0) {
+            const sensFactor = 1 - p.envelopeSensitivity * (1 - wave);
             value = value * sensFactor;
           }
 
-          value = Math.min(1, value * waveHeight + wave * waveAmplitude);
-          if (waveMode === "reactive") {
-            value = value * (1 + wave * waveAmplitude * 3);
+          value = Math.min(1, value * p.waveHeight + wave * p.waveAmplitude);
+          if (p.waveMode === "reactive") {
+            value = value * (1 + wave * p.waveAmplitude * 3);
           }
 
-          if (waveEnvelope > 0 && envelopeAmplitude > 0) {
-            const ceiling = wave * envelopeAmplitude + envelopeAmplitude * 0.1;
-            const effectiveCeiling = 1 - waveEnvelope * (1 - ceiling);
+          if (p.waveEnvelope > 0 && p.envelopeAmplitude > 0) {
+            const ceiling = wave * p.envelopeAmplitude + p.envelopeAmplitude * 0.1;
+            const effectiveCeiling = 1 - p.waveEnvelope * (1 - ceiling);
             value = Math.min(value, effectiveCeiling);
           }
         }
 
-        if (smoothing > 0) {
-          const lerpFactor = 1 - smoothing;
+        if (!p.freezeAtMin && p.smoothing > 0) {
+          const lerpFactor = 1 - p.smoothing;
           value = prevValuesRef.current[i] + (value - prevValuesRef.current[i]) * lerpFactor;
         }
-        prevValuesRef.current[i] = value;
+        if (!p.freezeAtMin) prevValuesRef.current[i] = value;
 
-        const totalLength = minBarLength + value * (maxBarLength - minBarLength);
+        const totalLength = p.minBarLength + value * (p.maxBarLength - p.minBarLength);
         const inwardLength = Math.min(totalLength * inwardRatio, maxSafeInward);
         const outwardLength = totalLength * (1 - inwardRatio);
 
@@ -140,65 +164,21 @@ export default function RadialBidirectional({
         ctx.translate(cx, cy);
         ctx.rotate(angle);
         ctx.beginPath();
-        ctx.moveTo(0, -(radius - inwardLength));
-        ctx.lineTo(0, -(radius + outwardLength));
-        ctx.strokeStyle = barColor;
-        ctx.lineWidth = barWidth;
-        ctx.lineCap = roundCaps ? "round" : "butt";
-        ctx.globalAlpha = intensityOpacity ? 0.4 + value * 0.6 : 1;
+        ctx.moveTo(0, -(p.radius - inwardLength));
+        ctx.lineTo(0, -(p.radius + outwardLength));
+        ctx.strokeStyle = p.barColor;
+        ctx.lineWidth = p.barWidth;
+        ctx.lineCap = p.roundCaps ? "round" : "butt";
+        ctx.globalAlpha = p.intensityOpacity ? 0.4 + value * 0.6 : 1;
         ctx.stroke();
         ctx.restore();
-      }
-
-      // Ghost bars: envelope ceiling guide
-      if (showEnvelopeCeiling && ambientWave && envelopeAmplitude > 0 && waveEnvelope > 0) {
-        for (let i = 0; i < barCount; i++) {
-          const angle = (i / barCount) * Math.PI * 2 + rotationRef.current;
-          const lobes = waveShape === "segments" ? segments : waveLobes;
-          const phase = angle * lobes - waveTimeRef.current * waveSpeed;
-
-          let wave: number;
-          switch (waveShape) {
-            case "sine":
-            case "segments":
-              wave = (Math.sin(phase) + 1) / 2;
-              break;
-            case "triangle": {
-              const t = ((phase % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-              wave = t < Math.PI ? t / Math.PI : 2 - t / Math.PI;
-              break;
-            }
-            case "square":
-              wave = Math.sin(phase) >= 0 ? 1 : 0;
-              break;
-          }
-
-          const ceiling = wave * envelopeAmplitude + envelopeAmplitude * 0.1;
-          const effectiveCeiling = 1 - waveEnvelope * (1 - ceiling);
-          const ghostTotal = minBarLength + effectiveCeiling * (maxBarLength - minBarLength);
-          const ghostInward = Math.min(ghostTotal * inwardRatio, maxSafeInward);
-          const ghostOutward = ghostTotal * (1 - inwardRatio);
-
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.rotate(angle);
-          ctx.beginPath();
-          ctx.moveTo(0, -(radius - ghostInward));
-          ctx.lineTo(0, -(radius + ghostOutward));
-          ctx.strokeStyle = barColor;
-          ctx.lineWidth = barWidth;
-          ctx.lineCap = roundCaps ? "round" : "butt";
-          ctx.globalAlpha = 0.12;
-          ctx.stroke();
-          ctx.restore();
-        }
       }
     };
 
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [frequencyData, radius, barWidth, barGap, minBarLength, maxBarLength, sensitivity, barColor, bgColor, segments, roundCaps, intensityOpacity, updateRate, rotationSpeed, ambientWave, waveSpeed, waveAmplitude, waveHeight, waveMode, waveShape, waveLobes, smoothing, waveEnvelope, envelopeAmplitude, envelopeSensitivity, showEnvelopeCeiling, inwardRatio]);
+  }, [effectiveRenderExtent]);
 
-  const size = (radius + maxBarLength + 20) * 2;
+  const size = effectiveRenderExtent * 2;
   return <canvas ref={canvasRef} style={{ width: size, height: size }} />;
 }

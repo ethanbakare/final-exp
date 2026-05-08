@@ -23,6 +23,7 @@ import RadialOutward from '@/projects/radial-waveform/variants/RadialOutward';
 import RadialGalleryAudioControls from '@/projects/radial-waveform/components/RadialGalleryAudioControls';
 import { audioService } from '@/projects/radial-waveform/services/audioService';
 import type { RadialSettings } from '@/projects/radial-waveform/types';
+import RadialBidirectional from '@/projects/radial-waveform/variants/RadialBidirectional';
 import { ColorPickerButton } from './ColorPicker';
 import {
   fetchRadialLinkedProfiles,
@@ -36,6 +37,7 @@ import {
   type RadialStateSettings,
 } from './api';
 import type { RadialState } from './types';
+import { useLinkedRadialAnimator } from './useLinkedRadialAnimator';
 
 const DEFAULT_BACKDROP: Required<RadialBackdrop> = {
   enabled: true,
@@ -1266,6 +1268,106 @@ function ControlsPanel({
   );
 }
 
+// ── Tune-mode single cell (animator-driven) ────────────────────────
+
+interface TuneCellProps {
+  profile: RadialLinkedProfile;
+  targetState: RadialState;
+  frequencyData: Uint8Array | null;
+  /** Reserved canvas extent — derived from the largest possible bar reach
+   *  across all states so anchor lerp + audio + reactive ramp stay inside
+   *  a stable canvas. */
+  renderExtent: number;
+  /** Backdrop config (shared). */
+  backdrop: Required<RadialBackdrop>;
+  /** Donut envelope dimensions for the backdrop. */
+  donutSize: number;
+  donutThickness: number;
+  barCountOverride: number;
+}
+
+function TuneCell({
+  profile,
+  targetState,
+  frequencyData,
+  renderExtent,
+  backdrop,
+  donutSize,
+  donutThickness,
+  barCountOverride,
+}: TuneCellProps) {
+  const anim = useLinkedRadialAnimator(profile, targetState);
+  if (!anim) return null;
+
+  const cellSize = renderExtent * 2;
+  const backdropOuterR = donutSize / 2;
+  const backdropInnerR = backdropOuterR - donutThickness;
+
+  return (
+    <div
+      style={{
+        width: cellSize,
+        height: cellSize,
+        background: profile.display.previewBg,
+        borderRadius: 12,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        position: 'relative',
+        boxSizing: 'border-box',
+      }}
+    >
+      {backdrop.enabled && (
+        <Backdrop
+          outerShape={backdrop.outerShape}
+          outerR={backdropOuterR}
+          outerSegments={backdrop.outerSegments}
+          outerDepth={backdrop.outerDepth}
+          innerShape={backdrop.shape}
+          innerR={backdropInnerR}
+          innerSegments={backdrop.segments}
+          innerDepth={backdrop.depth}
+          color={backdropFill(backdrop.color, backdrop.opacity)}
+        />
+      )}
+      <div style={{ position: 'relative', zIndex: 1, lineHeight: 0 }}>
+        <RadialBidirectional
+          frequencyData={frequencyData}
+          radius={anim.anchor}
+          barWidth={profile.bars.barWidth}
+          barGap={profile.bars.barGap}
+          minBarLength={profile.bars.minBarLength}
+          maxBarLength={anim.maxBarLength}
+          sensitivity={anim.sensitivity}
+          barColor={profile.bars.barColor}
+          bgColor={profile.display.bgColor}
+          segments={profile.bars.segments}
+          roundCaps={profile.bars.roundCaps}
+          intensityOpacity={anim.intensityOpacity}
+          updateRate={profile.bars.updateRate}
+          rotationSpeed={profile.bars.rotationSpeed}
+          ambientWave={anim.ambientWave}
+          waveSpeed={anim.waveSpeed}
+          waveAmplitude={anim.waveAmplitude}
+          waveHeight={anim.waveHeight}
+          waveMode={anim.waveMode}
+          waveShape={anim.waveShape}
+          waveLobes={anim.waveLobes}
+          smoothing={anim.smoothing}
+          waveEnvelope={anim.waveEnvelope}
+          envelopeAmplitude={anim.envelopeAmplitude}
+          envelopeSensitivity={anim.envelopeSensitivity}
+          inwardRatio={anim.inwardRatio}
+          freezeAtMin={anim.freezeAtMin}
+          renderExtent={renderExtent}
+          barCount={barCountOverride}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────
 
 const STATE_VARIANT: Record<StateKey, 'inward' | 'outward'> = {
@@ -1280,10 +1382,30 @@ const STATE_LABEL: Record<StateKey, string> = {
   talking: 'Talking',
 };
 
+const MODE_STORAGE_KEY = 'radial-states-mode';
+type Mode = 'static' | 'tune';
+
 export default function RadialStatesReview() {
   const [audioActive, setAudioActive] = useState(false);
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
   const [focused, setFocused] = useState<StateKey>('idle');
+  const [mode, setMode] = useState<Mode>('static');
+  // Persist mode separately from active profile id.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(MODE_STORAGE_KEY);
+      if (saved === 'static' || saved === 'tune') setMode(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(MODE_STORAGE_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+  }, [mode]);
   const [profiles, setProfiles] = useState<RadialLinkedProfile[]>([]);
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   // Baseline snapshot of the active profile's settings at last save / load.
@@ -1556,43 +1678,79 @@ export default function RadialStatesReview() {
     );
   };
 
-  const cellsRow = (
-    <div
-      style={{
-        display: 'flex',
-        gap: 32,
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        marginTop: 24,
-      }}
-    >
-      {(['idle', 'thinking', 'talking'] as const).map((k) => (
-        <Cell
-          key={k}
-          label={STATE_LABEL[k]}
-          settings={k === 'talking' ? effectiveTalkingSettings : all[k]}
-          // Thinking is intentionally fed null so audio doesn't reach it.
-          frequencyData={k === 'thinking' ? null : frequencyData}
-          variant={STATE_VARIANT[k]}
-          focused={focused === k}
-          onClick={() => setFocused(k)}
-          showMaxGhost={focused === k && maxBarHovered}
+  // Tune-mode render extent — reserves space for the largest possible
+  // bar reach across all states, so anchor lerp + reactive ramp stay
+  // inside a stable canvas (per plan §6.5).
+  const tuneRenderExtent =
+    (activeProfile?.geometry.idleRadius ?? 134) +
+    Math.max(
+      activeProfile?.idle.maxBarLength ?? 60,
+      activeProfile?.listening.maxBarLength ?? 60,
+      activeProfile?.thinking.maxBarLength ?? 60,
+      activeProfile?.talking.maxBarLength ?? 40,
+    ) +
+    20;
+
+  const cellsRow =
+    mode === 'tune' && activeProfile ? (
+      <div
+        style={{
+          display: 'flex',
+          gap: 24,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginTop: 24,
+        }}
+      >
+        <TuneCell
+          profile={activeProfile}
+          targetState={focused as RadialState}
+          frequencyData={frequencyData}
+          renderExtent={tuneRenderExtent}
+          backdrop={backdrop}
           donutSize={donutSize}
           donutThickness={donutThickness}
-          barCountOverride={barCountOverride}
-          backdropEnabled={backdrop.enabled}
-          backdropColor={backdrop.color}
-          backdropOpacity={backdrop.opacity}
-          backdropShape={backdrop.shape}
-          backdropSegments={backdrop.segments}
-          backdropDepth={backdrop.depth}
-          backdropOuterShape={backdrop.outerShape}
-          backdropOuterSegments={backdrop.outerSegments}
-          backdropOuterDepth={backdrop.outerDepth}
+          barCountOverride={barCountOverride ?? Math.floor(idleCircumference / (all.idle.barWidth + all.idle.barGap))}
         />
-      ))}
-    </div>
-  );
+      </div>
+    ) : (
+      <div
+        style={{
+          display: 'flex',
+          gap: 32,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          marginTop: 24,
+        }}
+      >
+        {(['idle', 'thinking', 'talking'] as const).map((k) => (
+          <Cell
+            key={k}
+            label={STATE_LABEL[k]}
+            settings={k === 'talking' ? effectiveTalkingSettings : all[k]}
+            // Thinking is intentionally fed null so audio doesn't reach it.
+            frequencyData={k === 'thinking' ? null : frequencyData}
+            variant={STATE_VARIANT[k]}
+            focused={focused === k}
+            onClick={() => setFocused(k)}
+            showMaxGhost={focused === k && maxBarHovered}
+            donutSize={donutSize}
+            donutThickness={donutThickness}
+            barCountOverride={barCountOverride}
+            backdropEnabled={backdrop.enabled}
+            backdropColor={backdrop.color}
+            backdropOpacity={backdrop.opacity}
+            backdropShape={backdrop.shape}
+            backdropSegments={backdrop.segments}
+            backdropDepth={backdrop.depth}
+            backdropOuterShape={backdrop.outerShape}
+            backdropOuterSegments={backdrop.outerSegments}
+            backdropOuterDepth={backdrop.outerDepth}
+          />
+        ))}
+      </div>
+    );
 
   return (
     <div
@@ -1612,14 +1770,48 @@ export default function RadialStatesReview() {
 
       <div
         style={{
-          color: '#fafafa',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          fontSize: 16,
-          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
           marginTop: 16,
+          fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        Radial states — review
+        <div style={{ color: '#fafafa', fontSize: 16, fontWeight: 500 }}>
+          Radial states — {mode === 'tune' ? 'tune' : 'review'}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 999,
+            padding: 2,
+          }}
+        >
+          {(['static', 'tune'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              style={{
+                background: mode === m ? '#FACC15' : 'transparent',
+                color: mode === m ? '#0F0F11' : '#e5e7eb',
+                border: 'none',
+                borderRadius: 999,
+                padding: '4px 14px',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                letterSpacing: 0.3,
+                textTransform: 'capitalize',
+              }}
+              aria-pressed={mode === m}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
       </div>
 
       {cellsRow}
