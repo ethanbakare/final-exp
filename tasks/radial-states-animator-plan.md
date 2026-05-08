@@ -125,7 +125,14 @@ Per chat: idle and listening are visually identical *today*, but kept as distinc
 
 ### What stays per-state (and why)
 
-- `maxBarLength` — talking's max can legitimately be smaller (audio dynamic range tradeoff). **Invariant** (Reviewer R5 P1.4): for every state, `state.maxBarLength >= bars.minBarLength`. Enforced two ways: (a) per-state maxBarLength sliders use `bars.minBarLength` as their minimum value and update reactively when the shared min changes; (b) raising `bars.minBarLength` clamps each state's maxBarLength upward via the link-propagation rule in §8a (extended to handle the min/max relationship). Without this invariant, the renderer formula `min + value × (max − min)` can produce negative deltas — bars shrink as audio rises.
+- `maxBarLength` — talking's max can legitimately be smaller (audio dynamic range tradeoff). **Invariant** (Reviewer R5 P1.4): for every state, `state.maxBarLength >= bars.minBarLength`. Enforced two ways:
+  - (a) Per-state maxBarLength sliders use `bars.minBarLength` as their minimum value and update reactively when the shared min changes.
+  - (b) **Shared-bars mutator rule** (Reviewer R6 P2.1 — separate from idle/listening link-propagation in §8a). When the user updates `bars.minBarLength`:
+    1. Set `bars.minBarLength` to the new value.
+    2. For each of `idle`, `listening`, `thinking`, `talking`: if `state.maxBarLength < bars.minBarLength`, clamp it upward to `bars.minBarLength`.
+    3. Idle/listening link semantics (§8a) are preserved by this clamp — both clamp identically because they hold identical values when linked.
+
+  Without this invariant, the renderer formula `min + value × (max − min)` produces negative deltas — bars shrink as audio rises.
 - All wave/envelope params — the whole point of having states is for these to differ.
 - `sensitivity` — talking is reactive; idle/listening have their own; thinking forces 0.
 - `intensityOpacity`, `smoothing` — render-time stylistic choices that may differ per state.
@@ -263,18 +270,24 @@ All 16 transitions (4 states × 4 destinations). `→` cells named, `=` cells ar
 Any state-pill click during an active morph aborts that morph and starts a new one from the current rendered frame. Detailed mechanics live in §6 (internal model + duration table + state-change rules). High-level summary:
 
 1. **Classify the captured frame** (Reviewer R5 P1.5). Inspect current `RadialRenderValues`:
-   - If `inwardRatio === 0` OR the active leg involves talking (current `morphFrom === 'talking'` OR `morphTarget === 'talking'`), the captured frame has **talking-like geometry**. Any transition to a non-talking destination must run the talking→destination inverse path (reverse Phase A + flip + reverse Phase B), not a plain damp. This guarantees the inwardRatio flip and freezeAtMin pinning happen correctly.
-   - If `inwardRatio === 1` AND no talking involvement, the captured frame is **idle-like**. A plain damp toward the new target is safe.
-2. Capture current `RadialRenderValues` as the new morph start.
-3. Set new target = the destination state's row from the §"States" table. Pick the appropriate transition shape based on the classification in step 1.
-4. Reset `morphT = 0`. Pick duration via §6 duration table.
-5. Run the lerp.
+   - If `inwardRatio === 0` OR the active leg involves talking (current `morphFrom === 'talking'` OR `morphTarget === 'talking'`), the captured frame has **talking-like geometry**. `classifiedSource = 'talking'`.
+   - If `inwardRatio === 1` AND no talking involvement, the captured frame is **idle-like**. `classifiedSource = currentlyIn` (typically idle or thinking).
+2. **Check the flip-precondition for transitions into talking** (Reviewer R6 P1.2). If the new target is `talking` and the captured frame's rendered length is NOT exactly `bars.minBarLength` (i.e., bars haven't collapsed to min yet), the transition becomes a **composed two-leg motion**:
+   - Leg 1: `classifiedSource → thinking` damp, but only the freezeAtMin-clamp portion — bars collapse to `minBarLength` while anchor stays at idleRadius. Duration ≈ remaining 10% of `morph.idleToThinking` (the tail-clamp portion of the damp).
+   - Leg 2: `thinking → talking` standard forward path.
 
-**Concrete example.** Mid-morph `thinking → talking` interrupted by click `idle` at `t = 0.8` (post-flip — anchor at `talkingAnchor`, inwardRatio = 0). Classification: talking-like. Run as `talking → idle` reverse-path from the captured frame: reverse Phase A (sensitivity/wave fade, freezeAtMin tail), inverse flip back to inwardRatio = 1, reverse Phase B (translation outward to idleRadius). NOT a plain damp — that would leave inwardRatio stuck at 0 while anchor lerped, producing a direction/reference jump.
+   This guarantees Phase A starts with bars already at `minBarLength`, otherwise enabling `freezeAtMin = true` on Phase A entry would visibly collapse the bars (snap).
+3. **Pick duration from classifiedSource → target**, NOT from `currentlyIn → target` (Reviewer R6 P1.3). Example: during `thinking → talking`, currentlyIn is still thinking but the captured frame can be post-flip (talking-like). On click `idle`, classifiedSource = 'talking', so duration is `morph.thinkingToTalking` (return path), not `morph.idleToThinking`.
+4. Capture current `RadialRenderValues` as the new morph start.
+5. Set new target. Set transition shape based on classifiedSource (talking-like uses inverse path; idle-like uses standard path).
+6. Reset `morphT = 0`. Run the lerp.
 
-**Counter-example.** Mid-morph `idle → thinking` interrupted by click `talking`. Captured frame: inwardRatio = 1, anchor partway between idleRadius and idleRadius (no translation in this damp), no talking involvement. Classification: idle-like. The new transition is `[wherever-we-are] → talking` running the standard thinking→talking forward path (Phase A + flip + Phase B) from the captured frame — except that Phase A's anchor lerp now starts wherever the captured anchor is rather than at idleRadius.
+**Concrete examples.**
+- Mid-morph `thinking → talking` interrupted by click `idle` at `t = 0.8` (post-flip; inwardRatio=0). Classified source: talking. Transition: talking→idle reverse path. Duration: `morph.thinkingToTalking`.
+- Mid-morph `idle → thinking` (damp) interrupted by click `talking` at `t = 0.4` (length still > minBarLength because tail clamp at `t = 0.9` hasn't fired yet). Classified source: idle (idle-like). **Composed**: first complete the collapse-to-min portion (freezeAtMin engages now, length pulls to min over a short window — duration = the damp's tail-clamp portion); then run thinking→talking from the now-min-pinned frame.
+- Mid-morph `idle → thinking` interrupted by click `talking` at `t = 0.95` (already in tail-clamp; length = minBarLength). Classified source: idle. Flip-precondition satisfied. Run thinking→talking directly.
 
-Edge: if the click is on the same state currently being morphed *toward*, it's a no-op (don't restart). If the click is on the state being morphed *from*, it reverses the morph (captured-start → original-start, same duration as the elapsed morph time). v1 implements only the simple "abort + new lerp + classify" path; reverse-by-elapsed is deferred.
+Edge: if the click is on the same state currently being morphed *toward*, it's a no-op (don't restart). If the click is on the state being morphed *from*, it reverses the morph (captured-start → original-start, same duration as the elapsed morph time). v1 implements only the abort + classify + flip-precondition path; reverse-by-elapsed is deferred.
 
 ---
 
@@ -389,7 +402,8 @@ export function useLinkedRadialAnimator(
 | thinking | talking | `morph.thinkingToTalking` |
 | talking | idle / listening | `morph.thinkingToTalking` |
 | any composed pair | (each leg) | leg-by-leg lookup above |
-| mid-morph abort | new lerp | use the duration of the new (currentlyIn → target) row, not the elapsed time of the aborted morph |
+| mid-morph abort | new lerp | use the duration of the new **(classifiedSource → target)** row (R6 P1.3), not (currentlyIn → target). classifiedSource per §4 mid-morph classification. |
+| flip-precondition collapse-to-min leg | composed pre-leg | duration = remaining tail-clamp window of `morph.idleToThinking` (R6 P1.2) |
 - `dt` clamp: `Math.min(dt, 1/30)` to match `useLinkedProfileAnimator.ts:211`.
 
 **Leg progression for composed transitions.** When the requested `state` requires a composed motion (e.g., user clicks talking from idle), the hook sets `intendedFinalState = 'talking'` and starts leg 1 (`idleToThinking`). When leg 1 completes (`morphT >= 1`), the hook checks `intendedFinalState`: if it's not the current resting state, start leg 2 toward it. When `intendedFinalState === currentlyIn`, clear it.
@@ -449,7 +463,17 @@ The current `RadialBidirectional`, `RadialInward`, and `RadialOutward` re-run th
 
 ### Contract for all three radial variants
 
-1. **Single mount-time RAF loop.** The main draw `useEffect` has **exactly one dependency: `renderExtent`** (the only input that requires canvas resize + remount). Reviewer R3 P1.3 — every other prop, including `frequencyData`, goes through refs. The RAF loop is created once on mount and reads all live values from refs each frame.
+1. **Single mount-time RAF loop.** The main draw `useEffect` depends on `effectiveRenderExtent` only — a derived value computed at render time inside the renderer (Reviewer R6 P1.1):
+
+   ```ts
+   const effectiveRenderExtent = renderExtent ?? variantFallback(radius, maxBarLength);
+   // RadialInward variantFallback: radius + 20
+   // RadialOutward / RadialBidirectional variantFallback: radius + maxBarLength + 20
+   ```
+
+   Why derived (not raw `renderExtent`): external callers may legitimately edit `radius` / `maxBarLength` via React state without passing `renderExtent`; with raw-only deps the effect wouldn't see those changes (those props live in refs and don't trigger the effect). Deriving inside the renderer means the prop chain is: caller passes radius → renderer computes effectiveRenderExtent → React sees the new value → effect re-runs. Radial-states callers still pass an explicit `renderExtent` so their `effectiveRenderExtent` short-circuits to the explicit value; external callers get correct resize-on-edit behavior for free.
+
+   Reviewer R3 P1.3 — every other live prop, including `frequencyData`, goes through refs. The RAF loop is created once on mount and reads all live values from refs each frame.
 
 2. **Animated props + frequency data go through refs — split by variant** (Reviewer R4 P2.3):
 
@@ -477,7 +501,7 @@ The current `RadialBidirectional`, `RadialInward`, and `RadialOutward` re-run th
    - `RadialOutward` fallback: `radius + maxBarLength + 20`
    - `RadialBidirectional` fallback: `radius + maxBarLength + 20`
 
-   Generalized renderer sizing: `(renderExtent ?? variant-specific-fallback) * 2`. Main draw effect dep array is `[renderExtent]` (R5 P3.1: may grow to include a deliberate resize token if DPR/container-resize handling is added later). The fallback uses values captured at mount time and doesn't track later changes — that's why radial-states callers must pass renderExtent.
+   Generalized renderer sizing: `effectiveRenderExtent * 2` where `effectiveRenderExtent = renderExtent ?? variantFallback(radius, maxBarLength)`. Main draw effect dep array is `[effectiveRenderExtent]` (R5 P3.1: may grow to include a deliberate resize token if DPR/container-resize handling is added later). Per R6 P1.1, deriving means external callers that edit `radius`/`maxBarLength` via React state still get correct canvas resizing without needing to pass `renderExtent`.
 
 4. **Bar-count changes handled inside the RAF loop**, not via deps. The existing line `if (prevValuesRef.current.length !== barCount) { prevValuesRef.current = new Array(barCount).fill(0); }` already self-heals on mismatch; works equally well when `barCount` comes from a ref. Rotation and wave time accumulators are NOT reset on bar-count change.
 
@@ -597,6 +621,19 @@ The tune-mode cell renders `RadialBidirectional` directly (not `RadialInward` or
 **Static-mode cell count: 3, not 4** (Reviewer R3 P1.5). The 3 cells are: idle/listening (one cell, since `idleListeningLinked = true` makes them visually identical by default), thinking, talking. Pills in the bottom bar are 4 (idle, listening, thinking, talking) so the controls panel can route to the right per-state object — but cells stay 3. When the link is broken (deferred), revisit.
 
 The static three-cell mode keeps its current renderers (`RadialInward` for idle/listening/thinking, `RadialOutward` for talking) but **now consumes `composeBaseWaveformProps(profile, state)` instead of reading `profile.idle` directly** (Reviewer R3 P2.5). The renderers themselves get the refs refactor (§6.5) but their visual output for static profiles is unchanged.
+
+**Each static cell's render path explicitly** (Reviewer R6 P2.2):
+
+```ts
+const baseProps = composeBaseWaveformProps(profile, state);
+const renderExtent =
+  state === 'talking' ? deriveTalkingAnchor(profile) + profile.talking.maxBarLength + 20
+                       : profile.geometry.idleRadius + profile[state].maxBarLength + 20;
+const freezeAtMin = state === 'thinking';
+return <Variant {...baseProps} freezeAtMin={freezeAtMin} renderExtent={renderExtent} />;
+```
+
+The Cell component is responsible for all three additions (`composeBaseWaveformProps` + `freezeAtMin` + `renderExtent`). Forgetting any of them is a bug — `composeBaseWaveformProps` alone is incomplete.
 
 ### Required prop / interface additions to RadialWaveformProps
 
@@ -747,6 +784,8 @@ Adding listening as a fourth state touches more than the controls panel (Reviewe
 | `handleReset` / Discard (~line 1369) | reverts three states | revert listening too; revert all new shared blocks |
 | `handleSaveAs` (~line 1288) | clones idle/thinking/talking | clone listening; clone bars/display/geometry/idleListeningLinked/morph |
 | `updateFocused` mutator (~line 1549) | writes one state's settings | branch on link rule (Reviewer P2.3 / §8a link-propagation) |
+| `updateBarsField` mutator (NEW) | n/a | NEW shared-bars mutator. Writes `profile.bars.<field>`. **When field === 'minBarLength', also runs the §3 shared-bars clamp rule** (R6 P2.1) — clamps each state's `maxBarLength` upward if below the new min. Separate from `updateFocused` because shared-bars writes don't go through the per-state link-propagation path. |
+| `updateDisplayField` mutator (NEW) | n/a | Writes `profile.display.<field>`. No clamping needed. |
 | `dirty` comparison (~line 1358) | compares old snapshot to current | compare new shape including all new fields |
 
 Reviewer P1.8 accepted: snapshot reshape is non-trivial; this list is the contract.
@@ -793,9 +832,9 @@ Testable conditions, run by hand on the review page.
 16. **Legacy profile load + first save** (Reviewer P1.5). On first page load post-deploy, all 7 legacy profiles render correctly (migration ran in-memory). Disk file unchanged until next user save. The first user-initiated `Update` or `Save As` triggers a whole-array POST: every profile is rewritten as v2 in one shot. After that, the on-disk file has all 7 profiles in the new shape. (We don't try to preserve untouched legacy entries through fetch+save because the persistence layer is whole-array.)
 17. **Mid-morph interruption**. From idle, click talking. While leg 1 (idle→thinking) is in flight (~halfway), click thinking. The composed morph aborts; the animator captures current values and lerps to thinking from there. No teleport, no double-fire of leg 2.
 18. **Same-target click during morph**. From idle, click talking. Mid-morph, click talking again. No-op — the morph continues uninterrupted. (`intendedFinalState` already equals `talking`.)
-19. **No effect-restart storm during audio** (Reviewer R3 P2.4). With audio active and `frequencyData` updating every frame, the renderer's draw `useEffect` runs **once on mount and only re-runs when `renderExtent` changes**. Verified by adding a temporary console.log inside the effect and watching the mount → no re-fires across hundreds of frames of audio.
+19. **No effect-restart storm during audio** (Reviewer R3 P2.4). With audio active and `frequencyData` updating every frame, the renderer's draw `useEffect` runs **once on mount and only re-runs when `effectiveRenderExtent` changes** (R6 P1.1). Verified by adding a temporary console.log inside the effect and watching mount → no re-fires across hundreds of frames of audio.
 20. **Tune-mode canvas size stable through morph**. From thinking, click talking. The cell's canvas dimensions in DOM (`canvas.width`, `canvas.height`) do NOT change during the morph. The bar segment moves inside a stable canvas.
-21. **Editing render-extent inputs in tune mode** (e.g. `idle.maxBarLength`) recomputes `renderExtent`, triggers one controlled effect re-run, canvas bitmap resizes once. **`rotationRef` and `waveTimeRef` persist across the remount** (component-level refs declared outside the draw effect) so rotation and wave time keep accumulating without snapping. **`prevValuesRef` is reconciled inside the RAF loop** when bar-count changes, not reset by the remount itself. No audio-driven effect restart occurs.
+21. **Editing render-extent inputs in tune mode** (e.g. `idle.maxBarLength`) — the cell recomputes `renderExtent`, the renderer recomputes `effectiveRenderExtent`, triggering one controlled effect re-run; canvas bitmap resizes once. **`rotationRef` and `waveTimeRef` persist across the remount** (component-level refs declared outside the draw effect) so rotation and wave time keep accumulating without snapping. **`prevValuesRef` is reconciled inside the RAF loop** when bar-count changes, not reset by the remount itself. No audio-driven effect restart occurs.
 22. **Static ↔ Tune toggle**. Switching modes mid-morph or while audio is playing does not leave stale `prevValuesRef` artifacts — bars are rendered cleanly in the new mode within one RAF.
 23. **Static/Tune parity** (Reviewer R4 P3.2 + R5 P1.1). For the same profile + state, static review and tune mode must call the same `composeBaseWaveformProps(profile, state)` path. Mode-specific additions:
     - **Static** adds: `freezeAtMin` (true for thinking, false otherwise); `renderExtent` (per the R5 P1.2 formula table); `frequencyData` (when audio is wired). Inward/Outward consumers do NOT add `inwardRatio`.
@@ -858,7 +897,7 @@ All resolved as of the latest revision. Lock-in summary (so the reviewer can see
 | `src/projects/voiceinterface/radial-states/api.ts` | Schema refactor (RadialBars, RadialDisplay, listening, geometry, idleListeningLinked, lockBarCount, morph, schemaVersion); `migrateLegacyProfile`; in-memory normalization in `fetchRadialLinkedProfiles`; `composeBaseWaveformProps(profile, state)` helper; new defaults |
 | `src/projects/voiceinterface/radial-states/useLinkedRadialAnimator.ts` | NEW — animator hook |
 | `src/projects/voiceinterface/radial-states/index.tsx` | Tune-mode toggle; single-cell render path; controls panel reshape (§8a); listening sites (§8b list); consume animator; ghost-bar fix (with maxSafeInward clamp); consume new schema; static cells now call `composeBaseWaveformProps`; update snapshotOf, dirty comparison, save-as, reset, profile-switch; `controlsFocusedState` / `animationTargetState` named explicitly |
-| `src/projects/radial-waveform/variants/RadialBidirectional.tsx` | Refs refactor (single mount-time RAF; main effect deps `[renderExtent]`; all live props inc. `frequencyData` flow through sync ref); `barCount` propagation; `freezeAtMin` handling (skip audio/wave/smoothing; entry-frame zero via `wasFreezeAtMinRef`); `renderExtent`-based canvas sizing with **per-variant fallback `radius + maxBarLength + 20`** (R5 P1.3) |
+| `src/projects/radial-waveform/variants/RadialBidirectional.tsx` | Refs refactor (single mount-time RAF; main effect deps `[effectiveRenderExtent]` per R6 P1.1; all live props inc. `frequencyData` flow through sync ref); `barCount` propagation; `freezeAtMin` handling (skip audio/wave/smoothing; entry-frame zero via `wasFreezeAtMinRef`); per-variant fallback `radius + maxBarLength + 20` for external callers omitting `renderExtent` |
 | `src/projects/radial-waveform/variants/RadialInward.tsx` | Refs refactor + honors `freezeAtMin` (static thinking renders frozen). Does not read `inwardRatio`. **Fallback canvas sizing remains `radius + 20`** (bars extend inward; preserves current external behavior). R5 P1.3. |
 | `src/projects/radial-waveform/variants/RadialOutward.tsx` | Refs refactor + honors `freezeAtMin` for symmetry. Does not read `inwardRatio`. **Fallback canvas sizing remains `radius + maxBarLength + 20`**. |
 | `src/projects/radial-waveform/types.ts` | Add `freezeAtMin?: boolean` and `renderExtent?: number` to `RadialWaveformProps` |
@@ -875,7 +914,7 @@ No new pages. No new API routes.
 
 Static-mode visual output is unchanged for existing profiles whose props are stable per render.
 
-**External callers** (R5 P3.2 — narrowed wording). Known current direct callers verified via grep are `radial-waveform/components/RadialGalleryCell.tsx` and `radial-waveform/components/RadialShowcase.tsx`. Neither needs to pass `renderExtent` because their props are not animated per frame; the per-variant mount-time fallback (Inward: `radius + 20`; Outward/Bidirectional: `radius + maxBarLength + 20`) preserves their current behavior. The refs refactor is safe for them. No code change required at these call sites. Future callers that animate props per frame would also need to pass `renderExtent` to avoid stale canvas sizing.
+**External callers** (R5 P3.2 + R6 P1.1 — `effectiveRenderExtent` makes this safer). Known current direct callers verified via grep are `radial-waveform/components/RadialGalleryCell.tsx` and `radial-waveform/components/RadialShowcase.tsx`. Neither needs to pass `renderExtent` — the per-variant fallback (Inward: `radius + 20`; Outward/Bidirectional: `radius + maxBarLength + 20`) preserves their current behavior. **Crucially**, because `effectiveRenderExtent` is derived inside the renderer at render time, external callers that edit `radius`/`maxBarLength` via React state still get correct canvas resize-on-edit — the effect re-runs when the derived value changes. No code change required at these call sites; behavior is at-or-better than before.
 
 ---
 
@@ -904,7 +943,9 @@ Updated for Reviewer R2 patches:
 | Renderer animation contract | §6.5 | §7, §14 |
 | `composeBaseWaveformProps` helper | §6.5 | §7, §14 |
 | `RadialState` type location (`radial-states/types.ts`) | §6.5 | §14 |
-| `renderExtent` prop | §6.5, §7 | §10, §14 |
+| `renderExtent` prop / `effectiveRenderExtent` derivation | §6.5, §7 | §10, §14 |
+| Mid-morph flip-precondition (collapse-to-min) | §4 | §6, §11 |
+| Shared-bars mutator + min-clamp rule | §3 | §8b |
 | Refs-based renderer (incl. frequencyData) | §6.5 | §7, §10, §14 |
 | `lockBarCount` (profile-level) | §3 | §8a, §10 |
 | Discrete-field step semantics | §4 | §10 |
