@@ -186,7 +186,21 @@ Format: profile id + name; for each promoted key, the chosen value, the source s
 | `idle` | `geometry.idleRadius` | inward (`inwardRatio=1`) | reactive `[minBarLength, idle.maxBarLength]` | `idle.sensitivity` | continues |
 | `listening` | same | same | same as idle (or per-state once differentiated) | `listening.sensitivity` (defaults match idle) | continues |
 | `thinking` | same | inward (`inwardRatio=1`) | **frozen** at `bars.minBarLength` | 0 | continues |
-| `talking` | derived: `geometry.idleRadius - idle.maxBarLength + (talkingInnerGap - DONUT_PADDING)` (== `donutInner + talkingInnerGap`, unchanged from current rule) | outward (`inwardRatio=0`) | reactive `[minBarLength, talking.maxBarLength]` | `talking.sensitivity` | continues |
+| `talking` | `deriveTalkingAnchor(profile)` — see formula below; preserves current clamp behavior (R7 P1.1) | outward (`inwardRatio=0`) | reactive `[minBarLength, talking.maxBarLength]` | `talking.sensitivity` | continues |
+
+**`deriveTalkingAnchor(profile)`** — must preserve the clamp behavior from current code (verified `index.tsx:1459`):
+
+```ts
+function deriveTalkingAnchor(profile: RadialLinkedProfile): number {
+  const donutInner = Math.max(
+    0,
+    profile.geometry.idleRadius - profile.idle.maxBarLength - DONUT_PADDING
+  );
+  return Math.max(1, donutInner + profile.geometry.talkingInnerGap);
+}
+```
+
+Both clamps are required: outer `Math.max(1, ...)` prevents a zero/negative anchor when the donut collapses; inner `Math.max(0, ...)` prevents a negative donutInner when `idle.maxBarLength` exceeds `idleRadius`. Lives in `radial-states/api.ts` next to `composeBaseWaveformProps`.
 
 ### Transition: idle/listening → thinking (or thinking → idle/listening)
 
@@ -272,11 +286,11 @@ Any state-pill click during an active morph aborts that morph and starts a new o
 1. **Classify the captured frame** (Reviewer R5 P1.5). Inspect current `RadialRenderValues`:
    - If `inwardRatio === 0` OR the active leg involves talking (current `morphFrom === 'talking'` OR `morphTarget === 'talking'`), the captured frame has **talking-like geometry**. `classifiedSource = 'talking'`.
    - If `inwardRatio === 1` AND no talking involvement, the captured frame is **idle-like**. `classifiedSource = currentlyIn` (typically idle or thinking).
-2. **Check the flip-precondition for transitions into talking** (Reviewer R6 P1.2). If the new target is `talking` and the captured frame's rendered length is NOT exactly `bars.minBarLength` (i.e., bars haven't collapsed to min yet), the transition becomes a **composed two-leg motion**:
-   - Leg 1: `classifiedSource → thinking` damp, but only the freezeAtMin-clamp portion — bars collapse to `minBarLength` while anchor stays at idleRadius. Duration ≈ remaining 10% of `morph.idleToThinking` (the tail-clamp portion of the damp).
-   - Leg 2: `thinking → talking` standard forward path.
+2. **Check the flip-precondition for transitions into talking** (R6 P1.2 + R7 P1.2/P1.3). The animator can't observe post-smoothing rendered length (it's owned by the renderer). The animator-owned proxy is `minPinnedFor` — a counter on the hook that increments while `freezeAtMin === true` and resets when false. Smoothing converges within ~6 frames at default settings, so `minPinnedFor >= 6 frames` is the practical "length is at min" indicator.
 
-   This guarantees Phase A starts with bars already at `minBarLength`, otherwise enabling `freezeAtMin = true` on Phase A entry would visibly collapse the bars (snap).
+   If the new target is `talking` and `minPinnedFor < 6` at the click moment, the transition becomes a **composed two-leg motion**:
+   - **Leg 1: captured-frame → thinking damp** — runs the FULL `idle/listening → thinking` damp shape (per §"Transition: idle/listening → thinking") starting from captured-frame values. Numerics, booleans, string unions lerp/step toward thinking's resting per the standard rules. **`freezeAtMin = false` for `tA ∈ [0, 0.9]`** (audio path active so smoothing carries length down naturally). At `tA = 0.9`, freezeAtMin engages for the tail-clamp window. R7 P1.3: this is NOT an instant freezeAtMin engage — that would zero prevValuesRef and snap. The full smoothed damp avoids the snap. Duration: full `morph.idleToThinking` (don't shorten — the smoothing needs time).
+   - **Leg 2: `thinking → talking` standard forward path** — fires only after Leg 1 completes (animator self-checks `minPinnedFor >= 6` before starting Leg 2; if not yet, holds for 1–2 extra frames).
 3. **Pick duration from classifiedSource → target**, NOT from `currentlyIn → target` (Reviewer R6 P1.3). Example: during `thinking → talking`, currentlyIn is still thinking but the captured frame can be post-flip (talking-like). On click `idle`, classifiedSource = 'talking', so duration is `morph.thinkingToTalking` (return path), not `morph.idleToThinking`.
 4. Capture current `RadialRenderValues` as the new morph start.
 5. Set new target. Set transition shape based on classifiedSource (talking-like uses inverse path; idle-like uses standard path).
@@ -284,8 +298,8 @@ Any state-pill click during an active morph aborts that morph and starts a new o
 
 **Concrete examples.**
 - Mid-morph `thinking → talking` interrupted by click `idle` at `t = 0.8` (post-flip; inwardRatio=0). Classified source: talking. Transition: talking→idle reverse path. Duration: `morph.thinkingToTalking`.
-- Mid-morph `idle → thinking` (damp) interrupted by click `talking` at `t = 0.4` (length still > minBarLength because tail clamp at `t = 0.9` hasn't fired yet). Classified source: idle (idle-like). **Composed**: first complete the collapse-to-min portion (freezeAtMin engages now, length pulls to min over a short window — duration = the damp's tail-clamp portion); then run thinking→talking from the now-min-pinned frame.
-- Mid-morph `idle → thinking` interrupted by click `talking` at `t = 0.95` (already in tail-clamp; length = minBarLength). Classified source: idle. Flip-precondition satisfied. Run thinking→talking directly.
+- Mid-morph `idle → thinking` (damp) interrupted by click `talking` at `t = 0.4` (`minPinnedFor === 0` — tail clamp hasn't fired). Classified source: idle. **Composed**: Leg 1 = full captured→thinking damp (smooth fade then tail-clamp; bars never visibly snap), then Leg 2 = thinking→talking. R7 P1.3 fix.
+- Mid-morph `idle → thinking` interrupted by click `talking` at `t = 0.95` (`minPinnedFor >= 6` because tail clamp engaged at `t = 0.9` and several frames have passed). Classified source: idle. Flip-precondition satisfied. Run thinking→talking directly.
 
 Edge: if the click is on the same state currently being morphed *toward*, it's a no-op (don't restart). If the click is on the state being morphed *from*, it reverses the morph (captured-start → original-start, same duration as the elapsed morph time). v1 implements only the abort + classify + flip-precondition path; reverse-by-elapsed is deferred.
 
@@ -391,6 +405,8 @@ export function useLinkedRadialAnimator(
   morphDuration: number;                   // seconds, picked from the duration table
   intendedFinalState: RadialState | null;  // set on click; cleared when morphTarget reaches it
   currentlyIn: RadialState;                // last completed resting state; mid-morph this stays as the pre-morph state until the morph completes
+  minPinnedFor: number;                    // frame counter — increments while freezeAtMin true, resets to 0 when false. Used by mid-morph flip-precondition (R7 P1.2).
+  capturedBarCount: number | null;         // captured at morph start; held constant through the morph (R7 P1.4 — barWidth/barGap edits during morph don't change count).
   ```
 
 **Duration table** (which `morph.*` knob applies to which (from, to) leg):
@@ -494,7 +510,7 @@ The current `RadialBidirectional`, `RadialInward`, and `RadialOutward` re-run th
    | Static idle/listening cell | `geometry.idleRadius + idle.maxBarLength + 20` |
    | Static thinking cell | `geometry.idleRadius + max(thinking.maxBarLength, bars.minBarLength) + 20` (oversized so live edits to maxBarLength don't undersize the canvas) |
    | Static talking cell | `deriveTalkingAnchor(profile) + talking.maxBarLength + 20` |
-   | Tune cell | `geometry.idleRadius + max(idle.maxBarLength, talking.maxBarLength) + 20` |
+   | Tune cell | `geometry.idleRadius + max(idle.maxBarLength, listening.maxBarLength, thinking.maxBarLength, talking.maxBarLength) + 20` (R7 P2.3 — include all four states; thinking can have a maxBarLength larger than the others if user has set it that way, even though min-pinned at runtime; bars.minBarLength is also bounded by the largest state max via the §3 invariant) |
 
    **Per-variant fallback for external callers** (Reviewer R5 P1.3 — verified `RadialInward` sizes `(radius + 20) * 2` while `RadialOutward`/`RadialBidirectional` size `(radius + maxBarLength + 20) * 2`). Each variant keeps its own fallback formula when `renderExtent` is undefined:
    - `RadialInward` fallback: `radius + 20` (bars extend inward, no need to reserve outside the radius)
@@ -815,7 +831,11 @@ Because the animator surfaces the *travel space* explicitly (Phase A's bars are 
 Testable conditions, run by hand on the review page.
 
 1. **Schema migration**. Loading the page with the existing `radial-states-profiles.json` (pre-refactor) succeeds without errors. Each of the 7 profiles renders without console errors after migration in memory. The dev-mode migration report logs once per profile with the format specified in §3.
-2. **Static mode visual migration is reviewable** (Reviewer P1.3). The 3-cell view renders **with the migrated shared values**, which means profiles with previously-divergent per-state values (e.g. different barWidth on talking) will look different. Acceptance: each profile's visual diff is consistent with its dev-mode migration report (the chosen values came from idle for bar-identity; from thinking for `minBarLength`; from idle for display chrome). No silent visual changes — every diff is explained by the report.
+2. **Static mode visual migration is reviewable** (Reviewer P1.3 + R7 P2.2). Distinguish two layers:
+   - **Renderer behavior**: unchanged for equivalent props. A renderer given the same numbers produces the same pixels as before.
+   - **Profile visuals**: may differ after migration because props are intentionally normalized (e.g. talking now uses idle's barWidth even if it had a different value pre-refactor).
+
+   Acceptance: each profile's visual diff is consistent with its dev-mode migration report (chosen values came from idle for bar-identity; from thinking for `minBarLength`; from idle for display chrome). Implementers should NOT chase "static screenshots match pre-refactor" — they're allowed to differ; the contract is that the diff matches the report.
 3. **Tune mode toggle**. The mode toggle is present in the bottom bar. Clicking it swaps the page from 3-cell to 1-cell. Clicking again swaps back. State persists via localStorage.
 4. **Idle → Thinking damp**. With the cell in idle, click the Thinking pill. Bars stop reacting to audio and damp to length 12 over `morph.idleToThinking` seconds. Anchor stays at idle radius. Rotation continues. No bars appear or disappear.
 5. **Thinking → Talking morph (default `reactiveStartAt = 0.75`)**. From thinking, click Talking. Bars (length = `bars.minBarLength`) translate inward as a ring during the first 75% of the morph; inner tip travels `geometry.idleRadius − minBarLength` → `talkingAnchor` (anchor in animator state lerps `idleRadius` → `talkingAnchor + minBarLength`). At 75%, the flip fires (anchor reference → `talkingAnchor`, inwardRatio → 0, freezeAtMin → false); over the last 25%, sensitivity and wave/envelope numerics ramp from 0 to talking's values. **`maxBarLength` follows its own full-morph lerp** (`thinking.maxBarLength → talking.maxBarLength`) — never drops below `bars.minBarLength`. R5 P2.2 fix. No visible snap at the flip.
@@ -836,9 +856,17 @@ Testable conditions, run by hand on the review page.
 20. **Tune-mode canvas size stable through morph**. From thinking, click talking. The cell's canvas dimensions in DOM (`canvas.width`, `canvas.height`) do NOT change during the morph. The bar segment moves inside a stable canvas.
 21. **Editing render-extent inputs in tune mode** (e.g. `idle.maxBarLength`) — the cell recomputes `renderExtent`, the renderer recomputes `effectiveRenderExtent`, triggering one controlled effect re-run; canvas bitmap resizes once. **`rotationRef` and `waveTimeRef` persist across the remount** (component-level refs declared outside the draw effect) so rotation and wave time keep accumulating without snapping. **`prevValuesRef` is reconciled inside the RAF loop** when bar-count changes, not reset by the remount itself. No audio-driven effect restart occurs.
 22. **Static ↔ Tune toggle**. Switching modes mid-morph or while audio is playing does not leave stale `prevValuesRef` artifacts — bars are rendered cleanly in the new mode within one RAF.
+22b. **Mid-morph: post-flip → idle (R7 P2.1).** During `thinking → talking` at `t > reactiveStartAt` (post-flip; inwardRatio=0). Click Idle. Animator classifies frame as talking-like, runs `talking → idle` reverse path from captured. Bars do NOT plain-damp with stuck inwardRatio=0; they execute the reverse-reactive + flip + translation correctly.
+
+22c. **Mid-morph: pre-tail-clamp → talking (R7 P2.1).** During `idle → thinking` damp at `t < 0.9` (length still > min, freezeAtMin=false). Click Talking. Animator runs Leg 1 = full captured→thinking damp (smooth fade, then tail-clamp), then Leg 2 = thinking→talking. NO snap on entry — bars smoothly settle to min before Phase A starts.
+
+22d. **Mid-morph: in-tail-clamp → talking (R7 P2.1).** During `idle → thinking` damp at `t >= 0.9` (`minPinnedFor >= 6`). Click Talking. Flip-precondition satisfied immediately; thinking→talking starts directly without a Leg 1 pre-leg.
+
+22e. **Mid-morph: barWidth edit during active morph (R7 P1.4).** During `thinking → talking`, edit `bars.barWidth` slider. Stroke width updates visually next frame; bar count stays at the captured value through morph completion. After morph, the next resting state recomputes barCount from current `bars`.
+
 23. **Static/Tune parity** (Reviewer R4 P3.2 + R5 P1.1). For the same profile + state, static review and tune mode must call the same `composeBaseWaveformProps(profile, state)` path. Mode-specific additions:
     - **Static** adds: `freezeAtMin` (true for thinking, false otherwise); `renderExtent` (per the R5 P1.2 formula table); `frequencyData` (when audio is wired). Inward/Outward consumers do NOT add `inwardRatio`.
-    - **Tune** adds: `inwardRatio`, `freezeAtMin`, animator-driven overrides for animated fields; `frequencyData`; `renderExtent`; **fixed `barCount` always derived from idle's circumference** regardless of `profile.lockBarCount` (R5 P2.1 — morph requires bar identity preservation).
+    - **Tune** adds: `inwardRatio`, `freezeAtMin`, animator-driven overrides for animated fields; `frequencyData`; `renderExtent`; **fixed `barCount`** — at rest, derived from idle's circumference; **during a morph, captured at morph start and held constant** (R7 P1.4 — barWidth/barGap edits during morph update stroke but don't recompute count). Always present regardless of `profile.lockBarCount` — morph requires bar identity preservation.
     No two slightly-different visual interpretations of the same saved profile.
 24. **maxBarLength >= minBarLength invariant** (R5 P1.4). Setting `bars.minBarLength` higher than any state's `maxBarLength` clamps the affected state's `maxBarLength` upward to match. Per-state maxBarLength sliders show their floor as `bars.minBarLength` and update reactively when shared min changes. Reactive bars never invert (never shrink as audio rises).
 
@@ -857,7 +885,11 @@ Imagine the implementation fails on the first attempt. Top three predicted failu
 
    Mitigation for (b): Phase A's anchor target is `talkingAnchor + bars.minBarLength` (NOT `talkingAnchor`). At the flip, anchor reference jumps from `talkingAnchor + minBarLength` (outer-tip) to `talkingAnchor` (inner-tip). Same pixels under different semantics.
 
-   Dev assertion at the flip: `console.assert(Math.abs(currentRenderedLength - bars.minBarLength) < 0.5 && Math.abs(currentAnchor - (talkingAnchor + bars.minBarLength)) < 0.5, 'Phase A→B flip preconditions failed')`. Logged once per flip event.
+   Dev assertion at the flip — split between the two layers (R7 P1.2):
+   - **Animator side**: `console.assert(animatorState.minPinnedFor >= 6 && Math.abs(animatorState.anchor - (talkingAnchor + bars.minBarLength)) < 0.5, 'Phase A→B animator preconditions failed')`.
+   - **Renderer side** (optional, only in dev with explicit flag): the renderer samples one bar's computed `totalLength` and asserts it's within 0.5 px of `minBarLength`. Cross-validates the smoothing has actually converged.
+
+   Logged once per flip event.
 3. **Morph progress tracking double-fires on rapid state changes.** User clicks Talking mid-morph from idle → thinking. The hook needs to handle interrupted morphs cleanly: capture current render values as the new start, retarget to the new state, restart morphT. Mitigation: the explicit internal-state set defined in §6 (`morphActive`, `morphFrom`, `morphTarget`, `morphT`, `intendedFinalState`, `currentlyIn`); on state change, the rules in §6 "State-change handling" reset `morphT = 0` atomically and update target. (D4 fix: prior text referenced a `morphPhase` field that doesn't exist in §6.)
 
 ---
@@ -944,8 +976,10 @@ Updated for Reviewer R2 patches:
 | `composeBaseWaveformProps` helper | §6.5 | §7, §14 |
 | `RadialState` type location (`radial-states/types.ts`) | §6.5 | §14 |
 | `renderExtent` prop / `effectiveRenderExtent` derivation | §6.5, §7 | §10, §14 |
-| Mid-morph flip-precondition (collapse-to-min) | §4 | §6, §11 |
+| Mid-morph flip-precondition (`minPinnedFor` proxy) | §4 | §6, §11 |
 | Shared-bars mutator + min-clamp rule | §3 | §8b |
+| `deriveTalkingAnchor` with clamps | §4 | §6.5, §7 |
+| `capturedBarCount` (held through morph) | §6 | §10 |
 | Refs-based renderer (incl. frequencyData) | §6.5 | §7, §10, §14 |
 | `lockBarCount` (profile-level) | §3 | §8a, §10 |
 | Discrete-field step semantics | §4 | §10 |
