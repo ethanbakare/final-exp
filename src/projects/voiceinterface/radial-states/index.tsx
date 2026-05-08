@@ -27,9 +27,15 @@ import { ColorPickerButton } from './ColorPicker';
 import {
   fetchRadialLinkedProfiles,
   persistRadialLinkedProfiles,
+  makeDefaultProfile,
+  deriveTalkingAnchor,
   type RadialBackdrop,
+  type RadialBars,
+  type RadialDisplay,
   type RadialLinkedProfile,
+  type RadialStateSettings,
 } from './api';
+import type { RadialState } from './types';
 
 const DEFAULT_BACKDROP: Required<RadialBackdrop> = {
   enabled: true,
@@ -69,64 +75,7 @@ function backdropFill(color: string, opacity: number): string {
   return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, opacity))})`;
 }
 
-// ── Presets (defaults) ────────────────────────────────────────────
-
-const THORN: RadialSettings = {
-  radius: 134,
-  barWidth: 6.5,
-  barGap: 9,
-  minBarLength: 3,
-  maxBarLength: 60,
-  sensitivity: 0.7,
-  barColor: '#0f0f11',
-  bgColor: '#0F0F11',
-  segments: 7,
-  roundCaps: true,
-  intensityOpacity: false,
-  updateRate: 0,
-  inwardRatio: 0,
-  rotationSpeed: 6,
-  ambientWave: true,
-  waveSpeed: 1.5,
-  waveAmplitude: 0.36,
-  waveHeight: 1.5,
-  waveMode: 'additive',
-  waveShape: 'segments',
-  waveLobes: 2,
-  smoothing: 0.95,
-  waveEnvelope: 0.4,
-  envelopeAmplitude: 1,
-  envelopeSensitivity: 0.5,
-  containerBg: '',
-  containerBgOpacity: 1,
-  containerRadius: 0,
-  containerPadding: 0,
-  showOutline: false,
-  outlineColor: '#FFFFFF',
-  outlineWidth: 2,
-  previewBg: '#f7f6f4',
-};
-
-const PLAIN_THORN: RadialSettings = {
-  ...THORN,
-  minBarLength: 12,
-  ambientWave: false,
-  waveSpeed: 1.9,
-};
-
-const TALKING_SPOKE: RadialSettings = {
-  ...THORN,
-  radius: 94,
-  maxBarLength: 40,
-  sensitivity: 1.7,
-  waveShape: 'sine',
-  waveLobes: 7,
-  waveAmplitude: 0.35,
-  waveSpeed: 2,
-  waveEnvelope: 0,
-  envelopeAmplitude: 0,
-  envelopeSensitivity: 0,
-};
+// ── State key (Phase 1: still 3 cells; listening shares idle's cell) ──
 
 type StateKey = 'idle' | 'thinking' | 'talking';
 
@@ -136,11 +85,131 @@ interface AllSettings {
   talking: RadialSettings;
 }
 
-const DEFAULT_ALL: AllSettings = {
-  idle: THORN,
-  thinking: PLAIN_THORN,
-  talking: TALKING_SPOKE,
-};
+/** Materialize a v2 profile's per-state settings into the legacy
+ *  RadialSettings shape that Cell + ControlsPanel + GhostBars consume.
+ *  Bar identity comes from `profile.bars`; display from `profile.display`;
+ *  radius is derived for talking. inwardRatio is variant-implied (1 for
+ *  inward variants, 0 for talking) — Phase 1 doesn't lerp it. */
+function materializeState(
+  profile: RadialLinkedProfile,
+  state: 'idle' | 'thinking' | 'talking',
+): RadialSettings {
+  const s = profile[state];
+  const radius =
+    state === 'talking' ? deriveTalkingAnchor(profile) : profile.geometry.idleRadius;
+  return {
+    radius,
+    barWidth: profile.bars.barWidth,
+    barGap: profile.bars.barGap,
+    minBarLength: profile.bars.minBarLength,
+    maxBarLength: s.maxBarLength,
+    sensitivity: s.sensitivity,
+    barColor: profile.bars.barColor,
+    bgColor: profile.display.bgColor,
+    segments: profile.bars.segments,
+    roundCaps: profile.bars.roundCaps,
+    intensityOpacity: s.intensityOpacity,
+    updateRate: profile.bars.updateRate,
+    inwardRatio: state === 'talking' ? 0 : 1,
+    rotationSpeed: profile.bars.rotationSpeed,
+    ambientWave: s.ambientWave,
+    waveSpeed: s.waveSpeed,
+    waveAmplitude: s.waveAmplitude,
+    waveHeight: s.waveHeight,
+    waveMode: s.waveMode,
+    waveShape: s.waveShape,
+    waveLobes: s.waveLobes,
+    smoothing: s.smoothing,
+    waveEnvelope: s.waveEnvelope,
+    envelopeAmplitude: s.envelopeAmplitude,
+    envelopeSensitivity: s.envelopeSensitivity,
+    containerBg: profile.display.containerBg,
+    containerBgOpacity: profile.display.containerBgOpacity,
+    containerRadius: profile.display.containerRadius,
+    containerPadding: profile.display.containerPadding,
+    showOutline: profile.display.showOutline,
+    outlineColor: profile.display.outlineColor,
+    outlineWidth: profile.display.outlineWidth,
+    previewBg: profile.display.previewBg,
+  };
+}
+
+// Field-dispatch sets — used by applyPatch to route a controls-panel
+// edit to the right slot in the v2 schema. Every field on RadialSettings
+// is in exactly one of these (or is the special `radius` / `inwardRatio`
+// case handled inline).
+const BAR_IDENTITY_FIELDS: ReadonlySet<keyof RadialBars> = new Set([
+  'barWidth', 'barGap', 'roundCaps', 'barColor', 'segments',
+  'rotationSpeed', 'minBarLength', 'updateRate',
+]);
+const DISPLAY_FIELDS: ReadonlySet<keyof RadialDisplay> = new Set([
+  'bgColor', 'previewBg', 'containerBg', 'containerBgOpacity',
+  'containerRadius', 'containerPadding', 'showOutline', 'outlineColor',
+  'outlineWidth',
+]);
+
+/** Apply a controls-panel patch (in legacy RadialSettings shape) to a
+ *  v2 profile, dispatching each field to the right v2 slot. Pure —
+ *  returns a new profile, structurally clones every touched block.
+ *
+ *  - bar identity (barWidth/barGap/etc) → profile.bars
+ *  - display chrome (bgColor/etc) → profile.display
+ *  - radius → profile.geometry.idleRadius (only when focused !== 'talking';
+ *    talking's radius is derived)
+ *  - inwardRatio → ignored (variant-implied in Phase 1)
+ *  - everything else → profile[focused] (per-state)
+ *
+ *  Side effects:
+ *  - When `bars.minBarLength` increases, clamps each state's
+ *    `maxBarLength` upward to maintain the invariant max >= min
+ *    (R6 P2.1 / R7 P1.4).
+ *  - When focused === 'idle' and idleListeningLinked is true, mirrors
+ *    per-state writes to `listening` (link-propagation rule §8a). */
+function applyPatch(
+  profile: RadialLinkedProfile,
+  focused: StateKey,
+  patch: Partial<RadialSettings>,
+): RadialLinkedProfile {
+  const next: RadialLinkedProfile = {
+    ...profile,
+    bars: { ...profile.bars },
+    display: { ...profile.display },
+    geometry: { ...profile.geometry },
+    idle: { ...profile.idle },
+    listening: { ...profile.listening },
+    thinking: { ...profile.thinking },
+    talking: { ...profile.talking },
+  };
+
+  for (const [k, v] of Object.entries(patch) as [keyof RadialSettings, any][]) {
+    if (BAR_IDENTITY_FIELDS.has(k as any)) {
+      (next.bars as any)[k] = v;
+      if (k === 'minBarLength' && typeof v === 'number') {
+        for (const st of ['idle', 'listening', 'thinking', 'talking'] as const) {
+          if (next[st].maxBarLength < v) next[st] = { ...next[st], maxBarLength: v };
+        }
+      }
+    } else if (DISPLAY_FIELDS.has(k as any)) {
+      (next.display as any)[k] = v;
+    } else if (k === 'radius') {
+      if (focused !== 'talking' && typeof v === 'number') {
+        next.geometry.idleRadius = v;
+      }
+      // Ignore radius edits on talking — it's derived.
+    } else if (k === 'inwardRatio') {
+      // Not represented in v2 schema (variant-implied); ignore.
+    } else {
+      // Per-state field.
+      (next[focused] as any)[k] = v;
+      // Link-propagation: idle edits mirror to listening when linked.
+      if (focused === 'idle' && next.idleListeningLinked) {
+        (next.listening as any)[k] = v;
+      }
+    }
+  }
+  next.lastModified = Date.now();
+  return next;
+}
 
 const ACTIVE_ID_STORAGE_KEY = 'radial-states-active-profile-id';
 
@@ -180,33 +249,29 @@ function pickFreshName(profiles: { name: string }[]): string {
 }
 
 function settingsOf(p: RadialLinkedProfile): AllSettings {
-  return { idle: p.idle, thinking: p.thinking, talking: p.talking };
-}
-
-interface ProfileSnapshot {
-  settings: AllSettings;
-  backdrop: Required<RadialBackdrop>;
-  lockBarCount: boolean;
-  talkingInnerGap: number;
-}
-
-/** Returns a fully-isolated snapshot of a profile's settings + backdrop
- *  + flags.
- *
- *  CRITICAL: deep-clones every nested object so the snapshot does NOT
- *  share references with the live profile. Without this, baseline and
- *  the active profile point at the same idle/thinking/talking objects;
- *  Discard or profile-switch then propagates a shared reference into
- *  another profile, and persist serializes the cross-bleed. Mirrors
- *  realtime-states which uses `structuredClone` at every boundary
- *  where a profile is copied. */
-function snapshotOf(p: RadialLinkedProfile): ProfileSnapshot {
   return {
-    settings: structuredClone(settingsOf(p)),
-    backdrop: structuredClone(resolveBackdrop(p.backdrop)),
-    lockBarCount: p.lockBarCount ?? true,
-    talkingInnerGap: p.talkingInnerGap ?? DONUT_PADDING,
+    idle: materializeState(p, 'idle'),
+    thinking: materializeState(p, 'thinking'),
+    talking: materializeState(p, 'talking'),
   };
+}
+
+/** Snapshot of the entire profile shape. Used as baseline for dirty
+ *  detection + Discard. Replaces the v1 ProfileSnapshot which only
+ *  tracked settings/backdrop/lockBarCount/talkingInnerGap — the v2
+ *  schema added bars/display/geometry/listening/idleListeningLinked/
+ *  morph, all of which need to round-trip through Discard correctly.
+ *
+ *  CRITICAL: structuredClone deep-clones every nested object so baseline
+ *  does NOT share references with the live profile. Without this,
+ *  baseline and the active profile point at the same nested blocks;
+ *  Discard / profile-switch then propagate a shared reference into
+ *  another profile, and persist serializes the cross-bleed.
+ *  (Same discipline that fixed commit 63a2394 in v1.) */
+type ProfileSnapshot = RadialLinkedProfile;
+
+function snapshotOf(p: RadialLinkedProfile): ProfileSnapshot {
+  return structuredClone(p);
 }
 
 // ── Ghost bars (Max Bar Length preview) ──────────────────────────
@@ -1241,16 +1306,7 @@ export default function RadialStatesReview() {
       if (cancelled) return;
       let initialList: RadialLinkedProfile[];
       if (arr.length === 0) {
-        initialList = [
-          {
-            id: 'rs-default',
-            name: 'Default',
-            idle: DEFAULT_ALL.idle,
-            thinking: DEFAULT_ALL.thinking,
-            talking: DEFAULT_ALL.talking,
-            lastModified: Date.now(),
-          },
-        ];
+        initialList = [makeDefaultProfile('rs-default', 'Default')];
         // Persist the seed so the file exists for next load.
         persistRadialLinkedProfiles(initialList);
       } else {
@@ -1283,7 +1339,13 @@ export default function RadialStatesReview() {
     () => profiles.find((p) => p.id === activeProfileId) ?? null,
     [profiles, activeProfileId],
   );
-  const all: AllSettings = activeProfile ? settingsOf(activeProfile) : DEFAULT_ALL;
+  const all: AllSettings = useMemo(() => {
+    if (activeProfile) return settingsOf(activeProfile);
+    // No active profile yet — synthesize from a default profile so the
+    // page can render before fetch completes.
+    const seed = makeDefaultProfile('seed', 'seed');
+    return settingsOf(seed);
+  }, [activeProfile]);
 
   // Dirty detection: shallow JSON-compare current snapshot (settings +
   // backdrop) vs baseline.
@@ -1326,20 +1388,21 @@ export default function RadialStatesReview() {
   const updateFocused = (patch: Partial<RadialSettings>) => {
     if (!activeProfileId) return;
     setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === activeProfileId
-          ? { ...p, [focused]: { ...p[focused], ...patch }, lastModified: Date.now() }
-          : p,
-      ),
+      prev.map((p) => (p.id === activeProfileId ? applyPatch(p, focused, patch) : p)),
     );
   };
 
+  /** Reset only the per-state slot of `focused`. Reverts that state's
+   *  per-state fields (sensitivity, wave/envelope, maxBarLength,
+   *  intensityOpacity) to baseline. Bar identity, display chrome,
+   *  geometry, etc are NOT touched here — those belong to other
+   *  reset paths. */
   const resetFocused = () => {
     if (!activeProfileId || !baseline) return;
     setProfiles((prev) =>
       prev.map((p) =>
         p.id === activeProfileId
-          ? { ...p, [focused]: structuredClone(baseline.settings[focused]) }
+          ? { ...p, [focused]: structuredClone(baseline[focused]) }
           : p,
       ),
     );
@@ -1355,22 +1418,12 @@ export default function RadialStatesReview() {
     await persistRadialLinkedProfiles(next);
   };
 
+  /** Discard: revert the active profile to its baseline shape entirely.
+   *  Deep-clones every block so baseline isn't aliased afterward. */
   const handleReset = () => {
     if (!activeProfileId || !baseline) return;
     setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === activeProfileId
-          ? {
-              ...p,
-              idle: structuredClone(baseline.settings.idle),
-              thinking: structuredClone(baseline.settings.thinking),
-              talking: structuredClone(baseline.settings.talking),
-              backdrop: structuredClone(baseline.backdrop),
-              lockBarCount: baseline.lockBarCount,
-              talkingInnerGap: baseline.talkingInnerGap,
-            }
-          : p,
-      ),
+      prev.map((p) => (p.id === activeProfileId ? structuredClone(baseline) : p)),
     );
   };
 
@@ -1378,25 +1431,11 @@ export default function RadialStatesReview() {
     const p = profiles.find((x) => x.id === id);
     if (!p) return;
     // Discard any uncommitted edits on the previous profile by reverting
-    // it to its baseline before switching. Clone every nested object so
-    // the previous profile doesn't end up sharing references with the
-    // baseline — future edits would otherwise mutate baseline through
-    // the shared reference.
+    // it to its baseline before switching. structuredClone ensures the
+    // reverted profile doesn't share references with baseline.
     if (activeProfileId && baseline) {
       setProfiles((prev) =>
-        prev.map((q) =>
-          q.id === activeProfileId
-            ? {
-                ...q,
-                idle: structuredClone(baseline.settings.idle),
-                thinking: structuredClone(baseline.settings.thinking),
-                talking: structuredClone(baseline.settings.talking),
-                backdrop: structuredClone(baseline.backdrop),
-                lockBarCount: baseline.lockBarCount,
-                talkingInnerGap: baseline.talkingInnerGap,
-              }
-            : q,
-        ),
+        prev.map((q) => (q.id === activeProfileId ? structuredClone(baseline) : q)),
       );
     }
     setActiveProfileId(id);
@@ -1407,21 +1446,14 @@ export default function RadialStatesReview() {
   const handleSaveAs = async () => {
     const name = saveName.trim();
     if (!name || !activeProfile) return;
-    // structuredClone every settings sub-object so the new profile is
-    // fully decoupled from the source. Without this, the source and
-    // the new profile share idle/thinking/talking/backdrop references,
-    // and any later cross-update path (Discard, profile switch) leaks
-    // changes between them. Mirrors realtime-states handleSave's
-    // structuredClone(profile) pattern.
+    // structuredClone the whole profile so the new entry is fully
+    // decoupled from the source. (The cross-bleed bug fixed in 63a2394
+    // was caused by sharing nested references; structuredClone on the
+    // whole shape is the v2-equivalent guard.)
     const newProfile: RadialLinkedProfile = {
+      ...structuredClone(activeProfile),
       id: makeNewId(),
       name,
-      idle: structuredClone(activeProfile.idle),
-      thinking: structuredClone(activeProfile.thinking),
-      talking: structuredClone(activeProfile.talking),
-      backdrop: activeProfile.backdrop ? structuredClone(activeProfile.backdrop) : undefined,
-      lockBarCount: activeProfile.lockBarCount,
-      talkingInnerGap: activeProfile.talkingInnerGap,
       lastModified: Date.now(),
     };
     const next = [...profiles, newProfile];
@@ -1470,26 +1502,20 @@ export default function RadialStatesReview() {
     : undefined;
   const backdrop = resolveBackdrop(activeProfile?.backdrop);
 
-  // Talking's radius is DERIVED from the donut's inner edge + a
-  // configurable per-profile gap (talkingInnerGap, default 14px).
-  // donutInner = idle.radius - idle.maxBarLength - DONUT_PADDING
-  // talkingRadius = donutInner + talkingInnerGap
-  // At the default gap of 14 the 14s cancel and we get the same result
-  // as before (idle.radius - idle.maxBarLength). Increasing the gap
-  // pushes talking bars toward the center; decreasing brings them
-  // closer to or past the donut ring.
-  const talkingInnerGap = activeProfile?.talkingInnerGap ?? DONUT_PADDING;
-  const talkingDerivedRadius = Math.max(1, donutInner + talkingInnerGap);
+  // Talking's radius is DERIVED via deriveTalkingAnchor() in api.ts —
+  // preserves the clamp behavior (R7 P1.1: Math.max(0, ...) inner +
+  // Math.max(1, ...) outer).
+  const talkingInnerGap = activeProfile?.geometry.talkingInnerGap ?? DONUT_PADDING;
+  const talkingDerivedRadius = activeProfile
+    ? deriveTalkingAnchor(activeProfile)
+    : Math.max(1, donutInner + talkingInnerGap);
   const effectiveTalkingSettings: RadialSettings = {
     ...all.talking,
     radius: talkingDerivedRadius,
   };
-  // When bar count is locked, talking's bar gap is also derived rather
-  // than free. The bars are spread evenly over talking's (smaller)
-  // circumference, so the effective gap is:
-  //   talkingCircumference / lockedBarCount - barWidth
-  // We surface this computed value as read-only so the user sees the
-  // real spacing rather than the stored (now-irrelevant) barGap.
+  // Locked-bar-count: talking's gap is computed from talking's smaller
+  // circumference / locked count, surfaced read-only so the user sees
+  // the real spacing.
   const talkingDerivedGap =
     lockBarCount && barCountOverride != null
       ? Math.max(0, (2 * Math.PI * talkingDerivedRadius) / barCountOverride - effectiveTalkingSettings.barWidth)
@@ -1508,7 +1534,9 @@ export default function RadialStatesReview() {
     if (!activeProfileId) return;
     setProfiles((prev) =>
       prev.map((p) =>
-        p.id === activeProfileId ? { ...p, talkingInnerGap: next, lastModified: Date.now() } : p,
+        p.id === activeProfileId
+          ? { ...p, geometry: { ...p.geometry, talkingInnerGap: next }, lastModified: Date.now() }
+          : p,
       ),
     );
   };
@@ -1612,7 +1640,7 @@ export default function RadialStatesReview() {
         {!controlsCollapsed && (
           <ControlsPanel
             settings={focused === 'talking' ? effectiveTalkingSettings : all[focused]}
-            baselineSettings={baseline?.settings[focused] ?? null}
+            baselineSettings={baseline ? materializeState(baseline, focused) : null}
             onChange={updateFocused}
             onMaxBarHover={setMaxBarHovered}
             focused={focused}
@@ -1622,7 +1650,7 @@ export default function RadialStatesReview() {
             talkingInnerGap={talkingInnerGap}
             onTalkingInnerGapChange={updateTalkingInnerGap}
             backdrop={backdrop}
-            baselineBackdrop={baseline?.backdrop ?? null}
+            baselineBackdrop={baseline ? resolveBackdrop(baseline.backdrop) : null}
             onBackdropChange={updateBackdrop}
           />
         )}
