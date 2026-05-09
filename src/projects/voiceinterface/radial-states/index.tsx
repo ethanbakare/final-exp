@@ -1664,10 +1664,13 @@ export default function RadialStatesReview() {
       setRenameDraft(null);
       return;
     }
-    const next = profiles.map((p) =>
-      p.id === activeProfile.id ? { ...p, name, lastModified: Date.now() } : p,
-    );
+    // Build the renamed profile FIRST and use it for both profiles[]
+    // and baseline so the dirty-compare doesn't flag a stale name
+    // (same closure-stale issue handleUpdate had, fixed in bc2f70d).
+    const renamed = { ...activeProfile, name, lastModified: Date.now() };
+    const next = profiles.map((p) => (p.id === activeProfile.id ? renamed : p));
     setProfiles(next);
+    setBaseline(snapshotOf(renamed));
     setRenameDraft(null);
     await persistRadialLinkedProfiles(next);
   };
