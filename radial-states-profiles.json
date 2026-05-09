@@ -473,7 +473,7 @@
       "roundCaps": true,
       "barColor": "#0f0f11",
       "segments": 7,
-      "rotationSpeed": 6,
+      "rotationSpeed": 3.5,
       "updateRate": 0
     },
     "display": {
@@ -577,7 +577,7 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.5
     },
-    "lastModified": 1778300460334
+    "lastModified": 1778369684992
   },
   {
     "schemaVersion": 2,
