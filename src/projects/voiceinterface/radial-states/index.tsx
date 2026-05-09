@@ -1595,11 +1595,15 @@ export default function RadialStatesReview() {
 
   const handleUpdate = async () => {
     if (!activeProfile) return;
-    const next = profiles.map((p) =>
-      p.id === activeProfile.id ? { ...p, lastModified: Date.now() } : p,
-    );
+    // Build the updated profile FIRST so baseline can snapshot the
+    // exact same object that lands in profiles[]. Snapshotting
+    // `activeProfile` here would capture the old lastModified, leaving
+    // baseline.lastModified stale and the dirty-compare permanently
+    // true — which is what kept the Update button visible after save.
+    const updated = { ...activeProfile, lastModified: Date.now() };
+    const next = profiles.map((p) => (p.id === activeProfile.id ? updated : p));
     setProfiles(next);
-    setBaseline(snapshotOf(activeProfile));
+    setBaseline(snapshotOf(updated));
     await persistRadialLinkedProfiles(next);
   };
 
