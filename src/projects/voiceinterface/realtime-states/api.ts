@@ -7,6 +7,7 @@
  * wrappers below need them. Not exported.
  */
 import type { SavedCoralProfile, SavedProfile, SavedRadialProfile } from './types';
+import type { RadialLinkedProfile } from '@/projects/voiceinterface/radial-states/api';
 
 const API = '/api/studio-profiles?variant=realtime-state';
 const CORAL_API = '/api/studio-profiles?variant=realtime-coral';
@@ -73,24 +74,54 @@ export async function persistCoralProfiles(arr: SavedCoralProfile[]) {
 }
 
 /** Radial profiles share the existing `radial-states` variant served
- *  out of radial-states-profiles.json. Same wire format as the radial-
- *  states page; the realtime editor reads / writes that file directly. */
+ *  out of radial-states-profiles.json. The on-disk shape is FLAT
+ *  (the RadialLinkedProfile fields sit at the top level — no `settings`
+ *  wrapper), unlike Tube/Coral which nest behind `settings`. These
+ *  helpers wrap on fetch and unwrap on persist so the editor consumes
+ *  a uniform `SavedRadialProfile` shape while the JSON file stays
+ *  readable by the radial-states page.
+ *
+ *  `pinned` and `skipIntroOnSelect` are persisted as extra optional
+ *  top-level fields on the JSON entry. The radial-states page ignores
+ *  unknown fields, so writes from here don't disturb that page's
+ *  reads. */
+type FlatRadialEntry = RadialLinkedProfile & {
+  pinned?: boolean;
+  skipIntroOnSelect?: boolean;
+};
+
 export async function fetchRadialProfiles(): Promise<SavedRadialProfile[]> {
   try {
     const r = await fetch(RADIAL_API, { cache: 'no-store' });
     const j = await r.json();
-    return Array.isArray(j) ? j : [];
+    if (!Array.isArray(j)) return [];
+    return (j as FlatRadialEntry[]).map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      pinned: entry.pinned === true,
+      skipIntroOnSelect: entry.skipIntroOnSelect,
+      settings: entry,
+      lastModified: entry.lastModified ?? Date.now(),
+    }));
   } catch {
     return [];
   }
 }
 
 export async function persistRadialProfiles(arr: SavedRadialProfile[]) {
+  // Flatten back to the radial-states page's on-disk shape (the
+  // RadialLinkedProfile already includes id/name/lastModified at top
+  // level; we layer pinned/skipIntroOnSelect on top of that).
+  const flat: FlatRadialEntry[] = arr.map((p) => ({
+    ...p.settings,
+    pinned: p.pinned === true ? true : undefined,
+    skipIntroOnSelect: p.skipIntroOnSelect,
+  }));
   try {
     await fetch(RADIAL_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(arr),
+      body: JSON.stringify(flat),
     });
   } catch (e) {
     console.error('[realtime-states] persist radial failed', e);

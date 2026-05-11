@@ -45,9 +45,12 @@ import {
   fetchCoralProfiles,
   fetchProfileNames,
   fetchProfiles,
+  fetchRadialProfiles,
   persistCoralProfiles,
   persistProfiles,
+  persistRadialProfiles,
 } from './api';
+import { RadialRealtimeBlob } from '@/projects/voiceinterface/components/RadialRealtimeBlob';
 import {
   ColorPickerButton,
   CoralTabPanel,
@@ -70,6 +73,7 @@ import type {
   RenderValues,
   SavedCoralProfile,
   SavedProfile,
+  SavedRadialProfile,
 } from './types';
 
 // ── Page ─────────────────────────────────────────────────────────
@@ -124,6 +128,8 @@ interface EditorProps {
   setTubeProfiles: React.Dispatch<React.SetStateAction<SavedProfile[]>>;
   coralProfiles: SavedCoralProfile[];
   setCoralProfiles: React.Dispatch<React.SetStateAction<SavedCoralProfile[]>>;
+  radialProfiles: SavedRadialProfile[];
+  setRadialProfiles: React.Dispatch<React.SetStateAction<SavedRadialProfile[]>>;
   externalProfileNames: Set<string>;
   colorFormat: ColorFormat;
   setColorFormat: React.Dispatch<React.SetStateAction<ColorFormat>>;
@@ -138,6 +144,8 @@ function RealtimeStatesEditor({
   setTubeProfiles,
   coralProfiles,
   setCoralProfiles,
+  radialProfiles,
+  setRadialProfiles,
   externalProfileNames,
   colorFormat,
   setColorFormat,
@@ -256,8 +264,18 @@ function RealtimeStatesEditor({
       settings: p.settings,
       lastModified: p.lastModified,
     }));
-    return [...tubeOrbs, ...coralOrbs];
-  }, [tubeProfiles, coralProfiles]);
+    const radialOrbs: LoadedOrb[] = radialProfiles.map((p) => ({
+      shader: 'radial' as const,
+      sourceVariant: 'radial-states' as const,
+      id: p.id,
+      name: p.name,
+      pinned: p.pinned === true,
+      skipIntroOnSelect: p.skipIntroOnSelect,
+      settings: p.settings,
+      lastModified: p.lastModified,
+    }));
+    return [...tubeOrbs, ...coralOrbs, ...radialOrbs];
+  }, [tubeProfiles, coralProfiles, radialProfiles]);
 
   // `profile` derives from activeOrb; for Coral activeOrb the Tube
   // tab renderer's `profile.X` bindings fall back to TUBE_SEED (Tube
@@ -1122,10 +1140,28 @@ function RealtimeStatesEditor({
 
       {/* Canvas size matches production /voiceinterface/realtime (RealtimeBlob.tsx:53).
           Dispatches by activeOrb.shader: GentleOrbThicken for Tube
-          (driven by the existing JS animator's `render` state), or
+          (driven by the existing JS animator's `render` state),
           CoralStoneMorph for Coral D (driven by its native morph
-          animator with state-aware effective values). */}
+          animator with state-aware effective values), or
+          RadialRealtimeBlob for the radial shader (driven by the V2
+          per-property eased animator). Radial renders its own 2D
+          canvas, so it lives OUTSIDE the R3F <Canvas>. */}
       <div style={{ width: 328, height: 328 }}>
+        {activeOrb?.shader === 'radial' ? (
+          <RadialRealtimeBlob
+            audioData={blobAudioData}
+            voiceState={
+              state === 'thinking'
+                ? 'ai_thinking'
+                : state === 'talking'
+                  ? 'ai_speaking'
+                  : state
+            }
+            profile={activeOrb.settings}
+            width={328}
+            height={328}
+          />
+        ) : (
         <Canvas
           camera={{ position: [0, 0, 3.5], fov: 45 }}
           dpr={[1, 1.5]}
@@ -1200,6 +1236,7 @@ function RealtimeStatesEditor({
             />
           )}
         </Canvas>
+        )}
       </div>
 
       {/* Bottom bar (mirrors GalleryNavBar) */}
@@ -1856,11 +1893,13 @@ function RealtimeStatesEditor({
 export default function RealtimeStates() {
   const [tubeProfiles, setTubeProfiles] = useState<SavedProfile[]>([]);
   const [coralProfiles, setCoralProfiles] = useState<SavedCoralProfile[]>([]);
-  // Per-source loaded flags. Cascade waits for BOTH so a persisted
-  // key in either file resolves regardless of which fetch wins the
-  // race. (Round-7 round-3 fix.)
+  const [radialProfiles, setRadialProfiles] = useState<SavedRadialProfile[]>([]);
+  // Per-source loaded flags. Cascade waits for ALL THREE so a persisted
+  // key in any file resolves regardless of which fetch wins the race.
+  // (Round-7 round-3 fix, extended with radial in the migration plan.)
   const [tubeLoaded, setTubeLoaded] = useState(false);
   const [coralLoaded, setCoralLoaded] = useState(false);
+  const [radialLoaded, setRadialLoaded] = useState(false);
   // activeOrbKey starts null. Cascade fills it. The child mounts
   // only after activeOrb resolves to non-null AND cascadeReady is
   // true.
@@ -1902,6 +1941,10 @@ export default function RealtimeStates() {
     fetchCoralProfiles().then((arr) => {
       setCoralProfiles(arr);
       setCoralLoaded(true);
+    });
+    fetchRadialProfiles().then((arr) => {
+      setRadialProfiles(arr);
+      setRadialLoaded(true);
     });
   }, []);
 
@@ -1945,8 +1988,18 @@ export default function RealtimeStates() {
       settings: p.settings,
       lastModified: p.lastModified,
     }));
-    return [...tubeOrbs, ...coralOrbs];
-  }, [tubeProfiles, coralProfiles]);
+    const radialOrbs: LoadedOrb[] = radialProfiles.map((p) => ({
+      shader: 'radial' as const,
+      sourceVariant: 'radial-states' as const,
+      id: p.id,
+      name: p.name,
+      pinned: p.pinned === true,
+      skipIntroOnSelect: p.skipIntroOnSelect,
+      settings: p.settings,
+      lastModified: p.lastModified,
+    }));
+    return [...tubeOrbs, ...coralOrbs, ...radialOrbs];
+  }, [tubeProfiles, coralProfiles, radialProfiles]);
 
   const activeOrb = useMemo<LoadedOrb | null>(() => {
     if (!activeOrbKey) return null;
@@ -1960,7 +2013,7 @@ export default function RealtimeStates() {
   const cascadeAppliedRef = useRef(false);
   useEffect(() => {
     if (cascadeAppliedRef.current) return;
-    if (!tubeLoaded || !coralLoaded) return; // wait for BOTH sources
+    if (!tubeLoaded || !coralLoaded || !radialLoaded) return; // wait for ALL sources
 
     // Editor's active-orb key is INTENTIONALLY DISTINCT from the live
     // page's `realtime-active-orb-key`. Editor and live page have
@@ -1990,7 +2043,7 @@ export default function RealtimeStates() {
     // Flip cascadeReady LAST, after activeOrbKey + baseline have
     // been scheduled. Triggers child mount on next render.
     setCascadeReady(true);
-  }, [tubeLoaded, coralLoaded, orbs]);
+  }, [tubeLoaded, coralLoaded, radialLoaded, orbs]);
 
   // Persist activeOrbKey on change. Gated on cascadeReady so the
   // initial null doesn't blow away the user's saved selection.
@@ -2020,6 +2073,8 @@ export default function RealtimeStates() {
       setTubeProfiles={setTubeProfiles}
       coralProfiles={coralProfiles}
       setCoralProfiles={setCoralProfiles}
+      radialProfiles={radialProfiles}
+      setRadialProfiles={setRadialProfiles}
       externalProfileNames={externalProfileNames}
       colorFormat={colorFormat}
       setColorFormat={setColorFormat}
