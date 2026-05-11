@@ -340,6 +340,15 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   // Ref for delayed response.create timer
   const thinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Diagnostic — baseline performance.now() for the current
+  // conversation session. Reset on every handleStartConversation call.
+  // Every [TIMING +N ms] log subtracts this baseline so we can see
+  // exactly how much wall-clock time each phase of the first round
+  // trip takes (click → mic → token → connect → first VAD → response
+  // → first audio). Remove once first-time-to-token diagnosis is done.
+  const sessionT0Ref = useRef<number>(0);
+  const dtNow = () => (performance.now() - sessionT0Ref.current).toFixed(0);
+
   /**
    * Setup Event Listeners for Session (Automatic Turn-Taking)
    *
@@ -357,7 +366,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     session.on('transport_event', (event: any) => {
       switch (event.type) {
         case 'input_audio_buffer.speech_started':
-          console.log('[OpenAI Realtime] User started speaking');
+          console.log(`[TIMING +${dtNow()}ms] VAD: speech_started`);
           // Cancel pending response.create if user interrupts during thinking
           if (thinkingTimerRef.current) {
             clearTimeout(thinkingTimerRef.current);
@@ -368,7 +377,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           break;
 
         case 'input_audio_buffer.speech_stopped':
-          console.log('[OpenAI Realtime] User stopped speaking (VAD)');
+          console.log(`[TIMING +${dtNow()}ms] VAD: speech_stopped → sending response.create`);
           setAppState('ai_thinking');
 
           // Clear any existing timer (safety)
@@ -396,7 +405,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           // a defensive fallback in case <audio> 'playing' is delayed
           // for any reason. The promotion is idempotent: if we're
           // already in ai_speaking the setState is a no-op.
-          console.log('[OpenAI Realtime] output_audio_buffer.started (data-channel signal; <audio> playing usually wins)');
+          console.log(`[TIMING +${dtNow()}ms] output_audio_buffer.started (data-channel signal)`);
           if (appStateRef.current === 'ai_thinking') {
             setAppState('ai_speaking');
           }
@@ -498,7 +507,13 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
    * Sets up: mic capture → dual analysers → custom WebRTC transport → session → connect
    */
   const handleStartConversation = async () => {
-    console.log('[OpenAI Realtime] Starting conversation...');
+    // Diagnostic — reset session timing baseline so every [TIMING +N ms]
+    // log below subtracts the click moment. Phases visible: click,
+    // mic permission, token fetch, WebRTC handshake, first VAD event,
+    // response.create sent, output_audio_buffer.started,
+    // <audio> playing event.
+    sessionT0Ref.current = performance.now();
+    console.log(`[TIMING +${dtNow()}ms] Click Record → starting conversation`);
     try {
       setIsConversationActive(true);
       setAppState('listening');
@@ -514,7 +529,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
       });
       micStreamRef.current = micStream;
-      console.log('[Audio] Microphone captured');
+      console.log(`[TIMING +${dtNow()}ms] Microphone captured`);
 
       // 3. Create mic analyser
       const micSource = ctx.createMediaStreamSource(micStream);
@@ -550,6 +565,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       // 'ai_speaking' → 'listening' transition because that direction
       // hasn't shown the same first-cycle lag.
       audioEl.addEventListener('playing', () => {
+        console.log(`[TIMING +${dtNow()}ms] <audio> element 'playing' event fired`);
         // Promote to ai_speaking the moment audio is audible. Guarded by
         // appStateRef.current so this listener never accidentally drives
         // a transition out of idle/listening for non-AI playback (defence
@@ -625,16 +641,16 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       setupSessionEventListeners(session);
 
       // 10. Get ephemeral token and connect
-      console.log('[OpenAI Realtime] Fetching ephemeral token...');
+      console.log(`[TIMING +${dtNow()}ms] Fetching ephemeral token...`);
       const response = await fetch('/api/voice-interface/openai-realtime-token');
       if (!response.ok) throw new Error(`Failed to get token: ${response.statusText}`);
       const tokenData = await response.json();
       const ephemeralKey = tokenData.key;
       if (!ephemeralKey) throw new Error('No ephemeral token received');
-      console.log('[OpenAI Realtime] Got ephemeral token:', ephemeralKey.substring(0, 20) + '...');
+      console.log(`[TIMING +${dtNow()}ms] Got ephemeral token`);
 
       await session.connect({ apiKey: ephemeralKey });
-      console.log('[OpenAI Realtime] Connected (VAD: createResponse=false), listening...');
+      console.log(`[TIMING +${dtNow()}ms] session.connect() resolved — WebRTC ready, OpenAI VAD active`);
 
     } catch (err) {
       console.error('[OpenAI Realtime] Error starting conversation:', err);
