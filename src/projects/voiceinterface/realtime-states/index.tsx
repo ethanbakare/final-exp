@@ -2039,22 +2039,27 @@ function RealtimeStatesEditor({
                 Replay button is unaffected — explicit user action still
                 plays the intro. Per-profile, both shaders. Mirrors the
                 Pin button pattern: bottom-bar UI acts on the active
-                profile, persists immediately. */}
-            <button
-              onClick={toggleActiveSkipIntro}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ml-2 ${
-                activeSkipIntro
-                  ? 'bg-amber-50 text-amber-500 hover:text-amber-600'
-                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
-              }`}
-              title={
-                activeSkipIntro
-                  ? 'Skip-intro on — talking-to-idle intro is suppressed when this profile mounts (click to enable intro)'
-                  : 'Skip the talking-to-idle intro for this profile'
-              }
-            >
-              <RefreshCwOff size={14} />
-            </button>
+                profile, persists immediately. Radial has no intro
+                animation (the V2 animator just lands at the requested
+                state's resting values) so the toggle is irrelevant —
+                hide it to prevent confusion / silent no-op writes. */}
+            {activeOrb?.shader !== 'radial' && (
+              <button
+                onClick={toggleActiveSkipIntro}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ml-2 ${
+                  activeSkipIntro
+                    ? 'bg-amber-50 text-amber-500 hover:text-amber-600'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+                }`}
+                title={
+                  activeSkipIntro
+                    ? 'Skip-intro on — talking-to-idle intro is suppressed when this profile mounts (click to enable intro)'
+                    : 'Skip the talking-to-idle intro for this profile'
+                }
+              >
+                <RefreshCwOff size={14} />
+              </button>
+            )}
 
             {/* Replay first-load talking → idle intro for the active
                 profile. Branches by shader: Tube uses the existing JS
@@ -2066,30 +2071,33 @@ function RealtimeStatesEditor({
                 skipIntroOnSelect on, the intro animation is
                 conceptually disabled — Replay is greyed out + disabled
                 so it can't fire the morph that the user just opted
-                out of. To re-enable Replay, toggle skip-intro off. */}
-            <button
-              onClick={() => {
-                if (activeOrb?.shader === 'coral') {
-                  setState('idle');
-                  setReplayCounter((c) => c + 1);
-                } else {
-                  restartIntro();
+                out of. To re-enable Replay, toggle skip-intro off.
+                Hidden for radial — no replay-able intro exists. */}
+            {activeOrb?.shader !== 'radial' && (
+              <button
+                onClick={() => {
+                  if (activeOrb?.shader === 'coral') {
+                    setState('idle');
+                    setReplayCounter((c) => c + 1);
+                  } else {
+                    restartIntro();
+                  }
+                }}
+                disabled={activeSkipIntro}
+                className={`p-1.5 rounded-lg transition-colors ml-2 ${
+                  activeSkipIntro
+                    ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 cursor-pointer'
+                }`}
+                title={
+                  activeSkipIntro
+                    ? 'Replay disabled — skip-intro is on for this profile (toggle off to re-enable)'
+                    : 'Replay talking-to-idle intro'
                 }
-              }}
-              disabled={activeSkipIntro}
-              className={`p-1.5 rounded-lg transition-colors ml-2 ${
-                activeSkipIntro
-                  ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
-                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 cursor-pointer'
-              }`}
-              title={
-                activeSkipIntro
-                  ? 'Replay disabled — skip-intro is on for this profile (toggle off to re-enable)'
-                  : 'Replay talking-to-idle intro'
-              }
-            >
-              <RotateCcw size={14} />
-            </button>
+              >
+                <RotateCcw size={14} />
+              </button>
+            )}
 
             {/* Auto-loop through states (idle → listening → thinking → talking, every 2.5s) */}
             <button
@@ -2150,10 +2158,16 @@ function RealtimeStatesEditor({
                           : pr,
                       );
                       setRadialProfiles(next);
-                      // Persist the revert so the on-disk JSON tracks
-                      // the editor view; mirrors the per-edit persist
-                      // model in handleRadialProfileChange.
-                      void persistRadialProfiles(next);
+                      // No persist: Discard reverts in-memory to the
+                      // baseline, which IS the last-saved on-disk
+                      // state, so the disk file is already correct.
+                      // Mirrors the Tube/Coral Discard branches
+                      // (which also don't persist). The pre-commit
+                      // version of this branch wrote anyway "to mirror
+                      // the per-edit persist model in
+                      // handleRadialProfileChange" — but per-edit
+                      // persist was removed in 9e78ff1, so that
+                      // rationale is stale and the write is wasteful.
                     }
                   }}
                   className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-1"
