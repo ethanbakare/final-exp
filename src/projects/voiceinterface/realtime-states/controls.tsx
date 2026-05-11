@@ -951,11 +951,17 @@ export const CoralTabPanel: React.FC<CoralTabPanelProps> = ({
   const isThinking = state === 'thinking';
   const restSuffix = isTalking ? ' (Rest)' : '';
 
+  // Mirror the Tube panel — show approximate pixel diameter beside
+  // the Scale label so the user can tell at a glance how big the orb
+  // will render in the realtime page's 328-px slot. Same formula
+  // (approxPixelDia from blob-orb/galleryTypes), same cell size (328).
+  const restPx = approxPixelDia(baseS.scale, 328);
+
   switch (tab) {
     case 'size': {
       const restRow = (
         <SliderRow
-          label={`Scale${restSuffix}`}
+          label={`Scale${restSuffix} (~${restPx}px)`}
           value={baseS.scale}
           min={0.05}
           max={1.5}
@@ -991,7 +997,7 @@ export const CoralTabPanel: React.FC<CoralTabPanelProps> = ({
         <div className="space-y-3">
           {restRow}
           <PeakSliderRow
-            label="Scale (Peak)"
+            label={`Scale (Peak) (~${approxPixelDia(sEff, 328)}px)`}
             value={sEff}
             min={0.05}
             max={1.5}
