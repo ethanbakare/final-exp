@@ -2083,62 +2083,13 @@ function RealtimeStatesEditor({
               </>
             )}
 
-            {/* Save — Phase 3F two-step shader-choice modal. */}
+            {/* Save — single-step name input. The new profile is always
+                created under the SAME shader as the active orb; shader
+                schemas are incompatible across families, so cross-shader
+                save would have to start from scratch anyway. The current
+                shader is shown in the right-side indicator. */}
             {showSaveDialog ? (
-              saveStep === 'shader' ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-gray-500 uppercase tracking-wider">Shader:</span>
-                  <button
-                    onClick={() => {
-                      setSaveShader('tube');
-                      setSaveName(pickRealtimeUnusedName());
-                      setSaveStep('name');
-                    }}
-                    className="px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  >
-                    <Disc size={11} className="text-[#949e05]" />
-                    Tube
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSaveShader('coral');
-                      setSaveName(pickRealtimeUnusedName());
-                      setSaveStep('name');
-                    }}
-                    className="px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  >
-                    <Circle size={11} className="text-[#ffa279]" />
-                    Coral
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSaveShader('radial');
-                      setSaveName(pickRealtimeUnusedName());
-                      setSaveStep('name');
-                    }}
-                    className="px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                  >
-                    <span
-                      className="shrink-0 inline-block w-[11px] h-[11px] rounded-sm border border-gray-200"
-                      style={{
-                        background:
-                          activeOrb?.shader === 'radial'
-                            ? activeOrb.settings.display.previewBg
-                            : '#f7f6f4',
-                      }}
-                      aria-label="Radial profile"
-                    />
-                    Radial
-                  </button>
-                  <button
-                    onClick={closeSaveDialog}
-                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5">
                   {saveShader === 'coral' ? (
                     <Circle size={11} className="text-[#ffa279]" />
                   ) : saveShader === 'radial' ? (
@@ -2187,18 +2138,17 @@ function RealtimeStatesEditor({
                     <X size={14} />
                   </button>
                 </div>
-              )
             ) : (
               <button
                 onClick={() => {
-                  // Pre-select the active orb's shader so the dialog's
-                  // visual icon matches what the user is editing. The
-                  // user can still pick a different target shader from
-                  // the picker step — same-shader saves clone the
-                  // active settings, cross-shader saves start from
-                  // that shader's default.
+                  // Save creates a new profile under the SAME shader
+                  // family as the active orb (schemas don't translate
+                  // across families). Skip the shader picker — the
+                  // active shader is shown in the right-side indicator
+                  // and Save just opens the name input directly.
                   setSaveShader(activeOrb?.shader ?? 'tube');
-                  setSaveStep('shader');
+                  setSaveName(pickRealtimeUnusedName());
+                  setSaveStep('name');
                   setShowSaveDialog(true);
                 }}
                 className="p-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
@@ -2206,6 +2156,40 @@ function RealtimeStatesEditor({
               >
                 <Save size={14} />
               </button>
+            )}
+
+            {/* Active-shader indicator — extreme right. Shows which
+                shader family the current profile belongs to (Tube /
+                Coral / Radial). Informational only; not interactive.
+                Mirrors the visual style of the dropdown trigger icon
+                so the indicator and the profile-row swatches read as
+                the same family. */}
+            {activeOrb && (
+              <div className="ml-auto flex items-center gap-1.5 pl-2 border-l border-gray-200">
+                <span className="text-[11px] text-gray-400 uppercase tracking-wider">
+                  Shader
+                </span>
+                {activeOrb.shader === 'coral' ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                    <Circle size={11} className="text-[#ffa279]" />
+                    Coral
+                  </span>
+                ) : activeOrb.shader === 'radial' ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                    <span
+                      className="shrink-0 inline-block w-[11px] h-[11px] rounded-sm border border-gray-200"
+                      style={{ background: activeOrb.settings.display.previewBg }}
+                      aria-hidden
+                    />
+                    Radial
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                    <Disc size={11} className="text-[#949e05]" />
+                    Tube
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>
