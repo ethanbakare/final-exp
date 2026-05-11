@@ -126,10 +126,13 @@ export function useLinkedRadialAnimator(
   const renderRef = useRef(render);
   const animRef = useRef<AnimatorState | null>(null);
   const lastTsRef = useRef(performance.now());
-
-  profileRef.current = profile;
-  requestedStateRef.current = requestedState;
-  renderRef.current = render;
+  // Tracks the previous user-selected state so we can detect transitions
+  // even on first click (when animRef is still null). Without this, the
+  // state-change effect couldn't tell "the user was at listening and just
+  // clicked talking" from "the user is initially at talking" — and routed
+  // every first-click as a same-target no-op or a same-state degenerate
+  // lerp that bypassed the forward/reverse Phase A/B branches.
+  const lastRequestedStateRef = useRef<RadialState>(requestedState);
 
   // Seed render once profile becomes available.
   useEffect(() => {
@@ -141,64 +144,52 @@ export function useLinkedRadialAnimator(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
-  // On state change, start a new morph (or no-op if already there).
+  // On state change, start a new morph.
   useEffect(() => {
     const p = profileRef.current;
     if (!p) return;
     const cur = renderRef.current;
     if (!cur) return;
 
+    const previousRequestedState = lastRequestedStateRef.current;
+    lastRequestedStateRef.current = requestedState;
+
+    // Same state — no-op. (Also covers React 18 StrictMode double-fire
+    // on initial mount: the second fire reads lastRequestedStateRef
+    // already updated to requestedState.)
+    if (previousRequestedState === requestedState) return;
+
     const anim = animRef.current;
     const targetState = requestedState;
 
-    // Same-target during morph: no-op (don't restart).
-    if (anim?.morphActive && anim.intendedFinalState === targetState) return;
-    // Already at target, no morph: no-op.
-    if (!anim?.morphActive && (anim?.currentlyIn ?? targetState) === targetState && cur) {
-      // Snap currentlyIn for first call.
-      animRef.current = {
-        ...(anim ?? {
-          morphActive: false,
-          morphStart: cur,
-          morphFrom: targetState,
-          morphTarget: targetState,
-          morphT: 1,
-          morphDuration: 0.3,
-          intendedFinalState: null,
-          currentlyIn: targetState,
-          minPinnedFor: 0,
-        }),
-        currentlyIn: targetState,
-      };
-      return;
-    }
+    // Already heading there in an active morph — don't restart.
+    if (anim?.morphActive && anim.morphTarget === targetState) return;
 
-    // Direct routing — no more collapse-to-min through thinking. Forward
-    // Phase A (to-talking) and reverse Phase A (from-talking) both damp
-    // bars to min IN PARALLEL with the translation, so the bars settle
-    // at min by the end of Phase A naturally. classifiedSource is still
-    // needed for talking-like captured frames so an interrupted forward
-    // morph reverses via the right path.
-    const fromState = anim?.currentlyIn ?? targetState;
+    // Classify captured frame from its actual rendered shape, not from
+    // a phantom `currentlyIn`. This is the key fix: on the FIRST click
+    // (animRef null), cur tells us if we're at listening/idle (inward,
+    // not frozen), thinking (inward, frozen), or talking (outward).
+    // morphFrom is set to 'talking' for talking-like frames so the
+    // reverse branch in computeMorphFrame fires; 'idle' otherwise so
+    // the forward branch fires (when target is talking) or simple-lerp
+    // fires (when target is also non-talking). Specific non-talking
+    // label doesn't matter — only the talking/non-talking distinction.
     const isTalkingLike =
       cur.inwardRatio === 0 ||
       anim?.morphFrom === 'talking' ||
       anim?.morphTarget === 'talking';
-    const classifiedSource: RadialState = isTalkingLike ? 'talking' : fromState;
-    const legTarget: RadialState = targetState;
-    const legFrom = classifiedSource;
-    const minPinnedFor = anim?.minPinnedFor ?? 0;
+    const morphFromForBranching: RadialState = isTalkingLike ? 'talking' : 'idle';
 
     animRef.current = {
       morphActive: true,
       morphStart: cur,
-      morphFrom: legFrom,
-      morphTarget: legTarget,
+      morphFrom: morphFromForBranching,
+      morphTarget: targetState,
       morphT: 0,
-      morphDuration: pickDuration(legFrom, legTarget, p),
+      morphDuration: pickDuration(morphFromForBranching, targetState, p),
       intendedFinalState: targetState,
-      currentlyIn: legFrom,
-      minPinnedFor,
+      currentlyIn: previousRequestedState,
+      minPinnedFor: anim?.minPinnedFor ?? 0,
     };
   }, [requestedState]);
 
@@ -290,33 +281,36 @@ function computeMorphFrame(
     if (t < phaseAEnd) {
       const tA = phaseAEnd > 0 ? t / phaseAEnd : 1;
       const anchorTarget = talkingAnchor + morphPinLength;
+      // Compress the damp into the first 30% of Phase A so bars reach
+      // uniform thinking-shape (single fixed min height) quickly. The
+      // remaining 70% is pure translation with bars frozen at min —
+      // matches user spec: "transformation to thinking in real time
+      // while it's moving" + "they have to adjust all to one fixed
+      // height". If damp ran the full Phase A, bars retained
+      // listening's wave variation throughout the translation, which
+      // is what the user saw and reported.
+      const dampEnd = 0.3;
+      const tDamp = Math.min(1, tA / dampEnd);
+      const damping = tA < dampEnd;
       return {
         ...start,
         anchor: lerp(start.anchor, anchorTarget, tA),
         inwardRatio: 1,
-        // Engage freezeAtMin only in the last 10% of Phase A so the
-        // smoothing taper below has time to bring value (and therefore
-        // length) close to min before the renderer-side clamp fires.
-        // Avoids the value=0 snap that would happen at tA=0 from a
-        // listening start (where bars are still at reactive height).
-        freezeAtMin: tA >= 0.9,
-        // Lerp minBarLength from start's value to thinking's pin so
-        // bars visibly shrink to min height during translation. From
-        // thinking, start.minBarLength === morphPinLength so this is
-        // a no-op (still works from thinking → talking too).
-        minBarLength: lerp(start.minBarLength, morphPinLength, tA),
-        // Damp all reactive params to 0 over Phase A.
-        sensitivity: lerp(start.sensitivity, 0, tA),
-        ambientWave: tA < 0.95 ? start.ambientWave : false,
-        waveAmplitude: lerp(start.waveAmplitude, 0, tA),
-        waveEnvelope: lerp(start.waveEnvelope, 0, tA),
-        envelopeAmplitude: lerp(start.envelopeAmplitude, 0, tA),
-        envelopeSensitivity: lerp(start.envelopeSensitivity, 0, tA),
-        // Taper smoothing toward 0 in second half so value converges
-        // to 0 via audio path BEFORE freezeAtMin engages at tA=0.9.
-        smoothing: tA > 0.5
-          ? lerp(start.smoothing, 0, (tA - 0.5) / 0.5)
-          : start.smoothing,
+        // Engage freezeAtMin once the damp portion is done — bars then
+        // hold at exact min length for the rest of Phase A.
+        freezeAtMin: !damping,
+        // During damp: lerp min from start to thinking-pin. After damp:
+        // pinned at thinking-pin.
+        minBarLength: damping ? lerp(start.minBarLength, morphPinLength, tDamp) : morphPinLength,
+        sensitivity: damping ? lerp(start.sensitivity, 0, tDamp) : 0,
+        ambientWave: tDamp < 0.95 ? start.ambientWave : false,
+        waveAmplitude: damping ? lerp(start.waveAmplitude, 0, tDamp) : 0,
+        waveEnvelope: damping ? lerp(start.waveEnvelope, 0, tDamp) : 0,
+        envelopeAmplitude: damping ? lerp(start.envelopeAmplitude, 0, tDamp) : 0,
+        envelopeSensitivity: damping ? lerp(start.envelopeSensitivity, 0, tDamp) : 0,
+        // Smoothing taper linearly to 0 over the damp window so the
+        // audio path converges value to 0 by the end of the damp.
+        smoothing: damping ? lerp(start.smoothing, 0, tDamp) : 0,
         waveSpeed: lerp(start.waveSpeed, target.waveSpeed, t),
         waveHeight: lerp(start.waveHeight, target.waveHeight, t),
         waveMode: tA < 0.5 ? start.waveMode : target.waveMode,
@@ -364,22 +358,26 @@ function computeMorphFrame(
     const targetIsFrozen = target.freezeAtMin;
     if (t < reverseAEnd) {
       const tA = reverseAEnd > 0 ? t / reverseAEnd : 1;
-      const tailClamp = tA >= 0.9;
+      // Same shape as forward Phase A: damp compressed to first 30%,
+      // then bars hold at uniform min length for the rest of reverse
+      // Phase A (which is purely the reactive fade-out before the
+      // inverse flip; anchor stays pinned at talkingAnchor here).
+      const dampEnd = 0.3;
+      const tDamp = Math.min(1, tA / dampEnd);
+      const damping = tA < dampEnd;
       return {
         ...start,
         anchor: talkingAnchor,
         inwardRatio: 0,
-        freezeAtMin: tailClamp,
-        minBarLength: lerp(start.minBarLength, morphPinLength, tA),
-        sensitivity: lerp(start.sensitivity, 0, tA),
-        ambientWave: tA < 0.5 ? start.ambientWave : false,
-        waveAmplitude: lerp(start.waveAmplitude, 0, tA),
-        waveEnvelope: lerp(start.waveEnvelope, 0, tA),
-        envelopeAmplitude: lerp(start.envelopeAmplitude, 0, tA),
+        freezeAtMin: !damping,
+        minBarLength: damping ? lerp(start.minBarLength, morphPinLength, tDamp) : morphPinLength,
+        sensitivity: damping ? lerp(start.sensitivity, 0, tDamp) : 0,
+        ambientWave: tDamp < 0.95 ? start.ambientWave : false,
+        waveAmplitude: damping ? lerp(start.waveAmplitude, 0, tDamp) : 0,
+        waveEnvelope: damping ? lerp(start.waveEnvelope, 0, tDamp) : 0,
+        envelopeAmplitude: damping ? lerp(start.envelopeAmplitude, 0, tDamp) : 0,
         maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
-        smoothing: tA > 0.5
-          ? lerp(start.smoothing, 0, (tA - 0.5) / 0.5)
-          : start.smoothing,
+        smoothing: damping ? lerp(start.smoothing, 0, tDamp) : 0,
       };
     } else {
       const tB = reactiveStartAt > 0 ? (t - reverseAEnd) / reactiveStartAt : 1;
