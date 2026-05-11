@@ -332,6 +332,13 @@ function computeMorphFrame(
         waveEnvelope: lerp(0, target.waveEnvelope, tB),
         envelopeAmplitude: lerp(0, target.envelopeAmplitude, tB),
         maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
+        // Taper smoothing IN — start at 0 (immediate audio response so
+        // bars catch up to the growing reactive target during the morph),
+        // ease up to target.smoothing by morph end. Without this, the
+        // renderer's smoothing lag (~30 frames at smoothing=0.95) means
+        // talking's reactive style only blooms ~0.5s AFTER the morph
+        // completes — that's the "suddenly appears abruptly" the user saw.
+        smoothing: lerp(0, target.smoothing, tB),
       };
     }
   }
@@ -375,28 +382,60 @@ function computeMorphFrame(
         waveEnvelope: lerp(0, target.waveEnvelope, tB),
         envelopeAmplitude: lerp(0, target.envelopeAmplitude, tB),
         maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
+        // Taper smoothing IN so idle's reactive style catches up DURING
+        // the morph rather than blooming after it ends.
+        smoothing: lerp(0, target.smoothing, tB),
       };
     }
   }
 
   // --- everything else: simple lerp (idle/listening ↔ thinking damp) ---
+  // When the target is frozen (thinking), we taper smoothing toward 0 in
+  // the second half so the audio path converges value to 0 BEFORE t=1.
+  // This lets freezeAtMin engage at t=1 as a no-op rather than a snap.
+  // The previous code engaged freezeAtMin at t=0.9 and yanked length to
+  // min in one frame — that's the listening→thinking glitch.
+  const headedToFrozen = target.freezeAtMin;
+  const smoothingTaper =
+    headedToFrozen && t > 0.5
+      ? lerp(start.smoothing, 0, (t - 0.5) / 0.5)
+      : lerp(start.smoothing, target.smoothing, t);
+  // If target silences wave (ambientWave=false on thinking), fade
+  // amplitude smoothly across the whole damp rather than stepping
+  // ambientWave off mid-damp (which yanks the wave contribution).
+  const targetSilencesWave = !target.ambientWave;
+  const waveAmpLerp = targetSilencesWave
+    ? lerp(start.waveAmplitude, 0, t)
+    : lerp(start.waveAmplitude, target.waveAmplitude, t);
+  const waveEnvLerp = targetSilencesWave
+    ? lerp(start.waveEnvelope, 0, t)
+    : lerp(start.waveEnvelope, target.waveEnvelope, t);
+  const envAmpLerp = targetSilencesWave
+    ? lerp(start.envelopeAmplitude, 0, t)
+    : lerp(start.envelopeAmplitude, target.envelopeAmplitude, t);
+
   return {
     anchor: lerp(start.anchor, target.anchor, t),
     inwardRatio: t < 0.5 ? start.inwardRatio : target.inwardRatio,
     minBarLength: lerp(start.minBarLength, target.minBarLength, t),
     maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
     sensitivity: lerp(start.sensitivity, target.sensitivity, t),
-    freezeAtMin: t >= 0.9 && target.freezeAtMin ? true : start.freezeAtMin && target.freezeAtMin,
-    ambientWave: t < 0.5 ? start.ambientWave : target.ambientWave,
+    // Engage freezeAtMin only at the very end (when target requires it).
+    // Smoothing taper has brought value ~0 by then, so the engagement
+    // is visually a no-op rather than a snap.
+    freezeAtMin: t >= 1 ? target.freezeAtMin : false,
+    // Defer ambientWave step until late in the damp, after waveAmplitude
+    // has had time to fade — prevents the wave from "vanishing" at t=0.5.
+    ambientWave: t < 0.95 ? start.ambientWave : target.ambientWave,
     waveSpeed: lerp(start.waveSpeed, target.waveSpeed, t),
-    waveAmplitude: lerp(start.waveAmplitude, target.waveAmplitude, t),
+    waveAmplitude: waveAmpLerp,
     waveHeight: lerp(start.waveHeight, target.waveHeight, t),
     waveMode: t < 0.5 ? start.waveMode : target.waveMode,
     waveShape: t < 0.5 ? start.waveShape : target.waveShape,
     waveLobes: lerp(start.waveLobes, target.waveLobes, t),
-    smoothing: lerp(start.smoothing, target.smoothing, t),
-    waveEnvelope: lerp(start.waveEnvelope, target.waveEnvelope, t),
-    envelopeAmplitude: lerp(start.envelopeAmplitude, target.envelopeAmplitude, t),
+    smoothing: smoothingTaper,
+    waveEnvelope: waveEnvLerp,
+    envelopeAmplitude: envAmpLerp,
     envelopeSensitivity: lerp(start.envelopeSensitivity, target.envelopeSensitivity, t),
     intensityOpacity: t < 0.5 ? start.intensityOpacity : target.intensityOpacity,
   };
