@@ -37,7 +37,7 @@ import {
   type RadialStateSettings,
 } from './api';
 import type { RadialState } from './types';
-import { useLinkedRadialAnimator } from './useLinkedRadialAnimator';
+import { useRadialAnimatorV2 as useLinkedRadialAnimator } from './useRadialAnimatorV2';
 
 const DEFAULT_BACKDROP: Required<RadialBackdrop> = {
   enabled: true,
