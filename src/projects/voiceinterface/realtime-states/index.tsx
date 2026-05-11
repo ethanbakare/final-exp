@@ -1139,11 +1139,13 @@ function RealtimeStatesEditor({
   // Plan v8 (3D-0 step 3) — read from activeOrb. The path is uniform
   // since both shader settings types expose `base.bgColor` at the same
   // path (deliberate design from v4).
-  // Radial profiles store bgColor at `display.bgColor`; Tube/Coral
-  // store it at `base.bgColor`. Narrow before access.
+  // Radial uses a fixed white surround so the editor view is consistent
+  // regardless of the profile's own bgColor (which is intended for the
+  // LIVE realtime page chrome, not the editor canvas). Tube/Coral
+  // continue to source bgColor from settings.base.
   const activeBgColor =
     activeOrb?.shader === 'radial'
-      ? activeOrb.settings.display.bgColor
+      ? '#FFFFFF'
       : (activeOrb?.settings.base.bgColor ?? profile.base.bgColor);
 
   return (
