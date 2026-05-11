@@ -1379,7 +1379,7 @@ function RealtimeStatesEditor({
             main bar. Radial uses a single multi-section panel (Geometry,
             Audio, Wave, Envelope, Style, Backdrop, Morph) rather than
             the Tube/Coral tab system. */}
-        {activeOrb?.shader === 'radial' && radialPanelOpen && (
+        {activeOrb?.shader === 'radial' && radialPanelOpen && !showProfileDropdown && (
           <div className="absolute bottom-full left-0 right-0 max-h-[60vh] overflow-y-auto">
             <RadialEditorPanel
               profile={activeOrb.settings}
