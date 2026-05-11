@@ -88,15 +88,13 @@ function pickDuration(from: RadialState, to: RadialState, profile: RadialLinkedP
   return profile.morph.idleToThinking;
 }
 
-/** Pick the next leg's `from` for a composed transition, or null if
- *  direct. idle/listening → talking goes via thinking. talking → thinking
- *  goes via idle. */
-function nextLegFrom(start: RadialState, finalTarget: RadialState): RadialState | null {
-  if (start === finalTarget) return null;
-  // idle/listening ↔ thinking ↔ talking — at most one intermediate.
-  if ((start === 'idle' || start === 'listening') && finalTarget === 'talking') return 'thinking';
-  if (start === 'talking' && finalTarget === 'thinking') return 'idle';
-  if (start === 'talking' && (finalTarget === 'idle' || finalTarget === 'listening')) return null;
+/** All transitions are direct now. Forward to talking from any state
+ *  damps + translates IN PARALLEL in Phase A (bars shrink to min while
+ *  the ring slides inward); reverse from talking to any state mirrors
+ *  it. No composed pre-leg through thinking — that produced the "bars
+ *  stop at thinking shape, then slide inward" double-motion the user
+ *  flagged. */
+function nextLegFrom(_start: RadialState, _finalTarget: RadialState): RadialState | null {
   return null;
 }
 
@@ -175,37 +173,21 @@ export function useLinkedRadialAnimator(
       return;
     }
 
-    // Classify captured frame (R5 P1.5 + R7 P1.2/P1.3):
-    // - inwardRatio === 0 OR active leg involves talking → talking-like
-    // - else → idle-like (use currentlyIn as classifiedSource)
+    // Direct routing — no more collapse-to-min through thinking. Forward
+    // Phase A (to-talking) and reverse Phase A (from-talking) both damp
+    // bars to min IN PARALLEL with the translation, so the bars settle
+    // at min by the end of Phase A naturally. classifiedSource is still
+    // needed for talking-like captured frames so an interrupted forward
+    // morph reverses via the right path.
     const fromState = anim?.currentlyIn ?? targetState;
     const isTalkingLike =
       cur.inwardRatio === 0 ||
       anim?.morphFrom === 'talking' ||
       anim?.morphTarget === 'talking';
     const classifiedSource: RadialState = isTalkingLike ? 'talking' : fromState;
-
-    // Flip-precondition for transitions INTO talking (R6 P1.2 + R7 P1.3):
-    // if captured frame is not min-pinned, insert a collapse-to-min
-    // pre-leg so Phase A starts cleanly. We model this by routing to
-    // 'thinking' first (pre-leg) and letting intendedFinalState carry
-    // us into talking once thinking's resting state (freezeAtMin=true)
-    // is reached. This avoids the snap that would happen if Phase A
-    // engaged freezeAtMin while length is still > minBarLength.
-    const minPinnedFor = anim?.minPinnedFor ?? 0;
-    let legTarget: RadialState;
-    if (
-      targetState === 'talking' &&
-      classifiedSource !== 'talking' &&
-      classifiedSource !== 'thinking' &&
-      minPinnedFor < 6
-    ) {
-      legTarget = 'thinking';
-    } else {
-      const intermediate = nextLegFrom(classifiedSource, targetState);
-      legTarget = intermediate ?? targetState;
-    }
+    const legTarget: RadialState = targetState;
     const legFrom = classifiedSource;
+    const minPinnedFor = anim?.minPinnedFor ?? 0;
 
     animRef.current = {
       morphActive: true,
@@ -245,7 +227,7 @@ export function useLinkedRadialAnimator(
       const t = anim.morphT;
 
       const next = computeMorphFrame(p, anim, t);
-      // Maintain minPinnedFor counter (R7 P1.2 — flip-precondition proxy).
+      // Maintain minPinnedFor counter (used for interruption logic).
       if (next.freezeAtMin) anim.minPinnedFor += 1;
       else anim.minPinnedFor = 0;
       renderRef.current = next;
@@ -295,11 +277,15 @@ function computeMorphFrame(
   const target = restingValues(profile, anim.morphTarget);
   const reactiveStartAt = profile.morph.reactiveStartAt;
 
-  // --- thinking → talking (forward Phase A + B) ---
-  if (anim.morphFrom === 'thinking' && anim.morphTarget === 'talking') {
+  // --- FORWARD to talking (from any non-talking state) ---
+  // Phase A: translate + damp simultaneously. Bars shrink toward the
+  // morph pin (thinking.minBarLength) while the ring slides inward, so
+  // by the end of Phase A they're at min length at talkingAnchor+min,
+  // ready to flip into talking's outward orientation. No "stop at
+  // thinking shape" middle frame.
+  if (anim.morphFrom !== 'talking' && anim.morphTarget === 'talking') {
     const talkingAnchor = deriveTalkingAnchor(profile);
     const phaseAEnd = reactiveStartAt;
-    // Phase A pins to THINKING's minBarLength (the morph length).
     const morphPinLength = profile.thinking.minBarLength;
     if (t < phaseAEnd) {
       const tA = phaseAEnd > 0 ? t / phaseAEnd : 1;
@@ -308,13 +294,35 @@ function computeMorphFrame(
         ...start,
         anchor: lerp(start.anchor, anchorTarget, tA),
         inwardRatio: 1,
-        freezeAtMin: true,
-        minBarLength: morphPinLength,
-        sensitivity: 0,
-        ambientWave: false,
-        waveAmplitude: 0,
-        waveEnvelope: 0,
-        envelopeAmplitude: 0,
+        // Engage freezeAtMin only in the last 10% of Phase A so the
+        // smoothing taper below has time to bring value (and therefore
+        // length) close to min before the renderer-side clamp fires.
+        // Avoids the value=0 snap that would happen at tA=0 from a
+        // listening start (where bars are still at reactive height).
+        freezeAtMin: tA >= 0.9,
+        // Lerp minBarLength from start's value to thinking's pin so
+        // bars visibly shrink to min height during translation. From
+        // thinking, start.minBarLength === morphPinLength so this is
+        // a no-op (still works from thinking → talking too).
+        minBarLength: lerp(start.minBarLength, morphPinLength, tA),
+        // Damp all reactive params to 0 over Phase A.
+        sensitivity: lerp(start.sensitivity, 0, tA),
+        ambientWave: tA < 0.95 ? start.ambientWave : false,
+        waveAmplitude: lerp(start.waveAmplitude, 0, tA),
+        waveEnvelope: lerp(start.waveEnvelope, 0, tA),
+        envelopeAmplitude: lerp(start.envelopeAmplitude, 0, tA),
+        envelopeSensitivity: lerp(start.envelopeSensitivity, 0, tA),
+        // Taper smoothing toward 0 in second half so value converges
+        // to 0 via audio path BEFORE freezeAtMin engages at tA=0.9.
+        smoothing: tA > 0.5
+          ? lerp(start.smoothing, 0, (tA - 0.5) / 0.5)
+          : start.smoothing,
+        waveSpeed: lerp(start.waveSpeed, target.waveSpeed, t),
+        waveHeight: lerp(start.waveHeight, target.waveHeight, t),
+        waveMode: tA < 0.5 ? start.waveMode : target.waveMode,
+        waveShape: tA < 0.5 ? start.waveShape : target.waveShape,
+        waveLobes: lerp(start.waveLobes, target.waveLobes, t),
+        intensityOpacity: tA < 0.5 ? start.intensityOpacity : target.intensityOpacity,
         maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
       };
     } else {
@@ -343,13 +351,17 @@ function computeMorphFrame(
     }
   }
 
-  // --- talking → idle/listening (reverse) ---
-  if (anim.morphFrom === 'talking' && (anim.morphTarget === 'idle' || anim.morphTarget === 'listening')) {
+  // --- REVERSE from talking to any non-talking state ---
+  // Phase A: bars stay at talkingAnchor, reactive fades to 0, smoothing
+  // tapers, freezeAtMin engages in the tail. Flip inverts direction
+  // (inwardRatio 0 → 1, anchor → talkingAnchor + min). Phase B: bars
+  // translate outward to target.anchor while target's reactive params
+  // ramp in (or stay at 0 if target is frozen / thinking).
+  if (anim.morphFrom === 'talking' && anim.morphTarget !== 'talking') {
     const talkingAnchor = deriveTalkingAnchor(profile);
     const reverseAEnd = 1 - reactiveStartAt;
-    // Morph-pin length: thinking's value (the pinned-min length used
-    // through the inverse flip + translation).
     const morphPinLength = profile.thinking.minBarLength;
+    const targetIsFrozen = target.freezeAtMin;
     if (t < reverseAEnd) {
       const tA = reverseAEnd > 0 ? t / reverseAEnd : 1;
       const tailClamp = tA >= 0.9;
@@ -365,6 +377,9 @@ function computeMorphFrame(
         waveEnvelope: lerp(start.waveEnvelope, 0, tA),
         envelopeAmplitude: lerp(start.envelopeAmplitude, 0, tA),
         maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
+        smoothing: tA > 0.5
+          ? lerp(start.smoothing, 0, (tA - 0.5) / 0.5)
+          : start.smoothing,
       };
     } else {
       const tB = reactiveStartAt > 0 ? (t - reverseAEnd) / reactiveStartAt : 1;
@@ -373,17 +388,17 @@ function computeMorphFrame(
         ...target,
         anchor: lerp(startAnchor, target.anchor, tB),
         inwardRatio: 1,
-        freezeAtMin: tB < 1,
-        // minBarLength lerps from morph pin → idle/listening's resting min
+        // If destination is frozen (thinking), keep freezeAtMin true
+        // throughout. Otherwise release at the very end so the audio
+        // path takes over.
+        freezeAtMin: targetIsFrozen ? true : tB < 1,
         minBarLength: lerp(morphPinLength, target.minBarLength, tB),
-        sensitivity: lerp(0, target.sensitivity, tB),
-        ambientWave: tB > 0.5 ? target.ambientWave : false,
-        waveAmplitude: lerp(0, target.waveAmplitude, tB),
-        waveEnvelope: lerp(0, target.waveEnvelope, tB),
-        envelopeAmplitude: lerp(0, target.envelopeAmplitude, tB),
+        sensitivity: targetIsFrozen ? 0 : lerp(0, target.sensitivity, tB),
+        ambientWave: targetIsFrozen ? false : (tB > 0.5 ? target.ambientWave : false),
+        waveAmplitude: targetIsFrozen ? 0 : lerp(0, target.waveAmplitude, tB),
+        waveEnvelope: targetIsFrozen ? 0 : lerp(0, target.waveEnvelope, tB),
+        envelopeAmplitude: targetIsFrozen ? 0 : lerp(0, target.envelopeAmplitude, tB),
         maxBarLength: lerp(start.maxBarLength, target.maxBarLength, t),
-        // Taper smoothing IN so idle's reactive style catches up DURING
-        // the morph rather than blooming after it ends.
         smoothing: lerp(0, target.smoothing, tB),
       };
     }
