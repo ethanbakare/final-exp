@@ -195,6 +195,22 @@ export const RadialRealtimeBlob: React.FC<RadialRealtimeBlobProps> = ({
   const halfExtent = Math.min(width, height) / 2;
   const frequencyData = audioData.frequencyData ?? null;
 
+  // Bar count must be LOCKED across state transitions. Without this,
+  // RadialBidirectional auto-recomputes barCount each frame from
+  // (circumference / barWidth+barGap) — and as anchor lerps inward
+  // during Phase A (listening → talking), circumference shrinks, so
+  // barCount drops. Per-bar angle = (i / barCount) * 2π + rotation.
+  // When barCount changes, every bar's baseline angle jumps, which
+  // visually reads as super-fast rotation during the morph. Locking
+  // to the idle circumference (matches the radial-states tune-mode
+  // cell's behaviour when lockBarCount is true) keeps the angles
+  // stable through the entire transition.
+  const idleCircumference = 2 * Math.PI * profile.geometry.idleRadius;
+  const lockedBarCount = Math.max(
+    1,
+    Math.floor(idleCircumference / (profile.bars.barWidth + profile.bars.barGap)),
+  );
+
   // Backdrop ring envelope anchored on idle (matches radial-states cells).
   const backdrop = resolveBackdrop(profile.backdrop);
   const idleR = profile.geometry.idleRadius;
@@ -257,6 +273,7 @@ export const RadialRealtimeBlob: React.FC<RadialRealtimeBlobProps> = ({
           inwardRatio={anim.inwardRatio}
           freezeAtMin={anim.freezeAtMin}
           renderExtent={halfExtent}
+          barCount={lockedBarCount}
         />
       </div>
     </div>
