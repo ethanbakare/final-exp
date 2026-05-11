@@ -387,11 +387,19 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           break;
 
         case 'output_audio_buffer.started':
-          // Primary state trigger for AI speaking in WebRTC mode.
-          // The session-level audio_start event does NOT fire in WebRTC
-          // because audio flows through the media track, not data channel chunks.
-          console.log('[OpenAI Realtime] AI audio playback started');
-          setAppState('ai_speaking');
+          // Fallback for the ai_speaking transition. The primary signal
+          // is now the <audio> element's `playing` event (set up in
+          // handleStartConversation), which fires when decoded media is
+          // audible — earlier and more reliable on the first response
+          // of a session (no SCTP cold-start latency). This data-channel
+          // event still fires reliably on 2nd+ responses; we keep it as
+          // a defensive fallback in case <audio> 'playing' is delayed
+          // for any reason. The promotion is idempotent: if we're
+          // already in ai_speaking the setState is a no-op.
+          console.log('[OpenAI Realtime] output_audio_buffer.started (data-channel signal; <audio> playing usually wins)');
+          if (appStateRef.current === 'ai_thinking') {
+            setAppState('ai_speaking');
+          }
           break;
 
         case 'output_audio_buffer.stopped':
@@ -522,8 +530,35 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       audioEl.autoplay = true;
       audioElementRef.current = audioEl;
 
-      // 5. Set up AI analyser when remote stream arrives
+      // 5. Set up AI analyser + drive 'ai_speaking' state from media
+      //    pipeline (NOT from data-channel events).
+      //
+      // Bug history: we previously transitioned to 'ai_speaking' only on
+      // the data-channel `output_audio_buffer.started` event from
+      // transport_event. That signal works fine for the 2nd+ response in
+      // a session but lags ~2s behind audible audio on the FIRST response,
+      // because WebRTC delivers media (the actual sound) and data-channel
+      // events (JSON) over independently-warmed pipelines and the
+      // data-channel SCTP stream + OpenAI's first-response server init
+      // both pay cold-start cost. The <audio> element's `playing` event
+      // fires the instant decoded media is audible, which is the
+      // user-perceptible truth on first AND subsequent responses.
+      //
+      // We still keep `output_audio_buffer.started` as a fallback inside
+      // transport_event (no-op if the playing event already promoted),
+      // and `output_audio_buffer.stopped` continues to drive the
+      // 'ai_speaking' → 'listening' transition because that direction
+      // hasn't shown the same first-cycle lag.
       audioEl.addEventListener('playing', () => {
+        // Promote to ai_speaking the moment audio is audible. Guarded by
+        // appStateRef.current so this listener never accidentally drives
+        // a transition out of idle/listening for non-AI playback (defence
+        // in depth — the <audio> element is only ever used for AI output
+        // on this page, but the guard keeps the contract explicit).
+        if (appStateRef.current === 'ai_thinking') {
+          console.log('[OpenAI Realtime] <audio> playing → ai_speaking (media-pipeline signal)');
+          setAppState('ai_speaking');
+        }
         if (!aiAnalyserRef.current && audioEl.srcObject && audioContextRef.current) {
           try {
             const aiSource = audioContextRef.current.createMediaStreamSource(audioEl.srcObject as MediaStream);
