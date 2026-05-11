@@ -865,7 +865,23 @@ function RealtimeStatesEditor({
         settings,
         lastModified: Date.now(),
       };
-      const next = [...tubeProfiles, entry];
+      // Save-as-new = "original untouched, new copy has the edits".
+      // Revert the source profile in tubeProfiles to its baseline
+      // before appending the new entry, so persistProfiles doesn't
+      // also write the in-memory edits back to the original.
+      const baseTubeArr = (
+        sameShader &&
+        activeOrb?.shader === 'tube' &&
+        activeBaseline?.shader === 'tube' &&
+        activeBaseline.key === compositeKey(activeOrb)
+      )
+        ? tubeProfiles.map((pr) =>
+            pr.id === activeOrb.id
+              ? { ...pr, settings: structuredClone(activeBaseline.settings) }
+              : pr,
+          )
+        : tubeProfiles;
+      const next = [...baseTubeArr, entry];
       setTubeProfiles(next);
       setActiveOrbKey(`realtime-state:${entry.id}`);
       setActiveBaseline({
@@ -890,7 +906,23 @@ function RealtimeStatesEditor({
         settings: coralSettings,
         lastModified: Date.now(),
       };
-      const nextCoral = [...coralProfiles, coralEntry];
+      // Save-as-new = "original untouched, new copy has the edits".
+      // Revert the source profile in coralProfiles to its baseline
+      // before appending so persistCoralProfiles doesn't write
+      // in-memory edits back to the original.
+      const baseCoralArr = (
+        sameShader &&
+        activeOrb?.shader === 'coral' &&
+        activeBaseline?.shader === 'coral' &&
+        activeBaseline.key === compositeKey(activeOrb)
+      )
+        ? coralProfiles.map((pr) =>
+            pr.id === activeOrb.id
+              ? { ...pr, settings: structuredClone(activeBaseline.settings) }
+              : pr,
+          )
+        : coralProfiles;
+      const nextCoral = [...baseCoralArr, coralEntry];
       setCoralProfiles(nextCoral);
       setActiveOrbKey(`realtime-coral:${coralEntry.id}`);
       setActiveBaseline({
@@ -910,6 +942,8 @@ function RealtimeStatesEditor({
     // profiles.json carries id/name at the top level of the settings
     // object, not on a wrapper).
     const radialId = `rs-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    // Clone the IN-MEMORY edited settings for the new entry — this
+    // captures whatever the user has currently dialled in.
     const radialBase: RadialLinkedProfile = sameShader && activeOrb?.shader === 'radial'
       ? structuredClone(activeOrb.settings)
       : makeDefaultProfile(radialId, name);
@@ -926,7 +960,31 @@ function RealtimeStatesEditor({
       settings: radialSettings,
       lastModified: radialSettings.lastModified,
     };
-    const nextRadial = [...radialProfiles, radialEntry];
+
+    // CRITICAL: before persisting, revert the SOURCE profile in the
+    // array back to its baseline (last-saved on-disk state). Without
+    // this, persistRadialProfiles would write the array as-is —
+    // including the user's in-memory edits to the source — and the
+    // original profile on disk would inherit the edits we just used
+    // as the seed for the new entry. The user reported exactly this:
+    // edit Primordial thicker → Save as Russet → both end up identical.
+    // baseline holds the unedited source settings (set on profile
+    // select and re-snapped on Update). When activeBaseline is null
+    // or doesn't match the active orb, fall back to leaving the
+    // source as-is (defensive; shouldn't happen on the radial path
+    // because selectRadialProfile always sets it).
+    const sourceRevertedArr = (
+      activeOrb?.shader === 'radial' &&
+      activeBaseline?.shader === 'radial' &&
+      activeBaseline.key === compositeKey(activeOrb)
+    )
+      ? radialProfiles.map((p) =>
+          p.id === activeOrb.id
+            ? { ...p, settings: structuredClone(activeBaseline.settings) }
+            : p,
+        )
+      : radialProfiles;
+    const nextRadial = [...sourceRevertedArr, radialEntry];
     setRadialProfiles(nextRadial);
     setActiveOrbKey(`radial-states:${radialId}`);
     setActiveBaseline({
@@ -989,12 +1047,19 @@ function RealtimeStatesEditor({
     await persistRadialProfiles(next);
   };
 
-  // Persistent updater for radial profile edits. Bubbled up from
+  // In-memory updater for radial profile edits. Bubbled up from
   // RadialEditorPanel via onProfileChange — we replace the active
-  // entry by id and immediately POST. The SavedRadialProfile wrapper's
-  // top-level id/name/lastModified mirror the inner settings so the
-  // dropdown row, the dirty checker (future), and the on-disk JSON
-  // all stay in sync.
+  // entry by id in radialProfiles. MIRRORS the radial-states standalone
+  // page's `updateFocused` (no per-edit persist). Persistence happens
+  // only on:
+  //   - Update button → re-snapshots baseline + writes current settings
+  //   - Save button   → writes the edited array WITH the original
+  //                     profile reverted to its baseline first, so
+  //                     the original on disk stays clean.
+  // Previously this persisted on every slider movement, which
+  // continuously overwrote the active profile on disk before Save
+  // even ran (the "edit Primordial thicker, save as Russet, both end
+  // up with the same values" bug).
   const handleRadialProfileChange = (next: RadialLinkedProfile) => {
     const updated = radialProfiles.map((p) =>
       p.id === next.id
@@ -1008,7 +1073,6 @@ function RealtimeStatesEditor({
         : p,
     );
     setRadialProfiles(updated);
-    void persistRadialProfiles(updated);
   };
 
   // Skip-intro plan — flip the optional `skipIntroOnSelect` field on
