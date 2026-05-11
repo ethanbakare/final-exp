@@ -100,7 +100,7 @@ interface AllSettings {
  *  Bar identity comes from `profile.bars`; display from `profile.display`;
  *  radius is derived for talking. inwardRatio is variant-implied (1 for
  *  inward variants, 0 for talking) — Phase 1 doesn't lerp it. */
-function materializeState(
+export function materializeState(
   profile: RadialLinkedProfile,
   state: StateKey,
 ): RadialSettings {
@@ -177,7 +177,7 @@ const DISPLAY_FIELDS: ReadonlySet<keyof RadialDisplay> = new Set([
  *    (R6 P2.1 / R7 P1.4).
  *  - When focused === 'idle' and idleListeningLinked is true, mirrors
  *    per-state writes to `listening` (link-propagation rule §8a). */
-function applyPatch(
+export function applyPatch(
   profile: RadialLinkedProfile,
   focused: StateKey,
   patch: Partial<RadialSettings>,
