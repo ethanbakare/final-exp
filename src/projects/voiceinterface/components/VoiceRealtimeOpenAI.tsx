@@ -11,6 +11,7 @@ import {
 import { NEBULARR_FALLBACK_PROFILE } from './NebularrBlob';
 import { CORAL_FALLBACK_PROFILE, type CoralRealtimeSettings } from './CoralRealtimeBlob';
 import type { LinkedProfile } from './useLinkedProfileAnimator';
+import type { RadialLinkedProfile } from '@/projects/voiceinterface/radial-states/api';
 
 /**
  * Discriminated union for orbs loaded from the studio-profiles API.
@@ -42,6 +43,16 @@ type LoadedOrb =
       pinned: boolean;
       skipIntroOnSelect?: boolean;
       settings: LinkedProfile;
+      lastModified: number;
+    }
+  | {
+      shader: 'radial';
+      sourceVariant: 'radial-states';
+      id: string;
+      name: string;
+      pinned: boolean;
+      skipIntroOnSelect?: boolean;
+      settings: RadialLinkedProfile;
       lastModified: number;
     };
 
@@ -154,7 +165,11 @@ function getAudioDataFromAnalyser(analyser: AnalyserNode, dataArray: Uint8Array<
   for (let i = 0; i < dataArray.length; i++) { rms += (dataArray[i] / 255) ** 2; }
   rms = Math.sqrt(rms / dataArray.length);
 
-  return { bass, mid, treble, rms };
+  // Pass the raw frequency array through for shaders that consume it
+  // directly (RadialRealtimeBlob). Tube/Coral ignore it. The array
+  // reference is shared with the caller's pooled buffer, which is
+  // safe because every shader reads from props each frame.
+  return { bass, mid, treble, rms, frequencyData: dataArray };
 }
 
 export const VoiceRealtimeOpenAI: React.FC = () => {
@@ -173,8 +188,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     let cancelled = false;
 
     const fetchVariant = async (
-      variant: 'realtime-coral' | 'realtime-state',
-      shader: 'coral' | 'tube',
+      variant: 'realtime-coral' | 'realtime-state' | 'radial-states',
+      shader: 'coral' | 'tube' | 'radial',
     ): Promise<LoadedOrb[]> => {
       try {
         const r = await fetch(`/api/studio-profiles?variant=${variant}`, { cache: 'no-store' });
@@ -191,6 +206,21 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             // false all flow through unchanged. Reads use `=== true`.
             skipIntroOnSelect: p.skipIntroOnSelect,
             settings: p.settings as CoralRealtimeSettings,
+            lastModified: p.lastModified ?? 0,
+          }));
+        }
+        if (shader === 'radial') {
+          // Radial JSON is FLAT — the RadialLinkedProfile sits at the
+          // top level (no `settings` wrapper). Project the whole entry
+          // into LoadedOrb.settings.
+          return arr.map((p) => ({
+            shader: 'radial' as const,
+            sourceVariant: 'radial-states' as const,
+            id: p.id,
+            name: p.name,
+            pinned: p.pinned === true,
+            skipIntroOnSelect: p.skipIntroOnSelect,
+            settings: p as RadialLinkedProfile,
             lastModified: p.lastModified ?? 0,
           }));
         }
@@ -212,7 +242,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     Promise.allSettled([
       fetchVariant('realtime-coral', 'coral'),
       fetchVariant('realtime-state', 'tube'),
-    ]).then(([coralRes, tubeRes]) => {
+      fetchVariant('radial-states', 'radial'),
+    ]).then(([coralRes, tubeRes, radialRes]) => {
       if (cancelled) return;
       const coralOrbs =
         coralRes.status === 'fulfilled' && coralRes.value.length > 0
@@ -222,7 +253,9 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
         tubeRes.status === 'fulfilled' && tubeRes.value.length > 0
           ? tubeRes.value
           : [NEBULARR_FALLBACK_ORB];
-      const merged = [...coralOrbs, ...tubeOrbs];
+      const radialOrbs =
+        radialRes.status === 'fulfilled' ? radialRes.value : [];
+      const merged = [...coralOrbs, ...tubeOrbs, ...radialOrbs];
       setOrbs(merged);
 
       // Live page only shows pinned orbs (explicit opt-in). The default
@@ -276,6 +309,9 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     if (!activeOrb) return null;
     if (activeOrb.shader === 'coral') {
       return { shader: 'coral', profile: activeOrb.settings };
+    }
+    if (activeOrb.shader === 'radial') {
+      return { shader: 'radial', profile: activeOrb.settings };
     }
     return { shader: 'tube', profile: activeOrb.settings };
   }, [activeOrb]);
