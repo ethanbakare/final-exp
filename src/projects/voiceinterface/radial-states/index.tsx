@@ -1109,31 +1109,27 @@ export default function RadialStatesReview() {
   // mutates activeProfile.geometry.idleRadius) would change the cell
   // container size live: the outer wrapper width/height is
   // `tuneRenderExtent * 2`, so the box would visibly shrink/grow
-  // while the user is editing. Snapshotting at profile-mount keeps
-  // the cell stable for the duration of that profile's session;
-  // switching to a different profile recomputes.
-  const tuneRenderExtentRef = useRef<{ id: string | null; value: number }>({
-    id: null,
-    value: 154,
-  });
-  const tuneRenderExtent = (() => {
-    const cur = activeProfile;
-    if (!cur) return tuneRenderExtentRef.current.value;
-    if (tuneRenderExtentRef.current.id === cur.id) {
-      return tuneRenderExtentRef.current.value;
-    }
-    const next =
-      cur.geometry.idleRadius +
+  // while the user is editing. Memoising on activeProfile.id keeps
+  // the value stable for the duration of that profile's session and
+  // recomputes only when the user switches to a different profile.
+  // Bars inside still re-position live (animator rest-sync); only the
+  // outer canvas extent stays frozen.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const tuneRenderExtent = useMemo(() => {
+    if (!activeProfile) return 214; // matches default profile (134 + 60 + 20)
+    return (
+      activeProfile.geometry.idleRadius +
       Math.max(
-        cur.idle.maxBarLength,
-        cur.listening.maxBarLength,
-        cur.thinking.maxBarLength,
-        cur.talking.maxBarLength,
+        activeProfile.idle.maxBarLength,
+        activeProfile.listening.maxBarLength,
+        activeProfile.thinking.maxBarLength,
+        activeProfile.talking.maxBarLength,
       ) +
-      20;
-    tuneRenderExtentRef.current = { id: cur.id, value: next };
-    return next;
-  })();
+      20
+    );
+    // Intentionally key on id so slider edits within the same profile
+    // don't invalidate the memo.
+  }, [activeProfile?.id]);
 
   const cellsRow =
     mode === 'tune' && activeProfile ? (
