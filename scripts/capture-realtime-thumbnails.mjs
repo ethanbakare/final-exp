@@ -17,7 +17,17 @@ import path from 'node:path';
 const PORT = process.env.PORT ?? 3002;
 const ORIGIN = `http://localhost:${PORT}`;
 const ROOT = path.resolve(import.meta.dirname, '..');
-const PROFILES_PATH = path.join(ROOT, 'realtime-state-profiles.json');
+// All three profile files: each shader writes to its own JSON. The
+// loop below iterates every profile across all three so radial / coral
+// / tube all get thumbnails — radial-states JSON is FLAT (the profile
+// fields sit at the top level, no `settings` wrapper), the others
+// have the same shape but it doesn't matter here because we only
+// read `name`.
+const SOURCES = [
+  { label: 'tube', file: 'realtime-state-profiles.json' },
+  { label: 'coral', file: 'realtime-coral-profiles.json' },
+  { label: 'radial', file: 'radial-states-profiles.json' },
+];
 const STATES_OUT = path.join(ROOT, 'public', 'thumbnails', 'realtime-states');
 const PROD_OUT = path.join(ROOT, 'public', 'thumbnails', 'realtime-production.png');
 
@@ -104,7 +114,21 @@ async function selectProfileByName(page, name) {
 async function main() {
   await mkdir(STATES_OUT, { recursive: true });
   await mkdir(path.dirname(PROD_OUT), { recursive: true });
-  const profiles = JSON.parse(await readFile(PROFILES_PATH, 'utf-8'));
+
+  // Load profiles from all three sources. Read sequentially (the loads
+  // are tiny) and tolerate a missing file gracefully — useful if a
+  // shader file hasn't been seeded yet.
+  const allProfiles = [];
+  for (const source of SOURCES) {
+    try {
+      const arr = JSON.parse(await readFile(path.join(ROOT, source.file), 'utf-8'));
+      for (const p of arr) {
+        if (p?.name) allProfiles.push({ ...p, _source: source.label });
+      }
+    } catch (e) {
+      console.warn(`(skipping ${source.file}: ${e.code ?? e.message})`);
+    }
+  }
 
   // Playwright's default chromium-headless-shell has WebGL disabled,
   // which makes Three.js fail to mount. Use headed mode so a real
@@ -118,17 +142,19 @@ async function main() {
   const page = await ctx.newPage();
 
   // ── Saved profiles on /voiceinterface/realtime-states ─────────
-  console.log(`Capturing ${profiles.length} profile(s) from realtime-states…`);
+  console.log(`Capturing ${allProfiles.length} profile(s) from realtime-states…`);
   await page.goto(`${ORIGIN}/voiceinterface/realtime-states`, {
     waitUntil: 'domcontentloaded',
   });
   await waitForCanvasReady(page);
 
-  for (const profile of profiles) {
-    console.log(`profile: ${profile.name}`);
+  for (const profile of allProfiles) {
+    console.log(`profile [${profile._source}]: ${profile.name}`);
     await selectProfileByName(page, profile.name);
     // Animator ramps to the new profile's targets — wait for it.
-    await page.waitForTimeout(900);
+    // Radial uses the V2 animator which has a slightly longer Phase A
+    // (~0.6s) on cross-profile switches, so give it a touch more time.
+    await page.waitForTimeout(profile._source === 'radial' ? 1500 : 900);
     const out = path.join(STATES_OUT, `${slug(profile.name)}.png`);
     await captureCanvas(page, out);
   }
