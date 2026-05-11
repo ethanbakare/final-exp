@@ -1104,18 +1104,36 @@ export default function RadialStatesReview() {
     );
   };
 
-  // Tune-mode render extent — reserves space for the largest possible
-  // bar reach across all states, so anchor lerp + reactive ramp stay
-  // inside a stable canvas (per plan §6.5).
-  const tuneRenderExtent =
-    (activeProfile?.geometry.idleRadius ?? 134) +
-    Math.max(
-      activeProfile?.idle.maxBarLength ?? 60,
-      activeProfile?.listening.maxBarLength ?? 60,
-      activeProfile?.thinking.maxBarLength ?? 60,
-      activeProfile?.talking.maxBarLength ?? 40,
-    ) +
-    20;
+  // Tune-mode render extent — snapshotted PER ACTIVE PROFILE rather
+  // than recomputed every render. Without this, sliding Radius (which
+  // mutates activeProfile.geometry.idleRadius) would change the cell
+  // container size live: the outer wrapper width/height is
+  // `tuneRenderExtent * 2`, so the box would visibly shrink/grow
+  // while the user is editing. Snapshotting at profile-mount keeps
+  // the cell stable for the duration of that profile's session;
+  // switching to a different profile recomputes.
+  const tuneRenderExtentRef = useRef<{ id: string | null; value: number }>({
+    id: null,
+    value: 154,
+  });
+  const tuneRenderExtent = (() => {
+    const cur = activeProfile;
+    if (!cur) return tuneRenderExtentRef.current.value;
+    if (tuneRenderExtentRef.current.id === cur.id) {
+      return tuneRenderExtentRef.current.value;
+    }
+    const next =
+      cur.geometry.idleRadius +
+      Math.max(
+        cur.idle.maxBarLength,
+        cur.listening.maxBarLength,
+        cur.thinking.maxBarLength,
+        cur.talking.maxBarLength,
+      ) +
+      20;
+    tuneRenderExtentRef.current = { id: cur.id, value: next };
+    return next;
+  })();
 
   const cellsRow =
     mode === 'tune' && activeProfile ? (

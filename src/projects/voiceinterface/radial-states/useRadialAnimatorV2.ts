@@ -473,6 +473,32 @@ function updateFrame(p: RadialLinkedProfile, props: Props, anim: Anim, nowMs: nu
       adoptDiscrete(anim, rest);
     }
   }
+
+  // Live sync at rest. Without this, slider edits to geometry /
+  // bars / display fields update the profile object but the animator
+  // keeps emitting its cached eased values (anchor, minBarLength,
+  // etc.) — so the donut and bar count react instantly while the
+  // bars themselves stay frozen until the user state-pill-switches
+  // and the next transition re-snaps to restingValues(profile, ...).
+  //
+  // This branch runs only when phase === 'rest' so it never disturbs
+  // an in-flight morph (phase-end resets phase to 'rest' below,
+  // but by then this frame has already processed). Cheap — one
+  // pure restingValues() call + a handful of assignments.
+  if (anim.phase === 'rest') {
+    const rest = restingValues(p, anim.finalTarget);
+    snap(props.anchor, rest.anchor, nowMs);
+    snap(props.minBarLength, rest.minBarLength, nowMs);
+    snap(props.maxBarLength, rest.maxBarLength, nowMs);
+    snap(props.sensitivity, rest.sensitivity, nowMs);
+    snap(props.waveAmplitude, rest.waveAmplitude, nowMs);
+    snap(props.waveEnvelope, rest.waveEnvelope, nowMs);
+    snap(props.envelopeAmplitude, rest.envelopeAmplitude, nowMs);
+    snap(props.smoothing, rest.smoothing, nowMs);
+    anim.inwardRatio = rest.inwardRatio;
+    anim.freezeAtMin = rest.freezeAtMin;
+    adoptDiscrete(anim, rest);
+  }
 }
 
 function buildRender(props: Props, anim: Anim): RadialRenderValues {
