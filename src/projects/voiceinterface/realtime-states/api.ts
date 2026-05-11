@@ -6,10 +6,11 @@
  * URL constants (`API`, `CORAL_API`) are module-private — only the
  * wrappers below need them. Not exported.
  */
-import type { SavedCoralProfile, SavedProfile } from './types';
+import type { SavedCoralProfile, SavedProfile, SavedRadialProfile } from './types';
 
 const API = '/api/studio-profiles?variant=realtime-state';
 const CORAL_API = '/api/studio-profiles?variant=realtime-coral';
+const RADIAL_API = '/api/studio-profiles?variant=radial-states';
 
 export async function fetchProfiles(): Promise<SavedProfile[]> {
   try {
@@ -68,5 +69,30 @@ export async function persistCoralProfiles(arr: SavedCoralProfile[]) {
     });
   } catch (e) {
     console.error('[realtime-states] persist coral failed', e);
+  }
+}
+
+/** Radial profiles share the existing `radial-states` variant served
+ *  out of radial-states-profiles.json. Same wire format as the radial-
+ *  states page; the realtime editor reads / writes that file directly. */
+export async function fetchRadialProfiles(): Promise<SavedRadialProfile[]> {
+  try {
+    const r = await fetch(RADIAL_API, { cache: 'no-store' });
+    const j = await r.json();
+    return Array.isArray(j) ? j : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function persistRadialProfiles(arr: SavedRadialProfile[]) {
+  try {
+    await fetch(RADIAL_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(arr),
+    });
+  } catch (e) {
+    console.error('[realtime-states] persist radial failed', e);
   }
 }
