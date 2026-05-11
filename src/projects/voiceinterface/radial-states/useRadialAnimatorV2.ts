@@ -400,7 +400,14 @@ function enterSimple(
   retarget(props.waveAmplitude, targetRest.waveAmplitude, dur, nowMs);
   retarget(props.waveEnvelope, targetRest.waveEnvelope, dur, nowMs);
   retarget(props.envelopeAmplitude, targetRest.envelopeAmplitude, dur, nowMs);
-  retarget(props.smoothing, targetRest.smoothing, dur, nowMs);
+  // When landing in thinking, decay smoothing → 0 so the renderer's
+  // prevValuesRef catches up to the (near-zero) input. Otherwise
+  // smoothing lag holds `value` elevated for bars in the middle of
+  // wave peaks; when freezeAtMin engages at phase end, those bars
+  // snap down by 1-2px while the bell-curve extremes don't.
+  // At phase-end the resting snap restores thinking's profile smoothing.
+  const smoothingTarget = targetState === 'thinking' ? 0 : targetRest.smoothing;
+  retarget(props.smoothing, smoothingTarget, dur, nowMs);
 
   anim.phase = 'simple';
   anim.phaseStartMs = nowMs;
@@ -432,9 +439,11 @@ function updateFrame(p: RadialLinkedProfile, props: Props, anim: Anim, nowMs: nu
   } else if (anim.phase === 'reverseA') {
     const dampDur = anim.phaseDuration * 0.5;
     if (elapsed >= dampDur * 0.98) anim.freezeAtMin = true;
-  } else if (anim.phase === 'simple' && anim.finalTarget === 'thinking') {
-    if (elapsed >= anim.phaseDuration * 0.95) anim.freezeAtMin = true;
   }
+  // simple → thinking: don't engage freezeAtMin early. The smoothing
+  // decay in enterSimple brings prevValue to ~0 by phase end, and the
+  // resting snap at t = 1.0 latches freezeAtMin = true without a snap
+  // (min == max == 12 at that point, so length is already exactly 12).
 
   // Phase advance when this phase's clock is done.
   if (elapsed >= anim.phaseDuration) {
