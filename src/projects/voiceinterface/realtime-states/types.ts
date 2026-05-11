@@ -10,6 +10,7 @@
  */
 import type { AudioData } from '@/projects/voiceinterface/types';
 import type { CoralRealtimeSettings } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
+import type { RadialLinkedProfile } from '@/projects/voiceinterface/radial-states/api';
 
 export type PreviewState = 'idle' | 'listening' | 'thinking' | 'talking';
 export type PeakScope = 'thinking' | 'talking';
@@ -105,6 +106,22 @@ export interface SavedCoralProfile {
   lastModified: number;
 }
 
+/** Saved-profile shape for the radial-waveform shader (parallel file).
+ *  `settings` is the existing `RadialLinkedProfile` from the
+ *  radial-states page — no schema fork. Persisted via the
+ *  `radial-states` variant of the studio-profiles API, which
+ *  already exists and serves `radial-states-profiles.json`. */
+export interface SavedRadialProfile {
+  id: string;
+  name: string;
+  pinned?: boolean;
+  /** Parity with Tube/Coral. Radial doesn't currently animate an
+   *  intro on mount, so this is reserved for future use. */
+  skipIntroOnSelect?: boolean;
+  settings: RadialLinkedProfile;
+  lastModified: number;
+}
+
 /** Combined display row used by the dropdown — keeps the source
  *  variant so save/rename/pin can route to the right file. The editor
  *  preserves separate per-source arrays internally; this union is just
@@ -120,6 +137,13 @@ export type DropdownRow =
   | {
       shader: 'coral';
       sourceVariant: 'realtime-coral';
+      id: string;
+      name: string;
+      pinned: boolean;
+    }
+  | {
+      shader: 'radial';
+      sourceVariant: 'radial-states';
       id: string;
       name: string;
       pinned: boolean;
@@ -152,13 +176,24 @@ export type LoadedOrb =
       skipIntroOnSelect?: boolean;
       settings: CoralRealtimeSettings;
       lastModified: number;
+    }
+  | {
+      shader: 'radial';
+      sourceVariant: 'radial-states';
+      id: string;
+      name: string;
+      pinned: boolean;
+      skipIntroOnSelect?: boolean;
+      settings: RadialLinkedProfile;
+      lastModified: number;
     };
 
 /** Plan v8 round-7 F1 — narrow shape for dirty detection. Inspects only
  *  `settings`, never `name`/`pinned`/`lastModified`/`sourceVariant`. */
 export type BaselineSnapshot =
   | { key: string; shader: 'tube'; settings: LinkedProfile }
-  | { key: string; shader: 'coral'; settings: CoralRealtimeSettings };
+  | { key: string; shader: 'coral'; settings: CoralRealtimeSettings }
+  | { key: string; shader: 'radial'; settings: RadialLinkedProfile };
 
 export interface RenderValues {
   scale: number;
@@ -177,4 +212,4 @@ export interface RenderValues {
 // siblings can import every type they need from a single path.
 // Keeps a single source of truth — these types remain defined in
 // their original locations.
-export type { AudioData, CoralRealtimeSettings };
+export type { AudioData, CoralRealtimeSettings, RadialLinkedProfile };

@@ -1098,7 +1098,12 @@ function RealtimeStatesEditor({
   // Plan v8 (3D-0 step 3) — read from activeOrb. The path is uniform
   // since both shader settings types expose `base.bgColor` at the same
   // path (deliberate design from v4).
-  const activeBgColor = activeOrb?.settings.base.bgColor ?? profile.base.bgColor;
+  // Radial profiles store bgColor at `display.bgColor`; Tube/Coral
+  // store it at `base.bgColor`. Narrow before access.
+  const activeBgColor =
+    activeOrb?.shader === 'radial'
+      ? activeOrb.settings.display.bgColor
+      : (activeOrb?.settings.base.bgColor ?? profile.base.bgColor);
 
   return (
     <div
@@ -1128,7 +1133,7 @@ function RealtimeStatesEditor({
         >
           <color
             attach="background"
-            args={[activeOrb?.settings.base.bgColor ?? profile.base.bgColor]}
+            args={[activeBgColor]}
           />
           <ambientLight intensity={0.5} />
           {activeOrb?.shader === 'coral' && activeCoralSettings ? (
@@ -1817,7 +1822,10 @@ function RealtimeStatesEditor({
             ) : (
               <button
                 onClick={() => {
-                  setSaveShader(activeOrb?.shader ?? 'tube');
+                  // Save dialog currently offers Tube and Coral only.
+                  // Radial save support lands in a follow-up; default to
+                  // tube when activeOrb is radial.
+                  setSaveShader(activeOrb?.shader === 'coral' ? 'coral' : 'tube');
                   setSaveStep('shader');
                   setShowSaveDialog(true);
                 }}
