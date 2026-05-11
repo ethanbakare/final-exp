@@ -61,20 +61,25 @@ export const RadialRealtimeBlob: React.FC<RadialRealtimeBlobProps> = ({
     return <div style={{ width, height }} aria-hidden />;
   }
 
-  // Canvas half-extent — must accommodate the largest possible bar
-  // reach across all states so the anchor lerp + reactive ramp stay
-  // inside the canvas. Mirrors the tune-mode logic in radial-states.
-  const halfExtent =
-    profile.geometry.idleRadius +
-    Math.max(
-      profile.idle.maxBarLength,
-      profile.listening.maxBarLength,
-      profile.thinking.maxBarLength,
-      profile.talking.maxBarLength,
-    ) +
-    20;
+  // Canvas half-extent — fit the canvas inside the wrapper box so the
+  // realtime page's fixed-size orb slot isn't visually overflowed. We
+  // accept that bars at the extreme outer ring may clip on profiles
+  // where idleRadius + maxBarLength exceeds the half-box, but for the
+  // shipped radial profiles (idleRadius ≤ 134, maxBarLength ≤ 60) the
+  // box is sized large enough that idle/listening/thinking/talking all
+  // sit inside the canvas. `overflow: hidden` on the wrapper is the
+  // safety net for any profile that does overflow.
+  const halfExtent = Math.min(width, height) / 2;
 
   const frequencyData = audioData.frequencyData ?? null;
+
+  // Background uses `previewBg` (the cell-card colour from the radial-
+  // states page), NOT `bgColor`. bgColor is meant for the OUTER page
+  // chrome when this profile is active; previewBg is the contrasting
+  // surface the bars render against. On profiles where barColor ==
+  // bgColor (e.g. Tonic, both #0F0F11) using bgColor here would make
+  // bars invisible.
+  const orbBg = profile.display.previewBg;
 
   return (
     <div
@@ -84,9 +89,10 @@ export const RadialRealtimeBlob: React.FC<RadialRealtimeBlobProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: profile.display.bgColor,
+        background: orbBg,
         borderRadius: 12,
         lineHeight: 0,
+        overflow: 'hidden',
       }}
     >
       <RadialBidirectional
@@ -98,7 +104,7 @@ export const RadialRealtimeBlob: React.FC<RadialRealtimeBlobProps> = ({
         maxBarLength={anim.maxBarLength}
         sensitivity={anim.sensitivity}
         barColor={profile.bars.barColor}
-        bgColor={profile.display.bgColor}
+        bgColor={orbBg}
         segments={profile.bars.segments}
         roundCaps={profile.bars.roundCaps}
         intensityOpacity={anim.intensityOpacity}

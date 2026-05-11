@@ -621,6 +621,8 @@ function RealtimeStatesEditor({
     if (!activeOrb) return;
     if (activeOrb.shader === 'coral') {
       togglePinnedCoral(activeOrb.id);
+    } else if (activeOrb.shader === 'radial') {
+      togglePinnedRadial(activeOrb.id);
     } else {
       togglePinned(activeOrb.id);
     }
@@ -913,6 +915,27 @@ function RealtimeStatesEditor({
     await persistCoralProfiles(next);
   };
 
+  const selectRadialProfile = (id: string) => {
+    const found = radialProfiles.find((p) => p.id === id);
+    if (!found) return;
+    setActiveOrbKey(`radial-states:${id}`);
+    setActiveBaseline({
+      key: `radial-states:${id}`,
+      shader: 'radial',
+      settings: structuredClone(found.settings),
+    });
+    setShowProfileDropdown(false);
+  };
+
+  const togglePinnedRadial = async (id: string) => {
+    // Same as togglePinned but routes to the Radial profile file.
+    const next = radialProfiles.map((pr) =>
+      pr.id === id ? { ...pr, pinned: !pr.pinned, lastModified: Date.now() } : pr,
+    );
+    setRadialProfiles(next);
+    await persistRadialProfiles(next);
+  };
+
   // Skip-intro plan — flip the optional `skipIntroOnSelect` field on
   // the active profile (Tube or Coral). Three runtime states cycle
   // correctly because reads compare with `=== true`:
@@ -1145,7 +1168,7 @@ function RealtimeStatesEditor({
           animator with state-aware effective values), or
           RadialRealtimeBlob for the radial shader (driven by the V2
           per-property eased animator). Radial renders its own 2D
-          canvas, so it lives OUTSIDE the R3F <Canvas>. */}
+          canvas, so it lives OUTSIDE the R3F Canvas. */}
       <div style={{ width: 328, height: 328 }}>
         {activeOrb?.shader === 'radial' ? (
           <RadialRealtimeBlob
@@ -1349,6 +1372,12 @@ function RealtimeStatesEditor({
               >
                 {activeOrb?.shader === 'coral' ? (
                   <Circle size={11} className="shrink-0 text-[#ffa279]" aria-label="Coral D profile" />
+                ) : activeOrb?.shader === 'radial' ? (
+                  <span
+                    className="shrink-0 inline-block w-[11px] h-[11px] rounded-sm border border-gray-200"
+                    style={{ background: activeOrb.settings.display.previewBg }}
+                    aria-label="Radial profile"
+                  />
                 ) : (
                   <Disc size={11} className="shrink-0 text-[#949e05]" aria-label="Tube profile" />
                 )}
@@ -1591,6 +1620,48 @@ function RealtimeStatesEditor({
                       </div>
                     );
                   })}
+                  {/* Radial entries from radial-states-profiles.json.
+                      Selecting a Radial row switches the preview to
+                      RadialRealtimeBlob. Pin to surface on the live
+                      realtime page. Rename/edit lands in a follow-up;
+                      profile sliders still live on /voiceinterface/radial-states. */}
+                  {radialProfiles.map((p) => (
+                    <div
+                      key={p.id}
+                      className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 ${
+                        activeOrb?.shader === 'radial' && p.id === activeOrb.id
+                          ? 'font-medium text-gray-700'
+                          : 'text-gray-600'
+                      } cursor-pointer`}
+                      onClick={() => selectRadialProfile(p.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="shrink-0 inline-block w-[11px] h-[11px] rounded-sm border border-gray-200"
+                          style={{ background: p.settings.display.previewBg }}
+                          aria-label="Radial profile"
+                        />
+                        <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePinnedRadial(p.id);
+                          }}
+                          className={`shrink-0 transition-colors cursor-pointer ${
+                            p.pinned
+                              ? 'text-amber-500 hover:text-amber-600'
+                              : 'text-gray-300 hover:text-gray-600'
+                          }`}
+                          title={p.pinned ? 'Pinned to live page (click to unpin)' : 'Pin to live page'}
+                        >
+                          <Bookmark
+                            size={12}
+                            fill={p.pinned ? 'currentColor' : 'none'}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
