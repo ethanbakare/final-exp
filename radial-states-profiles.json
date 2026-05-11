@@ -574,10 +574,10 @@
     },
     "morph": {
       "idleToThinking": 0.4,
-      "thinkingToTalking": 0.6,
+      "thinkingToTalking": 0.25,
       "reactiveStartAt": 0.5
     },
-    "lastModified": 1778507000004,
+    "lastModified": 1778541140809,
     "pinned": true
   },
   {
@@ -926,7 +926,122 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.5
     },
-    "lastModified": 1778540000000,
-    "pinned": false
+    "lastModified": 1778540000000
+  },
+  {
+    "schemaVersion": 2,
+    "id": "rs-1778540290490-hsarm8",
+    "name": "Thatch",
+    "bars": {
+      "barWidth": 6.5,
+      "barGap": 9,
+      "roundCaps": true,
+      "barColor": "#e8e8e8",
+      "segments": 7,
+      "rotationSpeed": 3.5,
+      "updateRate": 0
+    },
+    "display": {
+      "bgColor": "#0f0f11",
+      "previewBg": "#f7f6f4",
+      "containerBg": "",
+      "containerBgOpacity": 1,
+      "containerRadius": 0,
+      "containerPadding": 0,
+      "showOutline": false,
+      "outlineColor": "#FFFFFF",
+      "outlineWidth": 2
+    },
+    "idle": {
+      "minBarLength": 3,
+      "maxBarLength": 40,
+      "sensitivity": 0.7,
+      "ambientWave": true,
+      "waveSpeed": 1.6,
+      "waveAmplitude": 0.5,
+      "waveHeight": 1.5,
+      "waveMode": "additive",
+      "waveShape": "segments",
+      "waveLobes": 2,
+      "smoothing": 0.95,
+      "waveEnvelope": 0.4,
+      "envelopeAmplitude": 1,
+      "envelopeSensitivity": 0.5,
+      "intensityOpacity": false
+    },
+    "listening": {
+      "minBarLength": 3,
+      "maxBarLength": 40,
+      "sensitivity": 0.7,
+      "ambientWave": true,
+      "waveSpeed": 1.6,
+      "waveAmplitude": 0.5,
+      "waveHeight": 1.5,
+      "waveMode": "additive",
+      "waveShape": "segments",
+      "waveLobes": 2,
+      "smoothing": 0.95,
+      "waveEnvelope": 0.4,
+      "envelopeAmplitude": 1,
+      "envelopeSensitivity": 0.5,
+      "intensityOpacity": false
+    },
+    "thinking": {
+      "minBarLength": 12,
+      "maxBarLength": 60,
+      "sensitivity": 0.7,
+      "ambientWave": false,
+      "waveSpeed": 1.9,
+      "waveAmplitude": 0.36,
+      "waveHeight": 1.5,
+      "waveMode": "additive",
+      "waveShape": "segments",
+      "waveLobes": 2,
+      "smoothing": 0.95,
+      "waveEnvelope": 0.4,
+      "envelopeAmplitude": 1,
+      "envelopeSensitivity": 0.5,
+      "intensityOpacity": false
+    },
+    "talking": {
+      "minBarLength": 3,
+      "maxBarLength": 40,
+      "sensitivity": 1.1,
+      "ambientWave": true,
+      "waveSpeed": 1.6,
+      "waveAmplitude": 0.8,
+      "waveHeight": 1.5,
+      "waveMode": "additive",
+      "waveShape": "segments",
+      "waveLobes": 7,
+      "smoothing": 0.95,
+      "waveEnvelope": 0.4,
+      "envelopeAmplitude": 1,
+      "envelopeSensitivity": 0.5,
+      "intensityOpacity": false
+    },
+    "geometry": {
+      "idleRadius": 134,
+      "talkingInnerGap": 14
+    },
+    "idleListeningLinked": true,
+    "lockBarCount": true,
+    "backdrop": {
+      "enabled": true,
+      "color": "#ffffff",
+      "opacity": 0.01,
+      "shape": "circle",
+      "segments": 7,
+      "depth": 6,
+      "outerShape": "circle",
+      "outerSegments": 7,
+      "outerDepth": 6
+    },
+    "morph": {
+      "idleToThinking": 0.4,
+      "thinkingToTalking": 0.6,
+      "reactiveStartAt": 0.5
+    },
+    "lastModified": 1778540416517
   }
 ]

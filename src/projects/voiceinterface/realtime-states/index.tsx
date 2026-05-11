@@ -1243,17 +1243,32 @@ function RealtimeStatesEditor({
       await persistCoralProfiles(next);
       return;
     }
-    // Radial path — handleRadialProfileChange already wrote slider
-    // edits through to radialProfiles + persisted on every change.
-    // Update just re-snapshots the baseline to mark the editor clean.
+    // Radial path — handleRadialProfileChange writes slider edits to
+    // radialProfiles IN MEMORY ONLY (per-edit persistence was removed
+    // in 9e78ff1 because it was overwriting the original profile on
+    // disk in real time during Save-as-new). So Update is the moment
+    // we write the in-memory edits through to disk AND re-snapshot
+    // the baseline.
     if (activeOrb.shader === 'radial') {
       const currentRadialEntry = radialProfiles.find((p) => p.id === activeOrb.id);
       if (!currentRadialEntry) return;
+      const stamp = Date.now();
+      const next = radialProfiles.map((pr) =>
+        pr.id === activeOrb.id
+          ? {
+              ...pr,
+              lastModified: stamp,
+              settings: { ...pr.settings, lastModified: stamp },
+            }
+          : pr,
+      );
+      setRadialProfiles(next);
       setActiveBaseline({
         key: `radial-states:${activeOrb.id}`,
         shader: 'radial',
-        settings: structuredClone(currentRadialEntry.settings),
+        settings: structuredClone(next.find((p) => p.id === activeOrb.id)!.settings),
       });
+      await persistRadialProfiles(next);
     }
   };
 
