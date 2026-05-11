@@ -322,16 +322,22 @@ function enterForwardB(p: RadialLinkedProfile, props: Props, anim: Anim, nowMs: 
   adoptDiscrete(anim, talkingRest);
 }
 
-/** Reverse Phase A — damp at inner ring (talkingAnchor). */
+/** Reverse Phase A — symmetric mirror of forward Phase A.
+ *  Damp + translate-outward in parallel, damp finishes first.
+ *  Anchor travels talkingAnchor → idleRadius - morphPin over full A
+ *  (while inwardRatio=0, so the outer tip of the bar reaches idleRadius
+ *  at phase end). Damp props decay over A * 0.5. */
 function enterReverseA(p: RadialLinkedProfile, props: Props, anim: Anim, nowMs: number) {
-  const talkingAnchor = deriveTalkingAnchor(p);
+  const target = anim.finalTarget;
+  const targetRest = restingValues(p, target);
   const morphPin = p.thinking.minBarLength;
+  const idleRadius = p.geometry.idleRadius;
   const A = p.morph.thinkingToTalking;
-  const reverseADur = A * (1 - p.morph.reactiveStartAt);
-  const dampDur = reverseADur * 0.5;
+  const dampDur = A * 0.5;
 
-  retarget(props.anchor, talkingAnchor, reverseADur, nowMs);
+  retarget(props.anchor, idleRadius - morphPin, A, nowMs);
   retarget(props.minBarLength, morphPin, dampDur, nowMs);
+  retarget(props.maxBarLength, targetRest.maxBarLength, A, nowMs);
   retarget(props.sensitivity, 0, dampDur, nowMs);
   retarget(props.waveAmplitude, 0, dampDur, nowMs);
   retarget(props.waveEnvelope, 0, dampDur, nowMs);
@@ -340,26 +346,26 @@ function enterReverseA(p: RadialLinkedProfile, props: Props, anim: Anim, nowMs: 
 
   anim.phase = 'reverseA';
   anim.phaseStartMs = nowMs;
-  anim.phaseDuration = reverseADur;
+  anim.phaseDuration = A;
   anim.inwardRatio = 0;
-  anim.freezeAtMin = false;
+  anim.freezeAtMin = false; // flips true mid-phase when damp completes
   anim.ambientWave = false;
 }
 
-/** Reverse Phase B — flip + translate outward + ramp to target. */
+/** Reverse Phase B — invisible flip + reactive ramp to target.
+ *  Anchor snaps idleRadius - morphPin → idleRadius (with inwardRatio
+ *  flipping 0→1, same pixels). Reactive ramps up. No translation. */
 function enterReverseB(p: RadialLinkedProfile, props: Props, anim: Anim, nowMs: number) {
   const target = anim.finalTarget;
   const targetRest = restingValues(p, target);
-  const talkingAnchor = deriveTalkingAnchor(p);
-  const morphPin = p.thinking.minBarLength;
+  const idleRadius = p.geometry.idleRadius;
   const A = p.morph.thinkingToTalking;
-  const Bdur = A * p.morph.reactiveStartAt;
+  const Bdur = A * (1 - p.morph.reactiveStartAt);
 
-  // Flip: anchor jumps talkingAnchor → talkingAnchor + morphPin
-  // (with inwardRatio flipping 0→1, same pixels at flip moment).
-  snap(props.anchor, talkingAnchor + morphPin, nowMs);
+  // Flip: anchor jumps (idleRadius - morphPin) → idleRadius with
+  // inwardRatio flipping 0→1. Same pixel position, invisible.
+  snap(props.anchor, idleRadius, nowMs);
 
-  retarget(props.anchor, targetRest.anchor, Bdur, nowMs);
   retarget(props.minBarLength, targetRest.minBarLength, Bdur, nowMs);
   retarget(props.maxBarLength, targetRest.maxBarLength, Bdur, nowMs);
   retarget(props.sensitivity, targetRest.sensitivity, Bdur, nowMs);
@@ -372,8 +378,6 @@ function enterReverseB(p: RadialLinkedProfile, props: Props, anim: Anim, nowMs: 
   anim.phaseStartMs = nowMs;
   anim.phaseDuration = Bdur;
   anim.inwardRatio = 1;
-  // freezeAtMin: true while target is thinking and bars are at min;
-  // false otherwise. Set true at phase end if target is thinking.
   anim.freezeAtMin = false;
   adoptDiscrete(anim, targetRest);
 }
