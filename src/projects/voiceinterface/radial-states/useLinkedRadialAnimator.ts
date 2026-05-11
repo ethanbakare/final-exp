@@ -281,36 +281,32 @@ function computeMorphFrame(
     if (t < phaseAEnd) {
       const tA = phaseAEnd > 0 ? t / phaseAEnd : 1;
       const anchorTarget = talkingAnchor + morphPinLength;
-      // Compress the damp into the first 30% of Phase A so bars reach
-      // uniform thinking-shape (single fixed min height) quickly. The
-      // remaining 70% is pure translation with bars frozen at min —
-      // matches user spec: "transformation to thinking in real time
-      // while it's moving" + "they have to adjust all to one fixed
-      // height". If damp ran the full Phase A, bars retained
-      // listening's wave variation throughout the translation, which
-      // is what the user saw and reported.
-      const dampEnd = 0.3;
-      const tDamp = Math.min(1, tA / dampEnd);
-      const damping = tA < dampEnd;
+      // Damp + translate happen IN PARALLEL on the same Phase A clock.
+      // Reactive params (sensitivity, wave amplitudes, envelope amps,
+      // minBarLength) lerp linearly across the full Phase A from
+      // start's values to thinking's frozen targets. Anchor also lerps
+      // across the full Phase A from start position to talkingAnchor +
+      // morphPin. CRITICALLY, smoothing is overridden to 0 throughout
+      // Phase A — the renderer's smoothing (default 0.95) would
+      // otherwise lag the value by ~30 frames and hide the damp
+      // entirely during translation. With smoothing=0, bars visibly
+      // shrink in real time as reactive params drop, simultaneously
+      // with the anchor sliding inward. freezeAtMin engages only at
+      // tA >= 0.95 to guarantee exact min length at the flip; by then
+      // reactive params are already near 0 so it's a no-op visually.
       return {
         ...start,
         anchor: lerp(start.anchor, anchorTarget, tA),
         inwardRatio: 1,
-        // Engage freezeAtMin once the damp portion is done — bars then
-        // hold at exact min length for the rest of Phase A.
-        freezeAtMin: !damping,
-        // During damp: lerp min from start to thinking-pin. After damp:
-        // pinned at thinking-pin.
-        minBarLength: damping ? lerp(start.minBarLength, morphPinLength, tDamp) : morphPinLength,
-        sensitivity: damping ? lerp(start.sensitivity, 0, tDamp) : 0,
-        ambientWave: tDamp < 0.95 ? start.ambientWave : false,
-        waveAmplitude: damping ? lerp(start.waveAmplitude, 0, tDamp) : 0,
-        waveEnvelope: damping ? lerp(start.waveEnvelope, 0, tDamp) : 0,
-        envelopeAmplitude: damping ? lerp(start.envelopeAmplitude, 0, tDamp) : 0,
-        envelopeSensitivity: damping ? lerp(start.envelopeSensitivity, 0, tDamp) : 0,
-        // Smoothing taper linearly to 0 over the damp window so the
-        // audio path converges value to 0 by the end of the damp.
-        smoothing: damping ? lerp(start.smoothing, 0, tDamp) : 0,
+        freezeAtMin: tA >= 0.95,
+        minBarLength: lerp(start.minBarLength, morphPinLength, tA),
+        sensitivity: lerp(start.sensitivity, 0, tA),
+        ambientWave: tA < 0.95 ? start.ambientWave : false,
+        waveAmplitude: lerp(start.waveAmplitude, 0, tA),
+        waveEnvelope: lerp(start.waveEnvelope, 0, tA),
+        envelopeAmplitude: lerp(start.envelopeAmplitude, 0, tA),
+        envelopeSensitivity: lerp(start.envelopeSensitivity, 0, tA),
+        smoothing: 0, // ← the key change. No rendering lag during the damp.
         waveSpeed: lerp(start.waveSpeed, target.waveSpeed, t),
         waveHeight: lerp(start.waveHeight, target.waveHeight, t),
         waveMode: tA < 0.5 ? start.waveMode : target.waveMode,
