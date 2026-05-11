@@ -52,6 +52,7 @@ import {
 } from './api';
 import { RadialRealtimeBlob } from '@/projects/voiceinterface/components/RadialRealtimeBlob';
 import { RadialEditorPanel } from './RadialEditorPanel';
+import { makeDefaultProfile } from '@/projects/voiceinterface/radial-states/api';
 import {
   ColorPickerButton,
   CoralTabPanel,
@@ -195,7 +196,7 @@ function RealtimeStatesEditor({
   // which sub-UI is visible; saveShader is the chosen target shader
   // for the new entry (defaults to the active shader on dialog open).
   const [saveStep, setSaveStep] = useState<'shader' | 'name'>('shader');
-  const [saveShader, setSaveShader] = useState<'tube' | 'coral'>('tube');
+  const [saveShader, setSaveShader] = useState<'tube' | 'coral' | 'radial'>('tube');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [thinkingPaused, setThinkingPaused] = useState(false);
@@ -670,6 +671,7 @@ function RealtimeStatesEditor({
       ...Array.from(externalProfileNames),
       ...tubeProfiles.map((p) => normalizeProfileName(p.name)),
       ...coralProfiles.map((p) => normalizeProfileName(p.name)),
+      ...radialProfiles.map((p) => normalizeProfileName(p.name)),
     ]);
     const available = CURATED_NAMES.filter((name) => !used.has(normalizeProfileName(name)));
     if (available.length > 0) {
@@ -877,27 +879,63 @@ function RealtimeStatesEditor({
       return;
     }
 
-    // saveShader === 'coral'
-    const coralSettings: CoralRealtimeSettings = sameShader
-      ? structuredClone(activeCoralSettings ?? CORAL_FALLBACK_PROFILE)
-      : structuredClone(CORAL_FALLBACK_PROFILE);
-    const coralEntry: SavedCoralProfile = {
-      id: `rt-coral-${crypto.randomUUID()}`,
+    if (saveShader === 'coral') {
+      const coralSettings: CoralRealtimeSettings = sameShader
+        ? structuredClone(activeCoralSettings ?? CORAL_FALLBACK_PROFILE)
+        : structuredClone(CORAL_FALLBACK_PROFILE);
+      const coralEntry: SavedCoralProfile = {
+        id: `rt-coral-${crypto.randomUUID()}`,
+        name,
+        pinned: false,
+        settings: coralSettings,
+        lastModified: Date.now(),
+      };
+      const nextCoral = [...coralProfiles, coralEntry];
+      setCoralProfiles(nextCoral);
+      setActiveOrbKey(`realtime-coral:${coralEntry.id}`);
+      setActiveBaseline({
+        key: `realtime-coral:${coralEntry.id}`,
+        shader: 'coral',
+        settings: structuredClone(coralSettings),
+      });
+      closeSaveDialog();
+      await persistCoralProfiles(nextCoral);
+      return;
+    }
+
+    // saveShader === 'radial' — clone active radial settings (same-
+    // shader) or start from a default radial profile (cross-shader).
+    // The new entry's id and name are mirrored into the settings so
+    // the on-disk flat JSON shape stays consistent (radial-states-
+    // profiles.json carries id/name at the top level of the settings
+    // object, not on a wrapper).
+    const radialId = `rs-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const radialBase: RadialLinkedProfile = sameShader && activeOrb?.shader === 'radial'
+      ? structuredClone(activeOrb.settings)
+      : makeDefaultProfile(radialId, name);
+    const radialSettings: RadialLinkedProfile = {
+      ...radialBase,
+      id: radialId,
       name,
-      pinned: false,
-      settings: coralSettings,
       lastModified: Date.now(),
     };
-    const nextCoral = [...coralProfiles, coralEntry];
-    setCoralProfiles(nextCoral);
-    setActiveOrbKey(`realtime-coral:${coralEntry.id}`);
+    const radialEntry: SavedRadialProfile = {
+      id: radialId,
+      name,
+      pinned: false,
+      settings: radialSettings,
+      lastModified: radialSettings.lastModified,
+    };
+    const nextRadial = [...radialProfiles, radialEntry];
+    setRadialProfiles(nextRadial);
+    setActiveOrbKey(`radial-states:${radialId}`);
     setActiveBaseline({
-      key: `realtime-coral:${coralEntry.id}`,
-      shader: 'coral',
-      settings: structuredClone(coralSettings),
+      key: `radial-states:${radialId}`,
+      shader: 'radial',
+      settings: structuredClone(radialSettings),
     });
     closeSaveDialog();
-    await persistCoralProfiles(nextCoral);
+    await persistRadialProfiles(nextRadial);
   };
 
   const closeSaveDialog = () => {
@@ -2073,6 +2111,26 @@ function RealtimeStatesEditor({
                     Coral
                   </button>
                   <button
+                    onClick={() => {
+                      setSaveShader('radial');
+                      setSaveName(pickRealtimeUnusedName());
+                      setSaveStep('name');
+                    }}
+                    className="px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center gap-1.5 border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                  >
+                    <span
+                      className="shrink-0 inline-block w-[11px] h-[11px] rounded-sm border border-gray-200"
+                      style={{
+                        background:
+                          activeOrb?.shader === 'radial'
+                            ? activeOrb.settings.display.previewBg
+                            : '#f7f6f4',
+                      }}
+                      aria-label="Radial profile"
+                    />
+                    Radial
+                  </button>
+                  <button
                     onClick={closeSaveDialog}
                     className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                   >
@@ -2083,6 +2141,17 @@ function RealtimeStatesEditor({
                 <div className="flex items-center gap-1.5">
                   {saveShader === 'coral' ? (
                     <Circle size={11} className="text-[#ffa279]" />
+                  ) : saveShader === 'radial' ? (
+                    <span
+                      className="shrink-0 inline-block w-[11px] h-[11px] rounded-sm border border-gray-200"
+                      style={{
+                        background:
+                          activeOrb?.shader === 'radial'
+                            ? activeOrb.settings.display.previewBg
+                            : '#f7f6f4',
+                      }}
+                      aria-label="Radial profile"
+                    />
                   ) : (
                     <Disc size={11} className="text-[#949e05]" />
                   )}
@@ -2122,10 +2191,13 @@ function RealtimeStatesEditor({
             ) : (
               <button
                 onClick={() => {
-                  // Save dialog currently offers Tube and Coral only.
-                  // Radial save support lands in a follow-up; default to
-                  // tube when activeOrb is radial.
-                  setSaveShader(activeOrb?.shader === 'coral' ? 'coral' : 'tube');
+                  // Pre-select the active orb's shader so the dialog's
+                  // visual icon matches what the user is editing. The
+                  // user can still pick a different target shader from
+                  // the picker step — same-shader saves clone the
+                  // active settings, cross-shader saves start from
+                  // that shader's default.
+                  setSaveShader(activeOrb?.shader ?? 'tube');
                   setSaveStep('shader');
                   setShowSaveDialog(true);
                 }}
