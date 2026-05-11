@@ -500,16 +500,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   const handleStartConversation = async () => {
     console.log('[OpenAI Realtime] Starting conversation...');
     try {
-      // Bug history: we used to setAppState('listening') here, before
-      // any of the async setup ran. The WebRTC handshake + token fetch
-      // typically take 600ms–2s on a fresh page; during that window
-      // the UI said "listening" but audio wasn't yet streaming to
-      // OpenAI, so a first-utterance spoken in that window was lost
-      // to the server entirely. We now hold appState at 'idle' until
-      // session.connect() resolves, then flip to 'listening'. The
-      // Record button still reflects intent via isConversationActive
-      // (set immediately below), so the click feels acknowledged.
       setIsConversationActive(true);
+      setAppState('listening');
       setError('');
 
       // 1. Create AudioContext
@@ -643,12 +635,6 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
 
       await session.connect({ apiKey: ephemeralKey });
       console.log('[OpenAI Realtime] Connected (VAD: createResponse=false), listening...');
-
-      // Only now is the WebRTC data channel + media tracks fully
-      // established and OpenAI's VAD ready to receive our audio.
-      // Flipping to 'listening' before this point would lie to the
-      // user about what the system can actually hear.
-      setAppState('listening');
 
     } catch (err) {
       console.error('[OpenAI Realtime] Error starting conversation:', err);
