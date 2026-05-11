@@ -775,9 +775,18 @@ function RealtimeStatesEditor({
   // morph back to torus uses talking.settleSpeed if set (parity with
   // Tube's settle override pattern).
   const prevCoralStateRef = useRef(state);
-  const [coralActiveMorphSpeed, setCoralActiveMorphSpeed] = useState<number>(
-    () => activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed,
-  );
+  // First-mount intro is semantically a talking → idle transition (the
+  // editor canvas mounts at the talking shape via coralStartScale/Wave/
+  // Color3 and eases to base). Honour talking.settleSpeed at lazy init,
+  // mirroring CoralRealtimeBlob's fix (60aa070). Without this, the
+  // user's "Settle Speed (talking → idle)" peak override would be
+  // ignored on first mount AND on Replay — only kicking in on a real
+  // post-mount talking → not-talking transition.
+  const [coralActiveMorphSpeed, setCoralActiveMorphSpeed] = useState<number>(() => {
+    const baseSpeed = activeCoralSettings?.base.morphSpeed ?? CORAL_FALLBACK_PROFILE.base.morphSpeed;
+    if (activeOrb?.skipIntroOnSelect === true) return baseSpeed;
+    return activeCoralSettings?.talking?.settleSpeed ?? baseSpeed;
+  });
   useEffect(() => {
     if (activeOrb?.shader !== 'coral') {
       // Tube active — morphSpeed isn't used. Don't update.
