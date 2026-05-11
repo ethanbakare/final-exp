@@ -183,6 +183,11 @@ function RealtimeStatesEditor({
   });
   const [activeTab, setActiveTab] = useState<ControlTab | null>(null);
   const [expanded, setExpanded] = useState(false);
+  /** Radial-only: whether the always-on multi-section panel is shown.
+   *  Default open; the bottom-bar menu icon toggles it. Tube/Coral use
+   *  the `expanded` flag above; radial is decoupled because its panel
+   *  is open by default and isn't tied to the tab system. */
+  const [radialPanelOpen, setRadialPanelOpen] = useState(true);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState('');
@@ -643,7 +648,14 @@ function RealtimeStatesEditor({
     // entries could be renamed to the same name. id space is shared
     // across Coral + Tube source arrays in practice (uuid-based), so
     // exceptId disambiguation is safe.
-    return coralProfiles.some(
+    if (
+      coralProfiles.some(
+        (p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized,
+      )
+    ) {
+      return true;
+    }
+    return radialProfiles.some(
       (p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized,
     );
   };
@@ -1060,6 +1072,28 @@ function RealtimeStatesEditor({
     await persistProfiles(next);
   };
 
+  const commitRenameRadial = async (id: string, draft: string) => {
+    const name = draft.trim();
+    if (!name || profileNameExists(name, id)) return;
+    const now = Date.now();
+    // Update BOTH the wrapper and the inner settings so the on-disk
+    // flat JSON (which gets the name from settings) is consistent and
+    // the dropdown label, baseline diffing, etc. all agree.
+    const next = radialProfiles.map((pr) =>
+      pr.id === id
+        ? {
+            ...pr,
+            name,
+            lastModified: now,
+            settings: { ...pr.settings, name, lastModified: now },
+          }
+        : pr,
+    );
+    setRadialProfiles(next);
+    cancelRename();
+    await persistRadialProfiles(next);
+  };
+
   const handleUpdate = async () => {
     if (!isDirty || !activeOrb) return;
     // Phase 3E — route by activeOrb.shader. Tube persists to the
@@ -1096,6 +1130,19 @@ function RealtimeStatesEditor({
         settings: structuredClone(currentCoralEntry.settings),
       });
       await persistCoralProfiles(next);
+      return;
+    }
+    // Radial path — handleRadialProfileChange already wrote slider
+    // edits through to radialProfiles + persisted on every change.
+    // Update just re-snapshots the baseline to mark the editor clean.
+    if (activeOrb.shader === 'radial') {
+      const currentRadialEntry = radialProfiles.find((p) => p.id === activeOrb.id);
+      if (!currentRadialEntry) return;
+      setActiveBaseline({
+        key: `radial-states:${activeOrb.id}`,
+        shader: 'radial',
+        settings: structuredClone(currentRadialEntry.settings),
+      });
     }
   };
 
@@ -1164,13 +1211,12 @@ function RealtimeStatesEditor({
   // Plan v8 (3D-0 step 3) — read from activeOrb. The path is uniform
   // since both shader settings types expose `base.bgColor` at the same
   // path (deliberate design from v4).
-  // Radial uses a fixed white surround so the editor view is consistent
-  // regardless of the profile's own bgColor (which is intended for the
-  // LIVE realtime page chrome, not the editor canvas). Tube/Coral
-  // continue to source bgColor from settings.base.
+  // Radial profiles store the page bg at display.bgColor (driven by
+  // the "Page" picker in the radial editor's Style column). Tube/Coral
+  // store it at settings.base.bgColor.
   const activeBgColor =
     activeOrb?.shader === 'radial'
-      ? '#FFFFFF'
+      ? activeOrb.settings.display.bgColor
       : (activeOrb?.settings.base.bgColor ?? profile.base.bgColor);
 
   return (
@@ -1295,7 +1341,7 @@ function RealtimeStatesEditor({
             main bar. Radial uses a single multi-section panel (Geometry,
             Audio, Wave, Envelope, Style, Backdrop, Morph) rather than
             the Tube/Coral tab system. */}
-        {activeOrb?.shader === 'radial' && (
+        {activeOrb?.shader === 'radial' && radialPanelOpen && (
           <div className="absolute bottom-full left-0 right-0 max-h-[60vh] overflow-y-auto">
             <RadialEditorPanel
               profile={activeOrb.settings}
@@ -1376,12 +1422,31 @@ function RealtimeStatesEditor({
           <div className="max-w-6xl mx-auto px-4 py-2 flex items-center gap-2 flex-wrap">
             <button
               onClick={() => {
-                setExpanded((p) => !p);
-                setActiveTab(null);
+                if (activeOrb?.shader === 'radial') {
+                  setRadialPanelOpen((p) => !p);
+                } else {
+                  setExpanded((p) => !p);
+                  setActiveTab(null);
+                }
               }}
               className="p-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer"
+              title={
+                activeOrb?.shader === 'radial'
+                  ? radialPanelOpen
+                    ? 'Minimise editor panel'
+                    : 'Open editor panel'
+                  : expanded
+                    ? 'Close drawer'
+                    : 'Open drawer'
+              }
             >
-              {expanded ? <X size={14} /> : <Menu size={14} />}
+              {activeOrb?.shader === 'radial'
+                ? radialPanelOpen
+                  ? <X size={14} />
+                  : <Menu size={14} />
+                : expanded
+                  ? <X size={14} />
+                  : <Menu size={14} />}
             </button>
 
             <div className="w-px h-6 bg-gray-200" />
@@ -1669,43 +1734,104 @@ function RealtimeStatesEditor({
                       RadialRealtimeBlob. Pin to surface on the live
                       realtime page. Rename/edit lands in a follow-up;
                       profile sliders still live on /voiceinterface/radial-states. */}
-                  {radialProfiles.map((p) => (
-                    <div
-                      key={p.id}
-                      className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 ${
-                        activeOrb?.shader === 'radial' && p.id === activeOrb.id
-                          ? 'font-medium text-gray-700'
-                          : 'text-gray-600'
-                      } cursor-pointer`}
-                      onClick={() => selectRadialProfile(p.id)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="shrink-0 inline-block w-[11px] h-[11px] rounded-sm border border-gray-200"
-                          style={{ background: p.settings.display.previewBg }}
-                          aria-label="Radial profile"
-                        />
-                        <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            togglePinnedRadial(p.id);
-                          }}
-                          className={`shrink-0 transition-colors cursor-pointer ${
-                            p.pinned
-                              ? 'text-amber-500 hover:text-amber-600'
-                              : 'text-gray-300 hover:text-gray-600'
-                          }`}
-                          title={p.pinned ? 'Pinned to live page (click to unpin)' : 'Pin to live page'}
-                        >
-                          <Bookmark
-                            size={12}
-                            fill={p.pinned ? 'currentColor' : 'none'}
-                          />
-                        </button>
+                  {radialProfiles.map((p) => {
+                    const isRenaming = renamingId === p.id;
+                    const renameInvalid =
+                      !renameDraft.trim() || profileNameExists(renameDraft, p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 ${
+                          activeOrb?.shader === 'radial' && p.id === activeOrb.id
+                            ? 'font-medium text-gray-700'
+                            : 'text-gray-600'
+                        } ${isRenaming ? '' : 'cursor-pointer'}`}
+                        onClick={() => {
+                          if (!isRenaming) selectRadialProfile(p.id);
+                        }}
+                      >
+                        {isRenaming ? (
+                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="text"
+                              value={renameDraft}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') commitRenameRadial(p.id, renameDraft);
+                                if (e.key === 'Escape') cancelRename();
+                              }}
+                              className={`min-w-0 flex-1 px-2 py-1 text-xs border rounded-md outline-none focus:border-gray-400 ${
+                                renameInvalid ? 'border-red-200' : 'border-gray-200'
+                              }`}
+                              autoFocus
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                commitRenameRadial(p.id, renameDraft);
+                              }}
+                              disabled={renameInvalid}
+                              className={`transition-colors ${
+                                renameInvalid
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-gray-500 hover:text-green-600 cursor-pointer'
+                              }`}
+                              title="Save name"
+                            >
+                              <Check size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelRename();
+                              }}
+                              className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                              title="Cancel rename"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="shrink-0 inline-block w-[11px] h-[11px] rounded-sm border border-gray-200"
+                              style={{ background: p.settings.display.previewBg }}
+                              aria-label="Radial profile"
+                            />
+                            <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePinnedRadial(p.id);
+                              }}
+                              className={`shrink-0 transition-colors cursor-pointer ${
+                                p.pinned
+                                  ? 'text-amber-500 hover:text-amber-600'
+                                  : 'text-gray-300 hover:text-gray-600'
+                              }`}
+                              title={p.pinned ? 'Pinned to live page (click to unpin)' : 'Pin to live page'}
+                            >
+                              <Bookmark
+                                size={12}
+                                fill={p.pinned ? 'currentColor' : 'none'}
+                              />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRenamingId(p.id);
+                                setRenameDraft(p.name);
+                              }}
+                              className="shrink-0 text-gray-300 hover:text-gray-600 transition-colors cursor-pointer"
+                              title="Rename profile"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1882,6 +2008,26 @@ function RealtimeStatesEditor({
                       setCoralProfiles((arr) =>
                         arr.map((pr) => (pr.id === activeOrb.id ? { ...pr, settings: reverted } : pr)),
                       );
+                    } else if (
+                      activeOrb.shader === 'radial' &&
+                      activeBaseline.shader === 'radial'
+                    ) {
+                      const reverted = structuredClone(activeBaseline.settings);
+                      const next = radialProfiles.map((pr) =>
+                        pr.id === activeOrb.id
+                          ? {
+                              ...pr,
+                              name: reverted.name,
+                              lastModified: reverted.lastModified,
+                              settings: reverted,
+                            }
+                          : pr,
+                      );
+                      setRadialProfiles(next);
+                      // Persist the revert so the on-disk JSON tracks
+                      // the editor view; mirrors the per-edit persist
+                      // model in handleRadialProfileChange.
+                      void persistRadialProfiles(next);
                     }
                   }}
                   className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-1"

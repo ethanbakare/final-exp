@@ -509,11 +509,19 @@ export function ControlsPanel({
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af' }}>
-            <span>BG</span>
+            <span>Cell</span>
             <ColorPickerButton
               value={settings.previewBg}
               onChange={(v) => set('previewBg', v)}
               title="Cell background"
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9ca3af' }}>
+            <span>Page</span>
+            <ColorPickerButton
+              value={settings.bgColor}
+              onChange={(v) => set('bgColor', v)}
+              title="Page background"
             />
           </div>
         </div>
