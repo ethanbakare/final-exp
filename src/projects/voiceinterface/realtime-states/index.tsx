@@ -51,6 +51,7 @@ import {
   persistRadialProfiles,
 } from './api';
 import { RadialRealtimeBlob } from '@/projects/voiceinterface/components/RadialRealtimeBlob';
+import { RadialEditorPanel } from './RadialEditorPanel';
 import {
   ColorPickerButton,
   CoralTabPanel,
@@ -74,7 +75,9 @@ import type {
   SavedCoralProfile,
   SavedProfile,
   SavedRadialProfile,
+  RadialLinkedProfile,
 } from './types';
+import type { RadialState } from '@/projects/voiceinterface/radial-states/types';
 
 // ── Page ─────────────────────────────────────────────────────────
 
@@ -936,6 +939,28 @@ function RealtimeStatesEditor({
     await persistRadialProfiles(next);
   };
 
+  // Persistent updater for radial profile edits. Bubbled up from
+  // RadialEditorPanel via onProfileChange — we replace the active
+  // entry by id and immediately POST. The SavedRadialProfile wrapper's
+  // top-level id/name/lastModified mirror the inner settings so the
+  // dropdown row, the dirty checker (future), and the on-disk JSON
+  // all stay in sync.
+  const handleRadialProfileChange = (next: RadialLinkedProfile) => {
+    const updated = radialProfiles.map((p) =>
+      p.id === next.id
+        ? {
+            ...p,
+            id: next.id,
+            name: next.name,
+            lastModified: next.lastModified,
+            settings: next,
+          }
+        : p,
+    );
+    setRadialProfiles(updated);
+    void persistRadialProfiles(updated);
+  };
+
   // Skip-intro plan — flip the optional `skipIntroOnSelect` field on
   // the active profile (Tube or Coral). Three runtime states cycle
   // correctly because reads compare with `=== true`:
@@ -1266,10 +1291,26 @@ function RealtimeStatesEditor({
 
       {/* Bottom bar (mirrors GalleryNavBar) */}
       <div className="fixed bottom-0 left-0 right-0 z-40">
+        {/* Radial active: the editor panel is always shown above the
+            main bar. Radial uses a single multi-section panel (Geometry,
+            Audio, Wave, Envelope, Style, Backdrop, Morph) rather than
+            the Tube/Coral tab system. */}
+        {activeOrb?.shader === 'radial' && (
+          <div className="absolute bottom-full left-0 right-0 max-h-[60vh] overflow-y-auto">
+            <RadialEditorPanel
+              profile={activeOrb.settings}
+              focused={state as RadialState}
+              onProfileChange={handleRadialProfileChange}
+            />
+          </div>
+        )}
+
         {/* Single-tab popover — shader-aware (round-7 F5 gate flip).
             Dispatches to the appropriate per-shader tab panel based
-            on activeOrb.shader. Hidden when no orb is selected. */}
-        {activeOrb && !expanded && activeTab && (
+            on activeOrb.shader. Hidden when no orb is selected, when
+            expanded is on, or when activeOrb is radial (which has its
+            own always-on panel above). */}
+        {activeOrb && activeOrb.shader !== 'radial' && !expanded && activeTab && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[50vh] overflow-y-auto">
             <div className="max-w-3xl mx-auto p-4">
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
@@ -1294,8 +1335,9 @@ function RealtimeStatesEditor({
           </div>
         )}
 
-        {/* Expanded 4-column drawer — shader-aware. */}
-        {activeOrb && expanded && (
+        {/* Expanded 4-column drawer — shader-aware. Hidden for radial
+            (radial uses the always-on panel above). */}
+        {activeOrb && activeOrb.shader !== 'radial' && expanded && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[60vh] overflow-y-auto">
             <div className="max-w-6xl mx-auto p-4">
               <div className="text-[11px] uppercase tracking-wider text-gray-400 mb-2">
@@ -1670,24 +1712,26 @@ function RealtimeStatesEditor({
 
             <div className="w-px h-6 bg-gray-200" />
 
-            {/* Tab buttons — shader-aware. Both Tube and Coral show
-                tabs; the Coral renderer (CoralTabPanel) handles its
-                own slider set per state pill. */}
-            <div className="flex items-center gap-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => toggleTab(tab.key)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                    activeTab === tab.key
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+            {/* Tab buttons — shader-aware. Tube and Coral show tabs;
+                radial uses an always-on multi-section panel above the
+                main bar so the tab buttons are hidden for it. */}
+            {activeOrb?.shader !== 'radial' && (
+              <div className="flex items-center gap-1">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => toggleTab(tab.key)}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                      activeTab === tab.key
+                        ? 'bg-gray-100 text-gray-800'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Bottom swatches — Tube-only per round-7 F8. Coral users
                 edit colours from the Colours tab. */}

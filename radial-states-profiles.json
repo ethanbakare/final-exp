@@ -594,7 +594,7 @@
     },
     "display": {
       "bgColor": "#0F0F11",
-      "previewBg": "#f7f6f4",
+      "previewBg": "#544028",
       "containerBg": "",
       "containerBgOpacity": 1,
       "containerRadius": 0,
@@ -693,7 +693,7 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.75
     },
-    "lastModified": 1778186449980
+    "lastModified": 1778506870830
   },
   {
     "schemaVersion": 2,
