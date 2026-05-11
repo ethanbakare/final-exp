@@ -13,7 +13,7 @@
       "updateRate": 0
     },
     "display": {
-      "bgColor": "#0F0F11",
+      "bgColor": "#FFFFFF",
       "previewBg": "#f7f6f4",
       "containerBg": "",
       "containerBgOpacity": 1,
@@ -113,7 +113,7 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.75
     },
-    "lastModified": 1778181691204
+    "lastModified": 1778507000000
   },
   {
     "schemaVersion": 2,
@@ -129,7 +129,7 @@
       "updateRate": 0
     },
     "display": {
-      "bgColor": "#0F0F11",
+      "bgColor": "#FFFFFF",
       "previewBg": "#f7f6f4",
       "containerBg": "",
       "containerBgOpacity": 1,
@@ -229,7 +229,7 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.5
     },
-    "lastModified": 1778300373600
+    "lastModified": 1778507000001
   },
   {
     "schemaVersion": 2,
@@ -245,7 +245,7 @@
       "updateRate": 0
     },
     "display": {
-      "bgColor": "#0F0F11",
+      "bgColor": "#FFFFFF",
       "previewBg": "#f7f6f4",
       "containerBg": "",
       "containerBgOpacity": 1,
@@ -345,7 +345,7 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.75
     },
-    "lastModified": 1778171504671
+    "lastModified": 1778507000002
   },
   {
     "schemaVersion": 2,
@@ -361,7 +361,7 @@
       "updateRate": 0
     },
     "display": {
-      "bgColor": "#0F0F11",
+      "bgColor": "#FFFFFF",
       "previewBg": "#f7f6f4",
       "containerBg": "",
       "containerBgOpacity": 1,
@@ -461,7 +461,7 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.75
     },
-    "lastModified": 1778171597313
+    "lastModified": 1778507000003
   },
   {
     "schemaVersion": 2,
@@ -477,7 +477,7 @@
       "updateRate": 0
     },
     "display": {
-      "bgColor": "#0F0F11",
+      "bgColor": "#FFFFFF",
       "previewBg": "#f7f6f4",
       "containerBg": "",
       "containerBgOpacity": 1,
@@ -577,7 +577,7 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.5
     },
-    "lastModified": 1778369684992
+    "lastModified": 1778507000004
   },
   {
     "schemaVersion": 2,
@@ -593,7 +593,7 @@
       "updateRate": 0
     },
     "display": {
-      "bgColor": "#0F0F11",
+      "bgColor": "#FFFFFF",
       "previewBg": "#544028",
       "containerBg": "",
       "containerBgOpacity": 1,
@@ -693,7 +693,7 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.75
     },
-    "lastModified": 1778506870830
+    "lastModified": 1778507000005
   },
   {
     "schemaVersion": 2,
@@ -709,7 +709,7 @@
       "updateRate": 0
     },
     "display": {
-      "bgColor": "#0F0F11",
+      "bgColor": "#FFFFFF",
       "previewBg": "#f7f6f4",
       "containerBg": "",
       "containerBgOpacity": 1,
@@ -809,6 +809,6 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.75
     },
-    "lastModified": 1778186497342
+    "lastModified": 1778507000006
   }
 ]
