@@ -577,7 +577,8 @@
       "thinkingToTalking": 0.6,
       "reactiveStartAt": 0.5
     },
-    "lastModified": 1778507000004
+    "lastModified": 1778507000004,
+    "pinned": true
   },
   {
     "schemaVersion": 2,

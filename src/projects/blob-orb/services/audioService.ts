@@ -185,7 +185,12 @@ export class AudioService {
     }
     rms = Math.sqrt(rms / this.dataArray.length);
 
-    return { bass, mid, treble, rms };
+    // Pass the raw frequency array through for shaders that consume it
+    // directly (radial-waveform variants used in realtime-states /
+    // realtime page wrappers). Tube/Coral wrappers ignore it. Reference
+    // is shared with the internal pooled buffer, which is safe because
+    // each consumer reads from props each frame.
+    return { bass, mid, treble, rms, frequencyData: this.dataArray };
   }
 }
 

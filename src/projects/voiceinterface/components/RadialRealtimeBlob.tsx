@@ -227,6 +227,11 @@ export const RadialRealtimeBlob: React.FC<RadialRealtimeBlobProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        // Mirror TuneCell — clip the canvas if a profile's geometry
+        // overflows the wrapper box. Shipped profiles fit comfortably
+        // (outer reach ≤ 151 vs halfExtent 164), but this is the
+        // defensive default and matches the radial-states page exactly.
+        overflow: 'hidden',
         lineHeight: 0,
       }}
     >
@@ -253,7 +258,13 @@ export const RadialRealtimeBlob: React.FC<RadialRealtimeBlobProps> = ({
           maxBarLength={anim.maxBarLength}
           sensitivity={anim.sensitivity}
           barColor={profile.bars.barColor}
-          bgColor="transparent"
+          // bgColor is accepted by the renderer but never painted
+          // (the canvas uses clearRect — transparent). Passing the
+          // profile's bgColor for prop-parity with the radial-states
+          // TuneCell rather than a hardcoded "transparent" string,
+          // so future renderer changes that DO consume bgColor get
+          // the right value automatically.
+          bgColor={profile.display.bgColor}
           segments={profile.bars.segments}
           roundCaps={profile.bars.roundCaps}
           intensityOpacity={anim.intensityOpacity}
