@@ -26,7 +26,27 @@ import { useEffect, useRef, useState } from 'react';
 import type { RadialLinkedProfile } from './api';
 import { deriveTalkingAnchor } from './api';
 import type { RadialState } from './types';
-import type { RadialRenderValues } from './useLinkedRadialAnimator';
+
+export interface RadialRenderValues {
+  anchor: number;
+  inwardRatio: 0 | 1;
+  minBarLength: number;
+  maxBarLength: number;
+  sensitivity: number;
+  freezeAtMin: boolean;
+  ambientWave: boolean;
+  waveSpeed: number;
+  waveAmplitude: number;
+  waveHeight: number;
+  waveMode: 'additive' | 'reactive';
+  waveShape: 'sine' | 'triangle' | 'square' | 'segments';
+  waveLobes: number;
+  smoothing: number;
+  waveEnvelope: number;
+  envelopeAmplitude: number;
+  envelopeSensitivity: number;
+  intensityOpacity: boolean;
+}
 
 interface EasedNum {
   current: number;
