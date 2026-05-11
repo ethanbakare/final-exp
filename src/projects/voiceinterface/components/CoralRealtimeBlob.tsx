@@ -394,7 +394,29 @@ export const CoralRealtimeBlob: React.FC<CoralRealtimeBlobProps> = ({
   // talking-related transition.
   const prevVoiceStateRef = useRef(voiceState);
   const [activeMorphSpeed, setActiveMorphSpeed] = useState<number>(
-    () => active.base.morphSpeed,
+    () => {
+      // First mount runs the talking → idle intro: the orb mounts at
+      // the talking shape (sphere) and the eased props start at the
+      // talking values, then morph to idle/torus. That's semantically
+      // a talking → idle transition — so on mount, honour
+      // talking.settleSpeed (the explicit override for that direction)
+      // before falling back to base.morphSpeed.
+      //
+      // Without this, the user's "Settle Speed (talking → idle)" peak
+      // override gets ignored on first page load, even though the user
+      // dialled it specifically to control the intro speed. The override
+      // would only kick in on a *subsequent* talking → idle transition,
+      // which is counter-intuitive.
+      //
+      // skipIntro suppresses the visible intro (eased props mount at
+      // base values), so the activeMorphSpeed value doesn't matter
+      // visually — we still default to base.morphSpeed in that case so
+      // any post-mount transition starts from a sensible value.
+      if (!skipIntro && active.talking?.settleSpeed != null) {
+        return active.talking.settleSpeed;
+      }
+      return active.base.morphSpeed;
+    },
   );
   useEffect(() => {
     const wasTalking = prevVoiceStateRef.current === 'ai_speaking';

@@ -21,10 +21,11 @@
       "talking": {
         "morphSpeed": 0.54,
         "waveIntensity": 0.2,
-        "scale": 0.75
+        "scale": 0.75,
+        "settleSpeed": 0.08
       }
     },
-    "lastModified": 1778153802822,
+    "lastModified": 1778539383448,
     "skipIntroOnSelect": false
   }
 ]
