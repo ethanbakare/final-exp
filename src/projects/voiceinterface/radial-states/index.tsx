@@ -1291,6 +1291,7 @@ export default function RadialStatesReview() {
             onMorphChange={updateMorph}
             idleListeningLinked={activeProfile?.idleListeningLinked ?? true}
             onBreakLink={breakIdleListeningLink}
+            donutDiameter={donutSize}
           />
         )}
         <div

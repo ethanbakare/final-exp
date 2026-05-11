@@ -290,6 +290,11 @@ export interface ControlsPanelProps {
    *  the panel renders read-only with a Break-link button. */
   idleListeningLinked: boolean;
   onBreakLink: () => void;
+  /** Total outer diameter of the backdrop donut, in pixels —
+   *  `(idleRadius + DONUT_PADDING) * 2`. Read-only display below the
+   *  Backdrop header so the user can see at a glance how big the
+   *  overall circle is. Updates as Radius slides. */
+  donutDiameter: number;
 }
 
 export function ControlsPanel({
@@ -311,6 +316,7 @@ export function ControlsPanel({
   onMorphChange,
   idleListeningLinked,
   onBreakLink,
+  donutDiameter,
 }: ControlsPanelProps) {
   if (focused === 'listening' && idleListeningLinked) {
     return (
@@ -553,6 +559,23 @@ export function ControlsPanel({
             />
             Show
           </label>
+        </div>
+        {/* Read-only diameter — derived from idleRadius + DONUT_PADDING,
+         *  updates live as Radius slides. Always visible so the user
+         *  knows the overall circle size at a glance. */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: 11,
+            color: '#6b7280',
+          }}
+        >
+          <span style={{ color: '#9ca3af' }}>Diameter</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {Math.round(donutDiameter)}px{' '}
+            <span style={{ color: '#4b5563' }}>(derived)</span>
+          </span>
         </div>
         {backdrop.enabled && (
           <>

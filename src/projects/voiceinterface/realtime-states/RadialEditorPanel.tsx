@@ -140,6 +140,11 @@ export const RadialEditorPanel: React.FC<RadialEditorPanelProps> = ({
       ? Math.max(0, talkingCircumference / lockedCount - profile.bars.barWidth)
       : undefined;
 
+  // Donut outer diameter — derived. Matches the formula in radial-states
+  // (donutOuter = idleR + DONUT_PADDING; diameter = donutOuter * 2).
+  const DONUT_PADDING = 14;
+  const donutDiameter = (profile.geometry.idleRadius + DONUT_PADDING) * 2;
+
   return (
     <ControlsPanel
       settings={settings}
@@ -160,6 +165,7 @@ export const RadialEditorPanel: React.FC<RadialEditorPanelProps> = ({
       onMorphChange={handleMorphChange}
       idleListeningLinked={profile.idleListeningLinked}
       onBreakLink={handleBreakLink}
+      donutDiameter={donutDiameter}
     />
   );
 };
