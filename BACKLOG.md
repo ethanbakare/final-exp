@@ -40,6 +40,16 @@ Non-urgent work captured so it doesn't get lost. Not prioritised — review befo
 
 ## Product work deferred from prior sessions
 
+### Realtime — pre-warm session to fix first-utterance drop
+On `/voiceinterface/realtime`, the first 2-3 seconds of every fresh-reload utterance are dropped at the network layer. Confirmed by the "count 1→10, AI heard 3→10" test. Cause: `session.connect()` takes 600 ms–2 s on a fresh page and the Agents SDK doesn't transmit audio over the RTP track until it resolves. The mic is captured locally (orb visualiser shows activity) but nothing reaches OpenAI in that window. Reproduces on `19dc15a` (pre-radial-states), so it's pre-existing, not a regression from the radial migration.
+
+Fix: pre-warm the WebRTC connection before the Record click (on hover or on mount), with idle teardown after 3 s of no click. Synchronous `click → listening` UX is preserved; the connection is already up by click time.
+
+**Why defer:** still in testing, only affects fresh-reload first utterance, not blocking. Diagnostic timing logs (`5ff985e`) are in place to reconfirm when picked up.
+
+- Diagnostic context: [tasks/realtime-first-token-handoff.md](tasks/realtime-first-token-handoff.md)
+- Design doc with variants, edge cases, implementation sketch: [tasks/realtime-prewarm-approach.md](tasks/realtime-prewarm-approach.md)
+
 ### Voice Interface — fix `/api/voice-interface/transcribe` 400s (blob path)
 The non-realtime transcribe endpoint (used by `VoiceTextBoxClip` for the record-clip-then-transcribe flow) returns 400. As a workaround, [`transcribeAudio` in VoiceTextBoxClip.tsx:361](src/projects/voiceinterface/components/VoiceTextBoxClip.tsx:361) is a stub that fakes 1.2s latency and cycles through 6 hardcoded `SAMPLE_LINES`. UI state machine (recording → processing → reveal) still exercises correctly, but the transcript text is canned, not real STT.
 
