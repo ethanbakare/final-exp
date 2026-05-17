@@ -297,7 +297,7 @@
       "talking": {
         "diameter": 276,
         "apexCircleHeight": 276,
-        "arcCircleHeight": 164,
+        "arcCircleHeight": 160,
         "circleVisible": false,
         "circleOpacity": 1,
         "boundsVisible": true,
@@ -341,7 +341,7 @@
         "talkingExit": 0.4
       }
     },
-    "lastModified": 1779045754951,
+    "lastModified": 1779052144508,
     "idleListeningLinked": true
   }
 ]

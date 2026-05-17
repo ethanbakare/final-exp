@@ -27,5 +27,33 @@
     },
     "lastModified": 1778540043740,
     "skipIntroOnSelect": false
+  },
+  {
+    "id": "rt-coral-4f287d3f-0d3f-48e4-835c-ccd36cf53c88",
+    "name": "Cascade",
+    "pinned": false,
+    "settings": {
+      "base": {
+        "scale": 1.04,
+        "torusRadius": 0.295,
+        "waveIntensity": 1,
+        "breathAmp": 0.03,
+        "idleAmp": 0.02,
+        "morphSpeed": 1.296,
+        "color1": "#944b2e",
+        "color2": "#ffa279",
+        "color3": "#ffc4c4",
+        "bgColor": "#f7f6f4",
+        "thickRadius": 0.35000000000000003,
+        "pulseSpeed": 1.2
+      },
+      "talking": {
+        "morphSpeed": 0.54,
+        "waveIntensity": 0.24,
+        "scale": 0.75,
+        "settleSpeed": 0.8
+      }
+    },
+    "lastModified": 1779052273353
   }
 ]
