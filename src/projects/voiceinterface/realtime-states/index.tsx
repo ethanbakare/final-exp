@@ -13,7 +13,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, RefreshCwOff, Pencil, Bookmark, Disc, Circle } from 'lucide-react';
+import { Menu, X, Repeat, ChevronDown, Save, Check, Pause, Play, RotateCcw, RefreshCwOff, Pencil, Bookmark, Disc, Circle, Trash2 } from 'lucide-react';
 import GentleOrbThicken from '@/projects/blob-orb/variants/GentleOrbThicken';
 import CoralStoneMorph from '@/projects/blob-orb/variants/CoralStoneMorph';
 import GalleryAudioControls from '@/projects/blob-orb/components/GalleryAudioControls';
@@ -221,6 +221,10 @@ function RealtimeStatesEditor({
   const [saveShader, setSaveShader] = useState<'tube' | 'coral' | 'radial' | 'circle'>('tube');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
+  // CSW-010 — two-step delete confirm for circle dropdown rows.
+  const [confirmingDeleteCircleId, setConfirmingDeleteCircleId] = useState<
+    string | null
+  >(null);
   const [thinkingPaused, setThinkingPaused] = useState(false);
 
   // profileRef initialized to TUBE_SEED; the per-render assignment
@@ -1369,6 +1373,34 @@ function RealtimeStatesEditor({
     await persistCircleProfiles(next);
   };
 
+  // CSW-010 — delete a circle profile (whole-array persist with the
+  // entry removed). If the deleted one is active, re-point the active
+  // orb to a surviving circle profile FIRST (never let activeOrb go
+  // null — that returns the parent Skeleton, which unmounts the editor
+  // and fires its audioService.stop() cleanup, killing the mic).
+  const deleteCircleProfile = async (id: string) => {
+    const next = circleProfiles.filter((p) => p.id !== id);
+    const wasActive =
+      activeOrb?.shader === 'circle' && activeOrb.id === id;
+    if (wasActive) {
+      const survivor = next[0];
+      if (survivor) {
+        setActiveOrbKey(`circle-waveform-voiceset:${survivor.id}`);
+        setActiveBaseline({
+          key: `circle-waveform-voiceset:${survivor.id}`,
+          shader: 'circle',
+          settings: structuredClone(survivor.settings),
+        });
+      }
+      // If no circle survivors, leave activeOrbKey as-is: the shipped
+      // Default Voice is normally present, and the parent's seed-on-
+      // empty path re-creates it; we don't blank the selection here.
+    }
+    setConfirmingDeleteCircleId(null);
+    setCircleProfiles(next);
+    await persistCircleProfiles(next);
+  };
+
   const handleUpdate = async () => {
     if (!isDirty || !activeOrb) return;
     // Phase 3E — route by activeOrb.shader. Tube persists to the
@@ -2294,6 +2326,41 @@ function RealtimeStatesEditor({
                             >
                               <Pencil size={12} />
                             </button>
+                            {confirmingDeleteCircleId === p.id ? (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteCircleProfile(p.id);
+                                  }}
+                                  className="shrink-0 text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+                                  title="Confirm delete"
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirmingDeleteCircleId(null);
+                                  }}
+                                  className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                                  title="Cancel delete"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmingDeleteCircleId(p.id);
+                                }}
+                                className="shrink-0 text-gray-300 hover:text-red-500 transition-colors cursor-pointer"
+                                title="Delete profile"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
