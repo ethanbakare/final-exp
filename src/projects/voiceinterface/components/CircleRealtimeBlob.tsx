@@ -32,7 +32,7 @@
  * (circle is effectively always skip-intro by this ease-from-rest
  * design); reserved.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import type { AudioData } from '@/projects/voiceinterface/types';
 import { CircleVoiceOrb } from '@/projects/voiceinterface/circle-voice/CircleVoiceOrb';
 import { useCircleVoiceAnimator } from '@/projects/voiceinterface/circle-voice/useCircleVoiceAnimator';
@@ -96,10 +96,24 @@ const CircleRealtimeInner: React.FC<{
   // Live frame, ref-backed so the ~16 ms-changing audioData is never a
   // RAF dependency. frequencyData is undefined (not zeroed) in
   // idle/ai_thinking — `?? null` is mandatory (finding A).
+  //
+  // CRITICAL: sync the ref SYNCHRONOUSLY during render — NOT via a
+  // useEffect([audioData]). coral/tube/radial read the audioData prop
+  // DIRECTLY in their per-frame loop; circle is the only shader that
+  // routes audio through a ref read by a separate RAF. With a
+  // useEffect([audioData]) the ref only re-syncs when the prop IDENTITY
+  // changes — and `blobAudioData` resolves to the SHARED `SILENT`
+  // constant (same object ref, no frequencyData) whenever the gate
+  // (audioActive && state!=='idle') is briefly false during Save/Update
+  // churn. Consecutive SILENT renders are identity-equal, so the effect
+  // never fires again, the ref stays latched on SILENT, getAudioFrame()
+  // returns null forever, and the orb stops responding to the mic while
+  // the mic UI still shows "on" (the reported bug). Reassigning every
+  // render (like transitionsRef / the stable bundle below) cannot latch
+  // — it always reflects the freshest frame the component received,
+  // exactly like the direct-read shaders.
   const audioDataRef = useRef(audioData);
-  useEffect(() => {
-    audioDataRef.current = audioData;
-  }, [audioData]);
+  audioDataRef.current = audioData;
   const getAudioFrame = useRef<() => Uint8Array | null>(
     () => audioDataRef.current.frequencyData ?? null,
   ).current;
