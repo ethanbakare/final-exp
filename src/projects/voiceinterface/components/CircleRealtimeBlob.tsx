@@ -32,7 +32,7 @@
  * (circle is effectively always skip-intro by this ease-from-rest
  * design); reserved.
  */
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { AudioData } from '@/projects/voiceinterface/types';
 import { CircleVoiceOrb } from '@/projects/voiceinterface/circle-voice/CircleVoiceOrb';
 import { useCircleVoiceAnimator } from '@/projects/voiceinterface/circle-voice/useCircleVoiceAnimator';
@@ -114,9 +114,36 @@ const CircleRealtimeInner: React.FC<{
   // exactly like the direct-read shaders.
   const audioDataRef = useRef(audioData);
   audioDataRef.current = audioData;
-  const getAudioFrame = useRef<() => Uint8Array | null>(
-    () => audioDataRef.current.frequencyData ?? null,
-  ).current;
+
+  // ── TEMP DIAGNOSTIC (CSW-010) — gated by localStorage.CV_DEBUG==='1'.
+  // Silent unless opted in. Captures the 4 decisive signals so we get
+  // GROUND TRUTH from the real failing session. Remove after diagnosis.
+  const DBG =
+    typeof window !== 'undefined' &&
+    !!window.localStorage &&
+    window.localStorage.getItem('CV_DEBUG') === '1';
+  const dbgRef = useRef({ last: 0, calls: 0 });
+
+  const getAudioFrame = useRef<() => Uint8Array | null>(() => {
+    const f = audioDataRef.current.frequencyData ?? null;
+    if (DBG) {
+      const d = dbgRef.current;
+      d.calls++;
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      if (now - d.last > 500) {
+        d.last = now;
+        let mx = -1;
+        if (f) for (let i = 0; i < f.length; i++) if (f[i] > mx) mx = f[i];
+        // eslint-disable-next-line no-console
+        console.log(
+          '[CV-DBG] getAudioFrame',
+          f ? `len=${f.length} max=${mx}` : 'NULL (no frequencyData → ambient only)',
+          'totalCalls=' + d.calls,
+        );
+      }
+    }
+    return f;
+  }).current;
 
   // Stable bundle identity (verbatim-hook contract — see
   // useCircleVoiceAnimator: "bundle: Fixed for the hook's lifetime").
@@ -152,6 +179,58 @@ const CircleRealtimeInner: React.FC<{
     profile.settings.transitions,
   );
   transitionsRef.current = profile.settings.transitions;
+
+  // ── TEMP DIAGNOSTIC (CSW-010) — remount + RAF-re-subscribe detector.
+  // The hook's RAF deps are [bundle, getAudioFrame, transitionsRef];
+  // with the fixes these identities should NEVER change for a given
+  // mounted profile. If they do, the RAF re-subscribes (audio reset).
+  const identRef = useRef<{ b: unknown; g: unknown; t: unknown; resubs: number } | null>(
+    null,
+  );
+  if (DBG) {
+    if (identRef.current === null) {
+      identRef.current = {
+        b: stableBundleRef.current,
+        g: getAudioFrame,
+        t: transitionsRef,
+        resubs: 0,
+      };
+    } else {
+      const ir = identRef.current;
+      if (
+        ir.b !== stableBundleRef.current ||
+        ir.g !== getAudioFrame ||
+        ir.t !== transitionsRef
+      ) {
+        ir.resubs++;
+        const which = [
+          ir.b !== stableBundleRef.current ? 'bundle' : '',
+          ir.g !== getAudioFrame ? 'getAudioFrame' : '',
+          ir.t !== transitionsRef ? 'transitionsRef' : '',
+        ]
+          .filter(Boolean)
+          .join('+');
+        ir.b = stableBundleRef.current;
+        ir.g = getAudioFrame;
+        ir.t = transitionsRef;
+        // eslint-disable-next-line no-console
+        console.log(
+          `[CV-DBG] HOOK DEP CHANGED (${which}) → RAF WILL RE-SUBSCRIBE. resubs=${ir.resubs}`,
+        );
+      }
+    }
+  }
+  useEffect(() => {
+    if (DBG)
+      // eslint-disable-next-line no-console
+      console.log('[CV-DBG] MOUNT CircleRealtimeInner id=' + profile.id);
+    return () => {
+      if (DBG)
+        // eslint-disable-next-line no-console
+        console.log('[CV-DBG] UNMOUNT CircleRealtimeInner id=' + profile.id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const anim = useCircleVoiceAnimator({
     bundle: stableBundleRef.current,
