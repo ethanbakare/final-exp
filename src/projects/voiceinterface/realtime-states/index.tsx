@@ -42,16 +42,22 @@ import {
   talkingRenderForProfile,
 } from './helpers';
 import {
+  fetchCircleProfiles,
   fetchCoralProfiles,
   fetchProfileNames,
   fetchProfiles,
   fetchRadialProfiles,
+  persistCircleProfiles,
   persistCoralProfiles,
   persistProfiles,
   persistRadialProfiles,
 } from './api';
 import { RadialRealtimeBlob } from '@/projects/voiceinterface/components/RadialRealtimeBlob';
+import { CircleRealtimeBlob } from '@/projects/voiceinterface/components/CircleRealtimeBlob';
 import { RadialEditorPanel } from './RadialEditorPanel';
+import { CircleEditorPanel } from './CircleEditorPanel';
+import type { VoiceState } from '@/projects/voiceinterface/circle-voice/circleVoice';
+import { CIRCLE_FALLBACK } from '@/projects/voiceinterface/circle-voice/api';
 import { makeDefaultProfile } from '@/projects/voiceinterface/radial-states/api';
 import {
   ColorPickerButton,
@@ -73,10 +79,12 @@ import type {
   PeakScope,
   PreviewState,
   RenderValues,
+  SavedCircleProfile,
   SavedCoralProfile,
   SavedProfile,
   SavedRadialProfile,
   RadialLinkedProfile,
+  CircleVoiceProfile,
 } from './types';
 import type { RadialState } from '@/projects/voiceinterface/radial-states/types';
 
@@ -134,6 +142,8 @@ interface EditorProps {
   setCoralProfiles: React.Dispatch<React.SetStateAction<SavedCoralProfile[]>>;
   radialProfiles: SavedRadialProfile[];
   setRadialProfiles: React.Dispatch<React.SetStateAction<SavedRadialProfile[]>>;
+  circleProfiles: SavedCircleProfile[];
+  setCircleProfiles: React.Dispatch<React.SetStateAction<SavedCircleProfile[]>>;
   externalProfileNames: Set<string>;
   colorFormat: ColorFormat;
   setColorFormat: React.Dispatch<React.SetStateAction<ColorFormat>>;
@@ -150,6 +160,8 @@ function RealtimeStatesEditor({
   setCoralProfiles,
   radialProfiles,
   setRadialProfiles,
+  circleProfiles,
+  setCircleProfiles,
   externalProfileNames,
   colorFormat,
   setColorFormat,
@@ -196,7 +208,7 @@ function RealtimeStatesEditor({
   // which sub-UI is visible; saveShader is the chosen target shader
   // for the new entry (defaults to the active shader on dialog open).
   const [saveStep, setSaveStep] = useState<'shader' | 'name'>('shader');
-  const [saveShader, setSaveShader] = useState<'tube' | 'coral' | 'radial'>('tube');
+  const [saveShader, setSaveShader] = useState<'tube' | 'coral' | 'radial' | 'circle'>('tube');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
   const [thinkingPaused, setThinkingPaused] = useState(false);
@@ -283,8 +295,20 @@ function RealtimeStatesEditor({
       settings: p.settings,
       lastModified: p.lastModified,
     }));
-    return [...tubeOrbs, ...coralOrbs, ...radialOrbs];
-  }, [tubeProfiles, coralProfiles, radialProfiles]);
+    const circleOrbs: LoadedOrb[] = circleProfiles.map((p) => ({
+      shader: 'circle' as const,
+      sourceVariant: 'circle-waveform-voiceset' as const,
+      id: p.id,
+      name: p.name,
+      pinned: p.pinned === true,
+      // Optional pass-through — undefined / true / false flow through
+      // unchanged. Reads use `=== true` defensively (seam audit §5.1).
+      skipIntroOnSelect: p.skipIntroOnSelect,
+      settings: p.settings,
+      lastModified: p.lastModified,
+    }));
+    return [...tubeOrbs, ...coralOrbs, ...radialOrbs, ...circleOrbs];
+  }, [tubeProfiles, coralProfiles, radialProfiles, circleProfiles]);
 
   // `profile` derives from activeOrb; for Coral activeOrb the Tube
   // tab renderer's `profile.X` bindings fall back to TUBE_SEED (Tube
@@ -632,6 +656,8 @@ function RealtimeStatesEditor({
       togglePinnedCoral(activeOrb.id);
     } else if (activeOrb.shader === 'radial') {
       togglePinnedRadial(activeOrb.id);
+    } else if (activeOrb.shader === 'circle') {
+      togglePinnedCircle(activeOrb.id);
     } else {
       togglePinned(activeOrb.id);
     }
@@ -656,7 +682,14 @@ function RealtimeStatesEditor({
     ) {
       return true;
     }
-    return radialProfiles.some(
+    if (
+      radialProfiles.some(
+        (p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized,
+      )
+    ) {
+      return true;
+    }
+    return circleProfiles.some(
       (p) => p.id !== exceptId && normalizeProfileName(p.name) === normalized,
     );
   };
@@ -672,6 +705,7 @@ function RealtimeStatesEditor({
       ...tubeProfiles.map((p) => normalizeProfileName(p.name)),
       ...coralProfiles.map((p) => normalizeProfileName(p.name)),
       ...radialProfiles.map((p) => normalizeProfileName(p.name)),
+      ...circleProfiles.map((p) => normalizeProfileName(p.name)),
     ]);
     const available = CURATED_NAMES.filter((name) => !used.has(normalizeProfileName(name)));
     if (available.length > 0) {
@@ -944,6 +978,59 @@ function RealtimeStatesEditor({
       return;
     }
 
+    if (saveShader === 'circle') {
+      // CSW-010 — EXACT mirror of the radial save path. Circle is flat
+      // (CircleVoiceProfile carries id/name/lastModified at top level).
+      // Same-shader = clone the active bundle's edited settings;
+      // cross-shader = start from the shipped CIRCLE_FALLBACK default.
+      const circleId = `cv-${crypto.randomUUID()}`;
+      const circleBase: CircleVoiceProfile =
+        sameShader && activeOrb?.shader === 'circle'
+          ? structuredClone(activeOrb.settings)
+          : structuredClone(CIRCLE_FALLBACK);
+      const circleSettings: CircleVoiceProfile = {
+        ...circleBase,
+        id: circleId,
+        name,
+        // R-11 / plan §0b — Save-As never makes a bundle live; only the
+        // realtime-states bookmark promotes it. New bundle starts unpinned.
+        pinned: false,
+        lastModified: Date.now(),
+      };
+      const circleEntry: SavedCircleProfile = {
+        id: circleId,
+        name,
+        pinned: false,
+        settings: circleSettings,
+        lastModified: circleSettings.lastModified,
+      };
+      // CRITICAL (same as radial): revert the SOURCE entry to its
+      // baseline before appending so persistCircleProfiles doesn't
+      // write the in-memory edits back onto the original.
+      const sourceRevertedArr = (
+        activeOrb?.shader === 'circle' &&
+        activeBaseline?.shader === 'circle' &&
+        activeBaseline.key === compositeKey(activeOrb)
+      )
+        ? circleProfiles.map((p) =>
+            p.id === activeOrb.id
+              ? { ...p, settings: structuredClone(activeBaseline.settings) }
+              : p,
+          )
+        : circleProfiles;
+      const nextCircle = [...sourceRevertedArr, circleEntry];
+      setCircleProfiles(nextCircle);
+      setActiveOrbKey(`circle-waveform-voiceset:${circleId}`);
+      setActiveBaseline({
+        key: `circle-waveform-voiceset:${circleId}`,
+        shader: 'circle',
+        settings: structuredClone(circleSettings),
+      });
+      closeSaveDialog();
+      await persistCircleProfiles(nextCircle);
+      return;
+    }
+
     // saveShader === 'radial' — clone active radial settings (same-
     // shader) or start from a default radial profile (cross-shader).
     // The new entry's id and name are mirrored into the settings so
@@ -1056,6 +1143,30 @@ function RealtimeStatesEditor({
     await persistRadialProfiles(next);
   };
 
+  const selectCircleProfile = (id: string) => {
+    const found = circleProfiles.find((p) => p.id === id);
+    if (!found) return;
+    setActiveOrbKey(`circle-waveform-voiceset:${id}`);
+    setActiveBaseline({
+      key: `circle-waveform-voiceset:${id}`,
+      shader: 'circle',
+      settings: structuredClone(found.settings),
+    });
+    setShowProfileDropdown(false);
+  };
+
+  const togglePinnedCircle = async (id: string) => {
+    // CSW-010 — realtime-states OWNS the single top-level `pinned`
+    // (plan §0b/§5). This is the live bookmark; the standalone
+    // circle-voice page never writes it. Same shape as
+    // togglePinned / togglePinnedRadial, routes to the circle file.
+    const next = circleProfiles.map((pr) =>
+      pr.id === id ? { ...pr, pinned: !pr.pinned, lastModified: Date.now() } : pr,
+    );
+    setCircleProfiles(next);
+    await persistCircleProfiles(next);
+  };
+
   // In-memory updater for radial profile edits. Bubbled up from
   // RadialEditorPanel via onProfileChange — we replace the active
   // entry by id in radialProfiles. MIRRORS the radial-states standalone
@@ -1082,6 +1193,27 @@ function RealtimeStatesEditor({
         : p,
     );
     setRadialProfiles(updated);
+  };
+
+  // CSW-010 — in-memory updater for circle profile edits, bubbled up
+  // from CircleEditorPanel via onProfileChange. EXACT mirror of
+  // handleRadialProfileChange: replace the active entry by id in
+  // circleProfiles, no per-edit persist (Update/Save own persistence).
+  // `{ ...p }` first preserves pinned/skipIntroOnSelect; `next` is the
+  // whole CircleVoiceProfile (flat id/name/lastModified at top).
+  const handleCircleProfileChange = (next: CircleVoiceProfile) => {
+    const updated = circleProfiles.map((p) =>
+      p.id === next.id
+        ? {
+            ...p,
+            id: next.id,
+            name: next.name,
+            lastModified: next.lastModified,
+            settings: next,
+          }
+        : p,
+    );
+    setCircleProfiles(updated);
   };
 
   // Skip-intro plan — flip the optional `skipIntroOnSelect` field on
@@ -1205,6 +1337,28 @@ function RealtimeStatesEditor({
     await persistRadialProfiles(next);
   };
 
+  const commitRenameCircle = async (id: string, draft: string) => {
+    const name = draft.trim();
+    if (!name || profileNameExists(name, id)) return;
+    const now = Date.now();
+    // Update BOTH the wrapper and the inner settings so the on-disk
+    // flat JSON (which carries name at top level) and the dropdown
+    // label / baseline diffing all agree (mirror of commitRenameRadial).
+    const next = circleProfiles.map((pr) =>
+      pr.id === id
+        ? {
+            ...pr,
+            name,
+            lastModified: now,
+            settings: { ...pr.settings, name, lastModified: now },
+          }
+        : pr,
+    );
+    setCircleProfiles(next);
+    cancelRename();
+    await persistCircleProfiles(next);
+  };
+
   const handleUpdate = async () => {
     if (!isDirty || !activeOrb) return;
     // Phase 3E — route by activeOrb.shader. Tube persists to the
@@ -1269,6 +1423,31 @@ function RealtimeStatesEditor({
         settings: structuredClone(next.find((p) => p.id === activeOrb.id)!.settings),
       });
       await persistRadialProfiles(next);
+      return;
+    }
+    // Circle path (CSW-010) — EXACT mirror of radial. handleCircleProfileChange
+    // wrote slider edits to circleProfiles IN MEMORY ONLY; Update is when
+    // those flush to disk AND the baseline re-snapshots.
+    if (activeOrb.shader === 'circle') {
+      const currentCircleEntry = circleProfiles.find((p) => p.id === activeOrb.id);
+      if (!currentCircleEntry) return;
+      const stamp = Date.now();
+      const next = circleProfiles.map((pr) =>
+        pr.id === activeOrb.id
+          ? {
+              ...pr,
+              lastModified: stamp,
+              settings: { ...pr.settings, lastModified: stamp },
+            }
+          : pr,
+      );
+      setCircleProfiles(next);
+      setActiveBaseline({
+        key: `circle-waveform-voiceset:${activeOrb.id}`,
+        shader: 'circle',
+        settings: structuredClone(next.find((p) => p.id === activeOrb.id)!.settings),
+      });
+      await persistCircleProfiles(next);
     }
   };
 
@@ -1343,7 +1522,9 @@ function RealtimeStatesEditor({
   const activeBgColor =
     activeOrb?.shader === 'radial'
       ? activeOrb.settings.display.bgColor
-      : (activeOrb?.settings.base.bgColor ?? profile.base.bgColor);
+      : activeOrb?.shader === 'circle'
+        ? activeOrb.settings.settings.idle.pageColor
+        : (activeOrb?.settings.base.bgColor ?? profile.base.bgColor);
 
   return (
     <div
@@ -1371,6 +1552,20 @@ function RealtimeStatesEditor({
       <div style={{ width: 328, height: 328 }}>
         {activeOrb?.shader === 'radial' ? (
           <RadialRealtimeBlob
+            audioData={blobAudioData}
+            voiceState={
+              state === 'thinking'
+                ? 'ai_thinking'
+                : state === 'talking'
+                  ? 'ai_speaking'
+                  : state
+            }
+            profile={activeOrb.settings}
+            width={328}
+            height={328}
+          />
+        ) : activeOrb?.shader === 'circle' ? (
+          <CircleRealtimeBlob
             audioData={blobAudioData}
             voiceState={
               state === 'thinking'
@@ -1477,12 +1672,26 @@ function RealtimeStatesEditor({
           </div>
         )}
 
+        {/* CSW-010 — circle uses a single multi-section panel above the
+            bar (like radial, NOT the Tube/Coral tab system). Reuses the
+            shared radialPanelOpen toggle (only one shader is active at a
+            time, so a single panel-open boolean is sufficient). */}
+        {activeOrb?.shader === 'circle' && radialPanelOpen && (
+          <div className="absolute bottom-full left-0 right-0 max-h-[60vh] overflow-y-auto">
+            <CircleEditorPanel
+              profile={activeOrb.settings}
+              focused={state as VoiceState}
+              onProfileChange={handleCircleProfileChange}
+            />
+          </div>
+        )}
+
         {/* Single-tab popover — shader-aware (round-7 F5 gate flip).
             Dispatches to the appropriate per-shader tab panel based
             on activeOrb.shader. Hidden when no orb is selected, when
             expanded is on, or when activeOrb is radial (which has its
             own always-on panel above). */}
-        {activeOrb && activeOrb.shader !== 'radial' && !expanded && activeTab && (
+        {activeOrb && activeOrb.shader !== 'radial' && activeOrb.shader !== 'circle' && !expanded && activeTab && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[50vh] overflow-y-auto">
             <div className="max-w-3xl mx-auto p-4">
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
@@ -1508,8 +1717,8 @@ function RealtimeStatesEditor({
         )}
 
         {/* Expanded 4-column drawer — shader-aware. Hidden for radial
-            (radial uses the always-on panel above). */}
-        {activeOrb && activeOrb.shader !== 'radial' && expanded && (
+            and circle (both use the always-on panel above). */}
+        {activeOrb && activeOrb.shader !== 'radial' && activeOrb.shader !== 'circle' && expanded && (
           <div className="absolute bottom-full left-0 right-0 bg-white border-t border-gray-200 shadow-lg max-h-[60vh] overflow-y-auto">
             <div className="max-w-6xl mx-auto p-4">
               <div className="text-[11px] uppercase tracking-wider text-gray-400 mb-2">
@@ -1546,9 +1755,12 @@ function RealtimeStatesEditor({
         {/* Main bar */}
         <div className="bg-white border-t border-gray-200 shadow-lg">
           <div className="max-w-6xl mx-auto px-4 py-2 flex items-center gap-2 flex-wrap">
+            {/* radial AND circle (CSW-010) use the always-on side panel
+                + the shared radialPanelOpen toggle; tube/coral use the
+                expandable drawer. */}
             <button
               onClick={() => {
-                if (activeOrb?.shader === 'radial') {
+                if (activeOrb?.shader === 'radial' || activeOrb?.shader === 'circle') {
                   setRadialPanelOpen((p) => !p);
                 } else {
                   setExpanded((p) => !p);
@@ -1557,7 +1769,7 @@ function RealtimeStatesEditor({
               }}
               className="p-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer"
               title={
-                activeOrb?.shader === 'radial'
+                activeOrb?.shader === 'radial' || activeOrb?.shader === 'circle'
                   ? radialPanelOpen
                     ? 'Minimise editor panel'
                     : 'Open editor panel'
@@ -1566,7 +1778,7 @@ function RealtimeStatesEditor({
                     : 'Open drawer'
               }
             >
-              {activeOrb?.shader === 'radial'
+              {activeOrb?.shader === 'radial' || activeOrb?.shader === 'circle'
                 ? radialPanelOpen
                   ? <X size={14} />
                   : <Menu size={14} />
@@ -1612,6 +1824,12 @@ function RealtimeStatesEditor({
                     className="shrink-0 inline-block w-[11px] h-[11px] rounded-sm border border-gray-200"
                     style={{ background: activeOrb.settings.display.previewBg }}
                     aria-label="Radial profile"
+                  />
+                ) : activeOrb?.shader === 'circle' ? (
+                  <span
+                    className="shrink-0 inline-block w-[11px] h-[11px] rounded-full border border-gray-200"
+                    style={{ background: activeOrb.settings.settings.idle.barColor }}
+                    aria-label="Circle Voice profile"
                   />
                 ) : (
                   <Disc size={11} className="shrink-0 text-[#949e05]" aria-label="Tube profile" />
@@ -1958,6 +2176,110 @@ function RealtimeStatesEditor({
                       </div>
                     );
                   })}
+                  {/* CSW-010 — Circle Voice entries from
+                      circle-waveform-voicesets.json. Selecting switches
+                      the preview to CircleRealtimeBlob. The bookmark is
+                      the single realtime-states-owned `pinned` (plan
+                      §0b) — it surfaces the bundle on the live page.
+                      Mirrors the radial row exactly. */}
+                  {circleProfiles.map((p) => {
+                    const isRenaming = renamingId === p.id;
+                    const renameInvalid =
+                      !renameDraft.trim() || profileNameExists(renameDraft, p.id);
+                    return (
+                      <div
+                        key={p.id}
+                        className={`min-h-[32px] px-3 py-1.5 text-xs hover:bg-gray-50 ${
+                          activeOrb?.shader === 'circle' && p.id === activeOrb.id
+                            ? 'font-medium text-gray-700'
+                            : 'text-gray-600'
+                        } ${isRenaming ? '' : 'cursor-pointer'}`}
+                        onClick={() => {
+                          if (!isRenaming) selectCircleProfile(p.id);
+                        }}
+                      >
+                        {isRenaming ? (
+                          <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="text"
+                              value={renameDraft}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') commitRenameCircle(p.id, renameDraft);
+                                if (e.key === 'Escape') cancelRename();
+                              }}
+                              className={`min-w-0 flex-1 px-2 py-1 text-xs border rounded-md outline-none focus:border-gray-400 ${
+                                renameInvalid ? 'border-red-200' : 'border-gray-200'
+                              }`}
+                              autoFocus
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                commitRenameCircle(p.id, renameDraft);
+                              }}
+                              disabled={renameInvalid}
+                              className={`transition-colors ${
+                                renameInvalid
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-gray-500 hover:text-green-600 cursor-pointer'
+                              }`}
+                              title="Save name"
+                            >
+                              <Check size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelRename();
+                              }}
+                              className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                              title="Cancel rename"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="shrink-0 inline-block w-[11px] h-[11px] rounded-full border border-gray-200"
+                              style={{ background: p.settings.settings.idle.barColor }}
+                              aria-label="Circle Voice profile"
+                            />
+                            <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePinnedCircle(p.id);
+                              }}
+                              className={`shrink-0 transition-colors cursor-pointer ${
+                                p.pinned
+                                  ? 'text-amber-500 hover:text-amber-600'
+                                  : 'text-gray-300 hover:text-gray-600'
+                              }`}
+                              title={p.pinned ? 'Pinned to live page (click to unpin)' : 'Pin to live page'}
+                            >
+                              <Bookmark
+                                size={12}
+                                fill={p.pinned ? 'currentColor' : 'none'}
+                              />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRenamingId(p.id);
+                                setRenameDraft(p.name);
+                              }}
+                              className="shrink-0 text-gray-300 hover:text-gray-600 transition-colors cursor-pointer"
+                              title="Rename profile"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1965,9 +2287,10 @@ function RealtimeStatesEditor({
             <div className="w-px h-6 bg-gray-200" />
 
             {/* Tab buttons — shader-aware. Tube and Coral show tabs;
-                radial uses an always-on multi-section panel above the
-                main bar so the tab buttons are hidden for it. */}
-            {activeOrb?.shader !== 'radial' && (
+                radial AND circle (CSW-010) use an always-on
+                multi-section panel above the main bar so the tab
+                buttons are hidden for them. */}
+            {activeOrb?.shader !== 'radial' && activeOrb?.shader !== 'circle' && (
               <div className="flex items-center gap-1">
                 {tabs.map((tab) => (
                   <button
@@ -2042,8 +2365,11 @@ function RealtimeStatesEditor({
                 profile, persists immediately. Radial has no intro
                 animation (the V2 animator just lands at the requested
                 state's resting values) so the toggle is irrelevant —
-                hide it to prevent confusion / silent no-op writes. */}
-            {activeOrb?.shader !== 'radial' && (
+                hide it to prevent confusion / silent no-op writes.
+                Circle (CSW-010) eases from the incoming state's resting
+                values on mount — no talking→idle flourish by design —
+                so it's effectively always skip-intro; hide for it too. */}
+            {activeOrb?.shader !== 'radial' && activeOrb?.shader !== 'circle' && (
               <button
                 onClick={toggleActiveSkipIntro}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ml-2 ${
@@ -2072,8 +2398,10 @@ function RealtimeStatesEditor({
                 conceptually disabled — Replay is greyed out + disabled
                 so it can't fire the morph that the user just opted
                 out of. To re-enable Replay, toggle skip-intro off.
-                Hidden for radial — no replay-able intro exists. */}
-            {activeOrb?.shader !== 'radial' && (
+                Hidden for radial AND circle (CSW-010) — neither has a
+                replay-able mount intro (both ease from the requested
+                state's resting values). */}
+            {activeOrb?.shader !== 'radial' && activeOrb?.shader !== 'circle' && (
               <button
                 onClick={() => {
                   if (activeOrb?.shader === 'coral') {
@@ -2168,6 +2496,26 @@ function RealtimeStatesEditor({
                       // handleRadialProfileChange" — but per-edit
                       // persist was removed in 9e78ff1, so that
                       // rationale is stale and the write is wasteful.
+                    } else if (
+                      activeOrb.shader === 'circle' &&
+                      activeBaseline.shader === 'circle'
+                    ) {
+                      // CSW-010 — EXACT mirror of the radial Discard
+                      // branch. handleCircleProfileChange writes edits
+                      // in-memory only; revert to baseline (= last-saved
+                      // on-disk), no persist needed.
+                      const reverted = structuredClone(activeBaseline.settings);
+                      const next = circleProfiles.map((pr) =>
+                        pr.id === activeOrb.id
+                          ? {
+                              ...pr,
+                              name: reverted.name,
+                              lastModified: reverted.lastModified,
+                              settings: reverted,
+                            }
+                          : pr,
+                      );
+                      setCircleProfiles(next);
                     }
                   }}
                   className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer flex items-center gap-1"
@@ -2204,6 +2552,17 @@ function RealtimeStatesEditor({
                             : '#f7f6f4',
                       }}
                       aria-label="Radial profile"
+                    />
+                  ) : saveShader === 'circle' ? (
+                    <span
+                      className="shrink-0 inline-block w-[11px] h-[11px] rounded-full border border-gray-200"
+                      style={{
+                        background:
+                          activeOrb?.shader === 'circle'
+                            ? activeOrb.settings.settings.idle.barColor
+                            : '#252525',
+                      }}
+                      aria-label="Circle Voice profile"
                     />
                   ) : (
                     <Disc size={11} className="text-[#949e05]" />
@@ -2285,6 +2644,15 @@ function RealtimeStatesEditor({
                     />
                     Radial
                   </span>
+                ) : activeOrb.shader === 'circle' ? (
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+                    <span
+                      className="shrink-0 inline-block w-[11px] h-[11px] rounded-full border border-gray-200"
+                      style={{ background: activeOrb.settings.settings.idle.barColor }}
+                      aria-hidden
+                    />
+                    Circle
+                  </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-xs text-gray-600">
                     <Disc size={11} className="text-[#949e05]" />
@@ -2315,12 +2683,15 @@ export default function RealtimeStates() {
   const [tubeProfiles, setTubeProfiles] = useState<SavedProfile[]>([]);
   const [coralProfiles, setCoralProfiles] = useState<SavedCoralProfile[]>([]);
   const [radialProfiles, setRadialProfiles] = useState<SavedRadialProfile[]>([]);
-  // Per-source loaded flags. Cascade waits for ALL THREE so a persisted
-  // key in any file resolves regardless of which fetch wins the race.
-  // (Round-7 round-3 fix, extended with radial in the migration plan.)
+  const [circleProfiles, setCircleProfiles] = useState<SavedCircleProfile[]>([]);
+  // Per-source loaded flags. Cascade waits for ALL of them so a
+  // persisted key in any file resolves regardless of which fetch wins
+  // the race. (Round-7 round-3 fix; extended with radial in the
+  // migration plan; extended with circle in CSW-010.)
   const [tubeLoaded, setTubeLoaded] = useState(false);
   const [coralLoaded, setCoralLoaded] = useState(false);
   const [radialLoaded, setRadialLoaded] = useState(false);
+  const [circleLoaded, setCircleLoaded] = useState(false);
   // activeOrbKey starts null. Cascade fills it. The child mounts
   // only after activeOrb resolves to non-null AND cascadeReady is
   // true.
@@ -2366,6 +2737,29 @@ export default function RealtimeStates() {
     fetchRadialProfiles().then((arr) => {
       setRadialProfiles(arr);
       setRadialLoaded(true);
+    });
+    // CSW-010 — circle category. Seed-on-empty (mirrors the tube seed)
+    // so the circle category is non-empty on the live page out of the
+    // box (handoff §3 step 7). The shipped circle-waveform-voicesets.json
+    // already carries the pinned Default Voice, so this only fires if
+    // the file is missing/unreadable. The seed is the shipped
+    // CIRCLE_FALLBACK bundle (pinned:true; passes the extended gate).
+    fetchCircleProfiles().then(async (arr) => {
+      if (arr.length === 0) {
+        const seedEntry: SavedCircleProfile = {
+          id: CIRCLE_FALLBACK.id,
+          name: CIRCLE_FALLBACK.name,
+          pinned: CIRCLE_FALLBACK.pinned === true,
+          settings: CIRCLE_FALLBACK,
+          lastModified: CIRCLE_FALLBACK.lastModified,
+        };
+        const next = [seedEntry];
+        await persistCircleProfiles(next);
+        setCircleProfiles(next);
+      } else {
+        setCircleProfiles(arr);
+      }
+      setCircleLoaded(true);
     });
   }, []);
 
@@ -2419,8 +2813,20 @@ export default function RealtimeStates() {
       settings: p.settings,
       lastModified: p.lastModified,
     }));
-    return [...tubeOrbs, ...coralOrbs, ...radialOrbs];
-  }, [tubeProfiles, coralProfiles, radialProfiles]);
+    const circleOrbs: LoadedOrb[] = circleProfiles.map((p) => ({
+      shader: 'circle' as const,
+      sourceVariant: 'circle-waveform-voiceset' as const,
+      id: p.id,
+      name: p.name,
+      pinned: p.pinned === true,
+      // Optional pass-through — undefined / true / false flow through
+      // unchanged. Reads use `=== true` defensively (seam audit §5.1).
+      skipIntroOnSelect: p.skipIntroOnSelect,
+      settings: p.settings,
+      lastModified: p.lastModified,
+    }));
+    return [...tubeOrbs, ...coralOrbs, ...radialOrbs, ...circleOrbs];
+  }, [tubeProfiles, coralProfiles, radialProfiles, circleProfiles]);
 
   const activeOrb = useMemo<LoadedOrb | null>(() => {
     if (!activeOrbKey) return null;
@@ -2434,7 +2840,7 @@ export default function RealtimeStates() {
   const cascadeAppliedRef = useRef(false);
   useEffect(() => {
     if (cascadeAppliedRef.current) return;
-    if (!tubeLoaded || !coralLoaded || !radialLoaded) return; // wait for ALL sources
+    if (!tubeLoaded || !coralLoaded || !radialLoaded || !circleLoaded) return; // wait for ALL sources
 
     // Editor's active-orb key is INTENTIONALLY DISTINCT from the live
     // page's `realtime-active-orb-key`. Editor and live page have
@@ -2464,7 +2870,7 @@ export default function RealtimeStates() {
     // Flip cascadeReady LAST, after activeOrbKey + baseline have
     // been scheduled. Triggers child mount on next render.
     setCascadeReady(true);
-  }, [tubeLoaded, coralLoaded, radialLoaded, orbs]);
+  }, [tubeLoaded, coralLoaded, radialLoaded, circleLoaded, orbs]);
 
   // Persist activeOrbKey on change. Gated on cascadeReady so the
   // initial null doesn't blow away the user's saved selection.
@@ -2496,6 +2902,8 @@ export default function RealtimeStates() {
       setCoralProfiles={setCoralProfiles}
       radialProfiles={radialProfiles}
       setRadialProfiles={setRadialProfiles}
+      circleProfiles={circleProfiles}
+      setCircleProfiles={setCircleProfiles}
       externalProfileNames={externalProfileNames}
       colorFormat={colorFormat}
       setColorFormat={setColorFormat}

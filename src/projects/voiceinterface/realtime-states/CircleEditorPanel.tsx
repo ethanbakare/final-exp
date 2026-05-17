@@ -63,9 +63,12 @@ export const CircleEditorPanel: React.FC<CircleEditorPanelProps> = ({
   focused,
   onProfileChange,
 }) => {
-  const [previewEnvelope, setPreviewEnvelope] = useState<
-    'max' | 'min' | null
-  >(null);
+  // Editor-only eye-ghost overlay UI state. CircleControlsPanel
+  // requires the setters as props; the VALUES are only read by the
+  // standalone CircleVoiceOrb's ghosts (not rendered in the aggregator,
+  // exactly like RadialEditorPanel passes a no-op hover), so only the
+  // setters are kept.
+  const [, setPreviewEnvelope] = useState<'max' | 'min' | null>(null);
   const [waveReachVisible, setWaveReachVisible] = useState(false);
   const [, setWaveReachHovered] = useState(false);
 
@@ -126,10 +129,6 @@ export const CircleEditorPanel: React.FC<CircleEditorPanelProps> = ({
         setWaveReachVisible={setWaveReachVisible}
         setWaveReachHovered={setWaveReachHovered}
       />
-      {/* previewEnvelope is read only by the standalone CircleVoiceOrb
-          ghosts; referenced here to keep the setter live without an
-          unused-var. */}
-      {previewEnvelope === '__never__' && <span />}
     </div>
   );
 };
