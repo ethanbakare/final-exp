@@ -11,6 +11,7 @@
 import type { AudioData } from '@/projects/voiceinterface/types';
 import type { CoralRealtimeSettings } from '@/projects/voiceinterface/components/CoralRealtimeBlob';
 import type { RadialLinkedProfile } from '@/projects/voiceinterface/radial-states/api';
+import type { CircleVoiceProfile } from '@/projects/voiceinterface/circle-voice/circleVoice';
 
 export type PreviewState = 'idle' | 'listening' | 'thinking' | 'talking';
 export type PeakScope = 'thinking' | 'talking';
@@ -122,6 +123,27 @@ export interface SavedRadialProfile {
   lastModified: number;
 }
 
+/** Saved-profile shape for the Circle Voice shader (CSW-010, parallel
+ *  file `circle-waveform-voicesets.json`, variant
+ *  `circle-waveform-voiceset`). Like radial, the on-disk shape is FLAT
+ *  — the whole `CircleVoiceProfile` sits at the JSON entry top level
+ *  (it already carries id/name/pinned/lastModified). `settings` here is
+ *  the WHOLE `CircleVoiceProfile` (which itself nests its 4-state
+ *  `settings` block); the double-`settings` nesting is intentional
+ *  radial-parity. `realtime-states` OWNS the single top-level `pinned`
+ *  (plan §0b/§5) — the standalone circle-voice page never writes it. */
+export interface SavedCircleProfile {
+  id: string;
+  name: string;
+  pinned?: boolean;
+  /** Parity with Tube/Coral/Radial. Circle eases from the incoming
+   *  state's resting values on mount (no talking→idle flourish), so
+   *  this is reserved (effectively always skip-intro). */
+  skipIntroOnSelect?: boolean;
+  settings: CircleVoiceProfile;
+  lastModified: number;
+}
+
 /** Combined display row used by the dropdown — keeps the source
  *  variant so save/rename/pin can route to the right file. The editor
  *  preserves separate per-source arrays internally; this union is just
@@ -144,6 +166,13 @@ export type DropdownRow =
   | {
       shader: 'radial';
       sourceVariant: 'radial-states';
+      id: string;
+      name: string;
+      pinned: boolean;
+    }
+  | {
+      shader: 'circle';
+      sourceVariant: 'circle-waveform-voiceset';
       id: string;
       name: string;
       pinned: boolean;
@@ -186,6 +215,16 @@ export type LoadedOrb =
       skipIntroOnSelect?: boolean;
       settings: RadialLinkedProfile;
       lastModified: number;
+    }
+  | {
+      shader: 'circle';
+      sourceVariant: 'circle-waveform-voiceset';
+      id: string;
+      name: string;
+      pinned: boolean;
+      skipIntroOnSelect?: boolean;
+      settings: CircleVoiceProfile;
+      lastModified: number;
     };
 
 /** Plan v8 round-7 F1 — narrow shape for dirty detection. Inspects only
@@ -193,7 +232,8 @@ export type LoadedOrb =
 export type BaselineSnapshot =
   | { key: string; shader: 'tube'; settings: LinkedProfile }
   | { key: string; shader: 'coral'; settings: CoralRealtimeSettings }
-  | { key: string; shader: 'radial'; settings: RadialLinkedProfile };
+  | { key: string; shader: 'radial'; settings: RadialLinkedProfile }
+  | { key: string; shader: 'circle'; settings: CircleVoiceProfile };
 
 export interface RenderValues {
   scale: number;
@@ -212,4 +252,4 @@ export interface RenderValues {
 // siblings can import every type they need from a single path.
 // Keeps a single source of truth — these types remain defined in
 // their original locations.
-export type { AudioData, CoralRealtimeSettings, RadialLinkedProfile };
+export type { AudioData, CoralRealtimeSettings, RadialLinkedProfile, CircleVoiceProfile };

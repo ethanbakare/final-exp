@@ -6,12 +6,19 @@
  * URL constants (`API`, `CORAL_API`) are module-private — only the
  * wrappers below need them. Not exported.
  */
-import type { SavedCoralProfile, SavedProfile, SavedRadialProfile } from './types';
+import type {
+  SavedCircleProfile,
+  SavedCoralProfile,
+  SavedProfile,
+  SavedRadialProfile,
+} from './types';
 import type { RadialLinkedProfile } from '@/projects/voiceinterface/radial-states/api';
+import type { CircleVoiceProfile } from '@/projects/voiceinterface/circle-voice/circleVoice';
 
 const API = '/api/studio-profiles?variant=realtime-state';
 const CORAL_API = '/api/studio-profiles?variant=realtime-coral';
 const RADIAL_API = '/api/studio-profiles?variant=radial-states';
+const CIRCLE_API = '/api/studio-profiles?variant=circle-waveform-voiceset';
 
 export async function fetchProfiles(): Promise<SavedProfile[]> {
   try {
@@ -125,5 +132,62 @@ export async function persistRadialProfiles(arr: SavedRadialProfile[]) {
     });
   } catch (e) {
     console.error('[realtime-states] persist radial failed', e);
+  }
+}
+
+/** CSW-010 — Circle voicesets share the `circle-waveform-voiceset`
+ *  variant served out of circle-waveform-voicesets.json. EXACT mirror
+ *  of the radial wrap/unwrap (plan §5 #13): the on-disk shape is FLAT
+ *  (the CircleVoiceProfile fields — incl. its own nested 4-state
+ *  `settings` block — sit at the JSON entry top level), so we wrap on
+ *  fetch and unwrap on persist. `pinned`/`skipIntroOnSelect` are extra
+ *  optional top-level fields; the standalone circle-voice page tolerates
+ *  unknown fields, so writes from here don't disturb that page's reads.
+ *
+ *  Field-preservation: the unwrap spreads the SOURCE entry first
+ *  (`...p.settings`) before overriding pinned/skipIntro/lastModified, so
+ *  every CircleVoiceProfile field round-trips (plan §4 / §5). */
+type FlatCircleEntry = CircleVoiceProfile & {
+  skipIntroOnSelect?: boolean;
+};
+
+export async function fetchCircleProfiles(): Promise<SavedCircleProfile[]> {
+  try {
+    const r = await fetch(CIRCLE_API, { cache: 'no-store' });
+    const j = await r.json();
+    if (!Array.isArray(j)) return [];
+    return (j as FlatCircleEntry[]).map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      pinned: entry.pinned === true,
+      skipIntroOnSelect: entry.skipIntroOnSelect,
+      settings: entry,
+      lastModified: entry.lastModified ?? Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function persistCircleProfiles(arr: SavedCircleProfile[]) {
+  // Flatten back to the circle-voice page's on-disk shape. The
+  // CircleVoiceProfile already includes id/name/schemaVersion/settings/
+  // lastModified at the top level; we layer pinned/skipIntroOnSelect/
+  // lastModified on top (plan §5 #13). Spread the source entry FIRST so
+  // unknown / future CircleVoiceProfile fields survive the round-trip.
+  const flat: FlatCircleEntry[] = arr.map((p) => ({
+    ...p.settings,
+    pinned: p.pinned === true ? true : undefined,
+    skipIntroOnSelect: p.skipIntroOnSelect,
+    lastModified: p.lastModified,
+  }));
+  try {
+    await fetch(CIRCLE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(flat),
+    });
+  } catch (e) {
+    console.error('[realtime-states] persist circle failed', e);
   }
 }
