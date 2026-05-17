@@ -104,6 +104,34 @@ const CircleRealtimeInner: React.FC<{
     () => audioDataRef.current.frequencyData ?? null,
   ).current;
 
+  // Stable bundle identity (verbatim-hook contract — see
+  // useCircleVoiceAnimator: "bundle: Fixed for the hook's lifetime").
+  // The hook's RAF effect deps are [bundle, getAudioFrame,
+  // transitionsRef]; a NEW bundle object tears the loop down and
+  // re-subscribes, momentarily severing the audio pull. The standalone
+  // circle-voice page satisfies the contract by mutating
+  // bundle.settings IN PLACE on edits (stable identity). realtime-states
+  // is immutable and hands a FRESH CircleVoiceProfile on every slider
+  // edit AND on Update — which would re-subscribe the RAF every frame
+  // of a drag and freeze the orb / "short off" the mic (the bug). So
+  // mirror the standalone pattern: hold ONE stable bundle object and
+  // refresh its CONTENTS in place each render. CircleRealtimeInner is
+  // keyed by profile.id upstream, so a profile SWITCH remounts with a
+  // correctly-seeded fresh ref; within a profile's lifetime the
+  // identity is constant and the hook reads the latest settings each
+  // RAF tick via this ref (exactly how the standalone page works).
+  const stableBundleRef = useRef<CircleVoiceProfile>(profile);
+  {
+    const sb = stableBundleRef.current;
+    sb.schemaVersion = profile.schemaVersion;
+    sb.id = profile.id;
+    sb.name = profile.name;
+    sb.pinned = profile.pinned;
+    sb.idleListeningLinked = profile.idleListeningLinked;
+    sb.settings = profile.settings;
+    sb.lastModified = profile.lastModified;
+  }
+
   // Live-editable transition durations; ref-synced to the bundle so a
   // profile edit takes effect without making it a RAF dep.
   const transitionsRef = useRef<CircleTransitions>(
@@ -112,7 +140,7 @@ const CircleRealtimeInner: React.FC<{
   transitionsRef.current = profile.settings.transitions;
 
   const anim = useCircleVoiceAnimator({
-    bundle: profile,
+    bundle: stableBundleRef.current,
     voiceState: circleState,
     transitionsRef,
     getAudioFrame,
