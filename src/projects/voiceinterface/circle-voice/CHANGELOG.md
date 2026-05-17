@@ -4,6 +4,22 @@ Provenance for the otherexp → Final-EXP transplant (plan §14). Final-EXP is
 the active home post-port; otherexp is the playground. Runtime divergence
 signal = each bundle's `lastModified` (no `portVersion` JSON field — doc-only).
 
+- **CSW-010 port v1 — 2026-05-17 — P2 (realtime-states arm) complete.**
+  types.ts (SavedCircleProfile + circle arm in LoadedOrb/DropdownRow/
+  BaselineSnapshot), realtime-states/api.ts (FlatCircleEntry +
+  fetch/persist, source-spread-first field preservation, cache:no-store),
+  CircleEditorPanel + CircleRealtimeBlob, and the full index.tsx
+  aggregator wiring (parent state/seed/cascade, BOTH orbs projections —
+  seam audit §6.1, select/pin/rename/update/save/discard circle
+  branches, dropdown rows, side-panel + indicators). P2 gate PASS via
+  Playwright + Chrome (SwiftShader; circle is pure SVG): circle category
+  in the dropdown, shader indicator + CircleEditorPanel + 11-ellipse orb
+  render, edit→Update→reload persists, field-preservation round-trip
+  true, realtime-states bookmark toggle flips/persists `pinned` both
+  directions, clash test (radial-states/realtime-state/realtime-coral
+  byte-unchanged), tsc clean. Single realtime-states-owned `pinned`
+  (plan §0b); standalone page still never writes it.
+
 - **CSW-010 port v1 — 2026-05-17 — P1 (standalone page) complete.**
   P0 re-verified in otherexp (tsc clean; commits fba31bb/3c4d69a/a9f9d34;
   seed JSON unmutated; orb+editor+nav render; idle→talking→thinking→idle
