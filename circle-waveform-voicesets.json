@@ -372,7 +372,7 @@
         "minBarHeight": 0,
         "sensitivity": 1.8,
         "noiseFloor": 0.05,
-        "updateRate": 80,
+        "updateRate": 89,
         "smoothing": 250,
         "spectralMix": 0.2,
         "intensityOpacity": false,
@@ -411,7 +411,7 @@
         "minBarHeight": 0,
         "sensitivity": 1.8,
         "noiseFloor": 0.05,
-        "updateRate": 80,
+        "updateRate": 89,
         "smoothing": 250,
         "spectralMix": 0.2,
         "intensityOpacity": false,
@@ -450,7 +450,7 @@
         "minBarHeight": 0,
         "sensitivity": 1.8,
         "noiseFloor": 0.05,
-        "updateRate": 80,
+        "updateRate": 89,
         "smoothing": 250,
         "spectralMix": 0.2,
         "intensityOpacity": false,
@@ -489,7 +489,7 @@
         "minBarHeight": 0,
         "sensitivity": 1.8,
         "noiseFloor": 0.05,
-        "updateRate": 80,
+        "updateRate": 89,
         "smoothing": 250,
         "spectralMix": 0.32,
         "intensityOpacity": false,
@@ -513,7 +513,7 @@
         "talkingExit": 0.4
       }
     },
-    "lastModified": 1779055811944,
+    "lastModified": 1779057063025,
     "idleListeningLinked": true
   }
 ]
