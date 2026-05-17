@@ -26,6 +26,8 @@ const VARIANT_FILES: Record<string, string> = {
   "realtime-coral": "realtime-coral-profiles.json",
   // Radial-states preview (linked profile: idle + thinking + talking)
   "radial-states": "radial-states-profiles.json",
+  // CSW-010 Circle Voice — self-contained 4-state voiceset bundle file
+  "circle-waveform-voiceset": "circle-waveform-voicesets.json",
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
