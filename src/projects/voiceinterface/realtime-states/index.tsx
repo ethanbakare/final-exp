@@ -221,8 +221,10 @@ function RealtimeStatesEditor({
   const [saveShader, setSaveShader] = useState<'tube' | 'coral' | 'radial' | 'circle'>('tube');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
-  // CSW-010 — two-step delete confirm for circle dropdown rows.
-  const [confirmingDeleteCircleId, setConfirmingDeleteCircleId] = useState<
+  // CSW-010 — two-step delete confirm, shared across ALL shader
+  // dropdown rows (tube/coral/radial/circle). Profile ids are uuid-based
+  // and unique across the source arrays, so a single id is sufficient.
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<
     string | null
   >(null);
   const [thinkingPaused, setThinkingPaused] = useState(false);
@@ -1396,9 +1398,68 @@ function RealtimeStatesEditor({
       // Default Voice is normally present, and the parent's seed-on-
       // empty path re-creates it; we don't blank the selection here.
     }
-    setConfirmingDeleteCircleId(null);
+    setConfirmingDeleteId(null);
     setCircleProfiles(next);
     await persistCircleProfiles(next);
+  };
+
+  // Delete handlers for the other shaders — same shape as
+  // deleteCircleProfile: filter the entry out, re-point the active orb
+  // to a same-shader survivor FIRST if it was active (never let
+  // activeOrb go null → parent Skeleton → editor unmount →
+  // audioService.stop() kills the mic), then whole-array persist.
+  const deleteTubeProfile = async (id: string) => {
+    const next = tubeProfiles.filter((p) => p.id !== id);
+    if (activeOrb?.shader === 'tube' && activeOrb.id === id) {
+      const survivor = next[0];
+      if (survivor) {
+        setActiveOrbKey(`realtime-state:${survivor.id}`);
+        setActiveBaseline({
+          key: `realtime-state:${survivor.id}`,
+          shader: 'tube',
+          settings: structuredClone(survivor.settings),
+        });
+      }
+    }
+    setConfirmingDeleteId(null);
+    setTubeProfiles(next);
+    await persistProfiles(next);
+  };
+
+  const deleteCoralProfile = async (id: string) => {
+    const next = coralProfiles.filter((p) => p.id !== id);
+    if (activeOrb?.shader === 'coral' && activeOrb.id === id) {
+      const survivor = next[0];
+      if (survivor) {
+        setActiveOrbKey(`realtime-coral:${survivor.id}`);
+        setActiveBaseline({
+          key: `realtime-coral:${survivor.id}`,
+          shader: 'coral',
+          settings: structuredClone(survivor.settings),
+        });
+      }
+    }
+    setConfirmingDeleteId(null);
+    setCoralProfiles(next);
+    await persistCoralProfiles(next);
+  };
+
+  const deleteRadialProfile = async (id: string) => {
+    const next = radialProfiles.filter((p) => p.id !== id);
+    if (activeOrb?.shader === 'radial' && activeOrb.id === id) {
+      const survivor = next[0];
+      if (survivor) {
+        setActiveOrbKey(`radial-states:${survivor.id}`);
+        setActiveBaseline({
+          key: `radial-states:${survivor.id}`,
+          shader: 'radial',
+          settings: structuredClone(survivor.settings),
+        });
+      }
+    }
+    setConfirmingDeleteId(null);
+    setRadialProfiles(next);
+    await persistRadialProfiles(next);
   };
 
   const handleUpdate = async () => {
@@ -2000,6 +2061,41 @@ function RealtimeStatesEditor({
                             >
                               <Pencil size={12} />
                             </button>
+                            {confirmingDeleteId === p.id ? (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteTubeProfile(p.id);
+                                  }}
+                                  className="shrink-0 text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+                                  title="Confirm delete"
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirmingDeleteId(null);
+                                  }}
+                                  className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                                  title="Cancel delete"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmingDeleteId(p.id);
+                                }}
+                                className="shrink-0 text-gray-300 hover:text-red-500 transition-colors cursor-pointer"
+                                title="Delete profile"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -2119,6 +2215,41 @@ function RealtimeStatesEditor({
                             >
                               <Pencil size={12} />
                             </button>
+                            {confirmingDeleteId === p.id ? (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteCoralProfile(p.id);
+                                  }}
+                                  className="shrink-0 text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+                                  title="Confirm delete"
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirmingDeleteId(null);
+                                  }}
+                                  className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                                  title="Cancel delete"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmingDeleteId(p.id);
+                                }}
+                                className="shrink-0 text-gray-300 hover:text-red-500 transition-colors cursor-pointer"
+                                title="Delete profile"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -2222,6 +2353,41 @@ function RealtimeStatesEditor({
                             >
                               <Pencil size={12} />
                             </button>
+                            {confirmingDeleteId === p.id ? (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteRadialProfile(p.id);
+                                  }}
+                                  className="shrink-0 text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+                                  title="Confirm delete"
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setConfirmingDeleteId(null);
+                                  }}
+                                  className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                                  title="Cancel delete"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmingDeleteId(p.id);
+                                }}
+                                className="shrink-0 text-gray-300 hover:text-red-500 transition-colors cursor-pointer"
+                                title="Delete profile"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -2326,7 +2492,7 @@ function RealtimeStatesEditor({
                             >
                               <Pencil size={12} />
                             </button>
-                            {confirmingDeleteCircleId === p.id ? (
+                            {confirmingDeleteId === p.id ? (
                               <>
                                 <button
                                   onClick={(e) => {
@@ -2341,7 +2507,7 @@ function RealtimeStatesEditor({
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setConfirmingDeleteCircleId(null);
+                                    setConfirmingDeleteId(null);
                                   }}
                                   className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                                   title="Cancel delete"
@@ -2353,7 +2519,7 @@ function RealtimeStatesEditor({
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setConfirmingDeleteCircleId(p.id);
+                                  setConfirmingDeleteId(p.id);
                                 }}
                                 className="shrink-0 text-gray-300 hover:text-red-500 transition-colors cursor-pointer"
                                 title="Delete profile"
