@@ -14,21 +14,22 @@
 //
 // R3: whole-array only. No single-bundle writer.
 //
-// CIRCLE_FALLBACK is the shipped seed bundle itself (single source of truth
-// shared with the on-disk file the API serves) — it carries pinned:true and
-// passes the extended integrity gate (it IS the canonical valid bundle).
+// CIRCLE_FALLBACK is a SELF-CONTAINED code constant (./circleFallback) —
+// it MUST NOT be a JSON import of circle-waveform-voicesets.json. That
+// data file is rewritten at runtime by every Save/Update/delete; a
+// static import of it would put the live file in the webpack module
+// graph, so each write triggers a Next dev Fast Refresh that remounts
+// RealtimeStatesEditor, firing its audioService.stop() cleanup and
+// killing the mic mid-session (the circle-only "audio stops on Save"
+// bug — root-caused via the Fast-Refresh stack in AUDIO-BUG-REPORT.md).
 
-import seedVoicesets from "../../../../circle-waveform-voicesets.json";
 import { type CircleVoiceProfile, VOICE_VARIANT } from "./circleVoice";
+import { CIRCLE_FALLBACK } from "./circleFallback";
 
 const API = `/api/studio-profiles?variant=${VOICE_VARIANT}`;
 
-/** The shipped "Default Voice" bundle — doubles as the in-code fallback
- *  (plan §4-R2). Build-time snapshot of the pristine default: runtime edits
- *  go to disk via the API and never mutate this import, so it stays a
- *  trustworthy fallback. */
-export const CIRCLE_FALLBACK: CircleVoiceProfile =
-  (seedVoicesets as unknown as CircleVoiceProfile[])[0];
+// Re-export so existing consumers (`./api`) keep their import path.
+export { CIRCLE_FALLBACK };
 
 /** Whole-array GET. Returns the parsed bundle list, or null when the file is
  *  unreadable / not an array (caller decides fallback vs error). */
