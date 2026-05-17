@@ -14,8 +14,10 @@ import type { AudioData } from '@/projects/voiceinterface/types';
 import { NebularrBlob } from './NebularrBlob';
 import { CoralRealtimeBlob, type CoralRealtimeSettings } from './CoralRealtimeBlob';
 import { RadialRealtimeBlob } from './RadialRealtimeBlob';
+import { CircleRealtimeBlob } from './CircleRealtimeBlob';
 import type { LinkedProfile } from './useLinkedProfileAnimator';
 import type { RadialLinkedProfile } from '@/projects/voiceinterface/radial-states/api';
+import type { CircleVoiceProfile } from '@/projects/voiceinterface/circle-voice/circleVoice';
 
 export type RealtimeVoiceState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking';
 
@@ -27,7 +29,8 @@ export type RealtimeVoiceState = 'idle' | 'listening' | 'ai_thinking' | 'ai_spea
 export type RealtimeOrb =
   | { shader: 'coral'; profile: CoralRealtimeSettings | null }
   | { shader: 'tube'; profile: LinkedProfile | null }
-  | { shader: 'radial'; profile: RadialLinkedProfile | null };
+  | { shader: 'radial'; profile: RadialLinkedProfile | null }
+  | { shader: 'circle'; profile: CircleVoiceProfile | null };
 
 interface RealtimeBlobProps {
   audioData: AudioData;
@@ -67,6 +70,18 @@ export const RealtimeBlob: React.FC<RealtimeBlobProps> = ({
   if (orb.shader === 'radial') {
     return (
       <RadialRealtimeBlob
+        audioData={audioData}
+        voiceState={voiceState}
+        profile={orb.profile}
+        width={width}
+        height={height}
+        skipIntro={skipIntro}
+      />
+    );
+  }
+  if (orb.shader === 'circle') {
+    return (
+      <CircleRealtimeBlob
         audioData={audioData}
         voiceState={voiceState}
         profile={orb.profile}

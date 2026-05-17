@@ -12,6 +12,8 @@ import { NEBULARR_FALLBACK_PROFILE } from './NebularrBlob';
 import { CORAL_FALLBACK_PROFILE, type CoralRealtimeSettings } from './CoralRealtimeBlob';
 import type { LinkedProfile } from './useLinkedProfileAnimator';
 import type { RadialLinkedProfile } from '@/projects/voiceinterface/radial-states/api';
+import type { CircleVoiceProfile } from '@/projects/voiceinterface/circle-voice/circleVoice';
+import { CIRCLE_FALLBACK } from '@/projects/voiceinterface/circle-voice/api';
 
 /**
  * Discriminated union for orbs loaded from the studio-profiles API.
@@ -54,6 +56,16 @@ type LoadedOrb =
       skipIntroOnSelect?: boolean;
       settings: RadialLinkedProfile;
       lastModified: number;
+    }
+  | {
+      shader: 'circle';
+      sourceVariant: 'circle-waveform-voiceset';
+      id: string;
+      name: string;
+      pinned: boolean;
+      skipIntroOnSelect?: boolean;
+      settings: CircleVoiceProfile;
+      lastModified: number;
     };
 
 /** `${sourceVariant}:${id}` — used as React key, dropdown selection,
@@ -94,6 +106,23 @@ const NEBULARR_FALLBACK_ORB: LoadedOrb = {
   name: 'Nebularr',
   pinned: true,
   settings: NEBULARR_FALLBACK_PROFILE,
+  lastModified: 0,
+};
+
+// CSW-010 (plan §7 #12) — inserted ONLY when there are NO valid circle
+// bundles at all (fetch rejected / variant unregistered / unreadable /
+// zero entries). NOT inserted merely because valid bundles exist but
+// are all un-bookmarked — that would defeat the bookmark-hides-circle
+// contract. pinned:true so the fallback shows when its file fails
+// (matches CORAL/NEBULARR). The shipped CIRCLE_FALLBACK passes the
+// extended integrity gate.
+const CIRCLE_FALLBACK_ORB: LoadedOrb = {
+  shader: 'circle',
+  sourceVariant: 'circle-waveform-voiceset',
+  id: 'cv-circle-fallback',
+  name: 'Circle Voice',
+  pinned: true,
+  settings: CIRCLE_FALLBACK,
   lastModified: 0,
 };
 import { VoiceStateLabel, VoiceStateLabelState } from './ui/VoiceStateLabel';
@@ -188,8 +217,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     let cancelled = false;
 
     const fetchVariant = async (
-      variant: 'realtime-coral' | 'realtime-state' | 'radial-states',
-      shader: 'coral' | 'tube' | 'radial',
+      variant: 'realtime-coral' | 'realtime-state' | 'radial-states' | 'circle-waveform-voiceset',
+      shader: 'coral' | 'tube' | 'radial' | 'circle',
     ): Promise<LoadedOrb[]> => {
       try {
         const r = await fetch(`/api/studio-profiles?variant=${variant}`, { cache: 'no-store' });
@@ -224,6 +253,22 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             lastModified: p.lastModified ?? 0,
           }));
         }
+        if (shader === 'circle') {
+          // CSW-010 — circle JSON is FLAT (the CircleVoiceProfile,
+          // incl. its own nested 4-state `settings`, sits at the entry
+          // top level). Project the whole entry into LoadedOrb.settings.
+          return arr.map((p) => ({
+            shader: 'circle' as const,
+            sourceVariant: 'circle-waveform-voiceset' as const,
+            id: p.id,
+            name: p.name,
+            // The single realtime-states-owned bookmark (plan §0b).
+            pinned: p.pinned === true,
+            skipIntroOnSelect: p.skipIntroOnSelect,
+            settings: p as CircleVoiceProfile,
+            lastModified: p.lastModified ?? 0,
+          }));
+        }
         return arr.map((p) => ({
           shader: 'tube' as const,
           sourceVariant: 'realtime-state' as const,
@@ -243,7 +288,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       fetchVariant('realtime-coral', 'coral'),
       fetchVariant('realtime-state', 'tube'),
       fetchVariant('radial-states', 'radial'),
-    ]).then(([coralRes, tubeRes, radialRes]) => {
+      fetchVariant('circle-waveform-voiceset', 'circle'),
+    ]).then(([coralRes, tubeRes, radialRes, circleRes]) => {
       if (cancelled) return;
       const coralOrbs =
         coralRes.status === 'fulfilled' && coralRes.value.length > 0
@@ -255,7 +301,19 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           : [NEBULARR_FALLBACK_ORB];
       const radialOrbs =
         radialRes.status === 'fulfilled' ? radialRes.value : [];
-      const merged = [...coralOrbs, ...tubeOrbs, ...radialOrbs];
+      // CSW-010 (plan §7 #12): the CIRCLE_FALLBACK_ORB is inserted ONLY
+      // when there are NO valid circle bundles at all (rejected OR zero
+      // entries) — mirrors the coral/tube pattern. When bundles exist
+      // (even if ALL un-bookmarked) they're loaded as-is regardless of
+      // `pinned`; the global `merged.filter(o => o.pinned)` below + the
+      // thumbnail strip then correctly show NONE when all are unpinned,
+      // so un-bookmarking the only circle bundle makes circle disappear
+      // (no fallback resurrection).
+      const circleOrbs =
+        circleRes.status === 'fulfilled' && circleRes.value.length > 0
+          ? circleRes.value
+          : [CIRCLE_FALLBACK_ORB];
+      const merged = [...coralOrbs, ...tubeOrbs, ...radialOrbs, ...circleOrbs];
       setOrbs(merged);
 
       // Live page only shows pinned orbs (explicit opt-in). The default
@@ -312,6 +370,9 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     }
     if (activeOrb.shader === 'radial') {
       return { shader: 'radial', profile: activeOrb.settings };
+    }
+    if (activeOrb.shader === 'circle') {
+      return { shader: 'circle', profile: activeOrb.settings };
     }
     return { shader: 'tube', profile: activeOrb.settings };
   }, [activeOrb]);
