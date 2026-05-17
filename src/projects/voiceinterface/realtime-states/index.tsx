@@ -201,6 +201,16 @@ function RealtimeStatesEditor({
    *  the `expanded` flag above; radial is decoupled because its panel
    *  is open by default and isn't tied to the tab system. */
   const [radialPanelOpen, setRadialPanelOpen] = useState(true);
+  // CSW-010 — circle eye-ghost overlay state, owned HERE (the editor
+  // child) so the circle canvas (CircleRealtimeBlob editorGhosts) and
+  // CircleEditorPanel share it — exactly how the standalone
+  // circle-voice page's VoiceStage owns it and feeds both the controls
+  // and the orb. (The TRUE live page never wires these — §3c.)
+  const [circlePreviewEnvelope, setCirclePreviewEnvelope] = useState<
+    'max' | 'min' | null
+  >(null);
+  const [circleWaveReachVisible, setCircleWaveReachVisible] = useState(false);
+  const [circleWaveReachHovered, setCircleWaveReachHovered] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState('');
@@ -1577,6 +1587,11 @@ function RealtimeStatesEditor({
             profile={activeOrb.settings}
             width={328}
             height={328}
+            editorGhosts={{
+              previewEnvelope: circlePreviewEnvelope,
+              waveReachVisible: circleWaveReachVisible,
+              waveReachHovered: circleWaveReachHovered,
+            }}
           />
         ) : (
         <Canvas
@@ -1682,6 +1697,10 @@ function RealtimeStatesEditor({
               profile={activeOrb.settings}
               focused={state as VoiceState}
               onProfileChange={handleCircleProfileChange}
+              waveReachVisible={circleWaveReachVisible}
+              setPreviewEnvelope={setCirclePreviewEnvelope}
+              setWaveReachVisible={setCircleWaveReachVisible}
+              setWaveReachHovered={setCircleWaveReachHovered}
             />
           </div>
         )}

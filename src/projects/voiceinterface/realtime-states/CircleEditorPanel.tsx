@@ -17,7 +17,7 @@
  * exactly like RadialEditorPanel passes a no-op hover), they just
  * satisfy CircleControlsPanel's interface.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { CircleControlsPanel } from '@/projects/voiceinterface/circle-voice/CircleControlsPanel';
 import type {
   CircleSawSettings,
@@ -56,22 +56,29 @@ interface CircleEditorPanelProps {
   profile: CircleVoiceProfile;
   focused: VoiceState;
   onProfileChange: (next: CircleVoiceProfile) => void;
+  /** Eye-ghost overlay UI state, LIFTED to the editor child (index.tsx)
+   *  so the realtime-states circle canvas (CircleRealtimeBlob
+   *  editorGhosts) and this panel share it — exactly how the standalone
+   *  circle-voice page's VoiceStage owns it and feeds both the controls
+   *  and the orb. Without this lift the Max/Min-Height + Wave-Amplitude
+   *  hover/eye overlays set state that went nowhere visible. */
+  waveReachVisible: boolean;
+  setPreviewEnvelope: React.Dispatch<
+    React.SetStateAction<'max' | 'min' | null>
+  >;
+  setWaveReachVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  setWaveReachHovered: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const CircleEditorPanel: React.FC<CircleEditorPanelProps> = ({
   profile,
   focused,
   onProfileChange,
+  waveReachVisible,
+  setPreviewEnvelope,
+  setWaveReachVisible,
+  setWaveReachHovered,
 }) => {
-  // Editor-only eye-ghost overlay UI state. CircleControlsPanel
-  // requires the setters as props; the VALUES are only read by the
-  // standalone CircleVoiceOrb's ghosts (not rendered in the aggregator,
-  // exactly like RadialEditorPanel passes a no-op hover), so only the
-  // setters are kept.
-  const [, setPreviewEnvelope] = useState<'max' | 'min' | null>(null);
-  const [waveReachVisible, setWaveReachVisible] = useState(false);
-  const [, setWaveReachHovered] = useState(false);
-
   const linked = profile.idleListeningLinked !== false;
   const s = profile.settings[focused];
 

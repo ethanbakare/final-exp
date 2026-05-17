@@ -43,6 +43,20 @@ import type {
 } from '@/projects/voiceinterface/circle-voice/circleVoice';
 import type { RealtimeVoiceState } from './RealtimeBlob';
 
+/** Editor-only eye-ghost flags (plan §3c). The TRUE live page
+ *  (VoiceRealtimeOpenAI → RealtimeBlob) NEVER passes this, so the live
+ *  orb stays ghost-free per §3c. Only the realtime-states editor canvas
+ *  passes it, to bring its circle preview to parity with the standalone
+ *  circle-voice page's Max/Min-Height + Wave-Amplitude hover/eye
+ *  overlays. The heavy ghost geometry (apexBars/arcRyByPair/ambientWave/
+ *  waveAmplitude) is sourced from this wrapper's own animator so callers
+ *  only pass the three editor flags. */
+export interface CircleEditorGhostFlags {
+  previewEnvelope: 'max' | 'min' | null;
+  waveReachVisible: boolean;
+  waveReachHovered: boolean;
+}
+
 interface CircleRealtimeBlobProps {
   audioData: AudioData;
   voiceState: RealtimeVoiceState;
@@ -53,6 +67,9 @@ interface CircleRealtimeBlobProps {
    *  incoming state's resting values on mount (no talking→idle
    *  flourish by construction), so this is accepted but not consumed. */
   skipIntro?: boolean;
+  /** Editor-only (realtime-states canvas). Omitted by the live page —
+   *  see CircleEditorGhostFlags. */
+  editorGhosts?: CircleEditorGhostFlags;
 }
 
 const VOICE_TO_CIRCLE: Record<RealtimeVoiceState, VoiceState> = {
@@ -72,7 +89,8 @@ const CircleRealtimeInner: React.FC<{
   profile: CircleVoiceProfile;
   width: number;
   height: number;
-}> = ({ audioData, voiceState, profile, width, height }) => {
+  editorGhosts?: CircleEditorGhostFlags;
+}> = ({ audioData, voiceState, profile, width, height, editorGhosts }) => {
   const circleState = VOICE_TO_CIRCLE[voiceState];
 
   // Live frame, ref-backed so the ~16 ms-changing audioData is never a
@@ -125,7 +143,23 @@ const CircleRealtimeInner: React.FC<{
         barColor={identity.barColor}
         intensityOpacity={identity.intensityOpacity}
         bars={anim.bars}
-        // Live orb: no editor eye-ghosts (plan §3c).
+        // Plan §3c: the live orb passes `undefined` (no ghosts). Only
+        // the realtime-states editor canvas supplies `editorGhosts`,
+        // and we source the heavy geometry from this wrapper's own
+        // animator so the overlay matches the standalone page exactly.
+        ghosts={
+          editorGhosts
+            ? {
+                apexBars: anim.apexBars,
+                arcRyByPair: anim.arcRyByPair,
+                previewEnvelope: editorGhosts.previewEnvelope,
+                waveReachVisible: editorGhosts.waveReachVisible,
+                waveReachHovered: editorGhosts.waveReachHovered,
+                ambientWave: anim.ambientWave,
+                waveAmplitude: anim.waveAmplitude,
+              }
+            : undefined
+        }
       />
     </div>
   );
@@ -137,6 +171,7 @@ export const CircleRealtimeBlob: React.FC<CircleRealtimeBlobProps> = ({
   profile,
   width = 328,
   height = 328,
+  editorGhosts,
 }) => {
   if (!profile) {
     return <div style={{ width, height }} />;
@@ -149,6 +184,7 @@ export const CircleRealtimeBlob: React.FC<CircleRealtimeBlobProps> = ({
       profile={profile}
       width={width}
       height={height}
+      editorGhosts={editorGhosts}
     />
   );
 };
