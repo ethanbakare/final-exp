@@ -532,6 +532,17 @@ const TraceComponent: React.FC = () => {
           border-bottom: none;
         }
 
+        /* Pill ↔ price alignment. Figma MasterRow (2393:1943) is
+           align-items:center; the component uses align-items:baseline,
+           which lines the 10px pill text to the 28px number's baseline
+           so the big price drops below the pill / out of the band.
+           Centring the row lines them up like Figma. (The £-vs-number
+           baseline INSIDE .master-total-price-anim is left as-is — that
+           matches Figma's small-£-on-the-number's-baseline.) */
+        .traceWidgetTextbox.traceWidgetTextbox .master-total-frame {
+          align-items: center;
+        }
+
         /* "Total amt" outlined pill (Figma node 2393:1944) — drop the
            red indicator, restyle as the bordered pill, swap the label
            text via CSS (no shared-component change; Option A). */
