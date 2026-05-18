@@ -61,6 +61,17 @@ const VARIANTS: Variant[] = [
     caption: 'Inner collar #131312 + outer border',
     content: traceSlot,
   },
+  // Duplicate of glassBordered with a #FFF6DA (pale cream) inner
+  // collar. Same projects-card-glass-bordered double-border outer
+  // chrome; only innerBg differs (per-instance, no CSS collision —
+  // the auto pc-card-glassBorderedCream subclass keeps it distinct).
+  {
+    id: 'glassBorderedCream',
+    className: 'projects-card-glass-bordered',
+    innerBg: '#FFF6DA',
+    caption: 'Inner collar #FFF6DA + outer border',
+    content: traceSlot,
+  },
   // #1 Eclipse Dream — Clipstream voice-clip in the outer-white style.
   // Rendered via PreviewClipstream (the same wrapper the demos carousel
   // uses): position:absolute inset:0 fills the card-inner and centres
