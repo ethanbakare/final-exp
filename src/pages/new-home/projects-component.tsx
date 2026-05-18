@@ -143,6 +143,11 @@ const VARIANTS: Variant[] = [
     innerBg: '#F7F6F4',
     caption: 'Voice UI — #F7F6F4 + outer border',
     content: <PreviewVoiceAnimated />,
+    // Voice UI's own card description — the exact label the real demos
+    // carousel uses (CarouselDemos.tsx): "Voice UI Library" with a grey
+    // pill. Shown via the pc-card-voice un-hide rule in the CSS below.
+    label: 'Voice UI Library',
+    labelBg: 'rgba(113, 113, 113, 0.50)',
   },
 ];
 
@@ -464,15 +469,19 @@ export default function ProjectsComponentPage() {
         .projects-card-voice .card-inner > .label {
           display: none !important;
         }
-        /* …EXCEPT Ollama, which SHOWS its own card description (the
-           real carousel label, set on the variant). pc-card-ollama
-           doubled (0,4,0) out-specifies the label-hide group's
-           .projects-card-glass .card-inner > .label (0,3,0)
-           regardless of source order — Ollama keeps projects-card-glass
-           chrome but its label is un-hidden, while the other glass
-           cards (Trace glass, both Clipstreams) stay hidden. */
-        .pc-card-ollama.pc-card-ollama .card-inner > .label {
+        /* …EXCEPT Ollama and Voice UI, which SHOW their own card
+           description (their real carousel labels, set on the
+           variants). Each pc-card-<id> doubled (0,4,0) out-specifies
+           the label-hide group (0,3,0) regardless of source order, so
+           ONLY these two are un-hidden; cards sharing their chrome
+           class keep "Trace AI" hidden. */
+        .pc-card-ollama.pc-card-ollama .card-inner > .label,
+        .pc-card-voice.pc-card-voice .card-inner > .label {
           display: flex !important;
+        }
+        /* Ollama only: halve the opacity of its card-description pill. */
+        .pc-card-ollama.pc-card-ollama .card-inner > .label {
+          opacity: 0.5;
         }
 
         /* #2 AI Confidence — force PreviewAIConfidence's own
