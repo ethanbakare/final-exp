@@ -116,17 +116,20 @@ const VARIANTS: Variant[] = [
   // #4 Voice URL library (Voice UI). PreviewVoiceAnimated is
   // position:absolute inset:0 but paints NO background of its own — it
   // relies on the card surface. Its design bg is --preview-voice-bg
-  // (#F7F6F4, the Whimsy white). Per the roadmap: match the card to
-  // that white, replacing outer-white. So stripped chrome
-  // (projects-card = transparent .card-outer, no border/shadow, label
-  // hidden) + innerBg #F7F6F4 → the WebGL LoopingBlob sits on #F7F6F4.
-  // (LoopingBlob is R3F/WebGL; the headless screenshot probe needs
-  // SwiftShader flags or the canvas won't render.)
+  // (#F7F6F4, the Whimsy white). DEDICATED chrome class
+  // `projects-card-voice` (its own profile — NOT the shared
+  // `projects-card` stripped class) so it carries the SAME shared
+  // double-border outer chrome as AI Confidence (transparent +
+  // #2E2C29 border + 2 inset hairlines + outward drop, no glow), with
+  // innerBg #F7F6F4 so the WebGL LoopingBlob sits on the Whimsy white
+  // inside the framed outer. (LoopingBlob is R3F/WebGL; the headless
+  // screenshot probe needs SwiftShader flags or the canvas won't
+  // render.)
   {
     id: 'voice',
-    className: 'projects-card',
+    className: 'projects-card-voice',
     innerBg: '#F7F6F4',
-    caption: 'Voice UI — #F7F6F4',
+    caption: 'Voice UI — #F7F6F4 + outer border',
     content: <PreviewVoiceAnimated />,
   },
 ];
@@ -366,7 +369,8 @@ export default function ProjectsComponentPage() {
         .projects-card-chrome,
         .projects-card-glass,
         .projects-card-glass-bordered,
-        .projects-card-aiconf {
+        .projects-card-aiconf,
+        .projects-card-voice {
           width: 100%;
           height: 100%;
         }
@@ -382,9 +386,13 @@ export default function ProjectsComponentPage() {
            border and the inner). glassBordered also moves the #131312
            collar onto .card-inner via innerBg; AI Confidence's inner
            is its own PreviewAIConfidence picture/transcript (untouched
-           here). Label hidden via the label-hide group. */
+           here). Voice UI (.projects-card-voice) also shares this
+           chrome, with a #F7F6F4 inner (the WebGL blob's Whimsy white)
+           inside the framed outer. Label hidden via the label-hide
+           group. */
         .projects-card-glass-bordered .card-outer,
-        .projects-card-aiconf .card-outer {
+        .projects-card-aiconf .card-outer,
+        .projects-card-voice .card-outer {
           background: transparent !important;
           box-shadow:
             0 0.5px 0.5px 1px rgba(255, 255, 255, 0.06) inset,
@@ -428,7 +436,8 @@ export default function ProjectsComponentPage() {
         .projects-card .card-inner,
         .projects-card-glass .card-inner,
         .projects-card-glass-bordered .card-inner,
-        .projects-card-aiconf .card-inner {
+        .projects-card-aiconf .card-inner,
+        .projects-card-voice .card-inner {
           border: none !important;
         }
         /* Hide the DemoCard "Trace AI" label. Scope to a DIRECT child of
@@ -438,7 +447,8 @@ export default function ProjectsComponentPage() {
         .projects-card .card-inner > .label,
         .projects-card-glass .card-inner > .label,
         .projects-card-glass-bordered .card-inner > .label,
-        .projects-card-aiconf .card-inner > .label {
+        .projects-card-aiconf .card-inner > .label,
+        .projects-card-voice .card-inner > .label {
           display: none !important;
         }
 
