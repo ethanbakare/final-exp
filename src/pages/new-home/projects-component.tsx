@@ -46,8 +46,8 @@ const VARIANTS: Variant[] = [
   {
     id: 'glassBordered',
     className: 'projects-card-glass-bordered',
-    innerBg: 'transparent',
-    caption: 'Solid #131312 + inner+outer border (no glow)',
+    innerBg: '#131312',
+    caption: 'Inner collar #131312 + outer border',
     content: traceSlot,
   },
   // #1 Eclipse Dream — Clipstream voice-clip in the outer-white style.
@@ -285,22 +285,19 @@ export default function ProjectsComponentPage() {
           width: 100%;
           height: 100%;
         }
-        /* Variant E — TWO borders + outward shadow, NO glow. Of the
-           DemoCard .card-outer 4-layer box-shadow, only the soft
-           diffuse layer (white-03 @ 14.5px blur — the actual "glow")
-           is dropped. The two TIGHT inset layers (white-06 @ .5px,
-           white-12 @ .25px, both 1px spread) are KEPT — they render
-           as a crisp bright hairline just inside the dark border,
-           i.e. the "inner border" line. The dark outer border
-           (1px solid #2E2C29) is untouched (not in the strip list).
-           Plus the outward black-25% drop shadow. Surface is the
-           SOLID opaque equivalent of the old white-2.5% over the page
-           gradient (#0A0A09→#0F0F0E): ≈ #10100F (top) … #151514
-           (bottom); #131312 mid-page. Solid (not translucent) so the
-           outward shadow / page bg can't bleed through and shift how
-           it reads. Label hidden + .card-inner border none. */
+        /* Variant E — the COLLAR (surface fill) is moved from
+           .card-outer to .card-inner; .card-outer's fill goes
+           transparent. The BORDER is NOT moved — .card-outer keeps
+           its DemoCard #2E2C29 border + the no-glow box-shadow (the
+           two tight inset hairlines + the outward black-25% drop).
+           The collar colour #131312 (solid equiv. of the old
+           white-2.5% over the page gradient) is applied to
+           .card-inner via the variant's innerBg prop. The 12px
+           .card-outer padding ring is now see-through (page gradient
+           shows between the outer border and the inner collar).
+           Label still hidden via the label-hide group. */
         .projects-card-glass-bordered .card-outer {
-          background: #131312 !important;
+          background: transparent !important;
           box-shadow:
             0 0.5px 0.5px 1px rgba(255, 255, 255, 0.06) inset,
             0 0.25px 0.25px 1px rgba(255, 255, 255, 0.12) inset,
@@ -333,6 +330,13 @@ export default function ProjectsComponentPage() {
         .pc-card-clipstreamGreige.pc-card-clipstreamGreige .card-outer {
           background: #c5c3c0 !important;
         }
+        /* .card-inner border stripped for these variants. glassBordered
+           is included here so that "move the collar to the inner" moves
+           ONLY the colour — the inner gets the #131312 fill (via its
+           innerBg prop) and NO border; the border stays solely on
+           .card-outer (not moved). Without this, .card-inner falls back
+           to DemoCard's default 1px #403D3A border (an unintended 2nd
+           border). */
         .projects-card .card-inner,
         .projects-card-glass .card-inner,
         .projects-card-glass-bordered .card-inner,
