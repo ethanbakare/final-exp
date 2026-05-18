@@ -45,7 +45,7 @@ export default function ProjectsComponentPage() {
         }}
       >
         Projects component — Trace AI widget in a brand-design card
-        (381×298), four variants. Test scaffold; not the products page yet.
+        (381×298), five variants. Test scaffold; not the products page yet.
       </p>
 
       {/* Two variants side by side: chrome stripped vs full brand-card
@@ -184,6 +184,39 @@ export default function ProjectsComponentPage() {
             Outer white 2.5%
           </span>
         </div>
+
+        {/* Variant E — combines the full-chrome OUTER border/shadow with
+            the glass variant's white-2.5% .card-outer background (label
+            hidden + inner transparent like D). */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div style={{ width: 381, height: 298, display: 'flex' }}>
+            <DemoCard
+              label="Trace AI"
+              className="projects-card-glass-bordered"
+              innerBg="transparent"
+            >
+              <div style={{ transform: 'scale(0.8)' }}>
+                <TraceWidget />
+              </div>
+            </DemoCard>
+          </div>
+          <span
+            style={{
+              color: 'rgba(255,255,255,0.4)',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 12,
+            }}
+          >
+            White 2.5% + chrome border
+          </span>
+        </div>
       </div>
 
       <style jsx global>{`
@@ -198,9 +231,17 @@ export default function ProjectsComponentPage() {
            variants are sized to fill their 381×298 wrapper. */
         .projects-card,
         .projects-card-chrome,
-        .projects-card-glass {
+        .projects-card-glass,
+        .projects-card-glass-bordered {
           width: 100%;
           height: 100%;
+        }
+        /* Variant E — white-2.5% .card-outer like D, but the DemoCard
+           default border + inset shadow ("extreme outer borderline")
+           are NOT stripped (kept from the full-chrome variant). Label
+           hidden + inner border none, matching the glass look. */
+        .projects-card-glass-bordered .card-outer {
+          background: rgba(255, 255, 255, 0.025) !important;
         }
         /* Stripped variants (A & D) — remove the brand-card chrome so
            only the widget shows; B/C (.projects-card-chrome) keep the
@@ -221,7 +262,8 @@ export default function ProjectsComponentPage() {
           background: rgba(255, 255, 255, 0.025) !important;
         }
         .projects-card .card-inner,
-        .projects-card-glass .card-inner {
+        .projects-card-glass .card-inner,
+        .projects-card-glass-bordered .card-inner {
           border: none !important;
         }
         /* Hide the DemoCard "Trace AI" label. Scope to a DIRECT child of
@@ -229,7 +271,8 @@ export default function ProjectsComponentPage() {
            nested .label span, so a broad descendant selector would
            wrongly blank the "Total amt" pill too. */
         .projects-card .card-inner > .label,
-        .projects-card-glass .card-inner > .label {
+        .projects-card-glass .card-inner > .label,
+        .projects-card-glass-bordered .card-inner > .label {
           display: none !important;
         }
       `}</style>
