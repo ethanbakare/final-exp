@@ -47,7 +47,7 @@ const VARIANTS: Variant[] = [
     id: 'glassBordered',
     className: 'projects-card-glass-bordered',
     innerBg: 'transparent',
-    caption: 'White 2.5% + chrome border',
+    caption: 'Solid #131312 + border (no glow)',
     content: traceSlot,
   },
   // #1 Eclipse Dream — Clipstream voice-clip in the outer-white style.
@@ -285,12 +285,20 @@ export default function ProjectsComponentPage() {
           width: 100%;
           height: 100%;
         }
-        /* Variant E — white-2.5% .card-outer like D, but the DemoCard
-           default border + inset shadow ("extreme outer borderline")
-           are NOT stripped (kept from the full-chrome variant). Label
-           hidden + inner border none, matching the glass look. */
+        /* Variant E — border line ONLY, no glow. The DemoCard default
+           border is kept (NOT in the strip list), but its 4-layer
+           box-shadow is replaced with JUST the outward drop shadow —
+           the 3 inset (inner) white-glow layers are removed. The
+           surface is the SOLID opaque equivalent of the old
+           white-2.5% over the page gradient (#0A0A09→#0F0F0E):
+           rgba(255,255,255,0.025) composited ≈ #10100F (top) …
+           #151514 (bottom); #131312 is the mid-page equivalent.
+           Solid (not translucent) so the outward drop shadow / page
+           bg can't bleed through and shift how the surface reads.
+           Label hidden + inner border none, matching the glass look. */
         .projects-card-glass-bordered .card-outer {
-          background: rgba(255, 255, 255, 0.025) !important;
+          background: #131312 !important;
+          box-shadow: 0 14.211px 20.281px -5.477px rgba(0, 0, 0, 0.25) !important;
         }
         /* Stripped variants (A & D) — remove the brand-card chrome so
            only the widget shows; B/C (.projects-card-chrome) keep the
