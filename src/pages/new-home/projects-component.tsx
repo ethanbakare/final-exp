@@ -17,26 +17,53 @@ import React, { useState } from 'react';
 import styles from '@/projects/new-home/styles/new-home.module.css';
 import DemoCard from '@/projects/new-home/components/DemoCard';
 import TraceWidget from '@/projects/trace/components/TraceWidget';
+import { VoiceTextBoxClip } from '@/projects/voiceinterface/components/VoiceTextBoxClip';
 
 type Variant = {
   id: string;
   className: string;
   innerBg?: string;
   caption: string;
+  content: React.ReactNode; // the widget slotted into the card
 };
 
-// The 5 chrome variants. Order here is the initial order; the page
-// keeps its own reorderable copy in state.
+// Trace widget slot, scaled 0.8 to fit the 381×298 card (shared by the
+// first five chrome variants).
+const traceSlot = (
+  <div style={{ transform: 'scale(0.8)' }}>
+    <TraceWidget />
+  </div>
+);
+
+// Order here is the initial order; the page keeps its own reorderable
+// copy in state.
 const VARIANTS: Variant[] = [
-  { id: 'stripped', className: 'projects-card', innerBg: 'transparent', caption: 'Chrome stripped' },
-  { id: 'chrome', className: 'projects-card-chrome', caption: 'Full card chrome' },
-  { id: 'innerCream', className: 'projects-card-chrome', innerBg: '#F7F6F4', caption: 'Inner #F7F6F4' },
-  { id: 'glass', className: 'projects-card-glass', innerBg: 'transparent', caption: 'Outer white 2.5%' },
+  { id: 'stripped', className: 'projects-card', innerBg: 'transparent', caption: 'Chrome stripped', content: traceSlot },
+  { id: 'chrome', className: 'projects-card-chrome', caption: 'Full card chrome', content: traceSlot },
+  { id: 'innerCream', className: 'projects-card-chrome', innerBg: '#F7F6F4', caption: 'Inner #F7F6F4', content: traceSlot },
+  { id: 'glass', className: 'projects-card-glass', innerBg: 'transparent', caption: 'Outer white 2.5%', content: traceSlot },
   {
     id: 'glassBordered',
     className: 'projects-card-glass-bordered',
     innerBg: 'transparent',
     caption: 'White 2.5% + chrome border',
+    content: traceSlot,
+  },
+  // #1 Eclipse Dream — the Clipstream voice-clip widget
+  // (VoiceTextBoxClip, simulate loop) in the outer-white style. It is
+  // ~393px wide vs the ~357px card-inner, so it's uniformly scaled 0.8
+  // to fit horizontally FOR NOW. Do not shrink its width directly —
+  // that distorts its navbar; revisit after this baseline.
+  {
+    id: 'clipstream',
+    className: 'projects-card-glass',
+    innerBg: 'transparent',
+    caption: 'Clipstream — outer white (scaled 0.8)',
+    content: (
+      <div style={{ transform: 'scale(0.8)' }}>
+        <VoiceTextBoxClip simulate />
+      </div>
+    ),
   },
 ];
 
@@ -110,7 +137,7 @@ export default function ProjectsComponentPage() {
         }}
       >
         Projects component — Trace AI widget in a brand-design card
-        (381×298), five variants. Drag a card's top-right handle onto
+        (381×298), six variants. Drag a card's top-right handle onto
         another to reorder. Test scaffold; not the products page yet.
       </p>
 
@@ -189,9 +216,7 @@ export default function ProjectsComponentPage() {
                   className={v.className}
                   innerBg={v.innerBg}
                 >
-                  <div style={{ transform: 'scale(0.8)' }}>
-                    <TraceWidget />
-                  </div>
+                  {v.content}
                 </DemoCard>
               </div>
               <span
