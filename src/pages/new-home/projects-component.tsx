@@ -3,25 +3,61 @@
  *
  * Purpose: pick up ONE brand-design card at its stipulated size
  * (CarouselBrand grid cell = 381×298) and slot the reusable
- * <TraceWidget/> into it, so the fit can be eyeballed/iterated before
- * moving it onto the real products page.
+ * <TraceWidget/> into it, across several card-chrome variants, so the
+ * fit/treatment can be eyeballed/iterated before moving onto the real
+ * products page.
  *
  * Route: /new-home/projects-component
  *
- * Note on sizing: the brand card's inner content area is ≈ 357×272
- * (381×298 minus the 12px card-outer padding + borders). The Trace
- * widget is a fixed 301×315 — it is ~43px taller than the card's inner
- * area, so card-inner's `overflow:hidden` will clip it top/bottom. That
- * mismatch is the thing to decide here (scale the widget down, change
- * the card size, or adjust the widget) — left raw on purpose for this
- * test, not pre-solved.
+ * Reorder: each card has a drag handle in its top-right corner. Drag a
+ * handle onto another card to reorder (native HTML5 DnD, local state
+ * only — purely a test-scaffold convenience, nothing persisted).
  */
-import React from 'react';
+import React, { useState } from 'react';
 import styles from '@/projects/new-home/styles/new-home.module.css';
 import DemoCard from '@/projects/new-home/components/DemoCard';
 import TraceWidget from '@/projects/trace/components/TraceWidget';
 
+type Variant = {
+  id: string;
+  className: string;
+  innerBg?: string;
+  caption: string;
+};
+
+// The 5 chrome variants. Order here is the initial order; the page
+// keeps its own reorderable copy in state.
+const VARIANTS: Variant[] = [
+  { id: 'stripped', className: 'projects-card', innerBg: 'transparent', caption: 'Chrome stripped' },
+  { id: 'chrome', className: 'projects-card-chrome', caption: 'Full card chrome' },
+  { id: 'innerCream', className: 'projects-card-chrome', innerBg: '#F7F6F4', caption: 'Inner #F7F6F4' },
+  { id: 'glass', className: 'projects-card-glass', innerBg: 'transparent', caption: 'Outer white 2.5%' },
+  {
+    id: 'glassBordered',
+    className: 'projects-card-glass-bordered',
+    innerBg: 'transparent',
+    caption: 'White 2.5% + chrome border',
+  },
+];
+
+const BY_ID = Object.fromEntries(VARIANTS.map((v) => [v.id, v]));
+
 export default function ProjectsComponentPage() {
+  const [order, setOrder] = useState<string[]>(VARIANTS.map((v) => v.id));
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  // Move the dragged card to the dropped-on card's slot.
+  const reorder = (targetId: string) => {
+    setDragId(null);
+    if (!dragId || dragId === targetId) return;
+    setOrder((prev) => {
+      const without = prev.filter((x) => x !== dragId);
+      const at = without.indexOf(targetId);
+      without.splice(at, 0, dragId);
+      return without;
+    });
+  };
+
   return (
     <div
       className={styles.pageContainer}
@@ -45,12 +81,10 @@ export default function ProjectsComponentPage() {
         }}
       >
         Projects component — Trace AI widget in a brand-design card
-        (381×298), five variants. Test scaffold; not the products page yet.
+        (381×298), five variants. Drag a card's top-right handle onto
+        another to reorder. Test scaffold; not the products page yet.
       </p>
 
-      {/* Two variants side by side: chrome stripped vs full brand-card
-          chrome. Both use the same TraceWidget, slot-scaled 0.8 to fit
-          the 381×298 cell. */}
       <div
         style={{
           display: 'flex',
@@ -60,163 +94,86 @@ export default function ProjectsComponentPage() {
           alignItems: 'flex-start',
         }}
       >
-        {/* Variant A — chrome stripped (transparent bg, no border, label
-            hidden). Uses .projects-card + innerBg="transparent". */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <div style={{ width: 381, height: 298, display: 'flex' }}>
-            <DemoCard
-              label="Trace AI"
-              className="projects-card"
-              innerBg="transparent"
+        {order.map((id) => {
+          const v = BY_ID[id];
+          const isDragging = dragId === id;
+          return (
+            <div
+              key={id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 12,
+                opacity: isDragging ? 0.4 : 1,
+                transition: 'opacity 0.15s ease',
+              }}
             >
-              <div style={{ transform: 'scale(0.8)' }}>
-                <TraceWidget />
-              </div>
-            </DemoCard>
-          </div>
-          <span
-            style={{
-              color: 'rgba(255,255,255,0.4)',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 12,
-            }}
-          >
-            Chrome stripped
-          </span>
-        </div>
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => reorder(id)}
+                style={{
+                  position: 'relative',
+                  width: 381,
+                  height: 298,
+                  display: 'flex',
+                }}
+              >
+                {/* Drag handle — top-right corner. Only this element is
+                    draggable; drop onto any card to reorder. */}
+                <div
+                  draggable
+                  onDragStart={(e) => {
+                    setDragId(id);
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', id);
+                  }}
+                  onDragEnd={() => setDragId(null)}
+                  title="Drag to reorder"
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    zIndex: 20,
+                    width: 26,
+                    height: 26,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 6,
+                    background: 'rgba(255,255,255,0.10)',
+                    color: 'rgba(255,255,255,0.65)',
+                    fontSize: 13,
+                    lineHeight: 1,
+                    cursor: 'grab',
+                    userSelect: 'none',
+                  }}
+                >
+                  ⠿
+                </div>
 
-        {/* Variant B — full brand-card chrome kept (default DemoCard bg,
-            borders + label). .projects-card-chrome only sizes it; no
-            stripping overrides, no innerBg. */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <div style={{ width: 381, height: 298, display: 'flex' }}>
-            <DemoCard label="Trace AI" className="projects-card-chrome">
-              <div style={{ transform: 'scale(0.8)' }}>
-                <TraceWidget />
+                <DemoCard
+                  label="Trace AI"
+                  className={v.className}
+                  innerBg={v.innerBg}
+                >
+                  <div style={{ transform: 'scale(0.8)' }}>
+                    <TraceWidget />
+                  </div>
+                </DemoCard>
               </div>
-            </DemoCard>
-          </div>
-          <span
-            style={{
-              color: 'rgba(255,255,255,0.4)',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 12,
-            }}
-          >
-            Full card chrome
-          </span>
-        </div>
-
-        {/* Variant C — full chrome, but card-inner recoloured to
-            #F7F6F4 via DemoCard's innerBg prop (the selected element). */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <div style={{ width: 381, height: 298, display: 'flex' }}>
-            <DemoCard
-              label="Trace AI"
-              className="projects-card-chrome"
-              innerBg="#F7F6F4"
-            >
-              <div style={{ transform: 'scale(0.8)' }}>
-                <TraceWidget />
-              </div>
-            </DemoCard>
-          </div>
-          <span
-            style={{
-              color: 'rgba(255,255,255,0.4)',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 12,
-            }}
-          >
-            Inner #F7F6F4
-          </span>
-        </div>
-
-        {/* Variant D — stripped like A, but .card-outer (the selected
-            element) gets a white-2.5% background instead of transparent. */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <div style={{ width: 381, height: 298, display: 'flex' }}>
-            <DemoCard
-              label="Trace AI"
-              className="projects-card-glass"
-              innerBg="transparent"
-            >
-              <div style={{ transform: 'scale(0.8)' }}>
-                <TraceWidget />
-              </div>
-            </DemoCard>
-          </div>
-          <span
-            style={{
-              color: 'rgba(255,255,255,0.4)',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 12,
-            }}
-          >
-            Outer white 2.5%
-          </span>
-        </div>
-
-        {/* Variant E — combines the full-chrome OUTER border/shadow with
-            the glass variant's white-2.5% .card-outer background (label
-            hidden + inner transparent like D). */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
-          <div style={{ width: 381, height: 298, display: 'flex' }}>
-            <DemoCard
-              label="Trace AI"
-              className="projects-card-glass-bordered"
-              innerBg="transparent"
-            >
-              <div style={{ transform: 'scale(0.8)' }}>
-                <TraceWidget />
-              </div>
-            </DemoCard>
-          </div>
-          <span
-            style={{
-              color: 'rgba(255,255,255,0.4)',
-              fontFamily: 'Inter, sans-serif',
-              fontSize: 12,
-            }}
-          >
-            White 2.5% + chrome border
-          </span>
-        </div>
+              <span
+                style={{
+                  color: 'rgba(255,255,255,0.4)',
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: 12,
+                }}
+              >
+                {v.caption}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       <style jsx global>{`
@@ -227,7 +184,7 @@ export default function ProjectsComponentPage() {
           background: #0a0a09;
         }
         /* DemoCard's outer <div> has a fixed inline display:flex and is
-           normally sized by the CarouselBrand grid cell; here both
+           normally sized by the CarouselBrand grid cell; here all
            variants are sized to fill their 381×298 wrapper. */
         .projects-card,
         .projects-card-chrome,
