@@ -92,7 +92,7 @@ const VARIANTS: Variant[] = [
     id: 'aiConfidence',
     className: 'projects-card-aiconf',
     innerBg: 'transparent',
-    caption: 'AI Confidence — picture bg + mobile style',
+    caption: 'AI Confidence — picture bg, mobile + outer border',
     content: <PreviewAIConfidence />,
   },
 ];
@@ -336,39 +336,42 @@ export default function ProjectsComponentPage() {
           width: 100%;
           height: 100%;
         }
-        /* Variant E — the COLLAR (surface fill) is moved from
-           .card-outer to .card-inner; .card-outer's fill goes
-           transparent. The BORDER is NOT moved — .card-outer keeps
-           its DemoCard #2E2C29 border + the no-glow box-shadow (the
-           two tight inset hairlines + the outward black-25% drop).
-           The collar colour #131312 (solid equiv. of the old
-           white-2.5% over the page gradient) is applied to
-           .card-inner via the variant's innerBg prop. The 12px
-           .card-outer padding ring is now see-through (page gradient
-           shows between the outer border and the inner collar).
-           Label still hidden via the label-hide group. */
-        .projects-card-glass-bordered .card-outer {
+        /* Shared "double border line" outer chrome — used by the Trace
+           card (glassBordered, variant E) AND the AI Confidence card.
+           .card-outer: transparent fill + the DemoCard #2E2C29 border
+           (kept — these selectors are NOT in the strip group below) +
+           a no-glow box-shadow: two TIGHT inset hairlines (white-06 @
+           .5px, white-12 @ .25px, 1px spread → the bright "second"
+           border line just inside the dark #2E2C29 border) + the
+           outward black-25% drop. NO soft glow. The 12px .card-outer
+           padding ring is see-through (page shows between the outer
+           border and the inner). glassBordered also moves the #131312
+           collar onto .card-inner via innerBg; AI Confidence's inner
+           is its own PreviewAIConfidence picture/transcript (untouched
+           here). Label hidden via the label-hide group. */
+        .projects-card-glass-bordered .card-outer,
+        .projects-card-aiconf .card-outer {
           background: transparent !important;
           box-shadow:
             0 0.5px 0.5px 1px rgba(255, 255, 255, 0.06) inset,
             0 0.25px 0.25px 1px rgba(255, 255, 255, 0.12) inset,
             0 14.211px 20.281px -5.477px rgba(0, 0, 0, 0.25) !important;
         }
-        /* Stripped variants (A & D) — remove the brand-card chrome so
-           only the widget shows; B/C (.projects-card-chrome) keep the
-           default DemoCard bg/borders/label. !important because the
-           component rules are styled-jsx-scoped and only tie otherwise.
-           A's .card-outer is transparent; D's is white-2.5% (the only
-           difference between them). Border AND the inset box-shadow
-           (the faint edge line) both removed. */
+        /* Stripped variants — remove the brand-card chrome so only the
+           widget shows; .projects-card-chrome keeps the default
+           DemoCard bg/borders/label. !important because the component
+           rules are styled-jsx-scoped and only tie otherwise. A's
+           .card-outer is transparent; the glass variant's is
+           white-2.5%. (AI Confidence is NO LONGER stripped here — it
+           now uses the shared double-border outer chrome above.)
+           Border AND the inset box-shadow (the faint edge line) both
+           removed. */
         .projects-card .card-outer,
-        .projects-card-glass .card-outer,
-        .projects-card-aiconf .card-outer {
+        .projects-card-glass .card-outer {
           border: none !important;
           box-shadow: none !important;
         }
-        .projects-card .card-outer,
-        .projects-card-aiconf .card-outer {
+        .projects-card .card-outer {
           background: transparent !important;
         }
         .projects-card-glass .card-outer {
