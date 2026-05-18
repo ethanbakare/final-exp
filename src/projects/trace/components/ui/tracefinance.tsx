@@ -958,6 +958,14 @@ export const MasterBlockHolder: React.FC<MasterBlockHolderProps> = ({
           padding: 12px 12px 0px;
           gap: 10px;
 
+          /* Top corners tied to the card radius token (NOT a magic
+             number) so the header rounds in step with .text-box in
+             every context: 16px on /trace, 32px in the widget (which
+             scopes --trace-textbox-radius:32px). Bottom stays square —
+             it meets the finance body. */
+          border-radius: var(--trace-textbox-radius)
+            var(--trace-textbox-radius) 0 0;
+
           width: 301px;
           height: 78.95px;
 

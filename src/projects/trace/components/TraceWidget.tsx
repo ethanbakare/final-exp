@@ -108,7 +108,13 @@ const TraceWidget: React.FC = () => {
            mechanism, at the widget's real size. */
 
         /* Header gradient belongs on master-block-HOLDER (the outer
-           element); master-block itself carries NO colour. */
+           element); master-block itself carries NO colour.
+           Top radius forced to the widget card's 32px here: the shared
+           rule (tracefinance.tsx) ties it to --trace-textbox-radius, but
+           every element re-declares that token at 16px via its own
+           .container class, so the holder would round at 16 while the
+           widget card clips at 32 (a dark corner notch). This doubled-
+           class rule out-specifies .container and matches the 32px card. */
         .traceWidgetTextbox.traceWidgetTextbox .master-block-holder {
           background: linear-gradient(
             181deg,
@@ -117,6 +123,7 @@ const TraceWidget: React.FC = () => {
             #facb55 80.23%,
             #f1d07d 98.75%
           );
+          border-radius: 32px 32px 0 0;
         }
         .traceWidgetTextbox.traceWidgetTextbox .master-block {
           background: transparent;
