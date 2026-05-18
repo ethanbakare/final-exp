@@ -926,29 +926,56 @@ const TraceComponent: React.FC = () => {
             tracefinance.tsx (TextBox) + tracenavbar-v2.tsx (TRNavbarV2) — composed · spec: src/projects/trace/TRACE_WIDGET_SPEC.md
           </p>
 
+          {/* Restore the documented design-system TextBox size (301×421,
+              16px radius, 1px border — TRACE_COMPONENTIZATION_PLAN.md:1588)
+              for THIS widget only. The size tokens are defined on the
+              `.container` CSS-module class that .text-box also carries, so
+              an ancestor wrapper can't override them; the doubled-class
+              selector (specificity 0,2,0) beats `.container` (0,1,0) and
+              sets the vars ON the .text-box element. Scoped to
+              `.traceWidgetTextbox`, so the page's other 360px TextBoxes
+              are untouched. */}
+          <style jsx global>{`
+            .traceWidgetTextbox.traceWidgetTextbox {
+              --trace-textbox-width: 301px;
+              --trace-textbox-height: 421px;
+              --trace-textbox-radius: 16px;
+              --trace-textbox-border: 1px;
+            }
+          `}</style>
+
           <div className="seamless-grid">
             <div
               className="button-grid box-wide-tall"
               style={{ background: '#ffffff' }}
             >
               <div className="button-center">
-                {/* Unified rounded card: TextBox (amber header + finance
-                    body) with TRNavbarV2 flush inside the bottom — the
-                    outer clip joins them into one card exactly as the
-                    Figma frame nests the navbar inside TextBox. White
-                    cell bg (page convention for TextBox cells) so the
-                    #1C1917 card doesn't blend into the dark showcase. */}
+                {/* Widget = the Figma "Dictation app" card: it must abide
+                    by the design size (301×421, 16px radius, 1px border).
+                    The global token was widened to 360×500 "for
+                    MasterBlockHolder" (trace.module.css:373-374) — a
+                    divergence from the documented design system
+                    (TRACE_COMPONENTIZATION_PLAN.md:1588 = 301×421). We do
+                    NOT inherit that here: the `traceWidgetTextbox` class
+                    (style block below) restores the documented tokens ON
+                    the .text-box element, scoped to this widget only, so
+                    other TextBoxes on the page stay 360. This is a real
+                    layout resize (not a clip), so nothing crops. Wrapper
+                    hugs the 301 width and clips the appended TRNavbarV2 to
+                    the same 16px radius so the two read as one card. White
+                    cell bg is the page convention so #1c1917 doesn't blend
+                    in. See TRACE_WIDGET_SPEC.md §1a. */}
                 <div
                   style={{
-                    width: 301,
-                    borderRadius: 32,
+                    width: 'fit-content',
+                    borderRadius: 16,
                     overflow: 'hidden',
-                    background: '#1C1917',
                     display: 'flex',
                     flexDirection: 'column' as const,
                   }}
                 >
                   <TextBox
+                    className="traceWidgetTextbox"
                     grandTotal="14.99"
                     days={[
                       {

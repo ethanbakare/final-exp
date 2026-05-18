@@ -23,9 +23,23 @@ re-extract SVG from Figma.
   **`2393:1941`** (`TextBox`) + sibling **`3002:498`** (`TRNavbar`),
   bridge channel `y0oifi8l`. Captured 2026-05-18.
 - **Code source of truth:** `src/projects/trace/components/ui/tracefinance.tsx`,
-  `tracebuttons.tsx`, `tracenavbar-v2.tsx`. Prop shapes below are the
-  **local interfaces in those files** (authoritative — they differ from
-  the older `types/trace.types.ts`, which is stale for these).
+  `tracebuttons.tsx`, `tracenavbar-v2.tsx`. Finance-component prop shapes
+  below are the **local interfaces in `tracefinance.tsx`** (authoritative;
+  they diverge from `types/trace.types.ts`, which is stale **for the
+  finance atoms/molecules only**). The **navbar** props are the live
+  `TRNavbarProps` **in `types/trace.types.ts`** — `tracenavbar-v2.tsx`
+  imports them from there; that file is *not* stale for the navbar.
+- **Geometry precedence (ADR):** this is a **widget** — its Figma
+  size/height/feel is a design requirement and **wins**. The target is
+  the documented design-system size **301×421, 16px radius, 1px border**
+  (`TRACE_COMPONENTIZATION_PLAN.md:1588-1591`). The global token was
+  later widened to **360×500** *"for MasterBlockHolder"*
+  (`trace.module.css:373-374`) — a divergence the widget must **not**
+  inherit. Achieve the target by **restoring the documented tokens via a
+  scoped CSS-var override** (a real layout resize, supported config),
+  **not** by clipping a 360 card to 301 (that crops the price column —
+  the bug found in review). Override is scoped to the widget; other
+  `TextBox` instances stay 360. See §1a for the mechanism.
 
 ## 1. Widget composition (the page-level assembly)
 
@@ -40,12 +54,51 @@ re-extract SVG from Figma.
 
 - Figma `TextBox` (`2393:1941`) ⇒ `<TextBox>` — renders
   `MasterBlockHolder` (amber header) + `FinanceBox` (day/merchant/items)
-  **internally**. Do not hand-assemble its children; pass `days` +
-  `grandTotal`.
+  **internally** (`tracefinance.tsx:1192-1193`). Do not hand-assemble its
+  children; pass `days` + `grandTotal`.
 - Figma `TRNavbar` (`3002:498`) ⇒ `<TRNavbarV2 state="idle" />` — a
   **sibling**, not a child of `TextBox` (code `TextBox` has no navbar).
+- `grandTotal` is a **literal pass-through**, *not* computed:
+  `TextBox` defaults it to `'0.00'` and passes it straight to
+  `MasterBlockHolder` → `MasterTotalPrice` (`tracefinance.tsx:1187,1192`).
+  Pass `grandTotal="14.99"` to match the Figma header. (It does **not**
+  auto-sum the days.)
 - `imports`: `TextBox` from `tracefinance.tsx`; `TRNavbarV2` (default)
   from `tracenavbar-v2.tsx`.
+
+### 1a. Geometry & the unified-card seam (precedence rule)
+
+The Figma frame draws one rounded card (**301px wide, 16px radius, 1px
+border** per the design system — the Figma's 32px is a stale draw value;
+the documented token is 16px) with the navbar nested inside it.
+`TextBox`'s *current global* CSS is **360×500** because the token was
+widened *"for MasterBlockHolder"* (`trace.module.css:373-374`), diverging
+from the documented **301×421** (`TRACE_COMPONENTIZATION_PLAN.md:1588`).
+`TextBox` contains **no** navbar; `TRNavbarV2`'s header documents it as
+the padded variant *"for use inside TextBox … sits flush inside the
+TextBox card container."*
+
+Build rule (precedence = the widget/design size; resize, don't clip):
+
+- The size tokens (`--trace-textbox-width|height|radius|border`) are
+  defined on the **`.container`** CSS-module class (`trace.module.css:257`)
+  that `.text-box` itself carries — so an **ancestor wrapper's inline var
+  cannot override them** (the element re-sets them via `.container`).
+- `TextBox` forwards `className` onto `.text-box`. Pass
+  **`className="traceWidgetTextbox"`** and add a `:global` rule whose
+  selector out-specifies `.container` (the **doubled-class hack**
+  `.traceWidgetTextbox.traceWidgetTextbox` = specificity 0,2,0 > `.container`
+  0,1,0, order-independent) setting `--trace-textbox-width:301px;
+  height:421px; radius:16px; border:1px`. This is a **real layout resize
+  to a documented supported size**, so nothing crops.
+- Scope: the override lives on `.traceWidgetTextbox` only — the page's
+  other `TextBox` instances stay 360.
+- Append `<TRNavbarV2>` directly beneath, in a `width:fit-content`
+  column wrapper with `border-radius:16px; overflow:hidden` so the
+  appended bar reads as one 301-wide card with it.
+- **Never** size the wrapper to 301 with `overflow:hidden` around a
+  360 `TextBox` — that *clips* (crops the right-hand price column), the
+  defect found in review. Resize via the token override, not the clip.
 
 ## 2. Component inventory (atomic tiers, real prop shapes)
 
@@ -54,7 +107,7 @@ All in `src/projects/trace/components/ui/tracefinance.tsx` unless noted.
 | Component | Tier | Key props (authoritative) |
 |---|---|---|
 | `TextBox` | page card | `days[]`, `grandTotal?`, `className?` |
-| `MasterBlockHolder` | organism (header) | `total`, `currency?='£'`, `fullWidth?`, `priceSlot?`, `className?` |
+| `MasterBlockHolder` | organism (header) | `total`, `currency?` (**no default** — `tracefinance.tsx:939`; `TextBox` feeds it `days?.[0]?.currency`, so `undefined` unless the day sets `currency`), `fullWidth?`, `priceSlot?`, `className?` |
 | `TotalAmtSpent` | atom (the "Total amt" pill) | `className?` |
 | `MasterTotalPrice` | molecule (big header price) | `total`, `currency?`, `className?` |
 | `FinanceBox` | organism | `days[]`, `currency?`, `className?` |
@@ -75,13 +128,21 @@ All in `src/projects/trace/components/ui/tracefinance.tsx` unless noted.
 | `NetPriceFrame` | atom | `price`, `currency?` |
 | `DiscountFrame` | atom | `discount`, `currency?` |
 | `CurrencyLabel` | atom (inline `£` in the above) | — rendered by parents; not standalone in Figma |
-| `TRNavbarV2` | navbar (`tracenavbar-v2.tsx`) | `state`, `onUploadClick?`, `onSpeakClick?`, `onSendAudioClick?`, `disabled?`, `simulateAudio?` |
+| `TRNavbarV2` | navbar (`tracenavbar-v2.tsx`; props = `Omit<TRNavbarProps,'fullWidth'>` from `types/trace.types.ts`) | `state`, `onUploadClick?`, `onSpeakClick?`, `onCloseClick?`, `onSendAudioClick?`, `disabled?`, `simulateAudio?`, `className?` |
 | `UploadButton` / `SpeakButton` | navbar atoms (`tracebuttons.tsx`) | `onClick?`, `disabled?`, `className?` |
 
 ## 3. Annotated Figma tree → component → props (this design's data)
 
 Names below are the **post-rename Figma layer names** (now 1:1 with code).
 Values are the literals in *this* Figma instance (placeholder data).
+
+> **`currency="£"` annotations below are the *rendered leaf default*, not
+> a threaded prop.** This design's `days` payload sets no `currency`, and
+> `TextBox` only forwards `days?.[0]?.currency` (⇒ `undefined`).
+> `FinanceBox` is called **without** `currency` (`tracefinance.tsx:1193`).
+> The `£` you see comes from each leaf frame's own default, not from a
+> value passed down. To force a non-`£` currency you must set
+> `currency` on the day object so `TextBox` can forward it.
 
 ```
 TextBox  2393:1941                      ⇒ <TextBox grandTotal="14.99" days={[day]} />
@@ -181,11 +242,14 @@ const day = {
 
 ## 5. Caveats, gaps & non-functional layers (accuracy risks)
 
-1. **Header total is placeholder.** `grandTotal`/`MasterTotalPrice`
-   shows **14.99** while the day total is **5246.99** and items sum to
-   ~**619.97**. The numbers are unreconciled placeholder data. In code,
-   the header total is *computed* — do not hardcode 14.99; treat it as
-   "whatever `grandTotal` resolves to."
+1. **Header total is a literal pass-through, NOT computed.** `TextBox`
+   defaults `grandTotal` to `'0.00'` and passes it verbatim to
+   `MasterBlockHolder` → `MasterTotalPrice` (`tracefinance.tsx:1187,1192`);
+   it does **not** auto-sum the days. So the header shows exactly the
+   string you pass — pass **`grandTotal="14.99"`** to match the Figma
+   header. (The Figma's 14.99 vs day-total 5246.99 vs item-sum ~619.97
+   is unreconciled placeholder data in the design; that's a design-data
+   note, not a code behavior — the component will not "correct" it.)
 2. **`"Headphones "` has a trailing space** in the Figma text content
    (node 2393:1972). Pass `itemName="Headphones"` (trimmed) in code; the
    space is a Figma artifact, not intended.
@@ -215,12 +279,20 @@ const day = {
 - [ ] Every component-bearing node in §3 maps to its component with
       props of the exact shape in §2 (the real interfaces, not
       `trace.types.ts`).
-- [ ] `days` payload matches §3 (with the §5 fixes: trimmed itemName,
-      prop-driven merchant placeholder, computed header total).
-- [ ] Visual diff: render the widget, screenshot at the Figma frame size
-      (301×~427 incl. navbar), compare against the Figma PNG export of
-      `2393:1941` + `3002:498`. Differences are defects in this doc or
-      the code — reconcile, don't paper over.
+- [ ] `days` payload matches §3 (trimmed `itemName`, prop-driven merchant
+      placeholder; `grandTotal="14.99"` passed literally per §5.1).
+- [ ] **Geometry:** `TextBox` carries `className="traceWidgetTextbox"`
+      and the scoped `:global` doubled-class rule sets
+      `--trace-textbox-width:301px; height:421px; radius:16px; border:1px`.
+      The card renders at **301 wide** (design size), the price column is
+      **not clipped**, and the wrapper is `fit-content` (never a fixed
+      301 box with `overflow:hidden` around a 360 card).
+- [ ] Other `TextBox` instances on the page still render at 360 (scope
+      check — the override didn't leak).
+- [ ] Visual diff: render the widget, screenshot, compare against the
+      Figma export of `2393:1941` + `3002:498` at the **design size
+      (301 wide; ~421 card + navbar)**. Differences are defects in this
+      doc or the code — reconcile, don't paper over.
 - [ ] `tsc --noEmit` clean. (Never `npm run build` while the dev server
       runs — repo convention.)
 
