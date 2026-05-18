@@ -40,9 +40,18 @@ the products page yet.**
   6th = `{ id:'clipstream', className:'projects-card-glass',
   innerBg:'transparent', caption:'Clipstream — outer white',
   content:<PreviewClipstream/> }`.
-- `const [order, setOrder] = useState(VARIANTS.map(v=>v.id))` — render
-  order; `BY_ID` lookup.
-- `const [dragId,setDragId]` + `reorder(targetId)` — native HTML5 DnD.
+- `const [order, setOrder] = useState(DEFAULT_ORDER)` — render order;
+  `BY_ID` lookup. **PERSISTED** to `localStorage` (key
+  `projects-component:order:v1`): hydrated once on mount via a
+  read-only `useEffect`, and written imperatively inside `reorder()`.
+  Do NOT persist via a `useEffect([order])` — under Next dev Strict
+  Mode it runs on mount with the default order and (double-invoked)
+  races the hydration read, clobbering storage back to default (this
+  bug was hit & fixed). `reconcileOrder()` merges a saved order with
+  current VARIANTS (keep+dedupe valid ids, append new, drop removed)
+  so saved orders stay valid as roadmap variants are added.
+- `const [dragId,setDragId]` + `reorder(targetId)` — native HTML5 DnD;
+  reorder() also writes the new order to localStorage.
 - `const [showHandles,setShowHandles]=useState(true)` — fixed
   bottom-right pill toggles the per-card ⠿ handle (only the handle is
   `draggable`; hiding it disables drag). Order preserved across toggles.

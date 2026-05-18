@@ -10,10 +10,12 @@
  * Route: /new-home/projects-component
  *
  * Reorder: each card has a drag handle in its top-right corner. Drag a
- * handle onto another card to reorder (native HTML5 DnD, local state
- * only — purely a test-scaffold convenience, nothing persisted).
+ * handle onto another card to reorder (native HTML5 DnD). The order is
+ * PERSISTED to localStorage (STORAGE_KEY below) so it survives reloads.
+ * New ids added to VARIANTS are auto-appended; removed ids dropped
+ * (see reconcileOrder) so the saved order stays valid over time.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from '@/projects/new-home/styles/new-home.module.css';
 import DemoCard from '@/projects/new-home/components/DemoCard';
 import TraceWidget from '@/projects/trace/components/TraceWidget';
@@ -97,21 +99,70 @@ const VARIANTS: Variant[] = [
 
 const BY_ID = Object.fromEntries(VARIANTS.map((v) => [v.id, v]));
 
+const DEFAULT_ORDER = VARIANTS.map((v) => v.id);
+// Bump the version suffix if the persisted shape ever changes.
+const STORAGE_KEY = 'projects-component:order:v1';
+
+// Merge a persisted order with the CURRENT VARIANTS: keep saved
+// positions for ids that still exist (de-duped), append any NEW ids
+// (in VARIANTS order) not in the saved list, and drop ids that no
+// longer exist. Keeps the saved order valid as variants are added or
+// removed (e.g. the upcoming roadmap cards).
+const reconcileOrder = (saved: unknown): string[] => {
+  if (!Array.isArray(saved)) return DEFAULT_ORDER;
+  const valid = new Set(DEFAULT_ORDER);
+  const seen = new Set<string>();
+  const kept: string[] = [];
+  for (const id of saved) {
+    if (typeof id === 'string' && valid.has(id) && !seen.has(id)) {
+      kept.push(id);
+      seen.add(id);
+    }
+  }
+  for (const id of DEFAULT_ORDER) if (!seen.has(id)) kept.push(id);
+  return kept;
+};
+
 export default function ProjectsComponentPage() {
-  const [order, setOrder] = useState<string[]>(VARIANTS.map((v) => v.id));
+  // SSR-safe: start from the default order (matches the server HTML so
+  // there's no hydration mismatch), then hydrate from localStorage on
+  // mount. There's a one-frame flash of default order on a custom-order
+  // reload — acceptable for a test scaffold.
+  const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
   const [dragId, setDragId] = useState<string | null>(null);
   const [showHandles, setShowHandles] = useState(true);
 
-  // Move the dragged card to the dropped-on card's slot.
+  // Hydrate the saved order once, on mount (client only). NOTE: we do
+  // NOT persist via a useEffect([order]) — under Next dev's React
+  // Strict Mode that effect runs on mount with the DEFAULT order and
+  // (double-invoked) races this read, clobbering storage back to
+  // default. Instead persistence is done imperatively in reorder()
+  // below, the only place the user changes the order. This effect is
+  // therefore read-only and can't be clobbered by a mount write.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) setOrder(reconcileOrder(JSON.parse(raw)));
+    } catch {
+      // Corrupt/unavailable storage → keep the default order.
+    }
+  }, []);
+
+  // Move the dragged card to the dropped-on card's slot, and persist
+  // the new order immediately (same array we commit to state). `order`
+  // is the current state — reorder() only runs from an event handler.
   const reorder = (targetId: string) => {
     setDragId(null);
     if (!dragId || dragId === targetId) return;
-    setOrder((prev) => {
-      const without = prev.filter((x) => x !== dragId);
-      const at = without.indexOf(targetId);
-      without.splice(at, 0, dragId);
-      return without;
-    });
+    const without = order.filter((x) => x !== dragId);
+    const at = without.indexOf(targetId);
+    without.splice(at, 0, dragId);
+    setOrder(without);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(without));
+    } catch {
+      // Quota/unavailable storage → order still works in-memory.
+    }
   };
 
   return (
