@@ -44,21 +44,82 @@ export default function ProjectsComponentPage() {
           textAlign: 'center',
         }}
       >
-        Projects component — Trace AI widget slotted into a brand-design
-        card (381×298). Test scaffold; not the products page yet.
+        Projects component — Trace AI widget in a brand-design card
+        (381×298), two variants. Test scaffold; not the products page yet.
       </p>
 
-      {/* Brand-design card cell — exact CarouselBrand grid size. */}
-      <div style={{ width: 381, height: 298, display: 'flex' }}>
-        <DemoCard label="Trace AI" className="projects-card" innerBg="transparent">
-          {/* Slot-level uniform scale (whole widget, not per-element).
-              TraceWidget stays its canonical Figma size; the consumer
-              scales it down ~20% (scale 0.8) to fit the 381×298 card.
-              Adjust the factor to taste. */}
-          <div style={{ transform: 'scale(0.8)' }}>
-            <TraceWidget />
+      {/* Two variants side by side: chrome stripped vs full brand-card
+          chrome. Both use the same TraceWidget, slot-scaled 0.8 to fit
+          the 381×298 cell. */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 56,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+        }}
+      >
+        {/* Variant A — chrome stripped (transparent bg, no border, label
+            hidden). Uses .projects-card + innerBg="transparent". */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div style={{ width: 381, height: 298, display: 'flex' }}>
+            <DemoCard
+              label="Trace AI"
+              className="projects-card"
+              innerBg="transparent"
+            >
+              <div style={{ transform: 'scale(0.8)' }}>
+                <TraceWidget />
+              </div>
+            </DemoCard>
           </div>
-        </DemoCard>
+          <span
+            style={{
+              color: 'rgba(255,255,255,0.4)',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 12,
+            }}
+          >
+            Chrome stripped
+          </span>
+        </div>
+
+        {/* Variant B — full brand-card chrome kept (default DemoCard bg,
+            borders + label). .projects-card-chrome only sizes it; no
+            stripping overrides, no innerBg. */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div style={{ width: 381, height: 298, display: 'flex' }}>
+            <DemoCard label="Trace AI" className="projects-card-chrome">
+              <div style={{ transform: 'scale(0.8)' }}>
+                <TraceWidget />
+              </div>
+            </DemoCard>
+          </div>
+          <span
+            style={{
+              color: 'rgba(255,255,255,0.4)',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 12,
+            }}
+          >
+            Full card chrome
+          </span>
+        </div>
       </div>
 
       <style jsx global>{`
@@ -69,14 +130,16 @@ export default function ProjectsComponentPage() {
           background: #0a0a09;
         }
         /* DemoCard's outer <div> has a fixed inline display:flex and is
-           normally sized by the CarouselBrand grid cell; here we size it
-           to fill the 381×298 wrapper above. */
-        .projects-card {
+           normally sized by the CarouselBrand grid cell; here both
+           variants are sized to fill their 381×298 wrapper. */
+        .projects-card,
+        .projects-card-chrome {
           width: 100%;
           height: 100%;
         }
-        /* Test page: strip the brand-card chrome so only the widget
-           shows. .card-outer (var(--card-bg) #201F1D) + its border, and
+        /* Variant A only — strip the brand-card chrome so only the
+           widget shows (variant B .projects-card-chrome is untouched →
+           keeps DemoCard's default bg, borders + label). .card-outer (var(--card-bg) #201F1D) + its border, and
            .card-inner's border, all to zero. !important because the
            component rules are styled-jsx-scoped and only tie otherwise.
            (Inset box-shadow on .card-outer left as-is for now.) */
