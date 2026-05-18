@@ -21,9 +21,11 @@ const HeroBanner: React.FC = () => {
         </div>
 
         <div className="hero-cta-group">
-          <button className="btn-outline">
-            <span className={styles.HedvigLettersSans16}>View all Projects</span>
-          </button>
+          <Link href="/projects" style={{ textDecoration: 'none' }}>
+            <button className="btn-outline">
+              <span className={styles.HedvigLettersSans16}>View all Projects</span>
+            </button>
+          </Link>
           <Link href="/demo-showcase" style={{ textDecoration: 'none' }}>
             <button className="btn-solid">
               <span className={styles.HedvigLettersSans16}>View Demos</span>
