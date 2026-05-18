@@ -556,17 +556,30 @@ const TraceComponent: React.FC = () => {
           padding-bottom: 12px;
         }
 
-        /* The perceived "overlap" was NOT an element collision (rows end
-           at 1111, navbar starts at 1112). It is the component's
-           scroll-fade pseudo — .text-box--with-navbar::after, a
-           position:absolute #1c1917→transparent band 24px tall sitting
-           64px above the card bottom — painting OVER the last figure row.
-           That fade is a scroll affordance for the tall demo card; on
-           this fixed compact widget it just darkens the last row into
-           the bar. Disable it for the widget (triple-class to out-specify
-           the styled-jsx-scoped ::after rule). */
+        /* Scroll-depth fade — the Trace pattern (.text-box::after): a
+           #1c1917→transparent gradient that sits at the BOTTOM of the
+           figures section, just above the navbar bar, so partially-
+           scrolled rows fade out and the user reads "more below". Now
+           that the layout is correct (finance is its own bounded
+           scrolling section, navbar in its own section), this reads as
+           an intentional depth cue rather than the earlier row-eating
+           glitch. Re-defined scoped (triple-class out-specifies the
+           component's styled-jsx ::after): bottom = navbar height (65px)
+           so the fade ends exactly on the bar's top stroke. */
         .traceWidgetTextbox.traceWidgetTextbox.traceWidgetTextbox::after {
-          display: none;
+          content: '';
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 65px;
+          height: 32px;
+          background: linear-gradient(
+            to top,
+            #1c1917 0%,
+            rgba(28, 25, 23, 0) 100%
+          );
+          pointer-events: none;
+          z-index: 10;
         }
 
         /* "Total amt" outlined pill (Figma node 2393:1944) — drop the
