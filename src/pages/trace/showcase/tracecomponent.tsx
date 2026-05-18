@@ -479,22 +479,114 @@ const TraceComponent: React.FC = () => {
           white-space: nowrap;
         }
 
-        /* Trace AI Widget: scope the card to the Figma "Dictation app"
-           geometry (≈301×315, 32px radius, no border) for this widget
-           only. Size tokens sit on the .container CSS-module class that
-           .text-box also carries, so an ancestor wrapper can't override
-           them; the doubled-class selector (specificity 0,2,0) beats
-           .container (0,1,0) and sets the vars ON the .text-box element.
-           AnimatedTextBox's with-navbar height = calc(var + 44 + 20), so
-           var≈240 → total ≈ 304 (Figma frame ≈ 315). Scoped to
-           .traceWidgetTextbox — the page's other 360px TextBoxes are
-           untouched. (Height verified visually below; nudge var if the
-           card shows a void or clips.) */
+        /* ============================================================
+           Trace AI Widget — Figma "Dictation app" restyle (Option A:
+           widget-scoped overrides only; shared components & /trace are
+           untouched). All values are the exact Figma node values
+           (frame 2393:1941 etc.). Scoped to .traceWidgetTextbox.
+           ============================================================ */
+
+        /* Card size via CSS VARS — the size tokens come from the
+           .container CSS-module class (specificity 0,1,0), so the
+           doubled-class (0,2,0) reliably wins and feeds the component
+           its own var. AnimatedTextBox computes
+           .text-box--with-navbar height = calc(var + 44 + 20), so
+           height var 251 ⇒ total 315 = the exact Figma frame.
+           (Driving height through the var sidesteps the styled-jsx
+           specificity problem below — the component reads the var, we
+           don't have to out-specify its scoped height rule.) */
         .traceWidgetTextbox.traceWidgetTextbox {
           --trace-textbox-width: 301px;
-          --trace-textbox-height: 300px;
+          --trace-textbox-height: 251px; /* + 44 + 20 = 315 (Figma) */
           --trace-textbox-radius: 32px;
           --trace-textbox-border: 0px;
+          /* Clip the absolutely-pinned navbar + scrolling content to the
+             card's rounded corners. */
+          overflow: hidden;
+        }
+
+        /* IMPORTANT: the shared components use NON-global styled-jsx,
+           which scopes every selector with a .jsx-<hash> class →
+           effective specificity (0,2,0). A single
+           a single .traceWidgetTextbox .x is also (0,2,0) and only TIES
+           (loses on source order). So every visual override below uses
+           the doubled prefix .traceWidgetTextbox.traceWidgetTextbox →
+           (0,3,0), which deterministically beats the component rule.
+           The card stays fixed-size: header pinned top, .finance-box
+           flex:1 scrolls, navbar pinned bottom — the live /trace
+           mechanism, at the widget's real size. */
+
+        /* Header gradient belongs on master-block-HOLDER (the outer
+           element); master-block itself carries NO colour. */
+        .traceWidgetTextbox.traceWidgetTextbox .master-block-holder {
+          background: linear-gradient(
+            181deg,
+            #ffb700 13.16%,
+            #fcbd1f 47.72%,
+            #facb55 80.23%,
+            #f1d07d 98.75%
+          );
+        }
+        .traceWidgetTextbox.traceWidgetTextbox .master-block {
+          background: transparent;
+          border-bottom: none;
+        }
+
+        /* "Total amt" outlined pill (Figma node 2393:1944) — drop the
+           red indicator, restyle as the bordered pill, swap the label
+           text via CSS (no shared-component change; Option A). */
+        .traceWidgetTextbox.traceWidgetTextbox .total-amt-spent {
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          border-radius: 20px;
+          padding: 0 10px;
+          height: 24px;
+          background: transparent;
+        }
+        .traceWidgetTextbox.traceWidgetTextbox .total-amt-spent .indicator {
+          display: none;
+        }
+        .traceWidgetTextbox.traceWidgetTextbox .total-amt-spent .label {
+          font-size: 0;
+        }
+        .traceWidgetTextbox.traceWidgetTextbox .total-amt-spent .label::after {
+          content: 'Total amt';
+          font-size: 10px;
+          font-weight: 500;
+          color: #fff;
+        }
+
+        /* Bottom bar pinned to the card bottom. The demo pins via flex
+           (tall card); at the widget's small fixed 315 the finance area
+           won't flex-shrink, so the flex navbar overflowed (clipped).
+           .text-box is already position:relative, so absolutely pinning
+           the navbar to the bottom is the source-consistent way to get
+           the same behaviour — bar fixed at the bottom, finance still
+           scrolls above it (it keeps overflow-y:auto + its 200px
+           bottom-padding spacer so the last row clears the bar). */
+        .traceWidgetTextbox.traceWidgetTextbox .trnavbar-v2-wrapper {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+        }
+
+        /* Bottom bar: Figma navbar #24201D with #413C38 buttons + light
+           text. The WINNING component rule is the .full-width.state-idle
+           descendant .left/right-morph-button (tracenavbar.tsx:655) —
+           TRNavbarV2 adds .full-width — so the override mirrors that
+           exact pattern, doubled-prefixed to out-specify it. */
+        .traceWidgetTextbox.traceWidgetTextbox .trnavbar-container {
+          background: #24201d;
+        }
+        .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .left-morph-button,
+        .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .right-morph-button {
+          background: #413c38;
+          color: rgba(255, 255, 255, 0.85);
+        }
+        .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .left-morph-button .upload-content,
+        .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .right-morph-button .speak-content,
+        .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .button-text {
+          color: rgba(255, 255, 255, 0.85);
         }
       `}</style>
 
