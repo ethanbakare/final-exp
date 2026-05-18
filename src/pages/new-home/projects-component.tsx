@@ -17,7 +17,7 @@ import React, { useState } from 'react';
 import styles from '@/projects/new-home/styles/new-home.module.css';
 import DemoCard from '@/projects/new-home/components/DemoCard';
 import TraceWidget from '@/projects/trace/components/TraceWidget';
-import { VoiceTextBoxClip } from '@/projects/voiceinterface/components/VoiceTextBoxClip';
+import PreviewClipstream from '@/projects/new-home/components/previews/PreviewClipstream';
 
 type Variant = {
   id: string;
@@ -49,21 +49,20 @@ const VARIANTS: Variant[] = [
     caption: 'White 2.5% + chrome border',
     content: traceSlot,
   },
-  // #1 Eclipse Dream — the Clipstream voice-clip widget
-  // (VoiceTextBoxClip, simulate loop) in the outer-white style. It is
-  // ~393px wide vs the ~357px card-inner, so it's uniformly scaled 0.8
-  // to fit horizontally FOR NOW. Do not shrink its width directly —
-  // that distorts its navbar; revisit after this baseline.
+  // #1 Eclipse Dream — Clipstream voice-clip in the outer-white style.
+  // Rendered via PreviewClipstream (the same wrapper the demos carousel
+  // uses): position:absolute inset:0 fills the card-inner and centres
+  // VoiceTextBoxClip at its NATURAL wide size — no scale, no width
+  // change (a bare <VoiceTextBoxClip> collapsed to a square; this keeps
+  // its normal shape). It's ~393 wide vs the ~357 card-inner so it may
+  // clip slightly at the edges — the fit is the next thing to iterate,
+  // not by squashing the width.
   {
     id: 'clipstream',
     className: 'projects-card-glass',
     innerBg: 'transparent',
-    caption: 'Clipstream — outer white (scaled 0.8)',
-    content: (
-      <div style={{ transform: 'scale(0.8)' }}>
-        <VoiceTextBoxClip simulate />
-      </div>
-    ),
+    caption: 'Clipstream — outer white',
+    content: <PreviewClipstream />,
   },
 ];
 
