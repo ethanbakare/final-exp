@@ -556,6 +556,15 @@ const TraceComponent: React.FC = () => {
           padding-bottom: 12px;
         }
 
+        /* Hide the merchant name/total header row in this widget for now
+           (not needed in this context). The component derives
+           showRowIdentifier internally from the days data
+           (tracefinance.tsx:895), so it can't be turned off via props
+           with 2 merchants — scoped display:none is the reversible lever. */
+        .traceWidgetTextbox.traceWidgetTextbox .row-identifier {
+          display: none;
+        }
+
         /* Scroll-depth fade — the Trace pattern (.text-box::after): a
            #1c1917→transparent gradient that sits at the BOTTOM of the
            figures section, just above the navbar bar, so partially-
