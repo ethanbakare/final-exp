@@ -80,11 +80,14 @@ const VARIANTS: Variant[] = [
     innerBg: '#FFF6DA',
     caption: 'Inner collar #FFF6DA + outer border',
     content: traceSlot,
-    // Trace AI's own card description, BOTTOM-LEFT (real carousel
-    // label/bg). Un-hidden via the pc-card-glassBorderedCream rule —
-    // so the other glass-bordered card (glassBordered) stays hidden.
+    // Trace AI's own card description, BOTTOM-LEFT. NOT the carousel's
+    // translucent-white pill (invisible on this #FFF6DA cream inner) —
+    // use the SAME grey pill as Clipstream / Voice UI so it's legible
+    // on a light bg. Un-hidden via the pc-card-glassBorderedCream rule
+    // (the other glass-bordered card, glassBordered, stays hidden).
     label: 'Trace AI',
-    labelBg: 'rgba(255, 255, 255, 0.30)',
+    labelBg: 'rgba(113, 113, 113, 0.50)',
+    labelTextColor: 'rgba(255, 255, 255, 0.80)',
     labelPosition: 'bottom-left',
   },
   // #1 Eclipse Dream — Clipstream voice-clip in the outer-white style.
