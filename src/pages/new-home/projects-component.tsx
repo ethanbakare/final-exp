@@ -65,6 +65,19 @@ const VARIANTS: Variant[] = [
     caption: 'Clipstream — outer white',
     content: <PreviewClipstream />,
   },
+  // #1b Eclipse Dream — Clipstream, ALT outer collar #C5C3C0 (a warm
+  // greige) instead of the white-2.5%. Same projects-card-glass chrome
+  // so it inherits ALL the stripping (border/shadow none, inner border
+  // none, label hidden); only .card-outer's bg is recoloured, via the
+  // unique pc-card-clipstreamGreige subclass (doubled-class in the CSS
+  // so it deterministically beats .projects-card-glass .card-outer).
+  {
+    id: 'clipstreamGreige',
+    className: 'projects-card-glass',
+    innerBg: 'transparent',
+    caption: 'Clipstream — outer #C5C3C0',
+    content: <PreviewClipstream />,
+  },
   // #2 AI Confidence Tracker. PreviewAIConfidence already paints its
   // OWN picture background (.bg-image = wt1.webp) + a white transcript
   // box, position:absolute inset:0 → it fills the card-inner. So use
@@ -152,7 +165,7 @@ export default function ProjectsComponentPage() {
         }}
       >
         Projects component — Trace AI widget in a brand-design card
-        (381×298), seven variants. Drag a card's top-right handle onto
+        (381×298), eight variants. Drag a card's top-right handle onto
         another to reorder. Test scaffold; not the products page yet.
       </p>
 
@@ -298,6 +311,13 @@ export default function ProjectsComponentPage() {
         }
         .projects-card-glass .card-outer {
           background: rgba(255, 255, 255, 0.025) !important;
+        }
+        /* Clipstream ALT collar — #C5C3C0 greige outer instead of the
+           white-2.5%. Doubled unique subclass (0,3,0) out-specifies
+           .projects-card-glass .card-outer (0,2,0) regardless of source
+           order. Scoped to this one variant only. */
+        .pc-card-clipstreamGreige.pc-card-clipstreamGreige .card-outer {
+          background: #c5c3c0 !important;
         }
         .projects-card .card-inner,
         .projects-card-glass .card-inner,
