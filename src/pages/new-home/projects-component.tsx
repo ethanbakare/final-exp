@@ -226,9 +226,15 @@ export default function ProjectsComponentPage() {
                   </div>
                 )}
 
+                {/* Each card carries its shared chrome class PLUS a
+                    unique `pc-card-<id>` subclass. The shared class drives
+                    the chrome treatment; the unique one lets the element
+                    picker / CSS target exactly ONE variant even when two
+                    share chrome (glass+clipstream, chrome+innerCream).
+                    Convention: every new variant auto-gets pc-card-<id>. */}
                 <DemoCard
                   label="Trace AI"
-                  className={v.className}
+                  className={`${v.className} pc-card-${v.id}`}
                   innerBg={v.innerBg}
                 >
                   {v.content}

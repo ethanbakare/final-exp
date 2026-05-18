@@ -49,8 +49,23 @@ the products page yet.**
 - Each card = a flex column: a `position:relative; width:381;
   height:298` box (drop target: `onDragOver preventDefault` + `onDrop=
   reorder(id)`) containing the ⠿ handle (absolute top-right, the only
-  draggable element) + `<DemoCard label="Trace AI" className={v.className}
-  innerBg={v.innerBg}>{v.content}</DemoCard>`, then a caption span.
+  draggable element) + `<DemoCard label="Trace AI"
+  className={`${v.className} pc-card-${v.id}`} innerBg={v.innerBg}>
+  {v.content}</DemoCard>`, then a caption span.
+
+### Unique-subclass convention (REQUIRED for every variant)
+
+Each card carries its **shared chrome class** (`projects-card-glass`
+etc.) **PLUS a unique `pc-card-<id>` subclass** auto-derived from its
+`id`. Reason: two variants can share chrome (`glass`+`clipstream`,
+`chrome`+`innerCream`); without a unique hook the element picker's
+auto-screenshot resolves to the wrong identical-classed twin and a CSS
+edit to the shared class hits BOTH. The shared class still drives the
+chrome treatment; the `pc-card-<id>` is purely a targeting/selection
+handle. **Every NEW variant must keep getting `pc-card-<id>`** (it's
+automatic via the `className={`${v.className} pc-card-${v.id}`}`
+template — don't remove it). To restyle exactly one variant, target
+`.pc-card-<id> .card-outer` (not the shared chrome class).
 
 ### Variant CSS classes (in the page's `<style jsx global>`)
 
