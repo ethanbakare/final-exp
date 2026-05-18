@@ -12,6 +12,7 @@ import {
   OldSpinnerReference
 } from '@/projects/trace/components/ui/tracebuttons';
 import { TRNavbar } from '@/projects/trace/components/ui/tracenavbar';
+import TRNavbarV2 from '@/projects/trace/components/ui/tracenavbar-v2';
 import { TraceClearExpensesModal } from '@/projects/trace/components/ui/TraceModal';
 import {
   Date as TraceDate,
@@ -913,6 +914,73 @@ const TraceComponent: React.FC = () => {
             </div>
           </div>
 
+        </div>
+
+        {/* Trace AI Widget Section — composed from existing components,
+            per src/projects/trace/TRACE_WIDGET_SPEC.md (Figma "Dictation
+            app" 2393:1941 + 3002:498). No new low-level components, no
+            icons re-extracted from Figma. */}
+        <div className="section">
+          <h2 className="section-title">Trace AI Widget</h2>
+          <p className="section-source">
+            tracefinance.tsx (TextBox) + tracenavbar-v2.tsx (TRNavbarV2) — composed · spec: src/projects/trace/TRACE_WIDGET_SPEC.md
+          </p>
+
+          <div className="seamless-grid">
+            <div
+              className="button-grid box-wide-tall"
+              style={{ background: '#ffffff' }}
+            >
+              <div className="button-center">
+                {/* Unified rounded card: TextBox (amber header + finance
+                    body) with TRNavbarV2 flush inside the bottom — the
+                    outer clip joins them into one card exactly as the
+                    Figma frame nests the navbar inside TextBox. White
+                    cell bg (page convention for TextBox cells) so the
+                    #1C1917 card doesn't blend into the dark showcase. */}
+                <div
+                  style={{
+                    width: 301,
+                    borderRadius: 32,
+                    overflow: 'hidden',
+                    background: '#1C1917',
+                    display: 'flex',
+                    flexDirection: 'column' as const,
+                  }}
+                >
+                  <TextBox
+                    grandTotal="14.99"
+                    days={[
+                      {
+                        date: '14th Jul',
+                        total: '5246.99',
+                        merchants: [
+                          {
+                            // merchantName omitted ⇒ "- - -" placeholder
+                            // (spec §5: prop-driven, not literal data)
+                            merchantTotal: '619.97',
+                            items: [
+                              { quantity: '2x', itemName: 'Headphones', netPrice: '104.99', discount: '3.99' },
+                              { quantity: '1x', itemName: 'Playstation 5', netPrice: '499.99' },
+                              { quantity: '1x', itemName: 'Chino Trousers', netPrice: '14.99' },
+                            ],
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                  <TRNavbarV2
+                    state="idle"
+                    onUploadClick={() => console.log('Widget upload clicked')}
+                    onSpeakClick={() => console.log('Widget speak clicked')}
+                  />
+                </div>
+              </div>
+              <div className="button-label">
+                TRACE AI WIDGET — TEXTBOX + TRNAVBARV2 (DICTATION CARD)
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>
