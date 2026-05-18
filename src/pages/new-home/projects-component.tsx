@@ -45,7 +45,7 @@ export default function ProjectsComponentPage() {
         }}
       >
         Projects component — Trace AI widget in a brand-design card
-        (381×298), three variants. Test scaffold; not the products page yet.
+        (381×298), four variants. Test scaffold; not the products page yet.
       </p>
 
       {/* Two variants side by side: chrome stripped vs full brand-card
@@ -152,6 +152,38 @@ export default function ProjectsComponentPage() {
             Inner #F7F6F4
           </span>
         </div>
+
+        {/* Variant D — stripped like A, but .card-outer (the selected
+            element) gets a white-5% background instead of transparent. */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div style={{ width: 381, height: 298, display: 'flex' }}>
+            <DemoCard
+              label="Trace AI"
+              className="projects-card-glass"
+              innerBg="transparent"
+            >
+              <div style={{ transform: 'scale(0.8)' }}>
+                <TraceWidget />
+              </div>
+            </DemoCard>
+          </div>
+          <span
+            style={{
+              color: 'rgba(255,255,255,0.4)',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 12,
+            }}
+          >
+            Outer white 5%
+          </span>
+        </div>
       </div>
 
       <style jsx global>{`
@@ -165,29 +197,37 @@ export default function ProjectsComponentPage() {
            normally sized by the CarouselBrand grid cell; here both
            variants are sized to fill their 381×298 wrapper. */
         .projects-card,
-        .projects-card-chrome {
+        .projects-card-chrome,
+        .projects-card-glass {
           width: 100%;
           height: 100%;
         }
-        /* Variant A only — strip the brand-card chrome so only the
-           widget shows (variant B .projects-card-chrome is untouched →
-           keeps DemoCard's default bg, borders + label). .card-outer (var(--card-bg) #201F1D) + its border, and
-           .card-inner's border, all to zero. !important because the
+        /* Stripped variants (A & D) — remove the brand-card chrome so
+           only the widget shows; B/C (.projects-card-chrome) keep the
+           default DemoCard bg/borders/label. !important because the
            component rules are styled-jsx-scoped and only tie otherwise.
-           (Inset box-shadow on .card-outer left as-is for now.) */
+           A's .card-outer is transparent; D's is white-5% (the only
+           difference between them). (Inset box-shadow left as-is.) */
+        .projects-card .card-outer,
+        .projects-card-glass .card-outer {
+          border: none !important;
+        }
         .projects-card .card-outer {
           background: transparent !important;
+        }
+        .projects-card-glass .card-outer {
+          background: rgba(255, 255, 255, 0.05) !important;
+        }
+        .projects-card .card-inner,
+        .projects-card-glass .card-inner {
           border: none !important;
         }
-        .projects-card .card-inner {
-          border: none !important;
-        }
-        /* Hide the DemoCard "Trace AI" label for the time being.
-           Scope to a DIRECT child of .card-inner — the widget's own
-           TotalAmtSpent also uses a nested .label span, so a broad
-           ".projects-card .label" would wrongly blank the "Total amt"
-           pill too. */
-        .projects-card .card-inner > .label {
+        /* Hide the DemoCard "Trace AI" label. Scope to a DIRECT child of
+           .card-inner — the widget's own TotalAmtSpent also uses a
+           nested .label span, so a broad descendant selector would
+           wrongly blank the "Total amt" pill too. */
+        .projects-card .card-inner > .label,
+        .projects-card-glass .card-inner > .label {
           display: none !important;
         }
       `}</style>
