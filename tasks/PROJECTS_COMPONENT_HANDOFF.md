@@ -15,13 +15,19 @@ with a show/hide-handles toggle. Goal: decide how each AI demo should
 look as a card before moving any of it to the real products page. **Not
 the products page yet.**
 
-- **Done:** TraceWidget extracted + slotted (5 chrome variants) + a 6th
-  variant: **Clipstream** (`PreviewClipstream`) in the outer-white
-  style. Drag-to-reorder + handle toggle. Shared `MasterBlockHolder`
-  top-radius tied to the card radius.
-- **Next (sequential, one at a time, verify+commit+user-review between
-  each):** roadmap items **#2 AI Confidence**, **#3 Ollama**,
-  **#4 Voice library** (see §5).
+- **Done:** TraceWidget extracted + slotted (5 chrome variants) +
+  Clipstream (`PreviewClipstream`, outer-white) + Clipstream alt collar
+  `#C5C3C0` + **#2 AI Confidence** + **#3 Ollama** + **#4 Voice UI** —
+  the whole roadmap (§5) is COMPLETE (11 variants). Drag-to-reorder
+  (now **persisted to localStorage**) + handle toggle. Every card
+  carries a unique `pc-card-<id>` subclass. Shared "double border
+  line" outer chrome (transparent + `#2E2C29` border + 2 inset
+  hairlines + outward drop, no glow) used by glassBordered AND
+  aiConfidence. Shared `MasterBlockHolder` top-radius tied to the card
+  radius.
+- **Next:** awaiting user review of the 4 roadmap variants; then move
+  the chosen treatments to the real products page (still NOT done —
+  this remains a test scaffold).
 
 ---
 
@@ -188,63 +194,45 @@ grid-auto-rows:298px }`).
 
 ---
 
-## 5. ROADMAP — remaining items (do in order, one per turn)
+## 5. ROADMAP — COMPLETE (all 4 items built; awaiting review)
 
-The user's plan, verbatim intent. Each: add a new `VARIANTS` entry on
-the projects-component page (new `id`, `caption`, `content:
-<PreviewX/>`, and a card style), verify, commit, await review.
+The user's plan is fully implemented. Recorded here as built (each is
+a `VARIANTS` entry; all auto-get `pc-card-<id>` + localStorage
+reconcile). Iterate per review; treatments are not yet on the real
+products page.
 
-### #2 — AI Confidence Tracker  (NEXT)
+### #2 — AI Confidence Tracker ✅ (`id: 'aiConfidence'`)
 
-- Slot **`PreviewAIConfidence`**
-  (`src/projects/new-home/components/previews/PreviewAIConfidence.tsx`).
-- It already paints its own **picture background** (`.bg-image` =
-  `/images/voice-interface/wt1.webp`, rotated) + a white `#fafafa`
-  `.transcript-box`. User: the card should **NOT** use the outer-white
-  bg — it should show **that picture background** (i.e. let the preview's
-  own bg-image be the card surface; card-inner effectively transparent
-  so the preview fills it). It's `position:absolute inset:0` so it fills
-  `.card-inner` already.
-- User also wants the **mobile/`@media (max-width:620px)` style** of
-  `PreviewAIConfidence` (the variant where `.transcript-box` is
-  %-shrunk: `width:93.68%; height:92.2%; right:-6.87%; bottom:-25.89%`)
-  — "the way AI confidence looks on mobile, where you shrink the width."
-  The 381px card is wider than 620px? No — the card-inner is ~357px, so
-  the `@media (max-width:620px)` rule WON'T trigger off viewport (the
-  page viewport is wide). Options to get the mobile look: (a) replicate
-  those % values via a scoped override for this variant's
-  `.transcript-box`, or (b) container-query/forced class. Recommend a
-  scoped override mirroring the <620px block. Confirm with user which.
-- Card chrome: likely `projects-card` (stripped, transparent) so the
-  preview's own picture bg is the surface — NOT `projects-card-glass`.
-  Caption e.g. "AI Confidence — picture bg (mobile style)".
+- `PreviewAIConfidence` (own picture bg `wt1.webp` + white
+  `.transcript-box`), `className: 'projects-card-aiconf'`,
+  `innerBg: 'transparent'`. The `@media (max-width:620px)` "mobile"
+  transcript layout can't fire off-viewport in a 381 card, so it's
+  replicated via the scoped doubled-class `!important` block
+  `.projects-card-aiconf.projects-card-aiconf .transcript-box {…}`
+  (width 93.68% / height 92.2% / right -6.87% / bottom -25.89% /
+  padding 25.551 19.163 / radius 20.441; `.transcript-content` gap
+  12.775; `.text-area` padding 28 23 12 23). Outer container later
+  given the **shared double-border chrome** (see §1) — so it's no
+  longer in the strip group. Caption: "AI Confidence — picture bg,
+  mobile + outer border".
 
-### #3 — Ollama (llama)
+### #3 — Ollama ✅ (`id: 'ollama'`)
 
-- Slot **`PreviewOllama`** (`previews/PreviewOllama.tsx`) — 3 images
-  (sunglasses/smirk/party) cross-fading every 4s; `position:absolute
-  inset:0; flex center; background: var(--preview-ollama-bg)`.
-- User: "just need a background… go with auto/outer-white for now and
-  see." → simplest: a card with the outer-white style
-  (`projects-card-glass`, `innerBg:'transparent'`) OR set
-  `--preview-ollama-bg`. Start simple, screenshot, iterate. Caption
-  "Ollama — outer white" (adjust per review).
+- `PreviewOllama` (own `#1A1A19` bg, 3 PNGs cross-fade 4s),
+  `className: 'projects-card-glass'` (outer-white 2.5%),
+  `innerBg: 'transparent'`. "Outer-white for now and see." Caption:
+  "Ollama — outer white". Iterate per review.
 
-### #4 — Voice URL library (Voice UI)
+### #4 — Voice UI ✅ (`id: 'voice'`)
 
-- Slot **`PreviewVoiceAnimated`** (`previews/PreviewVoiceAnimated.tsx`)
-  — `LoopingBlob` (R3F/WebGL, 282×282, auto voice-state loop).
-  `position:absolute inset:0; flex center`. Its design bg =
-  `var(--preview-voice-bg)` = **`#F7F6F4`** (matches its Whimsy bg).
-- User: card bg should **match that white `#F7F6F4`** — i.e. set the
-  card-inner to `#F7F6F4` (use `innerBg="#F7F6F4"` on the DemoCard;
-  chrome stripped via a glass-like class but with inner = #F7F6F4, or
-  reuse `.projects-card` + `innerBg="#F7F6F4"`). Replace the
-  outer-white with this white. Caption "Voice UI — #F7F6F4".
-- WebGL: headless screenshot needs SwiftShader flags
+- `PreviewVoiceAnimated` (R3F/WebGL `LoopingBlob` 282×282; paints NO
+  bg of its own — needs the card surface), `className:
+  'projects-card'` (stripped chrome), `innerBg: '#F7F6F4'` (the
+  `--preview-voice-bg` Whimsy white). Caption: "Voice UI — #F7F6F4".
+- **WebGL probe:** headless screenshot needs SwiftShader launch flags
   (`--use-gl=angle --use-angle=swiftshader
-  --enable-unsafe-swiftshader --ignore-gpu-blocklist`) in the Playwright
-  launch args, else the blob canvas may not render in the probe.
+  --enable-unsafe-swiftshader --ignore-gpu-blocklist`) or the blob
+  canvas won't render. (Verified rendering with these.)
 
 ---
 
@@ -267,6 +255,13 @@ the projects-component page (new `id`, `caption`, `content:
 
 ## 7. Commit log (workstream, newest first)
 
+`97e0578` #4 Voice UI (#F7F6F4) · `33433c0` #3 Ollama (outer white) ·
+`dd84d3b` AI Confidence shares double-border chrome · `2265217`
+persist reorder to localStorage · `2032ef2` glassBordered collar→inner,
+outer transparent · `f1d8e74` glassBordered restore inner hairline ·
+`81a772e` glassBordered no glow + solid surface ·
+`0dfae26` Clipstream `#C5C3C0` collar · `89023fb` unique `pc-card-<id>`
+subclass · `74c32aa` #2 AI Confidence · `4215eca` handoff doc ·
 `d1f260a` clipstream uses PreviewClipstream (no square) ·
 `0c2ce0f` add Clipstream variant · `c3c24d7` handle show/hide toggle ·
 `a7e2763` drag-to-reorder 5 cards · `6965580` 5th variant ·
