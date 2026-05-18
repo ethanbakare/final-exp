@@ -37,6 +37,15 @@ type Variant = {
   label?: string;
   labelBg?: string;
   labelTextColor?: string;
+  // DemoCard label placement. Defaults (undefined) to bottom-center.
+  // 'bottom-left' = bottom edge, 10px from the left (DemoCard's
+  // standard corner inset — same distance used elsewhere).
+  labelPosition?:
+    | 'bottom-center'
+    | 'bottom-left'
+    | 'bottom-right'
+    | 'top-left'
+    | 'top-right';
 };
 
 // Trace widget slot, scaled 0.8 to fit the 381×298 card (shared by the
@@ -71,6 +80,12 @@ const VARIANTS: Variant[] = [
     innerBg: '#FFF6DA',
     caption: 'Inner collar #FFF6DA + outer border',
     content: traceSlot,
+    // Trace AI's own card description, BOTTOM-LEFT (real carousel
+    // label/bg). Un-hidden via the pc-card-glassBorderedCream rule —
+    // so the other glass-bordered card (glassBordered) stays hidden.
+    label: 'Trace AI',
+    labelBg: 'rgba(255, 255, 255, 0.30)',
+    labelPosition: 'bottom-left',
   },
   // #1 Eclipse Dream — Clipstream voice-clip in the outer-white style.
   // Rendered via PreviewClipstream (the same wrapper the demos carousel
@@ -120,6 +135,11 @@ const VARIANTS: Variant[] = [
     innerBg: 'transparent',
     caption: 'AI Confidence — picture bg, mobile + outer border',
     content: <PreviewAIConfidence />,
+    // AI Confidence's own card description, BOTTOM-LEFT (real carousel
+    // label/bg). Un-hidden via the pc-card-aiConfidence rule below.
+    label: 'AI Confidence tracker',
+    labelBg: 'rgba(128, 34, 63, 0.40)',
+    labelPosition: 'bottom-left',
   },
   // #3 Ollama (llama). PreviewOllama is position:absolute inset:0 and
   // paints its OWN background (.preview-ollama bg = --preview-ollama-bg
@@ -396,6 +416,7 @@ export default function ProjectsComponentPage() {
                   label={v.label ?? 'Trace AI'}
                   labelBg={v.labelBg}
                   labelTextColor={v.labelTextColor}
+                  labelPosition={v.labelPosition}
                   className={`${v.className} pc-card-${v.id}`}
                   innerBg={v.innerBg}
                 >
@@ -541,7 +562,9 @@ export default function ProjectsComponentPage() {
         .pc-card-ollama.pc-card-ollama .card-inner > .label,
         .pc-card-voice.pc-card-voice .card-inner > .label,
         .pc-card-clipstreamGreige.pc-card-clipstreamGreige .card-inner > .label,
-        .pc-card-ollamaBorder.pc-card-ollamaBorder .card-inner > .label {
+        .pc-card-ollamaBorder.pc-card-ollamaBorder .card-inner > .label,
+        .pc-card-aiConfidence.pc-card-aiConfidence .card-inner > .label,
+        .pc-card-glassBorderedCream.pc-card-glassBorderedCream .card-inner > .label {
           display: flex !important;
         }
         /* Ollama only: halve the opacity of its card-description pill. */
