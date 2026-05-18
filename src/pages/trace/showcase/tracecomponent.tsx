@@ -568,16 +568,17 @@ const TraceComponent: React.FC = () => {
           left: 0;
           right: 0;
           bottom: 0;
+          /* Figma navbar (node 3002:498): the bar fill + top stroke
+             belong on THIS wrapper, not the inner button container. */
+          background: #24201d;
+          border-top: 1px solid #3b3b3b;
         }
 
-        /* Bottom bar: Figma navbar #24201D with #413C38 buttons + light
-           text. The WINNING component rule is the .full-width.state-idle
-           descendant .left/right-morph-button (tracenavbar.tsx:655) —
-           TRNavbarV2 adds .full-width — so the override mirrors that
-           exact pattern, doubled-prefixed to out-specify it. */
-        .traceWidgetTextbox.traceWidgetTextbox .trnavbar-container {
-          background: #24201d;
-        }
+        /* Buttons: Figma #413C38 fill + light text. The WINNING
+           component rule is the .full-width.state-idle descendant
+           .left/right-morph-button (tracenavbar.tsx:655) — TRNavbarV2
+           adds .full-width — so the override mirrors that exact pattern,
+           doubled-prefixed to out-specify it. */
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .left-morph-button,
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .right-morph-button {
           background: #413c38;
