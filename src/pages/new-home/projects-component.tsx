@@ -45,7 +45,7 @@ export default function ProjectsComponentPage() {
         }}
       >
         Projects component — Trace AI widget in a brand-design card
-        (381×298), two variants. Test scaffold; not the products page yet.
+        (381×298), three variants. Test scaffold; not the products page yet.
       </p>
 
       {/* Two variants side by side: chrome stripped vs full brand-card
@@ -118,6 +118,38 @@ export default function ProjectsComponentPage() {
             }}
           >
             Full card chrome
+          </span>
+        </div>
+
+        {/* Variant C — full chrome, but card-inner recoloured to
+            #F7F6F4 via DemoCard's innerBg prop (the selected element). */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <div style={{ width: 381, height: 298, display: 'flex' }}>
+            <DemoCard
+              label="Trace AI"
+              className="projects-card-chrome"
+              innerBg="#F7F6F4"
+            >
+              <div style={{ transform: 'scale(0.8)' }}>
+                <TraceWidget />
+              </div>
+            </DemoCard>
+          </div>
+          <span
+            style={{
+              color: 'rgba(255,255,255,0.4)',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: 12,
+            }}
+          >
+            Inner #F7F6F4
           </span>
         </div>
       </div>
