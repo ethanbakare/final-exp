@@ -154,7 +154,7 @@ export default function ProjectsComponentPage() {
         </div>
 
         {/* Variant D — stripped like A, but .card-outer (the selected
-            element) gets a white-5% background instead of transparent. */}
+            element) gets a white-2.5% background instead of transparent. */}
         <div
           style={{
             display: 'flex',
@@ -181,7 +181,7 @@ export default function ProjectsComponentPage() {
               fontSize: 12,
             }}
           >
-            Outer white 5%
+            Outer white 2.5%
           </span>
         </div>
       </div>
@@ -206,7 +206,7 @@ export default function ProjectsComponentPage() {
            only the widget shows; B/C (.projects-card-chrome) keep the
            default DemoCard bg/borders/label. !important because the
            component rules are styled-jsx-scoped and only tie otherwise.
-           A's .card-outer is transparent; D's is white-5% (the only
+           A's .card-outer is transparent; D's is white-2.5% (the only
            difference between them). Border AND the inset box-shadow
            (the faint edge line) both removed. */
         .projects-card .card-outer,
@@ -218,7 +218,7 @@ export default function ProjectsComponentPage() {
           background: transparent !important;
         }
         .projects-card-glass .card-outer {
-          background: rgba(255, 255, 255, 0.05) !important;
+          background: rgba(255, 255, 255, 0.025) !important;
         }
         .projects-card .card-inner,
         .projects-card-glass .card-inner {
