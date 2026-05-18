@@ -45,6 +45,7 @@ const BY_ID = Object.fromEntries(VARIANTS.map((v) => [v.id, v]));
 export default function ProjectsComponentPage() {
   const [order, setOrder] = useState<string[]>(VARIANTS.map((v) => v.id));
   const [dragId, setDragId] = useState<string | null>(null);
+  const [showHandles, setShowHandles] = useState(true);
 
   // Move the dragged card to the dropped-on card's slot.
   const reorder = (targetId: string) => {
@@ -71,6 +72,34 @@ export default function ProjectsComponentPage() {
         padding: 40,
       }}
     >
+      {/* Fixed toggle (bottom-right) — show/hide the per-card drag
+          handles so the cards can be viewed clean. */}
+      <button
+        type="button"
+        onClick={() => setShowHandles((s) => !s)}
+        title={showHandles ? 'Hide drag handles' : 'Show drag handles'}
+        style={{
+          position: 'fixed',
+          bottom: 20,
+          right: 20,
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 14px',
+          borderRadius: 999,
+          border: '1px solid rgba(255,255,255,0.15)',
+          background: 'rgba(255,255,255,0.06)',
+          color: 'rgba(255,255,255,0.7)',
+          fontFamily: 'Inter, sans-serif',
+          fontSize: 12,
+          cursor: 'pointer',
+        }}
+      >
+        <span style={{ fontSize: 13, lineHeight: 1 }}>⠿</span>
+        {showHandles ? 'Handles: On' : 'Handles: Off'}
+      </button>
+
       <p
         style={{
           color: 'rgba(255,255,255,0.45)',
@@ -120,37 +149,40 @@ export default function ProjectsComponentPage() {
                 }}
               >
                 {/* Drag handle — top-right corner. Only this element is
-                    draggable; drop onto any card to reorder. */}
-                <div
-                  draggable
-                  onDragStart={(e) => {
-                    setDragId(id);
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', id);
-                  }}
-                  onDragEnd={() => setDragId(null)}
-                  title="Drag to reorder"
-                  style={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    zIndex: 20,
-                    width: 26,
-                    height: 26,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 6,
-                    background: 'rgba(255,255,255,0.10)',
-                    color: 'rgba(255,255,255,0.65)',
-                    fontSize: 13,
-                    lineHeight: 1,
-                    cursor: 'grab',
-                    userSelect: 'none',
-                  }}
-                >
-                  ⠿
-                </div>
+                    draggable; drop onto any card to reorder. Hidden when
+                    the page-level toggle is off (view cards clean). */}
+                {showHandles && (
+                  <div
+                    draggable
+                    onDragStart={(e) => {
+                      setDragId(id);
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.dataTransfer.setData('text/plain', id);
+                    }}
+                    onDragEnd={() => setDragId(null)}
+                    title="Drag to reorder"
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      zIndex: 20,
+                      width: 26,
+                      height: 26,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 6,
+                      background: 'rgba(255,255,255,0.10)',
+                      color: 'rgba(255,255,255,0.65)',
+                      fontSize: 13,
+                      lineHeight: 1,
+                      cursor: 'grab',
+                      userSelect: 'none',
+                    }}
+                  >
+                    ⠿
+                  </div>
+                )}
 
                 <DemoCard
                   label="Trace AI"
