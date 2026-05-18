@@ -21,6 +21,7 @@ import DemoCard from '@/projects/new-home/components/DemoCard';
 import TraceWidget from '@/projects/trace/components/TraceWidget';
 import PreviewClipstream from '@/projects/new-home/components/previews/PreviewClipstream';
 import PreviewAIConfidence from '@/projects/new-home/components/previews/PreviewAIConfidence';
+import PreviewOllama from '@/projects/new-home/components/previews/PreviewOllama';
 
 type Variant = {
   id: string;
@@ -94,6 +95,22 @@ const VARIANTS: Variant[] = [
     innerBg: 'transparent',
     caption: 'AI Confidence — picture bg, mobile + outer border',
     content: <PreviewAIConfidence />,
+  },
+  // #3 Ollama (llama). PreviewOllama is position:absolute inset:0 and
+  // paints its OWN background (.preview-ollama bg = --preview-ollama-bg
+  // #1A1A19, dark) with the 3 expression PNGs cross-fading every 4s →
+  // it fills the card-inner. Per the roadmap, start simple: the
+  // outer-white style (projects-card-glass = white-2.5% .card-outer,
+  // chrome stripped, label hidden), innerBg transparent. So the inner
+  // is the preview's own #1A1A19 + llama; the 12px outer ring is the
+  // white-2.5%. "Go with outer-white for now and see" — iterate per
+  // review.
+  {
+    id: 'ollama',
+    className: 'projects-card-glass',
+    innerBg: 'transparent',
+    caption: 'Ollama — outer white',
+    content: <PreviewOllama />,
   },
 ];
 
