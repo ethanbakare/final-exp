@@ -478,6 +478,21 @@ const TraceComponent: React.FC = () => {
           color: var(--trace-text-tertiary);
           white-space: nowrap;
         }
+
+        /* Trace AI Widget: restore the documented design-system TextBox
+           size (301×421 / 16px / 1px — TRACE_COMPONENTIZATION_PLAN.md:1588)
+           for this widget only. The size tokens sit on the .container
+           CSS-module class that .text-box also carries, so an ancestor
+           wrapper can't override them; the doubled-class selector
+           (specificity 0,2,0) beats .container (0,1,0) and sets the vars
+           ON the .text-box element. Scoped to .traceWidgetTextbox — the
+           page's other 360px TextBoxes are untouched. */
+        .traceWidgetTextbox.traceWidgetTextbox {
+          --trace-textbox-width: 301px;
+          --trace-textbox-height: 421px;
+          --trace-textbox-radius: 16px;
+          --trace-textbox-border: 1px;
+        }
       `}</style>
 
       <div className={`showcase-container ${styles.container}`}>
@@ -926,24 +941,9 @@ const TraceComponent: React.FC = () => {
             tracefinance.tsx (TextBox) + tracenavbar-v2.tsx (TRNavbarV2) — composed · spec: src/projects/trace/TRACE_WIDGET_SPEC.md
           </p>
 
-          {/* Restore the documented design-system TextBox size (301×421,
-              16px radius, 1px border — TRACE_COMPONENTIZATION_PLAN.md:1588)
-              for THIS widget only. The size tokens are defined on the
-              `.container` CSS-module class that .text-box also carries, so
-              an ancestor wrapper can't override them; the doubled-class
-              selector (specificity 0,2,0) beats `.container` (0,1,0) and
-              sets the vars ON the .text-box element. Scoped to
-              `.traceWidgetTextbox`, so the page's other 360px TextBoxes
-              are untouched. */}
-          <style jsx global>{`
-            .traceWidgetTextbox.traceWidgetTextbox {
-              --trace-textbox-width: 301px;
-              --trace-textbox-height: 421px;
-              --trace-textbox-radius: 16px;
-              --trace-textbox-border: 1px;
-            }
-          `}</style>
-
+          {/* Widget TextBox size override (.traceWidgetTextbox) lives in
+              the single top-level `<style jsx global>` block — styled-jsx
+              forbids a second, nested <style jsx> here. */}
           <div className="seamless-grid">
             <div
               className="button-grid box-wide-tall"
