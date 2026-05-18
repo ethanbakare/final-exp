@@ -18,6 +18,7 @@ import styles from '@/projects/new-home/styles/new-home.module.css';
 import DemoCard from '@/projects/new-home/components/DemoCard';
 import TraceWidget from '@/projects/trace/components/TraceWidget';
 import PreviewClipstream from '@/projects/new-home/components/previews/PreviewClipstream';
+import PreviewAIConfidence from '@/projects/new-home/components/previews/PreviewAIConfidence';
 
 type Variant = {
   id: string;
@@ -63,6 +64,21 @@ const VARIANTS: Variant[] = [
     innerBg: 'transparent',
     caption: 'Clipstream — outer white',
     content: <PreviewClipstream />,
+  },
+  // #2 AI Confidence Tracker. PreviewAIConfidence already paints its
+  // OWN picture background (.bg-image = wt1.webp) + a white transcript
+  // box, position:absolute inset:0 → it fills the card-inner. So use
+  // the STRIPPED card (transparent, no chrome) — the preview's picture
+  // bg becomes the card surface (NOT the outer-white). The page then
+  // forces the component's own `@media (max-width:620px)` "mobile"
+  // transcript-box layout (it can't fire off viewport width inside a
+  // 381 card) via a scoped override — see .projects-card-aiconf CSS.
+  {
+    id: 'aiConfidence',
+    className: 'projects-card-aiconf',
+    innerBg: 'transparent',
+    caption: 'AI Confidence — picture bg + mobile style',
+    content: <PreviewAIConfidence />,
   },
 ];
 
@@ -136,7 +152,7 @@ export default function ProjectsComponentPage() {
         }}
       >
         Projects component — Trace AI widget in a brand-design card
-        (381×298), six variants. Drag a card's top-right handle onto
+        (381×298), seven variants. Drag a card's top-right handle onto
         another to reorder. Test scaffold; not the products page yet.
       </p>
 
@@ -245,7 +261,8 @@ export default function ProjectsComponentPage() {
         .projects-card,
         .projects-card-chrome,
         .projects-card-glass,
-        .projects-card-glass-bordered {
+        .projects-card-glass-bordered,
+        .projects-card-aiconf {
           width: 100%;
           height: 100%;
         }
@@ -264,11 +281,13 @@ export default function ProjectsComponentPage() {
            difference between them). Border AND the inset box-shadow
            (the faint edge line) both removed. */
         .projects-card .card-outer,
-        .projects-card-glass .card-outer {
+        .projects-card-glass .card-outer,
+        .projects-card-aiconf .card-outer {
           border: none !important;
           box-shadow: none !important;
         }
-        .projects-card .card-outer {
+        .projects-card .card-outer,
+        .projects-card-aiconf .card-outer {
           background: transparent !important;
         }
         .projects-card-glass .card-outer {
@@ -276,7 +295,8 @@ export default function ProjectsComponentPage() {
         }
         .projects-card .card-inner,
         .projects-card-glass .card-inner,
-        .projects-card-glass-bordered .card-inner {
+        .projects-card-glass-bordered .card-inner,
+        .projects-card-aiconf .card-inner {
           border: none !important;
         }
         /* Hide the DemoCard "Trace AI" label. Scope to a DIRECT child of
@@ -285,8 +305,30 @@ export default function ProjectsComponentPage() {
            wrongly blank the "Total amt" pill too. */
         .projects-card .card-inner > .label,
         .projects-card-glass .card-inner > .label,
-        .projects-card-glass-bordered .card-inner > .label {
+        .projects-card-glass-bordered .card-inner > .label,
+        .projects-card-aiconf .card-inner > .label {
           display: none !important;
+        }
+
+        /* #2 AI Confidence — force PreviewAIConfidence's own
+           @media (max-width:620px) "mobile" transcript-box layout. That
+           media query can't fire inside a 381px card on a wide viewport,
+           so mirror its exact values here, scoped to this variant.
+           Doubled class + !important to out-specify the component's
+           styled-jsx-scoped rules. */
+        .projects-card-aiconf.projects-card-aiconf .transcript-box {
+          width: 93.68% !important;
+          height: 92.2% !important;
+          right: -6.87% !important;
+          bottom: -25.89% !important;
+          padding: 25.551px 19.163px !important;
+          border-radius: 20.441px !important;
+        }
+        .projects-card-aiconf.projects-card-aiconf .transcript-content {
+          gap: 12.775px !important;
+        }
+        .projects-card-aiconf.projects-card-aiconf .text-area {
+          padding: 28px 23px 12px 23px !important;
         }
       `}</style>
     </div>
