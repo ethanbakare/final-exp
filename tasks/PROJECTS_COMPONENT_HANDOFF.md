@@ -7,13 +7,35 @@ Cold-start contract. Read top-to-bottom before continuing. Branch:
 
 ## 0. TL;DR
 
-Building a **test scaffold page** at `/new-home/projects-component`
-(file: `src/pages/new-home/projects-component.tsx`) that slots demo
-widgets into the **brand-design `DemoCard`** (the 381×298 card from
-`CarouselBrand`) across several "chrome" variants, drag-reorderable,
-with a show/hide-handles toggle. Goal: decide how each AI demo should
-look as a card before moving any of it to the real products page. **Not
-the products page yet.**
+> **STATUS: the real projects page is now BUILT.** The scaffold below
+> served its purpose (decide each AI card's treatment); the chosen
+> treatments now live on the real page.
+
+**Real page — `/projects`** (`src/pages/projects.tsx` → thin wrapper
+of `src/projects/new-home/components/ProjectsPage.tsx`). All 11
+projects in the CarouselBrand grid syntax (`repeat(3,381px)`, 298px
+rows, gap 15; →2col ≤1200px; →1col aspect-ratio ≤800px) on the
+home-page gradient bg. 5 AI demos with the user-chosen treatments +
+6 brand-portfolio image cards; **every card is a real link** (DemoCard
+`href` → `<a>`) to its project page. Drag-reorder + handle toggle +
+localStorage persistence (key `projects-page:order:v1`, own
+`reconcileOrder`, direction-aware reorder). Chosen AI treatments:
+AI Confidence=`projects-card-aiconf` (picture+outer border, bottom-left
+tag) → `/ai-confidence-tracker`; Trace=`projects-card-glass-bordered`
+#FFF6DA inner, grey tag bottom-left → `/trace`;
+Ollama=`projects-card-ollamaborder` (borders@50%, tag opacity .7) →
+`/ollama`; Clipstream=`projects-card-clipgreige` #C5C3C0 →
+`/clipperstream`; Voice=`projects-card-voice` #F7F6F4 →
+`/voiceinterface/variations`. Curated chrome CSS is self-contained in
+ProjectsPage.tsx (NOT shared with the scaffold — scaffold untouched).
+
+**Scaffold (still exists, untouched)** — test page at
+`/new-home/projects-component` (file:
+`src/pages/new-home/projects-component.tsx`) that slots demo widgets
+into the **brand-design `DemoCard`** (the 381×298 card from
+`CarouselBrand`) across many "chrome" variants, drag-reorderable, with
+a show/hide-handles toggle. It was where each AI demo's card treatment
+was decided.
 
 - **Done:** TraceWidget extracted + slotted (5 chrome variants) +
   Clipstream (`PreviewClipstream`, outer-white) + Clipstream alt collar
@@ -25,9 +47,11 @@ the products page yet.**
   hairlines + outward drop, no glow) used by glassBordered AND
   aiConfidence. Shared `MasterBlockHolder` top-radius tied to the card
   radius.
-- **Next:** awaiting user review of the 4 roadmap variants; then move
-  the chosen treatments to the real products page (still NOT done —
-  this remains a test scaffold).
+- **Next:** review the live `/projects` page; tweak treatments/order
+  as needed. The handle toggle/reorder can be removed on request once
+  the order is final. Some link destinations may be WIP pages (hrefs
+  are the canonical ones from CarouselDemos/CarouselBrand, e.g. Voice
+  UI → `/voiceinterface/variations`).
 
 ---
 
