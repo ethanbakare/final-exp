@@ -36,6 +36,7 @@ type Variant = {
   // rule) show it — e.g. Ollama uses its real carousel label.
   label?: string;
   labelBg?: string;
+  labelTextColor?: string;
 };
 
 // Trace widget slot, scaled 0.8 to fit the 381×298 card (shared by the
@@ -75,18 +76,24 @@ const VARIANTS: Variant[] = [
     caption: 'Clipstream — outer white',
     content: <PreviewClipstream />,
   },
-  // #1b Eclipse Dream — Clipstream, ALT outer collar #C5C3C0 (a warm
-  // greige) instead of the white-2.5%. Same projects-card-glass chrome
-  // so it inherits ALL the stripping (border/shadow none, inner border
-  // none, label hidden); only .card-outer's bg is recoloured, via the
-  // unique pc-card-clipstreamGreige subclass (doubled-class in the CSS
-  // so it deterministically beats .projects-card-glass .card-outer).
+  // #1b Eclipse Dream — Clipstream, "Chrome treatment" variant (same
+  // as glassBordered / AI Confidence / Voice UI). The #C5C3C0 collar
+  // is MOVED to .card-inner (via innerBg); .card-outer is transparent
+  // with the shared double-border-line chrome (#2E2C29 border + 2
+  // inset hairlines + outward drop, no glow). DEDICATED chrome class
+  // `projects-card-clipgreige` (its own profile — NOT the shared
+  // projects-card-glass). Plus its own card description: the real
+  // demos-carousel Clipstream label, shown via the
+  // pc-card-clipstreamGreige un-hide rule in the CSS below.
   {
     id: 'clipstreamGreige',
-    className: 'projects-card-glass',
-    innerBg: 'transparent',
-    caption: 'Clipstream — outer #C5C3C0',
+    className: 'projects-card-clipgreige',
+    innerBg: '#C5C3C0',
+    caption: 'Clipstream — Chrome treatment (#C5C3C0 inner)',
     content: <PreviewClipstream />,
+    label: 'Clipstream',
+    labelBg: 'rgba(113, 113, 113, 0.50)',
+    labelTextColor: 'rgba(255, 255, 255, 0.80)',
   },
   // #2 AI Confidence Tracker. PreviewAIConfidence already paints its
   // OWN picture background (.bg-image = wt1.webp) + a white transcript
@@ -353,6 +360,7 @@ export default function ProjectsComponentPage() {
                 <DemoCard
                   label={v.label ?? 'Trace AI'}
                   labelBg={v.labelBg}
+                  labelTextColor={v.labelTextColor}
                   className={`${v.className} pc-card-${v.id}`}
                   innerBg={v.innerBg}
                 >
@@ -388,7 +396,8 @@ export default function ProjectsComponentPage() {
         .projects-card-glass,
         .projects-card-glass-bordered,
         .projects-card-aiconf,
-        .projects-card-voice {
+        .projects-card-voice,
+        .projects-card-clipgreige {
           width: 100%;
           height: 100%;
         }
@@ -404,13 +413,14 @@ export default function ProjectsComponentPage() {
            border and the inner). glassBordered also moves the #131312
            collar onto .card-inner via innerBg; AI Confidence's inner
            is its own PreviewAIConfidence picture/transcript (untouched
-           here). Voice UI (.projects-card-voice) also shares this
-           chrome, with a #F7F6F4 inner (the WebGL blob's Whimsy white)
-           inside the framed outer. Label hidden via the label-hide
-           group. */
+           here). Voice UI (.projects-card-voice, #F7F6F4 inner) and
+           Clipstream-greige (.projects-card-clipgreige, #C5C3C0 inner)
+           also share this chrome — their collar lives on .card-inner
+           via innerBg, inside the framed outer. */
         .projects-card-glass-bordered .card-outer,
         .projects-card-aiconf .card-outer,
-        .projects-card-voice .card-outer {
+        .projects-card-voice .card-outer,
+        .projects-card-clipgreige .card-outer {
           background: transparent !important;
           box-shadow:
             0 0.5px 0.5px 1px rgba(255, 255, 255, 0.06) inset,
@@ -437,13 +447,10 @@ export default function ProjectsComponentPage() {
         .projects-card-glass .card-outer {
           background: rgba(255, 255, 255, 0.025) !important;
         }
-        /* Clipstream ALT collar — #C5C3C0 greige outer instead of the
-           white-2.5%. Doubled unique subclass (0,3,0) out-specifies
-           .projects-card-glass .card-outer (0,2,0) regardless of source
-           order. Scoped to this one variant only. */
-        .pc-card-clipstreamGreige.pc-card-clipstreamGreige .card-outer {
-          background: #c5c3c0 !important;
-        }
+        /* (The old Clipstream-greige #C5C3C0-on-.card-outer rule was
+           removed: under the Chrome treatment the #C5C3C0 collar now
+           lives on .card-inner via the variant's innerBg, and
+           .card-outer carries the shared double-border chrome above.) */
         /* .card-inner border stripped for these variants. glassBordered
            is included here so that "move the collar to the inner" moves
            ONLY the colour — the inner gets the #131312 fill (via its
@@ -455,7 +462,8 @@ export default function ProjectsComponentPage() {
         .projects-card-glass .card-inner,
         .projects-card-glass-bordered .card-inner,
         .projects-card-aiconf .card-inner,
-        .projects-card-voice .card-inner {
+        .projects-card-voice .card-inner,
+        .projects-card-clipgreige .card-inner {
           border: none !important;
         }
         /* Hide the DemoCard "Trace AI" label. Scope to a DIRECT child of
@@ -466,17 +474,19 @@ export default function ProjectsComponentPage() {
         .projects-card-glass .card-inner > .label,
         .projects-card-glass-bordered .card-inner > .label,
         .projects-card-aiconf .card-inner > .label,
-        .projects-card-voice .card-inner > .label {
+        .projects-card-voice .card-inner > .label,
+        .projects-card-clipgreige .card-inner > .label {
           display: none !important;
         }
-        /* …EXCEPT Ollama and Voice UI, which SHOW their own card
-           description (their real carousel labels, set on the
-           variants). Each pc-card-<id> doubled (0,4,0) out-specifies
-           the label-hide group (0,3,0) regardless of source order, so
-           ONLY these two are un-hidden; cards sharing their chrome
-           class keep "Trace AI" hidden. */
+        /* …EXCEPT Ollama, Voice UI and Clipstream-greige, which SHOW
+           their own card description (their real carousel labels, set
+           on the variants). Each pc-card-<id> doubled (0,4,0)
+           out-specifies the label-hide group (0,3,0) regardless of
+           source order, so ONLY these are un-hidden; cards sharing
+           their chrome class keep "Trace AI" hidden. */
         .pc-card-ollama.pc-card-ollama .card-inner > .label,
-        .pc-card-voice.pc-card-voice .card-inner > .label {
+        .pc-card-voice.pc-card-voice .card-inner > .label,
+        .pc-card-clipstreamGreige.pc-card-clipstreamGreige .card-inner > .label {
           display: flex !important;
         }
         /* Ollama only: halve the opacity of its card-description pill. */
