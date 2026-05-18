@@ -556,6 +556,19 @@ const TraceComponent: React.FC = () => {
           padding-bottom: 12px;
         }
 
+        /* The perceived "overlap" was NOT an element collision (rows end
+           at 1111, navbar starts at 1112). It is the component's
+           scroll-fade pseudo — .text-box--with-navbar::after, a
+           position:absolute #1c1917→transparent band 24px tall sitting
+           64px above the card bottom — painting OVER the last figure row.
+           That fade is a scroll affordance for the tall demo card; on
+           this fixed compact widget it just darkens the last row into
+           the bar. Disable it for the widget (triple-class to out-specify
+           the styled-jsx-scoped ::after rule). */
+        .traceWidgetTextbox.traceWidgetTextbox.traceWidgetTextbox::after {
+          display: none;
+        }
+
         /* "Total amt" outlined pill (Figma node 2393:1944) — drop the
            red indicator, restyle as the bordered pill, swap the label
            text via CSS (no shared-component change; Option A). */
