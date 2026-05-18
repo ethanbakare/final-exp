@@ -50,7 +50,7 @@ export default function ProjectsComponentPage() {
 
       {/* Brand-design card cell — exact CarouselBrand grid size. */}
       <div style={{ width: 381, height: 298, display: 'flex' }}>
-        <DemoCard label="Trace AI" className="projects-card">
+        <DemoCard label="Trace AI" className="projects-card" innerBg="transparent">
           {/* Slot-level uniform scale (whole widget, not per-element).
               TraceWidget stays its canonical Figma size; the consumer
               scales it down ~20% (scale 0.8) to fit the 381×298 card.
@@ -74,6 +74,26 @@ export default function ProjectsComponentPage() {
         .projects-card {
           width: 100%;
           height: 100%;
+        }
+        /* Test page: strip the brand-card chrome so only the widget
+           shows. .card-outer (var(--card-bg) #201F1D) + its border, and
+           .card-inner's border, all to zero. !important because the
+           component rules are styled-jsx-scoped and only tie otherwise.
+           (Inset box-shadow on .card-outer left as-is for now.) */
+        .projects-card .card-outer {
+          background: transparent !important;
+          border: none !important;
+        }
+        .projects-card .card-inner {
+          border: none !important;
+        }
+        /* Hide the DemoCard "Trace AI" label for the time being.
+           Scope to a DIRECT child of .card-inner — the widget's own
+           TotalAmtSpent also uses a nested .label span, so a broad
+           ".projects-card .label" would wrongly blank the "Total amt"
+           pill too. */
+        .projects-card .card-inner > .label {
+          display: none !important;
         }
       `}</style>
     </div>
