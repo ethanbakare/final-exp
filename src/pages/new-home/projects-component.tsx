@@ -30,6 +30,12 @@ type Variant = {
   innerBg?: string;
   caption: string;
   content: React.ReactNode; // the widget slotted into the card
+  // DemoCard bottom-center label ("card description"). Defaults to
+  // "Trace AI" and is hidden by the label-hide CSS group. A variant
+  // can set its OWN label + labelBg and (via a pc-card-<id> un-hide
+  // rule) show it — e.g. Ollama uses its real carousel label.
+  label?: string;
+  labelBg?: string;
 };
 
 // Trace widget slot, scaled 0.8 to fit the 381×298 card (shared by the
@@ -112,6 +118,12 @@ const VARIANTS: Variant[] = [
     innerBg: 'transparent',
     caption: 'Ollama — outer white',
     content: <PreviewOllama />,
+    // Ollama's own card description — the exact label the real demos
+    // carousel uses for the Ollama card (CarouselDemos.tsx): "Ollama"
+    // with a translucent-white pill. Shown (not hidden) via the
+    // pc-card-ollama un-hide rule in the CSS below.
+    label: 'Ollama',
+    labelBg: 'rgba(255, 255, 255, 0.30)',
   },
   // #4 Voice URL library (Voice UI). PreviewVoiceAnimated is
   // position:absolute inset:0 but paints NO background of its own — it
@@ -334,7 +346,8 @@ export default function ProjectsComponentPage() {
                     share chrome (glass+clipstream, chrome+innerCream).
                     Convention: every new variant auto-gets pc-card-<id>. */}
                 <DemoCard
-                  label="Trace AI"
+                  label={v.label ?? 'Trace AI'}
+                  labelBg={v.labelBg}
                   className={`${v.className} pc-card-${v.id}`}
                   innerBg={v.innerBg}
                 >
@@ -450,6 +463,16 @@ export default function ProjectsComponentPage() {
         .projects-card-aiconf .card-inner > .label,
         .projects-card-voice .card-inner > .label {
           display: none !important;
+        }
+        /* …EXCEPT Ollama, which SHOWS its own card description (the
+           real carousel label, set on the variant). pc-card-ollama
+           doubled (0,4,0) out-specifies the label-hide group's
+           .projects-card-glass .card-inner > .label (0,3,0)
+           regardless of source order — Ollama keeps projects-card-glass
+           chrome but its label is un-hidden, while the other glass
+           cards (Trace glass, both Clipstreams) stay hidden. */
+        .pc-card-ollama.pc-card-ollama .card-inner > .label {
+          display: flex !important;
         }
 
         /* #2 AI Confidence — force PreviewAIConfidence's own
