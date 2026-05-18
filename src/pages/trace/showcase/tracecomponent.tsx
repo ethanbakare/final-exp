@@ -624,12 +624,16 @@ const TraceComponent: React.FC = () => {
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .left-morph-button,
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .right-morph-button {
           background: #413c38;
-          color: rgba(255, 255, 255, 0.85);
+          /* OPAQUE white@80% (= 0.8·#fff + 0.2·#413C38 = rgb 217,216,215).
+             The mic icon paints a filled path AND a stroked path over it;
+             a semi-transparent currentColor makes the overlap compound
+             its alpha (visible seam). An opaque equivalent removes that. */
+          color: #d9d8d7;
         }
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .left-morph-button .upload-content,
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .right-morph-button .speak-content,
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .button-text {
-          color: rgba(255, 255, 255, 0.85);
+          color: #d9d8d7;
         }
       `}</style>
 
