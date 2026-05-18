@@ -36,7 +36,7 @@ import {
   FinanceBox,
   TextBox
 } from '@/projects/trace/components/ui/tracefinance';
-import { AnimatedMasterTotalPrice } from '@/projects/trace/components/ui/tracefinance-animated';
+import { AnimatedMasterTotalPrice, AnimatedTextBox } from '@/projects/trace/components/ui/tracefinance-animated';
 import { EmptyTraceIcon, EmptyTraceIconCross, EmptyTraceIconAnimated, EmptyTraceIconToggleable } from '@/projects/trace/components/ui/traceIcons';
 import { TraceToast } from '@/projects/trace/components/ui/TraceToast';
 
@@ -479,19 +479,22 @@ const TraceComponent: React.FC = () => {
           white-space: nowrap;
         }
 
-        /* Trace AI Widget: restore the documented design-system TextBox
-           size (301×421 / 16px / 1px — TRACE_COMPONENTIZATION_PLAN.md:1588)
-           for this widget only. The size tokens sit on the .container
-           CSS-module class that .text-box also carries, so an ancestor
-           wrapper can't override them; the doubled-class selector
-           (specificity 0,2,0) beats .container (0,1,0) and sets the vars
-           ON the .text-box element. Scoped to .traceWidgetTextbox — the
-           page's other 360px TextBoxes are untouched. */
+        /* Trace AI Widget: scope the card to the Figma "Dictation app"
+           geometry (≈301×315, 32px radius, no border) for this widget
+           only. Size tokens sit on the .container CSS-module class that
+           .text-box also carries, so an ancestor wrapper can't override
+           them; the doubled-class selector (specificity 0,2,0) beats
+           .container (0,1,0) and sets the vars ON the .text-box element.
+           AnimatedTextBox's with-navbar height = calc(var + 44 + 20), so
+           var≈240 → total ≈ 304 (Figma frame ≈ 315). Scoped to
+           .traceWidgetTextbox — the page's other 360px TextBoxes are
+           untouched. (Height verified visually below; nudge var if the
+           card shows a void or clips.) */
         .traceWidgetTextbox.traceWidgetTextbox {
           --trace-textbox-width: 301px;
-          --trace-textbox-height: 421px;
-          --trace-textbox-radius: 16px;
-          --trace-textbox-border: 1px;
+          --trace-textbox-height: 300px;
+          --trace-textbox-radius: 32px;
+          --trace-textbox-border: 0px;
         }
       `}</style>
 
@@ -950,31 +953,29 @@ const TraceComponent: React.FC = () => {
               style={{ background: '#ffffff' }}
             >
               <div className="button-center">
-                {/* Widget = the Figma "Dictation app" card: it must abide
-                    by the design size (301×421, 16px radius, 1px border).
-                    The global token was widened to 360×500 "for
-                    MasterBlockHolder" (trace.module.css:373-374) — a
-                    divergence from the documented design system
-                    (TRACE_COMPONENTIZATION_PLAN.md:1588 = 301×421). We do
-                    NOT inherit that here: the `traceWidgetTextbox` class
-                    (style block below) restores the documented tokens ON
-                    the .text-box element, scoped to this widget only, so
-                    other TextBoxes on the page stay 360. This is a real
-                    layout resize (not a clip), so nothing crops. Wrapper
-                    hugs the 301 width and clips the appended TRNavbarV2 to
-                    the same 16px radius so the two read as one card. White
-                    cell bg is the page convention so #1c1917 doesn't blend
-                    in. See TRACE_WIDGET_SPEC.md §1a. */}
+                {/* Mirrors the LIVE Trace demo (TraceCore.tsx:509-523):
+                    the card is <AnimatedTextBox> with the navbar passed
+                    via its `navbar` slot, so Upload/Speak render INSIDE
+                    the card — exactly like /trace and the Figma
+                    "Dictation app" frame. (The earlier build used plain
+                    <TextBox> + a sibling navbar, which put the buttons
+                    OUTSIDE and left a tall empty void — wrong.) Geometry
+                    is scoped to the Figma widget size via
+                    .traceWidgetTextbox (301 wide, 32px radius, no border,
+                    content-compact height). Wrapper clips to the same
+                    32px so it reads as one rounded card. White cell bg is
+                    the page convention so #1c1917 doesn't blend into the
+                    dark showcase. */}
                 <div
                   style={{
                     width: 'fit-content',
-                    borderRadius: 16,
+                    borderRadius: 32,
                     overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column' as const,
                   }}
                 >
-                  <TextBox
+                  <AnimatedTextBox
                     className="traceWidgetTextbox"
                     grandTotal="14.99"
                     days={[
@@ -995,11 +996,13 @@ const TraceComponent: React.FC = () => {
                         ],
                       },
                     ]}
-                  />
-                  <TRNavbarV2
-                    state="idle"
-                    onUploadClick={() => console.log('Widget upload clicked')}
-                    onSpeakClick={() => console.log('Widget speak clicked')}
+                    navbar={
+                      <TRNavbarV2
+                        state="idle"
+                        onUploadClick={() => console.log('Widget upload clicked')}
+                        onSpeakClick={() => console.log('Widget speak clicked')}
+                      />
+                    }
                   />
                 </div>
               </div>
