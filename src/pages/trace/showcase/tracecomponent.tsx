@@ -543,6 +543,19 @@ const TraceComponent: React.FC = () => {
           align-items: center;
         }
 
+        /* Finance box = its OWN bounded scroll section, separate from the
+           navbar. The component gives .finance-box a 200px bottom-padding
+           scroll spacer (sized for the tall demo card). With border-box,
+           min-height:0 can't shrink a box below its own padding, so at
+           the widget's 315 card the finance box is stuck at 200px min and
+           shoves the navbar past the bottom (they overlapped). Shrinking
+           the spacer to the design's normal 12px lets finance flex-shrink
+           into the free space and scroll there; the navbar then sits in
+           its own section below — no overlap. */
+        .traceWidgetTextbox.traceWidgetTextbox .finance-box {
+          padding-bottom: 12px;
+        }
+
         /* "Total amt" outlined pill (Figma node 2393:1944) — drop the
            red indicator, restyle as the bordered pill, swap the label
            text via CSS (no shared-component change; Option A). */
@@ -566,21 +579,13 @@ const TraceComponent: React.FC = () => {
           color: #fff;
         }
 
-        /* Bottom bar pinned to the card bottom. The demo pins via flex
-           (tall card); at the widget's small fixed 315 the finance area
-           won't flex-shrink, so the flex navbar overflowed (clipped).
-           .text-box is already position:relative, so absolutely pinning
-           the navbar to the bottom is the source-consistent way to get
-           the same behaviour — bar fixed at the bottom, finance still
-           scrolls above it (it keeps overflow-y:auto + its 200px
-           bottom-padding spacer so the last row clears the bar). */
+        /* Bottom bar: stays in normal flex flow (the demo's mechanism)
+           so it occupies its OWN section below the figures and never
+           overlaps them. (Absolute-positioning it made it overlay the
+           finance area — wrong.) Finance is bounded just below so it
+           scrolls within its own region. Only the Figma fill + top
+           stroke (node 3002:498) live here. */
         .traceWidgetTextbox.traceWidgetTextbox .trnavbar-v2-wrapper {
-          position: absolute;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          /* Figma navbar (node 3002:498): the bar fill + top stroke
-             belong on THIS wrapper, not the inner button container. */
           background: #24201d;
           border-top: 1px solid #3b3b3b;
         }
