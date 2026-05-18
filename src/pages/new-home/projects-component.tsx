@@ -504,6 +504,10 @@ export default function ProjectsComponentPage() {
         .pc-card-ollama.pc-card-ollama .card-inner > .label {
           opacity: 0.5;
         }
+        /* glassBorderedCream only: drop the whole card to 90% opacity. */
+        .pc-card-glassBorderedCream.pc-card-glassBorderedCream {
+          opacity: 0.9;
+        }
 
         /* #2 AI Confidence — force PreviewAIConfidence's own
            @media (max-width:620px) "mobile" transcript-box layout. That
