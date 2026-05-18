@@ -548,6 +548,11 @@ export default function ProjectsComponentPage() {
         .pc-card-ollama.pc-card-ollama .card-inner > .label {
           opacity: 0.5;
         }
+        /* ollamaBorder only: reduce the bottom text tag's opacity by
+           30% (1.0 − 0.30 = 0.70). Just the label pill, not the card. */
+        .pc-card-ollamaBorder.pc-card-ollamaBorder .card-inner > .label {
+          opacity: 0.7;
+        }
         /* glassBorderedCream only: drop the whole card to 90% opacity. */
         .pc-card-glassBorderedCream.pc-card-glassBorderedCream {
           opacity: 0.9;
