@@ -47,7 +47,7 @@ const VARIANTS: Variant[] = [
     id: 'glassBordered',
     className: 'projects-card-glass-bordered',
     innerBg: 'transparent',
-    caption: 'Solid #131312 + border (no glow)',
+    caption: 'Solid #131312 + inner+outer border (no glow)',
     content: traceSlot,
   },
   // #1 Eclipse Dream — Clipstream voice-clip in the outer-white style.
@@ -285,20 +285,26 @@ export default function ProjectsComponentPage() {
           width: 100%;
           height: 100%;
         }
-        /* Variant E — border line ONLY, no glow. The DemoCard default
-           border is kept (NOT in the strip list), but its 4-layer
-           box-shadow is replaced with JUST the outward drop shadow —
-           the 3 inset (inner) white-glow layers are removed. The
-           surface is the SOLID opaque equivalent of the old
-           white-2.5% over the page gradient (#0A0A09→#0F0F0E):
-           rgba(255,255,255,0.025) composited ≈ #10100F (top) …
-           #151514 (bottom); #131312 is the mid-page equivalent.
-           Solid (not translucent) so the outward drop shadow / page
-           bg can't bleed through and shift how the surface reads.
-           Label hidden + inner border none, matching the glass look. */
+        /* Variant E — TWO borders + outward shadow, NO glow. Of the
+           DemoCard .card-outer 4-layer box-shadow, only the soft
+           diffuse layer (white-03 @ 14.5px blur — the actual "glow")
+           is dropped. The two TIGHT inset layers (white-06 @ .5px,
+           white-12 @ .25px, both 1px spread) are KEPT — they render
+           as a crisp bright hairline just inside the dark border,
+           i.e. the "inner border" line. The dark outer border
+           (1px solid #2E2C29) is untouched (not in the strip list).
+           Plus the outward black-25% drop shadow. Surface is the
+           SOLID opaque equivalent of the old white-2.5% over the page
+           gradient (#0A0A09→#0F0F0E): ≈ #10100F (top) … #151514
+           (bottom); #131312 mid-page. Solid (not translucent) so the
+           outward shadow / page bg can't bleed through and shift how
+           it reads. Label hidden + .card-inner border none. */
         .projects-card-glass-bordered .card-outer {
           background: #131312 !important;
-          box-shadow: 0 14.211px 20.281px -5.477px rgba(0, 0, 0, 0.25) !important;
+          box-shadow:
+            0 0.5px 0.5px 1px rgba(255, 255, 255, 0.06) inset,
+            0 0.25px 0.25px 1px rgba(255, 255, 255, 0.12) inset,
+            0 14.211px 20.281px -5.477px rgba(0, 0, 0, 0.25) !important;
         }
         /* Stripped variants (A & D) — remove the brand-card chrome so
            only the widget shows; B/C (.projects-card-chrome) keep the
