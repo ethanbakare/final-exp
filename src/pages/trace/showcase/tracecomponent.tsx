@@ -625,18 +625,19 @@ const TraceComponent: React.FC = () => {
           border-top: 1px solid #3b3b3b;
         }
 
-        /* Buttons: TEXT + ICONS only — the button BACKGROUND is left as
-           the component default (not overridden here). Colour is the
-           OPAQUE white@80% equivalent (= 0.8·#fff + 0.2·#413C38 = rgb
-           217,216,215): the mic icon paints a filled path AND a stroked
-           path over it; a semi-transparent currentColor compounds alpha
-           on the overlap (visible seam) — an opaque value removes that.
-           The WINNING component rule is the .full-width.state-idle
-           descendant .left/right-morph-button (tracenavbar.tsx:655) —
-           TRNavbarV2 adds .full-width — so the override mirrors that
-           exact pattern, doubled-prefixed to out-specify it. */
+        /* Buttons — exact Figma values (nodes 3002:499 / 3002:509):
+           background #413C38, text rgba(255,255,255,.80). Text/icon uses
+           the OPAQUE equivalent #d9d8d7 (= 0.8·#fff + 0.2·#413C38) so the
+           mic icon's filled+stroked paths don't alpha-compound on overlap
+           — on a #413C38 bg this is visually identical to white@80%.
+           The component's idle bg comes from the styled-jsx-SCOPED rule
+           .full-width.state-idle .left/right-morph-button (tracenavbar.tsx
+           :655); its effective specificity ties ours, so prior overrides
+           lost on source order. !important wins deterministically and is
+           safe — scoped entirely to .traceWidgetTextbox. */
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .left-morph-button,
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .right-morph-button {
+          background: #413c38 !important;
           color: #d9d8d7;
         }
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .left-morph-button .upload-content,
