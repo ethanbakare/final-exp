@@ -207,10 +207,12 @@ export default function ProjectsComponentPage() {
            default DemoCard bg/borders/label. !important because the
            component rules are styled-jsx-scoped and only tie otherwise.
            A's .card-outer is transparent; D's is white-5% (the only
-           difference between them). (Inset box-shadow left as-is.) */
+           difference between them). Border AND the inset box-shadow
+           (the faint edge line) both removed. */
         .projects-card .card-outer,
         .projects-card-glass .card-outer {
           border: none !important;
+          box-shadow: none !important;
         }
         .projects-card .card-outer {
           background: transparent !important;
