@@ -226,8 +226,17 @@ export default function ProjectsComponentPage() {
   const reorder = (targetId: string) => {
     setDragId(null);
     if (!dragId || dragId === targetId) return;
+    const from = order.indexOf(dragId);
+    const toCard = order.indexOf(targetId);
     const without = order.filter((x) => x !== dragId);
-    const at = without.indexOf(targetId);
+    let at = without.indexOf(targetId);
+    // Direction-aware insert so EVERY slot is reachable, incl. both
+    // ends: dragging downward (source above target) drops AFTER the
+    // target → the very-bottom slot is reachable; dragging upward
+    // drops BEFORE the target → the very-top slot is reachable.
+    // (Plain "always insert before target" could never reach the
+    // very bottom and made the top feel unreachable.)
+    if (from < toCard) at += 1;
     without.splice(at, 0, dragId);
     setOrder(without);
     try {
