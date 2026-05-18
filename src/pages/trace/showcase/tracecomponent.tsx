@@ -1119,13 +1119,21 @@ const TraceComponent: React.FC = () => {
                         total: '5246.99',
                         merchants: [
                           {
-                            // merchantName omitted ⇒ "- - -" placeholder
-                            // (spec §5: prop-driven, not literal data)
+                            merchantName: 'JOHN LEWIS',
                             merchantTotal: '619.97',
                             items: [
                               { quantity: '2x', itemName: 'Headphones', netPrice: '104.99', discount: '3.99' },
                               { quantity: '1x', itemName: 'Playstation 5', netPrice: '499.99' },
                               { quantity: '1x', itemName: 'Chino Trousers', netPrice: '14.99' },
+                            ],
+                          },
+                          {
+                            merchantName: 'TESCO',
+                            merchantTotal: '52.18',
+                            items: [
+                              { quantity: '3x', itemName: 'Organic Milk', netPrice: '2.50', discount: '0.50' },
+                              { quantity: '5x', itemName: 'Energy Drink', netPrice: '6.25' },
+                              { quantity: '2x', itemName: 'Kitchen Towels', netPrice: '3.98' },
                             ],
                           },
                         ],
