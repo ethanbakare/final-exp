@@ -22,6 +22,7 @@ import TraceWidget from '@/projects/trace/components/TraceWidget';
 import PreviewClipstream from '@/projects/new-home/components/previews/PreviewClipstream';
 import PreviewAIConfidence from '@/projects/new-home/components/previews/PreviewAIConfidence';
 import PreviewOllama from '@/projects/new-home/components/previews/PreviewOllama';
+import PreviewVoiceAnimated from '@/projects/new-home/components/previews/PreviewVoiceAnimated';
 
 type Variant = {
   id: string;
@@ -111,6 +112,22 @@ const VARIANTS: Variant[] = [
     innerBg: 'transparent',
     caption: 'Ollama — outer white',
     content: <PreviewOllama />,
+  },
+  // #4 Voice URL library (Voice UI). PreviewVoiceAnimated is
+  // position:absolute inset:0 but paints NO background of its own — it
+  // relies on the card surface. Its design bg is --preview-voice-bg
+  // (#F7F6F4, the Whimsy white). Per the roadmap: match the card to
+  // that white, replacing outer-white. So stripped chrome
+  // (projects-card = transparent .card-outer, no border/shadow, label
+  // hidden) + innerBg #F7F6F4 → the WebGL LoopingBlob sits on #F7F6F4.
+  // (LoopingBlob is R3F/WebGL; the headless screenshot probe needs
+  // SwiftShader flags or the canvas won't render.)
+  {
+    id: 'voice',
+    className: 'projects-card',
+    innerBg: '#F7F6F4',
+    caption: 'Voice UI — #F7F6F4',
+    content: <PreviewVoiceAnimated />,
   },
 ];
 
