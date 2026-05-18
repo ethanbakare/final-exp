@@ -143,6 +143,36 @@ const VARIANTS: Variant[] = [
     label: 'Ollama',
     labelBg: 'rgba(255, 255, 255, 0.30)',
   },
+  // Ollama V1 — "Chrome treatment", outer takes the inner's fill.
+  // PreviewOllama always paints #1A1A19 over .card-inner, so the only
+  // visible knob is the OUTER fill. Here the outer fill = #1A1A19
+  // (matched to the inner) + the two-border outer chrome → reads as
+  // ONE solid #1A1A19 card inside the double border. Dedicated class
+  // projects-card-ollamafill (own profile). Label shown ("Ollama").
+  {
+    id: 'ollamaFill',
+    className: 'projects-card-ollamafill',
+    innerBg: 'transparent',
+    caption: 'Ollama — chrome (outer = #1A1A19 fill)',
+    content: <PreviewOllama />,
+    label: 'Ollama',
+    labelBg: 'rgba(255, 255, 255, 0.30)',
+  },
+  // Ollama V2 — "Chrome treatment", outer fill removed. Inner keeps
+  // its existing fill (PreviewOllama's #1A1A19); the outer fill is
+  // removed (transparent) + the two-border outer chrome → the inner
+  // #1A1A19 with a see-through 12px ring inside the double border.
+  // Dedicated class projects-card-ollamaborder (shares the SHARED
+  // double-border rule). Label shown ("Ollama").
+  {
+    id: 'ollamaBorder',
+    className: 'projects-card-ollamaborder',
+    innerBg: 'transparent',
+    caption: 'Ollama — chrome (outer transparent)',
+    content: <PreviewOllama />,
+    label: 'Ollama',
+    labelBg: 'rgba(255, 255, 255, 0.30)',
+  },
   // #4 Voice URL library (Voice UI). PreviewVoiceAnimated is
   // position:absolute inset:0 but paints NO background of its own — it
   // relies on the card surface. Its design bg is --preview-voice-bg
@@ -417,7 +447,9 @@ export default function ProjectsComponentPage() {
         .projects-card-glass-bordered,
         .projects-card-aiconf,
         .projects-card-voice,
-        .projects-card-clipgreige {
+        .projects-card-clipgreige,
+        .projects-card-ollamafill,
+        .projects-card-ollamaborder {
           width: 100%;
           height: 100%;
         }
@@ -435,13 +467,29 @@ export default function ProjectsComponentPage() {
            is its own PreviewAIConfidence picture/transcript (untouched
            here). Voice UI (.projects-card-voice, #F7F6F4 inner) and
            Clipstream-greige (.projects-card-clipgreige, #C5C3C0 inner)
-           also share this chrome — their collar lives on .card-inner
-           via innerBg, inside the framed outer. */
+           and Ollama V2 (.projects-card-ollamaborder, transparent
+           outer over the preview's #1A1A19 inner) also share this
+           chrome — collar (if any) lives on .card-inner via innerBg,
+           inside the framed outer. */
         .projects-card-glass-bordered .card-outer,
         .projects-card-aiconf .card-outer,
         .projects-card-voice .card-outer,
-        .projects-card-clipgreige .card-outer {
+        .projects-card-clipgreige .card-outer,
+        .projects-card-ollamaborder .card-outer {
           background: transparent !important;
+          box-shadow:
+            0 0.5px 0.5px 1px rgba(255, 255, 255, 0.06) inset,
+            0 0.25px 0.25px 1px rgba(255, 255, 255, 0.12) inset,
+            0 14.211px 20.281px -5.477px rgba(0, 0, 0, 0.25) !important;
+        }
+        /* Ollama V1 — SAME two-border outer chrome, but the outer fill
+           is #1A1A19 (matched to the preview's inner) instead of
+           transparent, so the card reads as one solid #1A1A19 block
+           inside the double border. Same box-shadow (2 inset hairlines
+           + outward drop, no glow); #2E2C29 border kept (not in the
+           strip group). */
+        .projects-card-ollamafill .card-outer {
+          background: #1a1a19 !important;
           box-shadow:
             0 0.5px 0.5px 1px rgba(255, 255, 255, 0.06) inset,
             0 0.25px 0.25px 1px rgba(255, 255, 255, 0.12) inset,
@@ -483,7 +531,9 @@ export default function ProjectsComponentPage() {
         .projects-card-glass-bordered .card-inner,
         .projects-card-aiconf .card-inner,
         .projects-card-voice .card-inner,
-        .projects-card-clipgreige .card-inner {
+        .projects-card-clipgreige .card-inner,
+        .projects-card-ollamafill .card-inner,
+        .projects-card-ollamaborder .card-inner {
           border: none !important;
         }
         /* Hide the DemoCard "Trace AI" label. Scope to a DIRECT child of
@@ -495,7 +545,9 @@ export default function ProjectsComponentPage() {
         .projects-card-glass-bordered .card-inner > .label,
         .projects-card-aiconf .card-inner > .label,
         .projects-card-voice .card-inner > .label,
-        .projects-card-clipgreige .card-inner > .label {
+        .projects-card-clipgreige .card-inner > .label,
+        .projects-card-ollamafill .card-inner > .label,
+        .projects-card-ollamaborder .card-inner > .label {
           display: none !important;
         }
         /* …EXCEPT Ollama, Voice UI and Clipstream-greige, which SHOW
@@ -506,7 +558,9 @@ export default function ProjectsComponentPage() {
            their chrome class keep "Trace AI" hidden. */
         .pc-card-ollama.pc-card-ollama .card-inner > .label,
         .pc-card-voice.pc-card-voice .card-inner > .label,
-        .pc-card-clipstreamGreige.pc-card-clipstreamGreige .card-inner > .label {
+        .pc-card-clipstreamGreige.pc-card-clipstreamGreige .card-inner > .label,
+        .pc-card-ollamaFill.pc-card-ollamaFill .card-inner > .label,
+        .pc-card-ollamaBorder.pc-card-ollamaBorder .card-inner > .label {
           display: flex !important;
         }
         /* Ollama only: halve the opacity of its card-description pill. */
