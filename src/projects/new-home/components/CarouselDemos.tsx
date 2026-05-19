@@ -55,7 +55,7 @@ const CarouselDemos: React.FC = () => {
         {/* card-2: Voice UI — col 1, row 2, label bottom-center */}
         <DemoCard
           label="Voice UI Library"
-          href="/voiceinterface/variations"
+          href="/voiceinterface/realtime"
           labelBg="rgba(113, 113, 113, 0.50)"
           labelTextColor="rgba(255, 255, 255, 0.80)"
           labelPosition="bottom-center"
