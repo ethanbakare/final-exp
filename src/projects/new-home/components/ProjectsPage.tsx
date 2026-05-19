@@ -15,10 +15,12 @@
  *   • 6 brand-portfolio cards — image cards, their /portfolio2025/*
  *     (etc.) hrefs (same as CarouselBrand).
  *
- * Each card is a real link (DemoCard href → <a>). Drag-to-reorder via
- * a per-card handle (top-right) with a fixed show/hide-handles toggle;
- * the order is PERSISTED to localStorage so it survives reloads. When
- * the order's final the toggle/handles can be removed on request.
+ * Each card is a real link (DemoCard href → <a>). Drag-to-reorder is
+ * a DEV-ONLY tool: the per-card handles + the toggle are HIDDEN in
+ * production (showHandles=false; flip to true locally to reorder).
+ * The reorder/persistence code is kept dormant; it can be fully
+ * removed on request. Order shown = the PROJECTS array order (or a
+ * localStorage-saved order on a browser that reordered in dev).
  */
 import React, { useEffect, useState } from 'react';
 import styles from '@/projects/new-home/styles/new-home.module.css';
@@ -188,7 +190,10 @@ const reconcileOrder = (saved: unknown): string[] => {
 export default function ProjectsPage() {
   const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
   const [dragId, setDragId] = useState<string | null>(null);
-  const [showHandles, setShowHandles] = useState(true);
+  // Dev-only: drag-reorder handles are HIDDEN in production. Flip to
+  // `true` locally to re-enable drag-reordering; no UI toggle is
+  // rendered (it's not a visitor-facing feature).
+  const showHandles = false;
 
   // Hydrate the saved order once, on mount (client only). Read-only —
   // persistence is done imperatively in reorder() to avoid a
@@ -278,33 +283,9 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Fixed toggle — show/hide the per-card drag handles. Removable
-          on request once the order is final. */}
-      <button
-        type="button"
-        onClick={() => setShowHandles((s) => !s)}
-        title={showHandles ? 'Hide drag handles' : 'Show drag handles'}
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          right: 20,
-          zIndex: 50,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '8px 14px',
-          borderRadius: 999,
-          border: '1px solid rgba(255,255,255,0.15)',
-          background: 'rgba(255,255,255,0.06)',
-          color: 'rgba(255,255,255,0.7)',
-          fontFamily: 'Inter, sans-serif',
-          fontSize: 12,
-          cursor: 'pointer',
-        }}
-      >
-        <span style={{ fontSize: 13, lineHeight: 1 }}>⠿</span>
-        {showHandles ? 'Handles: On' : 'Handles: Off'}
-      </button>
+      {/* (Dev-only handles toggle removed — not a visitor-facing
+          feature. Re-enable via showHandles above if reordering is
+          needed locally.) */}
 
       <style jsx global>{`
         body,
