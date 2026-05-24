@@ -175,7 +175,13 @@ export const DeepReader: React.FC<DeepReaderProps> = ({
           
           flex: none;
           order: 0;
-          align-self: stretch;
+          /* center (not stretch): with max-width 600 in a wider
+             center-aligning flex column (the 620px content wrapper used
+             by the standalone page AND the demo-showcase), stretch packs
+             this box to the LEFT, leaving it ~10px off-centre from the
+             transcript box below. Centering keeps both 600px boxes
+             sharing the same centre/edges. */
+          align-self: center;
           flex-grow: 0;
         }
         
