@@ -1,15 +1,27 @@
 #!/bin/bash
-# PreToolUse hook (Bash): Block destructive git commands unless explicitly requested
-# Prevents accidental data loss from force pushes, hard resets, etc.
-# Exit code 2 = block the command (stderr shown to Claude)
+# PreToolUse hook (Bash): Block destructive commands unless explicitly requested
+# Covers: recursive/forced `rm` (rm -rf, deleting .git), force pushes,
+# hard resets, clean -f, checkout/restore discards, branch -D.
+# Exit code 2 = block the command (stderr shown to Claude → it must ask you first)
 
 INPUT=$(cat)
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
-# Debug: Log what we received
-echo "[DEBUG] CMD received: $CMD" >> /tmp/hook-debug.log
+# ── Filesystem destruction (checked BEFORE the git-only early-exit) ──
+# Block: recursive/forced rm (rm -rf, rm -fr, rm -r ... , rm --recursive).
+# Catches combined (-rf/-fr), split (-r -f), and long (--recursive) forms.
+if echo "$CMD" | grep -qiE '(^|[^[:alnum:]_])rm[[:space:]]+(-[a-z]*r[a-z]*f|-[a-z]*f[a-z]*r|-[rf][[:space:]]+-[rf]|-[a-z]*r[a-z]*[[:space:]]|--recursive)'; then
+  echo "BLOCKED: recursive/forced 'rm' permanently deletes directory trees (the repo, .git, node_modules, ...). Ask the user for explicit confirmation first." >&2
+  exit 2
+fi
 
-# Only check git commands
+# Block: any rm targeting a .git directory (destroys repo history).
+if echo "$CMD" | grep -qiE '(^|[^[:alnum:]_])rm[[:space:]].*\.git([/[:space:]]|$)'; then
+  echo "BLOCKED: this command deletes a .git directory (destroys repo history). Ask the user for explicit confirmation first." >&2
+  exit 2
+fi
+
+# Only check git commands beyond this point
 if ! echo "$CMD" | grep -q 'git '; then
   exit 0
 fi
