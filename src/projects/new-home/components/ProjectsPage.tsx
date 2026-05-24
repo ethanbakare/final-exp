@@ -111,7 +111,8 @@ const PROJECTS: Project[] = [
     innerBg: '#F7F6F4',
     label: 'Voice UI Library',
     labelBg: 'rgba(113, 113, 113, 0.50)',
-    href: '/voiceinterface/variations',
+    // Match the home-page Voice UI card -> the OpenAI realtime page.
+    href: '/voiceinterface/realtime',
     content: <PreviewVoiceAnimated />,
   },
   // ---- Brand-portfolio (image cards, same hrefs as CarouselBrand) ----
