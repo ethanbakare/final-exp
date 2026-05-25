@@ -54,7 +54,7 @@ type Project = {
 // projects-component scaffold used).
 const traceSlot = (
   <div style={{ transform: 'scale(0.8)' }}>
-    <TraceWidget />
+    <TraceWidget animated />
   </div>
 );
 

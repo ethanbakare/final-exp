@@ -3,10 +3,11 @@
  * Same structure as the static PreviewTrace (three sibling components
  * inside a manually-sized div) but with animated versions + a simulation
  * loop: idle → recording → processing → results → pause → restart.
+ * The loop itself lives in the shared useTraceSimLoop hook.
  *
  * Uses the existing £720.97 dummy data, NOT TraceSim's £18.47.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React from 'react';
 import traceStyles from '@/projects/trace/styles/trace.module.css';
 import { MasterBlockHolder } from '@/projects/trace/components/ui/tracefinance';
 import {
@@ -14,7 +15,7 @@ import {
   AnimatedMasterTotalPrice,
 } from '@/projects/trace/components/ui/tracefinance-animated';
 import { TRNavbarV2 } from '@/projects/trace/components/ui/tracenavbar-v2';
-import type { ProcessingState } from '@/projects/trace/components/ui/traceIcons';
+import { useTraceSimLoop } from '@/projects/trace/hooks/useTraceSimLoop';
 
 // ─── Same data as the original static PreviewTrace ─────────
 const DUMMY_DAYS = [
@@ -36,65 +37,11 @@ const DUMMY_DAYS = [
   },
 ];
 
-// ─── Timing (ms) — matches TraceSim ────────────────────────
-const PHASE_IDLE       = 1000;
-const PHASE_RECORDING  = 3000;
-const PHASE_PROCESSING = 3000;
-const PHASE_RESULTS    = 4000;
-const PHASE_PAUSE      = 2000;
-const TOTAL_LOOP = PHASE_IDLE + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS + PHASE_PAUSE;
-
-type SimState = 'idle' | 'recording' | 'processing_audio' | 'results' | 'pause';
-
 const PreviewTraceAnimated: React.FC = () => {
-  const [simState, setSimState] = useState<SimState>('idle');
-  const [days, setDays] = useState<typeof DUMMY_DAYS>([]);
-  const [grandTotal, setGrandTotal] = useState('0.00');
-  const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  const clearTimers = useCallback(() => {
-    timerRefs.current.forEach(clearTimeout);
-    timerRefs.current = [];
-  }, []);
-
-  const startLoop = useCallback(() => {
-    clearTimers();
-    setSimState('idle');
-    setDays([]);
-    setGrandTotal('0.00');
-
-    const at = (delay: number, fn: () => void) => {
-      timerRefs.current.push(setTimeout(fn, delay));
-    };
-
-    at(PHASE_IDLE, () => setSimState('recording'));
-    at(PHASE_IDLE + PHASE_RECORDING, () => setSimState('processing_audio'));
-    at(PHASE_IDLE + PHASE_RECORDING + PHASE_PROCESSING, () => {
-      setSimState('results');
-      setDays(DUMMY_DAYS);
-      setGrandTotal('720.97');
-    });
-    at(PHASE_IDLE + PHASE_RECORDING + PHASE_PROCESSING + PHASE_RESULTS, () => {
-      setSimState('pause');
-      setDays([]);
-      setGrandTotal('0.00');
-    });
-    at(TOTAL_LOOP, () => {
-      startLoop();
-    });
-  }, [clearTimers]);
-
-  useEffect(() => {
-    startLoop();
-    return () => clearTimers();
-  }, [startLoop, clearTimers]);
-
-  // Derive navbar + processing states
-  const navbarState: 'idle' | 'recording' | 'processing_audio' | 'processing_image' =
-    simState === 'results' || simState === 'pause' ? 'idle' : simState;
-
-  const processingState: ProcessingState =
-    simState === 'processing_audio' ? 'audio' : 'idle';
+  const { days, grandTotal, navbarState, processingState } = useTraceSimLoop(
+    DUMMY_DAYS,
+    '720.97',
+  );
 
   return (
     <div className="preview-trace">

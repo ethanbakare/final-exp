@@ -19,8 +19,56 @@
 import React from 'react';
 import { AnimatedTextBox } from '@/projects/trace/components/ui/tracefinance-animated';
 import TRNavbarV2 from '@/projects/trace/components/ui/tracenavbar-v2';
+import { useTraceSimLoop } from '@/projects/trace/hooks/useTraceSimLoop';
 
-const TraceWidget: React.FC = () => {
+// Dataset that animates in at the results phase. Module-level const so its
+// identity is stable across renders.
+const TRACE_DEMO_DAYS = [
+  {
+    date: '14th Jul',
+    total: '5246.99',
+    merchants: [
+      {
+        merchantName: 'JOHN LEWIS',
+        merchantTotal: '619.97',
+        items: [
+          { quantity: '2x', itemName: 'Headphones', netPrice: '104.99', discount: '3.99' },
+          { quantity: '1x', itemName: 'Playstation 5', netPrice: '499.99' },
+          { quantity: '1x', itemName: 'Chino Trousers', netPrice: '14.99' },
+        ],
+      },
+      {
+        merchantName: 'TESCO',
+        merchantTotal: '52.18',
+        items: [
+          { quantity: '3x', itemName: 'Organic Milk', netPrice: '2.50', discount: '0.50' },
+          { quantity: '5x', itemName: 'Energy Drink', netPrice: '6.25' },
+          { quantity: '2x', itemName: 'Kitchen Towels', netPrice: '3.98' },
+        ],
+      },
+    ],
+  },
+];
+
+interface TraceWidgetProps {
+  /**
+   * Run the looping preview animation (idle → recording → analysing →
+   * results). OFF by default so every existing caller (the component
+   * showcase, the projects-component test page) stays the static populated
+   * widget exactly as before. Only the /projects card opts in.
+   */
+  animated?: boolean;
+}
+
+const TraceWidget: React.FC<TraceWidgetProps> = ({ animated = false }) => {
+  // When animated, the shared sim hook drives the loop with THIS widget's
+  // own dataset; when not, it returns the static populated state (no timers).
+  const { days, grandTotal, navbarState, processingState } = useTraceSimLoop(
+    TRACE_DEMO_DAYS,
+    '14.99',
+    animated,
+  );
+
   return (
     <div
       style={{
@@ -29,42 +77,25 @@ const TraceWidget: React.FC = () => {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column' as const,
+        // Animated card is decorative: let clicks fall through to the card
+        // link instead of the morphing buttons. Static callers keep normal
+        // interactivity (unchanged from before).
+        pointerEvents: animated ? ('none' as const) : undefined,
       }}
     >
       <AnimatedTextBox
         className="traceWidgetTextbox"
-        grandTotal="14.99"
-        days={[
-          {
-            date: '14th Jul',
-            total: '5246.99',
-            merchants: [
-              {
-                merchantName: 'JOHN LEWIS',
-                merchantTotal: '619.97',
-                items: [
-                  { quantity: '2x', itemName: 'Headphones', netPrice: '104.99', discount: '3.99' },
-                  { quantity: '1x', itemName: 'Playstation 5', netPrice: '499.99' },
-                  { quantity: '1x', itemName: 'Chino Trousers', netPrice: '14.99' },
-                ],
-              },
-              {
-                merchantName: 'TESCO',
-                merchantTotal: '52.18',
-                items: [
-                  { quantity: '3x', itemName: 'Organic Milk', netPrice: '2.50', discount: '0.50' },
-                  { quantity: '5x', itemName: 'Energy Drink', netPrice: '6.25' },
-                  { quantity: '2x', itemName: 'Kitchen Towels', netPrice: '3.98' },
-                ],
-              },
-            ],
-          },
-        ]}
+        grandTotal={grandTotal}
+        days={days}
+        processingState={processingState}
         navbar={
           <TRNavbarV2
-            state="idle"
-            onUploadClick={() => console.log('Widget upload clicked')}
-            onSpeakClick={() => console.log('Widget speak clicked')}
+            state={navbarState}
+            simulateAudio
+            onUploadClick={() => {}}
+            onSpeakClick={() => {}}
+            onCloseClick={() => {}}
+            onSendAudioClick={() => {}}
           />
         }
       />
@@ -241,6 +272,26 @@ const TraceWidget: React.FC = () => {
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .left-morph-button .upload-content,
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .right-morph-button .speak-content,
         .traceWidgetTextbox.traceWidgetTextbox .full-width.state-idle .button-text {
+          color: #d9d8d7;
+        }
+
+        /* "Analysing Audio" pill — match the idle Upload/Speak buttons
+           (#413c38). In full-width mode the VISIBLE pill is the morph button
+           in its processing_audio state (.right/.left-morph-button.state-
+           processing_audio), which defaults to a light tan; the separate
+           .processing-button (processing-group) sits behind it. Recolour all
+           of them so whichever paints reads as the same dark surface as
+           Upload/Speak. Recording's orange "Send Audio" CTA (.state-recording)
+           is intentionally left untouched. */
+        .traceWidgetTextbox.traceWidgetTextbox .processing-button,
+        .traceWidgetTextbox.traceWidgetTextbox .left-morph-button.state-processing_audio,
+        .traceWidgetTextbox.traceWidgetTextbox .right-morph-button.state-processing_audio {
+          background: #413c38 !important;
+          color: #d9d8d7;
+        }
+        .traceWidgetTextbox.traceWidgetTextbox .processing-button .spinner-container,
+        .traceWidgetTextbox.traceWidgetTextbox .right-morph-button.state-processing_audio .spinner-container,
+        .traceWidgetTextbox.traceWidgetTextbox .right-morph-button.state-processing_audio .button-text {
           color: #d9d8d7;
         }
       `}</style>
