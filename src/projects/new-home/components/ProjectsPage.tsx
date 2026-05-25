@@ -344,6 +344,13 @@ export default function ProjectsPage() {
             margin-left: auto;
             margin-right: auto;
           }
+          /* Trace card holds a tall (portrait) widget that clips when the
+             card height shrinks. Pin THIS cell's height to the full 298 so
+             the widget always fits vertically; width still flexes/caps. */
+          .projects-grid .proj-cell:has(.pc-card-trace) {
+            aspect-ratio: auto;
+            height: 298px;
+          }
         }
 
         /* Each grid cell is the drop target (relative for the handle).
