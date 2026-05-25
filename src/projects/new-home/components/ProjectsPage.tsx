@@ -331,9 +331,18 @@ export default function ProjectsPage() {
           .projects-grid {
             grid-template-columns: 1fr;
             grid-auto-rows: auto;
+            /* Give the grid a definite width so the 1fr column fills the
+               row instead of collapsing to the card's content width. */
+            width: 100%;
           }
           .projects-grid .proj-cell {
             aspect-ratio: 381 / 298;
+            /* Fill the row up to the normal tile size (381), then cap and
+               centre. Below ~381 of usable width it shrinks to fit. */
+            width: 100%;
+            max-width: 381px;
+            margin-left: auto;
+            margin-right: auto;
           }
         }
 
