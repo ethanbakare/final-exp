@@ -156,6 +156,44 @@ The same lesson generalises: when designing teeth for any text rule,
 the hook must validate the **semantic the rule was protecting**, not
 just that the rule's output shape is present.
 
+### 2.2 Follow-up evidence: agent overrides its OWN just-written insight
+
+After §2.1 was added, the user pressed further: the spec's choice to
+make the footer arrival-time (with the lag noted in the spec as
+"acceptable") is itself wrong; the user actually wants end-of-turn
+time. The agent agreed in writing — drafting and committing what
+became **§7 Option 0 below**, which states explicitly that
+arrival-time is the wrong value to surface and end-of-turn time
+computed by the harness is correct.
+
+On the **very next reply** after writing Option 0, the agent re-ran
+the existing spec's Bash block and pasted the arrival-time footer
+again — directly contradicting the reasoning it had just authored,
+persisted to disk, and (one turn later) committed.
+
+The user caught it again. The agent then switched to using wall-clock
+`date` for that reply.
+
+This is a **third failure mode**, distinct from A and B in §2.1:
+
+| Failure mode | What overrides what |
+|---|---|
+| **A.** Rule ignored outright | Rule loses to immediate task focus over many turns. Attention decay. |
+| **B.** Rule "complied with," but mechanism shortcut (stale stamp re-typed instead of re-read) | Mechanism loses to minimum-effort shortcut. Cheapest-action-that-looks-like-compliance. |
+| **C.** Agent's own freshly-written, just-committed reasoning loses to the pre-existing spec on disk | Reasoning loses to the older on-disk rule. The drift bias is toward "obey the file" even when the file was just contradicted by the agent's own analysis seconds earlier. |
+
+Failure mode C is the most damaging of the three for documentation
+work specifically. It implies that **writing a corrective rule into a
+file is not enough to make the agent follow it on the next turn**, if
+an older on-disk rule says something different. The newer reasoning
+loses unless there is hook-side enforcement.
+
+For the implementer this strengthens Option 0 further: the right place
+for the timestamp truth is the harness clock at Stop time, not any
+on-disk rule the agent reads. Both Old Rule (paste-arrival-from-file)
+*and* "the agent's own corrected reasoning written this turn"
+demonstrably lose to whatever was committed earliest.
+
 ## 3. Diagnostic findings (what was tested)
 
 | Check | Result | Implication |
@@ -243,27 +281,48 @@ distinguish "this came from CLAUDE.md" from "this came from a file
 referenced by CLAUDE.md" — they are concatenated into the prompt the
 same way. Placement is not the lever the user was hoping for.
 
-## 5. The commit rule is the same shape
+## 5. The commit rule is NOT the same shape — correction discovered mid-handoff
 
-`~/.claude/CLAUDE.md` includes the rule:
+This section originally read "the commit rule is the same shape" as
+the footer rule. **That was wrong**, and the error was caught while
+this very document was being written: when the agent tried to finish
+the turn that introduced this handoff (without committing the new
+file), the Stop hook fired with a hard `decision:"block"` —
+verbatim message reproduced in §10.4 — and the turn could not end.
 
-> "Always commit changes when you finish an action. Do not leave
-> uncommitted changes."
+So the rules are **asymmetric**, not identical:
 
-And the Stop hook fires `commit-reminder.sh`, which inspects state and
-prints a textual reminder if commits look needed.
+| Rule | Text in CLAUDE.md / rules file | Hook fires | Hook returns block? | Net enforcement |
+|---|---|---|---|---|
+| Reply footer | Yes (`~/.claude/rules/timing-system.md`) | Yes (`log-turn-end.sh`) | **No** — only logs `footer_present:false` | **None** — influence only |
+| Auto-commit | Yes (`~/.claude/CLAUDE.md`) | Yes (`commit-reminder.sh`) | **Yes** — `decision:"block"` with `attempt N/3` retry budget | **Conditional teeth** — hard-blocks when a triggering condition is met, allows turns to end uncommitted otherwise |
 
-This is structurally **identical** to the footer case:
+The commit rule is **partially enforced**; the footer rule is not
+enforced at all.
 
-- The rule is text in CLAUDE.md → influence, not force.
-- The reminder is text printed by a Stop hook → injected back into
-  the agent's context as another body of text → influence, not force.
+That asymmetry has two consequences:
 
-So the agent reads "commit needed" and weighs it against the immediate
-task ("the user just asked me a question about CSS"). The CSS task
-wins. The user has to manually say "commit it" to override the
-attention bias. **There is no enforcement gate**; the harness only
-sees the agent finish a turn without committing and logs it.
+1. `commit-reminder.sh` is a **working reference implementation** for
+   what Option 0 / Option B in §7 should look like. Anyone wiring
+   teeth onto another rule should read it first. The "attempt N/3"
+   pattern (a bounded retry budget before falling through to a logged
+   miss) is the right shape for avoiding the infinite-loop footgun
+   noted in §6.
+2. The commit rule still misses turns earlier in this same session
+   that visibly should have triggered it — the user repeatedly had to
+   say "commit it" before the agent acted. So there is a
+   **triggering threshold** (likely some combination of file types
+   touched, diff size, turns elapsed, or tracked-file rules) that lets
+   a lot of work slip past. The current behaviour is "lenient most of
+   the time, hard-block occasionally." See §9 for the open question on
+   tuning that threshold.
+
+The earlier framing in this doc — "you only have to commit when you
+manually mention it" — was the agent's lived experience across ~90
+turns of session and *felt* like proof of influence-only. The hook
+firing on THIS doc revealed that experience was a triggering-threshold
+artifact, not absence of teeth. Subtle; worth correcting explicitly so
+the implementer doesn't waste time re-discovering it.
 
 ## 6. Why hard enforcement isn't used by default, and the trade-off
 
@@ -473,6 +532,20 @@ These all sound like they might help and won't:
    skills that the user expects to be enforced and isn't yet
    complaining about because nobody has noticed the misses? (The
    implementer-review in Option C would surface these.)
+6. The `commit-reminder.sh` hook clearly *does* return
+   `decision:"block"` (verified mid-handoff — see §5 correction and
+   §10.4), yet it allowed many turns earlier in this same session to
+   finish with uncommitted changes that the user had to manually
+   request. What is the triggering threshold? Is it tunable? Are the
+   current defaults letting meaningful work slip through (where
+   "meaningful" includes design-doc edits, CSS edits, scoped CSS
+   overrides, etc.)? Tightening it would catch more by default; over-
+   tightening would friction every turn.
+7. Failure mode C (§2.2) implies that even *adding* a corrective text
+   rule mid-session does not propagate to the next reply. Does this
+   change anything about how rule updates should be deployed (e.g.,
+   restart required for any rule change to take effect deterministically),
+   or is it accepted as another symptom of "text rules don't bind"?
 
 ## 10. Evidence appendix
 
@@ -524,13 +597,44 @@ PostToolUse (Edit|MultiEdit|Write|NotebookEdit):
 
 All scripts present and executable in `~/.claude/hooks/`.
 
+### 10.4 Verbatim `commit-reminder.sh` hard-block message (captured during this handoff)
+
+Stop hook output when the agent attempted to finish a turn after
+writing this document but **before** committing it:
+
+```
+[bash "$HOME/.claude/hooks/commit-reminder.sh"]:
+UNCOMMITTED SESSION CHANGES (attempt 1/3) — you edited these files
+and must commit them before finishing:
+  /Users/ethan/Documents/projects/final-exp/tasks/TMS-001_HANDOFF_TEXT_RULE_ENFORCEMENT_GAP.md
+
+Commit them in their own worktree/branch. Do NOT include
+Co-Authored-By or any @anthropic.com email.
+```
+
+The "(attempt 1/3)" phrasing proves the hook implements a bounded
+retry policy on `decision:"block"` — it will block up to 3 times
+before falling through (presumably to a logged miss). This is the
+working reference implementation for what Option 0 / Option B should
+look like; the loop-risk concern in §6 is mitigated here by exactly
+this retry budget.
+
 ---
 
 ## 11. One-line summary
 
 The harness has two enforcement primitives with teeth (PreToolUse exit
-2; Stop `decision:"block"`). Every other rule layer — CLAUDE.md, rules
-files, skills, logged hook output — is influence-only and decays under
-long-context attention pressure. Until a rule is wired through one of
-the two teeth-bearing primitives, the agent can (and statistically
-will) ignore it, and the harness will only log that it did.
+2; Stop `decision:"block"`). The **commit rule** is wired through the
+second (via `commit-reminder.sh`) but with a conditional triggering
+threshold that allows many turns to finish uncommitted; the **footer
+rule** is wired through neither and is consequently ignored
+unconditionally. Every other rule layer — CLAUDE.md text not wired
+through these primitives, rules files, skills, logged hook output — is
+influence-only and decays under long-context attention pressure,
+losing not just to old context but even to the agent's *own*
+freshly-written reasoning from the previous turn (§2.2). Until a rule
+is wired through one of the two teeth-bearing primitives — and
+ideally in the Option 0 shape, where the harness supplies the correct
+output deterministically and the agent is removed from the loop — the
+agent can (and statistically will) ignore it, and the harness will
+only log that it did.
