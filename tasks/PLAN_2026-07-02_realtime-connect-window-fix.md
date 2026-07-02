@@ -38,6 +38,7 @@ appetite_signal: gut estimate; no prior variance dataset in this repo
   - F-5: Subsequent Start-Stop-Start cycles feel wrong because the warming state re-fires each time. This is CORRECT behavior — every fresh `session.connect()` genuinely takes ~1.5s. If it feels annoying, the mitigation is a follow-up (peer-connection reuse), not gating the chime.
   - F-6: On very slow networks (>3s connect), warming lingers past comfort. Mitigation: after a hard timeout (e.g., 6s), abort with error and return to idle — using existing error path.
   - F-7: Text label swap from "Connecting" → "Listening" is instant, without the existing 150ms fade animation, creating visual snap. Mitigation: reuse the existing `key={state}` re-mount trigger in `VoiceStateLabel` (line 27) — including `connecting` state should preserve the fade.
+  - **F-8: Late-callback race when Stop fires during warming.** If the user clicks Stop while `await session.connect()` is still pending, `handleStopConversation` disposes of the session. But the awaited promise then resolves and the post-`session.connect()` block still runs — firing `setAppState('listening')`, `setIsConnecting(false)`, and `playConnectChime(ctx)` on a torn-down session. Result: phantom "Listening…" label + chime AFTER the user pressed Stop. Mitigation: guard the post-`session.connect()` block with an `isConversationActiveRef.current` check (see §6 diff). If Stop fired mid-await, `isConversationActive` is false and the block returns early after clearing `isConnecting`.
 - **Appetite** — 2-4 hours implementation + 30-60 min manual verification in real Chrome (Playwright cannot reproduce the real-audio timing that surfaces this bug). Kill-condition: if the Web Audio chime turns out to require an external audio asset instead of synth (e.g., iOS Safari policy edge case), re-scope to include asset choice.
 
 # §1. Problem statement (verified against current code)
@@ -69,7 +70,7 @@ Verified at HEAD `0d7003c` (2026-07-02):
 
 **Why this over the alternative**:
 
-The `AppState` union has consumers across 6+ orb components (`RealtimeBlob.tsx`, `CoralRealtimeBlob.tsx`, `NebularrBlob.tsx`, `CircleRealtimeBlob.tsx`, `VelvetOrb.tsx`, and the imported `RealtimeVoiceState` re-alias in `VoiceRealtimeOpenAI.tsx:8`). Adding a new union value would force each of those consumers to either handle `'connecting'` or downcast — a wide surface for regression, and NOT the "keep orb calm during warming" behavior we want (Variant 02).
+The `AppState` union has consumers across **5 orb components** (`RealtimeBlob.tsx`, `NebularrBlob.tsx`, `RadialRealtimeBlob.tsx`, `CircleRealtimeBlob.tsx`, `CoralRealtimeBlob.tsx` — verified via `grep -rn "RealtimeVoiceState" src/`), plus the imported `RealtimeVoiceState` re-alias in `VoiceRealtimeOpenAI.tsx:8`. VelvetOrb.tsx has its own separate `VoiceState` union (line 19) and is not currently used by the realtime page. Adding a new union value would force each of the 5 orb consumers to either handle `'connecting'` or downcast — a wide surface for regression, and NOT the "keep orb calm during warming" behavior we want (Variant 02).
 
 `isConnecting: boolean` is orthogonal:
 - `AppState` remains `'idle'` during warming (orb stays calm — matches Variant 02).
@@ -88,12 +89,15 @@ Every place that reads or writes `isConnecting` in the shipped change:
 
 **Consumers** (read `isConnecting`):
 - `getLabelState()` at `VoiceRealtimeOpenAI.tsx:782` — reads `isConnecting`; returns `'connecting'` when true, otherwise `appState`.
-- Button rendering at `VoiceRealtimeOpenAI.tsx:831-833` — reads `isConnecting`; passes to `MorphingRecordWideSimple` OR wraps the `onRecordClick` handler to no-op during warming.
+- Button rendering at `VoiceRealtimeOpenAI.tsx:831-833` — reads `isConnecting`; wraps `onRecordClick` handler to no-op during warming (§6 option 1 default).
+
+**New consumers of pre-existing state introduced by this plan** (Principle 2 — traversal on NEW usage):
+- `isConversationActive` — pre-existing state (line 208). This plan adds a NEW read inside the post-`session.connect()` block via `isConversationActiveRef.current` (see F-8 mitigation and §6 diff). Requires a NEW ref mirror alongside the existing `appStateRef` mirror. The ref must be updated in a `useEffect` sync alongside the existing state refs.
 
 **Non-consumers** (verified NOT touched):
 - Orb rendering (`getVoiceState()` at line 772-776) — unchanged. Orb sees `appState === 'idle'` during warming and behaves as idle.
 - Audio polling interval (line 664-668) — unchanged. Reads mic analyser only when `appState === 'listening'`, so orb's audio visualization stays silent during warming (matches Variant 02).
-- All 6 orb-component `RealtimeVoiceState` union duplications — untouched.
+- All 5 orb-component `RealtimeVoiceState` union declarations (`RealtimeBlob.tsx:22`, `NebularrBlob.tsx:28`, `RadialRealtimeBlob.tsx` imports from `RealtimeBlob`, `CircleRealtimeBlob.tsx` imports from `RealtimeBlob`, `CoralRealtimeBlob.tsx:23`) — untouched. VelvetOrb.tsx's separate `VoiceState` union (line 19) also untouched.
 
 # §3. State-machine transitions (concrete lifecycle)
 
@@ -107,7 +111,7 @@ Explicit transitions for every combination:
 | `session.connect()` rejects           | `appState='idle'`, `isConnecting=true`          | `isConnecting=false`, `appState='idle'`, error set |
 | Click Record during warming           | `isConnecting=true`                             | no-op (button disabled OR click ignored)       |
 | Click Stop from `listening`           | `appState='listening'`, `isConnecting=false`    | `appState='idle'`, `isConnecting=false` (existing behavior)  |
-| Click Stop during warming (edge case) | `appState='idle'`, `isConnecting=true`          | `appState='idle'`, `isConnecting=false`, session aborted if partially initialized |
+| Click Stop during warming (edge case) | `appState='idle'`, `isConnecting=true`          | `appState='idle'`, `isConnecting=false`, session aborted if partially initialized. **F-8 guard** on the still-awaiting `session.connect()` promise ensures post-resolve block returns early without firing chime or setting `'listening'`. |
 
 ## Lifecycle owner (Principle 5)
 
@@ -229,8 +233,16 @@ Add a helper function inside `VoiceRealtimeOpenAI.tsx` (or extracted to a new fi
  */
 function playConnectChime(ctx: AudioContext): void {
   try {
+    // If the context is suspended (e.g., tab backgrounded during warming),
+    // fire-and-forget resume. We do NOT await it because the surrounding
+    // ready-signal flow (setAppState + text swap) is the load-bearing
+    // visible signal — chime is defence-in-depth. If resume fails or
+    // arrives late (after osc.stop), the visual transition still fired.
+    // Expected primary path: ctx was created + resumed at line 584-586
+    // inside the click handler and remains running by the time this
+    // function is called.
     if (ctx.state === 'suspended') {
-      ctx.resume(); // best-effort; if it fails, orb+label transition still fire
+      ctx.resume().catch(() => { /* best-effort; visual carries the signal */ });
     }
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -301,6 +313,14 @@ Diff shape at `VoiceRealtimeOpenAI.tsx:570-720` (concrete lines below assume cur
        console.log(`[TIMING +${dtNow()}ms] session.connect() resolved — WebRTC ready, OpenAI VAD active`);
 +
 +      // Pipeline is now live — transition UI + fire chime.
++      // GUARD: if the user pressed Stop during the connect window,
++      // isConversationActive is false — do NOT fire the transition or
++      // chime, and clear isConnecting so the state is consistent.
++      // See F-8 for the late-callback race this guards against.
++      if (!isConversationActiveRef.current) {
++        setIsConnecting(false);
++        return;
++      }
 +      setAppState('listening');
 +      setIsConnecting(false);
 +      playConnectChime(ctx);
@@ -310,18 +330,29 @@ Diff shape at `VoiceRealtimeOpenAI.tsx:570-720` (concrete lines below assume cur
        setError('Failed to start conversation. Please check your microphone.');
        setAppState('idle');
 +      setIsConnecting(false);
+       setIsConversationActive(false);
+
+       if (audioIntervalRef.current) {
+         clearInterval(audioIntervalRef.current);
+         audioIntervalRef.current = null;
+       }
+       cleanupAudio();
      }
    };
 ```
+
+**Note on the catch block shown above.** The lines from `setIsConversationActive(false)` through `cleanupAudio()` (currently at `VoiceRealtimeOpenAI.tsx:720-726`) already exist in the source — they are NOT new additions in this plan. The only added line inside the catch block is `+setIsConnecting(false)`. The AFTER-side diff shows the full block so a fresh implementer sees the +1 line in its true context and does not accidentally replace the existing recovery statements.
+
+**Note on the guard reference (`isConversationActiveRef.current`).** The plan introduces a ref mirror for `isConversationActive` because the check runs inside an async callback (after `await session.connect()`) — reading state directly would capture the stale closure value. Mirror pattern is identical to the existing `appStateRef` at `VoiceRealtimeOpenAI.tsx:385-386`. Add `const isConversationActiveRef = useRef<boolean>(false)` alongside the existing state refs, and `useEffect(() => { isConversationActiveRef.current = isConversationActive; }, [isConversationActive])` alongside the existing mirror-sync effect.
 
 ## Button-during-warming affordance
 
 `MorphingRecordWideSimple` at `VoiceRealtimeOpenAI.tsx:831-833` currently receives `onRecordClick={handleStartConversation}` with no disabled-during-warming guard. Options:
 
 1. **Guard in `onRecordClick` wrapper** (simplest): `onRecordClick={isConnecting ? undefined : handleStartConversation}` — button becomes visually a no-op during warming without any prop change.
-2. **Pass `isConnecting` as `disabled`-esque prop** (requires MorphingRecordWideSimple to accept it — verify before choosing this route).
+2. **Pass `isConnecting` as `disabled` prop**: verified `MorphingRecordWideSimple` accepts `disabled?: boolean` at `voicemorphingbuttons.tsx:2377`. Requires the button to render a visually-disabled state — inspect current component behavior for that render before choosing.
 
-**Default to option 1** unless the button already visually renders differently when `onRecordClick` is undefined. Verify at implementation time via `grep -n "onRecordClick" src/projects/voiceinterface/components/ui/voicemorphingbuttons.tsx`.
+**Default to option 1.** It requires zero prop changes and cleanly satisfies F-4 (double-click guard) at the callback boundary.
 
 # §7. Deferred items + open questions
 
@@ -343,9 +374,9 @@ User's observation: subsequent conversations "work fine without any lag." This i
 
 If subsequent Start conversations DO in fact skip the connect delay (e.g., some browser-level RTC state persists), the plan is correct but the warming state may fire unnecessarily. Mitigation for that case: only show "Connecting" if `session.connect()` takes >200ms — i.e., delay the "Connecting" label by 200ms and only show it if warming hasn't already resolved. **Not in MVP scope**; add if empirically warranted.
 
-## §7.4 Hard timeout on warming (F-6)
+## §7.4 Hard timeout on warming (F-6) — COMMITTED IN-SCOPE
 
-Falsifier F-6: warming lingers past ~6s on very slow networks. Add a 6s timeout that rejects the pending connect and returns to idle with an error. **In-scope but low priority**; if implementation is trivial (setTimeout inside handleStartConversation), include; otherwise defer.
+Falsifier F-6: warming lingers past ~6s on very slow networks. **Ship a 6s timeout** inside `handleStartConversation`. Concrete shape: at the top of the try block, `const connectTimeout = setTimeout(() => { throw new Error('connect-timeout'); }, 6000);` — but the throw won't propagate cleanly through the outer async scope. Practical implementation: use `Promise.race([session.connect({...}), new Promise((_, rej) => setTimeout(() => rej(new Error('connect-timeout')), 6000))])`. On timeout, the existing catch block at 716 runs, which already resets state and cleans up audio (per §6). The catch block's error message may need to differentiate `connect-timeout` from other errors so the user sees an informative message.
 
 # §8. Verification approach
 
@@ -377,8 +408,9 @@ Fix is done when ALL are true:
 3. A short chime plays at the moment `session.connect()` resolves. Chime is audible on a MacBook Pro speaker at default volume; NOT annoying at repeat.
 4. Text label transitions "Ready when you are" → "Connecting" → "Listening…" with the existing 150ms fade animation preserved on each transition.
 5. Error case: kill wifi mid-warm; verify UI returns to idle with error message; `isConnecting` clears.
-6. Stop-Start-Stop-Start cycle (n=5) — every cycle behaves identically (warming state fires cleanly each time OR skips only when connect resolves in <200ms — §7.3 observation).
-7. Console: no unhandled errors, no rejected promise warnings.
+6. **AC-6a (falsifiable — ships blocker):** For every Start-Stop-Start cycle (n=5), the sequence is either (i) full warming path — "Connecting" label + chime + orb transition — OR (ii) `session.connect()` resolves in <200ms and warming path is skipped (immediate "Listening…"). Any mid-state — chime-without-label-swap, label-without-chime, chime-before-connect-resolved, orb-jumping-to-listening-before-chime — is a fail.
+7. **AC-6b (observation only — not gate):** Record in the test log whether §7.3's fast-resolve edge case fired empirically. If yes across all 5 cycles, note it for the follow-up peer-connection-reuse investigation.
+8. Console: no unhandled errors, no rejected promise warnings.
 
 # §10. Cost estimate
 
