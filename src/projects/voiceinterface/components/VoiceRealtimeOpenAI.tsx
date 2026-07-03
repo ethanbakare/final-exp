@@ -822,7 +822,23 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       void playConnectChime(ctx);
 
     } catch (err) {
-      console.error('[OpenAI Realtime] Error starting conversation:', err);
+      // v4.2.1 patch — distinguish EXPECTED failures (mic-timeout /
+      // connect-timeout — designed flow, user-visible via setError) from
+      // UNEXPECTED failures (real bugs). Only real bugs get console.error;
+      // expected timeouts get console.warn. Rationale: Next 15's dev
+      // overlay elevates console.error to "Runtime Error" dialogs, which
+      // fires on every user-initiated timeout even though the flow is
+      // handled correctly. The overlay is prod-clean but dev-noisy;
+      // console.warn keeps the audit trail without the false-positive UX.
+      const errMsg = err instanceof Error ? err.message : '';
+      const isMicTimeout = errMsg === 'mic-timeout';
+      const isConnectTimeout = errMsg === 'connect-timeout';
+      const isExpectedTimeout = isMicTimeout || isConnectTimeout;
+      if (isExpectedTimeout) {
+        console.warn('[OpenAI Realtime] Expected timeout:', errMsg);
+      } else {
+        console.error('[OpenAI Realtime] Error starting conversation:', err);
+      }
 
       // v4.2.1 IMR Site 1 CRITICAL — the catch block itself must be run-id
       // guarded. Otherwise a late timeout (mic-timeout or connect-timeout)
@@ -834,9 +850,6 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       // regardless of whether it's still current.
       const isCurrentRun = runIdRef.current === myRunId;
       if (isCurrentRun) {
-        const errMsg = err instanceof Error ? err.message : '';
-        const isMicTimeout = errMsg === 'mic-timeout';
-        const isConnectTimeout = errMsg === 'connect-timeout';
         setError(
           isMicTimeout
             ? 'Microphone timed out — please check your permissions.'
