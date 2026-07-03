@@ -466,11 +466,25 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           // Schedule response.create after minimum thinking duration.
           // VAD is configured with createResponse: false, so the AI won't
           // respond until we explicitly send this event.
+          //
+          // v4.2.2 (Codex IMR Pass-2 Major 2) — the setTimeout callback is a
+          // MACROTASK that fires after THINKING_GATE_MS. Between the entry
+          // isCurrentRun() check above and this callback firing, a Stop or
+          // new Start could have invalidated the run. Re-check inside the
+          // callback and also route through the closure-captured `session`
+          // rather than sessionRef.current (which may point at Start #2's
+          // session by now).
           thinkingTimerRef.current = setTimeout(() => {
             thinkingTimerRef.current = null;
+            if (!isCurrentRun()) {
+              console.log('[OpenAI Realtime] thinking timer fired on superseded run — response.create skipped');
+              return;
+            }
             console.log('[OpenAI Realtime] Thinking complete, triggering response...');
-            if (sessionRef.current) {
-              sessionRef.current.transport.sendEvent({ type: 'response.create' });
+            try {
+              session.transport.sendEvent({ type: 'response.create' });
+            } catch (err) {
+              console.warn('[OpenAI Realtime] response.create send failed (session may be closing):', err);
             }
           }, THINKING_GATE_MS);
           break;
@@ -608,10 +622,22 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     // rejection so no timer keeps ticking after the operation settles.
     // The rejection tag ('mic-timeout' / 'connect-timeout') is surfaced in
     // the catch block so the user-facing error message can be specific.
+    // v4.2.2 IMR Pass-2 Major (Claude Site 3 + Codex Minor 4) — tag-string
+    // fragility fix. v4.2.1 classified expected timeouts by exact string
+    // match on `err.message`, which drifts if a future error path throws
+    // a message that happens to include 'mic-timeout' or if the tag is
+    // renamed. Instead, tag the Error with a discriminator property that
+    // the catch block matches structurally.
     const withConnectTimeout = <T,>(promise: Promise<T>, tag: string): Promise<T> => {
       let timeoutId: ReturnType<typeof setTimeout>;
       const timeoutPromise = new Promise<never>((_, rej) => {
-        timeoutId = setTimeout(() => rej(new Error(tag)), 6000);
+        timeoutId = setTimeout(() => {
+          const err = new Error(tag);
+          // Discriminator property survives .message drift and subclass errors.
+          (err as Error & { __expected: true; __timeoutTag: string }).__expected = true;
+          (err as Error & { __expected: true; __timeoutTag: string }).__timeoutTag = tag;
+          rej(err);
+        }, 6000);
       });
       return Promise.race([promise, timeoutPromise]).finally(() => {
         clearTimeout(timeoutId);
@@ -822,20 +848,20 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       void playConnectChime(ctx);
 
     } catch (err) {
-      // v4.2.1 patch — distinguish EXPECTED failures (mic-timeout /
-      // connect-timeout — designed flow, user-visible via setError) from
-      // UNEXPECTED failures (real bugs). Only real bugs get console.error;
-      // expected timeouts get console.warn. Rationale: Next 15's dev
-      // overlay elevates console.error to "Runtime Error" dialogs, which
-      // fires on every user-initiated timeout even though the flow is
-      // handled correctly. The overlay is prod-clean but dev-noisy;
-      // console.warn keeps the audit trail without the false-positive UX.
-      const errMsg = err instanceof Error ? err.message : '';
-      const isMicTimeout = errMsg === 'mic-timeout';
-      const isConnectTimeout = errMsg === 'connect-timeout';
-      const isExpectedTimeout = isMicTimeout || isConnectTimeout;
+      // v4.2.2 IMR Pass-2 fix — classify expected timeouts by discriminator
+      // property (not string match) so future error paths that happen to
+      // reuse a message like 'mic-timeout' don't suppress a genuine bug's
+      // dev overlay. Only errors produced by withConnectTimeout carry
+      // __expected=true.
+      const tagged = err as { __expected?: true; __timeoutTag?: string; message?: string };
+      const isExpectedTimeout = tagged?.__expected === true;
+      const timeoutTag = tagged?.__timeoutTag;
+      const isMicTimeout = isExpectedTimeout && timeoutTag === 'mic-timeout';
+      const isConnectTimeout = isExpectedTimeout && timeoutTag === 'connect-timeout';
       if (isExpectedTimeout) {
-        console.warn('[OpenAI Realtime] Expected timeout:', errMsg);
+        // console.warn keeps audit trail without triggering Next 15's dev
+        // Runtime Error overlay (which fires on console.error).
+        console.warn('[OpenAI Realtime] Expected timeout:', timeoutTag);
       } else {
         console.error('[OpenAI Realtime] Error starting conversation:', err);
       }
@@ -865,9 +891,9 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       }
 
       // v4.2 F-10 — force-close any SDK session that may still be in-flight
-      // after the timeout branch or a mid-connect throw. Runs unconditionally
-      // because localSession is scoped to THIS run's closure and must be
-      // torn down regardless of whether the run is still current.
+      // after the timeout branch or a mid-connect throw. localSession is
+      // scoped to THIS run's closure, so tearing it down is safe regardless
+      // of run-current-ness (it's THIS run's own SDK session, not a shared ref).
       if (localSession) {
         try { localSession.close(); } catch { /* best-effort */ }
       }
@@ -877,13 +903,26 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
         runIdRef.current += 1;
       }
 
-      // Resource cleanup runs unconditionally — this run's interval and
-      // audio resources must be released regardless of run-current-ness.
-      if (audioIntervalRef.current) {
-        clearInterval(audioIntervalRef.current);
-        audioIntervalRef.current = null;
+      // v4.2.2 (Codex IMR Pass-2 Major 1) — audioIntervalRef and cleanupAudio
+      // operate on COMPONENT-GLOBAL refs (audioIntervalRef, micStreamRef,
+      // audioContextRef, etc.), NOT on run-scoped locals. If this run is
+      // superseded, Start #2 has already installed its own resources into
+      // those refs — running cleanup here would tear DOWN Start #2's mic
+      // stream + AudioContext. Guard cleanup behind isCurrentRun.
+      //
+      // Safety: if the run is superseded, Stop (which fired first to
+      // trigger supersession) already ran its own cleanup, OR Start #2
+      // took ownership. Either way THIS run's resources are already
+      // accounted for by another owner.
+      if (isCurrentRun) {
+        if (audioIntervalRef.current) {
+          clearInterval(audioIntervalRef.current);
+          audioIntervalRef.current = null;
+        }
+        cleanupAudio();
+      } else {
+        console.log('[OpenAI Realtime] catch on superseded run — skipping component-global cleanup (owned by newer run)');
       }
-      cleanupAudio();
     }
   };
 
