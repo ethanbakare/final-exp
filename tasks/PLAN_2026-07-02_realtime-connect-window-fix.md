@@ -3,8 +3,8 @@ kind: plan
 id: 4b1a8e7c-9d2f-4a15-b7e3-c1f0a5d3b829
 title: Realtime — fix WebRTC connect-window first-utterance-lost bug via ProcessingButtonDark warming + chirp-on-ready
 created: 2026-07-02T22:30+01:00
-revised: 2026-07-03T13:00+01:00
-status: DRAFT-v4
+revised: 2026-07-03T18:35+01:00
+status: DRAFT-v4.1
 related:
   - tasks/realtime-first-token-handoff.md
   - tasks/realtime-vad-and-vercel-401-handoff.md
@@ -21,6 +21,7 @@ version_history:
   - v2 2026-07-02 23:30 — round-1 findings applied (commit 16bde7c)
   - v3 2026-07-03 12:00 — cross-family review synthesis applied, two-SAFE Claude+Codex (commit 8107fbd)
   - v4 2026-07-03 13:00 — Feature-PIS re-elicited with user; §0 rewritten; button strategy pivoted to ProcessingButtonDark (no text, spinner-only); Nebularr/Circle coverage promoted to ship-blocker
+  - v4.1 2026-07-03 18:35 — Pass-2 cross-family review (Claude + Codex) findings applied. Codex Major-1: `disabled` prop freezes spinner + `aria-label` not accepted by ProcessingButtonDarkProps + focus/aria-live missing. Claude Major-1: getUserMedia + response.json guard sites missing from §6 diff. Claude Major-2: AC-12 split into AC-12a/12b/12c with concrete criteria. Codex Minor-2: Round E reframed (Nebularr crossfade is mount-only, sibling to button-swap). Codex Minor-3: §7.2 option (a) demoted (connection_change=connected fires in same handler as unawaited updateSessionConfig).
 ---
 
 # §0. Feature-PIS (v4 — re-elicited with user 2026-07-03)
@@ -53,12 +54,12 @@ version_history:
   - F-1: Browser autoplay policy blocks the chime because AudioContext was created before a user gesture. Mitigation: chime uses the SAME AudioContext already created inside `handleStartConversation` (line 584, post-gesture); no new context needed.
   - F-2: `session.connect()` rejects (network error, invalid token) mid-warm. Warming state must clear cleanly and return to idle. Mitigation: existing catch block at line 716-720 sets `appState='idle'` + error message; must also clear `isConnecting`.
   - F-3: Chime fires but AudioContext is suspended (browser tab backgrounded). Silent-ready-signal. Mitigation: call `ctx.resume()` if suspended before chime; if resume rejects, orb+label transition still fire — chime is defence-in-depth, not sole ready-signal.
-  - F-4: User double-clicks Record; second click during warming causes state confusion. **v4 mitigation:** during warming the button is `<ProcessingButtonDark disabled={true} />` — the click target itself is disabled at the DOM `<button disabled>` level (verified `voicebuttons.tsx:1397`). Since the whole component is swapped (not just disabled), there's no path where `onRecordClick` fires during warming.
+  - F-4: User double-clicks Record; second click during warming causes state confusion. **v4.1 mitigation (revised):** during warming the button is `<ProcessingButtonDark />` — a distinct component with NO `onClick` handler wired in the connecting branch (see §6). The **component swap** is the load-bearing mitigation; a click during warming lands on a button whose click handler is undefined and produces no side-effect. v4.1 does NOT use the `disabled` prop (that would freeze the spinner per `voicebuttons.tsx:1489` — the CSS pauses animation on `:disabled`).
   - F-5: Subsequent Start-Stop-Start cycles feel wrong because the warming state re-fires each time. This is CORRECT behavior — every fresh `session.connect()` genuinely takes ~1.5s. If it feels annoying, the mitigation is a follow-up (peer-connection reuse), not gating the chime.
   - F-6: On very slow networks (>3s connect), warming lingers past comfort. Mitigation: after a hard timeout (e.g., 6s), abort with error and return to idle — using existing error path.
   - F-7: Text label swap from "Connecting" → "Listening" is instant, without the existing 150ms fade animation, creating visual snap. Mitigation: reuse the existing `key={state}` re-mount trigger in `VoiceStateLabel` (line 27) — including `connecting` state should preserve the fade.
   - **F-8: Late-callback race when Stop fires during warming.** If the user clicks Stop while `await session.connect()` is still pending, `handleStopConversation` disposes of the session. But the awaited promise then resolves and the post-`session.connect()` block still runs — firing `setAppState('listening')`, `setIsConnecting(false)`, and `playConnectChime(ctx)` on a torn-down session. Result: phantom "Listening…" label + chime AFTER the user pressed Stop. **v3 mitigation (replaces v2's isConversationActiveRef mirror — Critical finding C-1):** use a per-Start `runIdRef` that is IMPERATIVELY incremented at try-entry (not via useEffect). Every post-await checkpoint captures `myRunId` at call time and compares `runIdRef.current === myRunId` before mutating state or firing the chime. Stop increments `runIdRef` too, imperatively, so any in-flight Start sees an invalidated run-id and returns early. Same pattern guards F-9 (see below).
-  - **F-9: `session.connect()` resolution ≠ VAD-ready (Codex Major-3 finding).** SDK implementation at `node_modules/@openai/agents-realtime/dist/openaiRealtimeWebRtc.js:124` resolves connect() on WebRTC data-channel `open` event; `updateSessionConfig(...)` at line 131 is NOT awaited before `resolve()`. In practice: the chime may fire while OpenAI's server-side session config is still propagating and VAD is not yet accepting audio. The UVO promises first speech after chime reaches VAD reliably — if VAD isn't actually ready at chime, UVO fails silently. **Mitigation (v3 — deferred with escalation trigger):** ship on `session.connect()` resolution as MVP. AC-9 (§9) is an empirical acceptance gate: post-chime immediate speech in real Chrome must produce an AI response ≥90% (n=10). If <90%, promote §7.2 to in-scope in a v4 — options are (a) also await a `session.transport.on("connection_change","connected")` event before firing the chime, or (b) wait for the first VAD `input_audio_buffer.speech_started` event from the SDK before considering VAD live, or (c) both. §7.2 documents the option shapes; v3 doesn't ship them.
+  - **F-9: `session.connect()` resolution ≠ VAD-ready (Codex Major-3 finding, v4.1 updated).** SDK implementation at `node_modules/@openai/agents-realtime/dist/openaiRealtimeWebRtc.js:124-138` resolves connect() on WebRTC data-channel `open` event; `updateSessionConfig(...)` at line 134 is NOT awaited before `resolve()` at line 138. In practice: the chime may fire while OpenAI's server-side session config is still propagating and VAD is not yet accepting audio. The UVO promises first speech after chime reaches VAD reliably — if VAD isn't actually ready at chime, UVO fails silently. **Mitigation (v3/v4 — deferred with escalation trigger):** ship on `session.connect()` resolution as MVP. AC-9 (§9) is an empirical acceptance gate: post-chime immediate speech in real Chrome must produce an AI response ≥90% (n=10). If <90%, promote §7.2 to in-scope in a v5. Options in §7.2 revised in v4.1 — see there for the current option table (option `(a)` connection_change=connected demoted per Codex Minor-3 as it fires in the same handler).
   - **F-10: Timeout branch of Promise.race does NOT abort the SDK connect (Codex Major-1 finding).** `RealtimeSessionConnectOptions` at `realtimeSession.d.ts:79-97` has no AbortSignal, no cancellation token. On timeout, the race returns to catch but the SDK's connect is still in-flight and eventually resolves. **Mitigation (v3):** the catch block MUST call `try { session.close(); } catch {}` on the local `session` binding (not `sessionRef.current`, which the run-id guard may have already cleared) to force-tear-down the pending peer connection. The run-id guard also fires in any late-resolve continuation and prevents state mutation from the orphan. Both defences apply — session.close() eliminates the peer connection; run-id eliminates the UI state mutation.
 - **Appetite** — v4: 5-8 hours (user-elicited). Implementation ~4-5h (state + label + chime + reorder + runIdRef + timeout path + button conditional swap + all 3-orb coherence checks) + 60-90 min manual verification in real Chrome (Playwright cannot reproduce mic timing). See §10 for full cost breakdown. Kill-conditions: (a) Web Audio chime requires external audio asset (iOS Safari edge case) → re-scope; (b) AC-9 fails (Round C n=10 <90% AI-response after immediate speech) → v5 promotes §7.2 to in-scope; (c) Round E reveals Nebularr or Circle need dedicated warming-state visual work → pause and re-plan (visual work is a ship-blocker per elicitation).
 
@@ -112,7 +113,7 @@ const runIdRef = useRef<number>(0);
 
 - On every Start entry: `runIdRef.current += 1; const myRunId = runIdRef.current;` — SYNCHRONOUS write inside the click handler, no useEffect indirection.
 - On every Stop entry (as the FIRST line of `handleStopConversation`, before any await): `runIdRef.current += 1;` — invalidates any in-flight Start.
-- At every post-await checkpoint (post-getUserMedia, post-token, post-`session.connect()`, and inside the catch/timeout paths): `if (runIdRef.current !== myRunId) { /* my Start was cancelled; return without mutating state */ return; }`
+- At **every** post-await checkpoint — five sites: post-`ctx.resume()`, post-`getUserMedia`, post-`fetch(token)`, post-`response.json()`, post-`Promise.race([session.connect(...), timeout])` — plus inside the catch/timeout paths: `if (runIdRef.current !== myRunId) { /* my Start was cancelled; return without mutating state */ return; }`. **v4.1 addition** (per Claude Major-1): post-`getUserMedia` and post-`response.json()` were promised here but omitted from v3/v4's §6 diff. v4.1 §6 now shows all five.
 - Also on timeout (Promise.race): the timeout branch increments runIdRef and calls `try { session.close(); } catch {}` on the local session binding.
 
 **Why this shape:**
@@ -217,8 +218,17 @@ Render change at `VoiceStateLabel.tsx:23-30`:
 export const VoiceStateLabel: React.FC<VoiceStateLabelProps> = ({ state }) => {
   return (
     <>
-      {/* Key forces re-render on state change, triggering fade animation */}
-      <div key={state} className="voice-state-label">
+      {/* Key forces re-render on state change, triggering fade animation.
+       * v4.1: aria-live="polite" + role="status" so screen-reader users
+       * hear the transition "Ready when you are" → "Connecting" →
+       * "Listening…" — load-bearing because focus drops to <body> on
+       * the button component swap (see §6 button-during-warming). */}
+      <div
+        key={state}
+        className="voice-state-label"
+        aria-live="polite"
+        role="status"
+      >
         {STATE_LABELS[state]}
       </div>
 
@@ -243,6 +253,8 @@ export const VoiceStateLabel: React.FC<VoiceStateLabelProps> = ({ state }) => {
 ```
 
 **Removed from v4**: `.dots`, `.dot`, `@keyframes dotBounce`, `@media (prefers-reduced-motion)` block that dropped dots. Reduced-motion still works — the label + text-swap remain (they don't animate anything beyond the 150ms fadeIn which is unaffected).
+
+**New in v4.1**: `aria-live="polite"` + `role="status"` attributes on the `.voice-state-label` div. This is load-bearing for the accessibility contract per Codex Major-1 (see §6). Screen-reader users hear state changes; focus-management is intentional (focus drops to `<body>` on button-component-swap but the ARIA announcement carries the transition).
 
 ## Consumers subsection (Principle 2)
 
@@ -353,7 +365,14 @@ Inline in `VoiceRealtimeOpenAI.tsx` is simplest (one file touched, no import). E
        if (ctx.state === 'suspended') await ctx.resume();
 +      if (runIdRef.current !== myRunId) return;
 
-       // ... steps 2-9 unchanged (mic capture, analysers, transport, agent, session, listeners) ...
+       // 2. Capture mic (existing at source line 589) — GUARD ADDED v4.1 per Claude Major-1
++      // Original await:
++      //   const micStream = await navigator.mediaDevices.getUserMedia({...});
++      //   micStreamRef.current = micStream;
++      // ADD immediately after:
++      if (runIdRef.current !== myRunId) return;
+
+       // ... steps 3-9 unchanged (analysers, transport, agent, session, listeners) ...
 +      // NOTE: at step ~6 where the RealtimeSession is created, capture:
 +      //   localSession = session;
 +      // (Used only in the catch/timeout paths for force-close.)
@@ -364,6 +383,8 @@ Inline in `VoiceRealtimeOpenAI.tsx` is simplest (one file touched, no import). E
 +      if (runIdRef.current !== myRunId) return;
        if (!response.ok) throw new Error(`Failed to get token: ${response.statusText}`);
        const tokenData = await response.json();
++      // v4.1 — guard AFTER response.json() too, since json() is an async parse.
++      if (runIdRef.current !== myRunId) return;
        const ephemeralKey = tokenData.key;
        if (!ephemeralKey) throw new Error('No ephemeral token received');
        console.log(`[TIMING +${dtNow()}ms] Got ephemeral token`);
@@ -449,7 +470,15 @@ Inline in `VoiceRealtimeOpenAI.tsx` is simplest (one file touched, no import). E
 - Disabled behavior: `opacity: 0.5`, `cursor: not-allowed`, `animation-play-state: paused`.
 - Reduced-motion: `@media (prefers-reduced-motion: reduce)` sets `animation: none !important` at line 1494-1499.
 
-**Implementation** (`VoiceRealtimeOpenAI.tsx` render section, replaces the current line 831-836 block):
+**v4.1 rewrite (post Codex Major-1)** — v4's naive `<ProcessingButtonDark disabled={true} aria-label="…" />` had 3 defects verified at source:
+
+1. **Frozen spinner** (Codex): `voicebuttons.tsx:1489-1491` — `.processing-button-dark:disabled .processing-spinner { animation-play-state: paused; }`. Applying `disabled={true}` STOPS the spinner rotation. AC-11 requires spinner animating; self-contradictory plan.
+2. **Type-check failure** (Codex): `ProcessingButtonDarkProps` at `voicebuttons.tsx:1379-1384` accepts ONLY `{onClick?, disabled?, className?, isProcessing?}`. `aria-label` is not a prop; component hardcodes `aria-label="Processing"` at line 1398. JSX won't type-check.
+3. **Accessibility drop** (Codex): unmount of `MorphingRecordWideSimple` → mount of `ProcessingButtonDark` moves focus to `<body>` because the newly-mounted button isn't auto-focused. Screen-reader users get no announcement because `VoiceStateLabel` has no `aria-live` (verified via `grep aria-live` — zero hits).
+
+**v4.1 fix — suppress clicks via handler-side guard + `aria-disabled`, NOT the DOM `disabled` prop.** The spinner keeps animating; the button structurally still receives clicks but they no-op via the swap boundary (no `onClick` handler is even wired). Focus preservation handled by rendering both buttons at the same DOM position (React reuses the button element only if the component type is stable — since we're swapping types, focus WILL drop, so the label carries the announcement via `aria-live` instead).
+
+**Implementation** (`VoiceRealtimeOpenAI.tsx` render section, replaces current lines 830-836):
 
 ```tsx
 import {
@@ -462,8 +491,14 @@ import { ProcessingButtonDark } from '@/projects/voiceinterface/components/ui/vo
   {isConnecting ? (
     <ProcessingButtonDark
       isProcessing={true}
-      disabled={true}   /* also visually communicates "you can't click me yet" */
-      aria-label="Connecting to OpenAI Realtime"
+      // NO `disabled` prop — that would freeze the spinner (verified at
+      // voicebuttons.tsx:1489-1491 CSS animation-play-state:paused).
+      // NO `aria-label` — ProcessingButtonDarkProps does not accept it
+      // (verified at voicebuttons.tsx:1379-1384). The component hardcodes
+      // aria-label="Processing" at line 1398. Accessible announcement of
+      // the state change is carried by the aria-live region on
+      // VoiceStateLabel (see §4).
+      // No onClick handler → clicks are structurally no-op during warming.
     />
   ) : (
     <MorphingRecordWideSimple
@@ -475,9 +510,14 @@ import { ProcessingButtonDark } from '@/projects/voiceinterface/components/ui/vo
 </div>
 ```
 
-**Size delta note** — the button-container is 44px tall (`VoiceRealtimeOpenAI.tsx:1005`). When `ProcessingButtonDark` (38px) renders, there's a 6px vertical delta. The container's `display: flex; align-items: center; justify-content: center` centers it; net effect is the button appears vertically-centered in the same 44px slot with 3px space top and bottom. This is acceptable. If the delta reads as too small at implementation time, add a 6px height compensator or bump `ProcessingButtonDark` via className override (would need an `!important` — worst-case a wrapping div; document either way).
+**Focus + announcement contract (v4.1):**
+- `VoiceStateLabel` gains `aria-live="polite"` + `role="status"` on the `.voice-state-label` div (§4 change). When state transitions "Ready when you are" → "Connecting" → "Listening…" fire, SR users hear the new label announced.
+- Focus drops to `<body>` on the swap. That's acceptable per WCAG 2.1 because the state transition is announced via `aria-live`. If a keyboard user was tabbed to the Record button, they can re-tab to the Stop button after the transition.
+- Alternative considered: extend `ProcessingButtonDarkProps` to accept `...React.ButtonHTMLAttributes<HTMLButtonElement>` and spread onto the `<button>` — deferred to a follow-up plan; would touch the shared component's public contract which is out of scope here.
 
-**Edge case — Stop-during-warming is BLOCKED.** With `ProcessingButtonDark` rendered instead of `MorphingRecordWideSimple` during warming, there is no Stop icon to click. If the user wants to cancel a warming session, they must wait for connect to complete (~1.5s) or timeout to fire (6s). This is arguably correct UX (Cancel-during-connecting is a niche path) and eliminates the F-8 race pathway at the source. The runIdRef guard (§2.1) remains in place as belt-and-suspenders for the timeout path (F-10) and any future code path that might bypass the swap gate.
+**Size delta note** — the button-container is 44px tall (`VoiceRealtimeOpenAI.tsx:1005`). When `ProcessingButtonDark` (38px) renders, there's a 6px vertical delta. The container's `display: flex; align-items: center; justify-content: center` centers it; net effect is the button appears vertically-centered in the same 44px slot with 3px space top and bottom. Horizontal centering means the 12px width delta (76 vs 64) is 6px per side — also centered, no jump. Verified: `justify-content: center` at line 1002.
+
+**Edge case — Stop-during-warming is BLOCKED.** With `ProcessingButtonDark` rendered instead of `MorphingRecordWideSimple` during warming, there is no Stop icon to click AND no `onClick` handler is wired. If the user wants to cancel a warming session, they must wait for connect to complete (~1.5s) or timeout to fire (6s). This is arguably correct UX (Cancel-during-connecting is a niche path) and eliminates the F-8 race pathway at the source. The runIdRef guard (§2.1) remains in place as belt-and-suspenders for the timeout path (F-10) and any future code path that might bypass the swap gate.
 
 # §7. Deferred items + open questions
 
@@ -498,12 +538,13 @@ User raised: "what if we arrived on the page with the browser already asking you
 Rationale:
 - The SDK's data-channel-open → VAD-ready gap is typically <100ms in normal conditions (the config propagation is a single message).
 - Real-Chrome verification (§8) will surface any gap that exists in the load-bearing 90%+ pass rate metric.
-- If empirically ≥10% of trials fail (AC-9 fails), a v4 plan promotes §7.2 to in-scope. Options:
-  - **(a)** Additionally await `session.transport.on("connection_change","connected")` before firing the chime. Verified this event exists in the SDK's transport layer (though it doesn't fire on the data-channel path — it fires on peer-connection state change).
-  - **(b)** Wait for the first `input_audio_buffer.speech_started` event from the SDK before considering VAD live. This is a semantic proof (server-side VAD has processed at least one audio frame) rather than a mechanical readiness signal.
-  - **(c)** Both, with (a) as a first gate and (b) as a "definitely-ready" upgrade.
+- If empirically ≥10% of trials fail (AC-9 fails), v5 promotes §7.2 to in-scope. Options:
+  - ~~**(a)** Await `session.transport.on("connection_change","connected")` before firing the chime.~~ **DEMOTED in v4.1 per Codex Minor-3.** Verified at `openaiRealtimeWebRtc.js:124-138`: `connection_change: 'connected'` is emitted in the SAME `dataChannel.addEventListener('open', ...)` handler that calls `updateSessionConfig(userSessionConfig)` (fire-and-forget) and `resolve()`. Awaiting this event provides NO additional readiness guarantee beyond `await session.connect()`.
+  - **(b)** Await a server-side `session.updated` transport event (if verified to acknowledge the post-open `updateSessionConfig` call). This is upstream of VAD activation.
+  - **(c)** Wait for the first `input_audio_buffer.speech_started` event from the SDK before considering VAD live — semantic proof (server-side VAD has processed at least one audio frame). Downside: only fires when user speaks; can't gate a ready-signal chime that must precede speech.
+  - **(d)** Hybrid: promote `(b)` as the ready-signal gate; on first `speech_started`, retroactively confirm VAD was live at chime time (telemetry only, no UX impact).
 
-Ship v3 on `session.connect()` resolution. AC-9 is the gate that either confirms the choice or triggers v4.
+Ship v3/v4 on `session.connect()` resolution. AC-9 is the gate that either confirms the choice or triggers v5.
 
 ## §7.3 Peer-connection reuse for subsequent conversations
 
@@ -544,10 +585,16 @@ Without steps 2+3, the SDK connect would eventually resolve against a torn-down 
    - **Observation**: if warming state does NOT fire (session.connect() resolves in <100ms), note it — that's §7.3's edge case.
 6. Console: verify `[TIMING +N ms]` logs show `session.connect() resolved` FIRING BEFORE `setAppState('listening')` and chime playback (log timing).
 
-**Round B — F-8 late-callback race (n=5)**
+**Round B — F-8 late-callback race (n=5, v4.1 reframe)**
+
+In v4.1 the button is component-swapped, not disabled-in-place. During warming, `<ProcessingButtonDark />` renders with NO `onClick` handler → clicks during warming are structurally no-op. So Round B's original "click again during warming" no longer exercises the runIdRef guard through the UI.
+
+To actually test the F-8 guard (Stop-during-warming), Round B force-invokes Stop via DevTools console:
 1. Click Record.
-2. Immediately (within 200ms — during warming) click again (which now fires Stop because the button is disabled during warming per AC-11 — verify the button IS disabled first; if disabled, this test round is inapplicable and passes trivially).
-3. If the button was clickable during warming (v3 defect vs plan), verify NO phantom "Listening" label appears after connect resolves; NO chime plays; UI stays idle. Log any phantom.
+2. Within 200ms (during warming, before chime), open DevTools console and execute the app's exposed Stop path — either dispatch a synthetic click on the future Stop button OR call `handleStopConversation()` via a temporarily-window-exposed handle (add `window.__DEBUG_STOP__` during v4.1 impl for this test; remove before commit).
+3. Verify: NO phantom "Listening" label appears after connect resolves; NO chime plays; UI returns to idle; runIdRef mismatch fires the guarded return in the post-await block (add a `console.log` inside the guard branch to instrument the test).
+
+If any phantom appears, the runIdRef pattern has a defect and must be fixed before ship (F-8 falsifier fired). Pass criterion: 5/5 clean cycles.
 
 **Round C — AC-9 empirical VAD-ready check (n=10)**
 1. Ten fresh Start-Stop-Start cycles. For each, log:
@@ -562,12 +609,29 @@ Without steps 2+3, the SDK connect would eventually resolve against a torn-down 
 3. Observe: "Connection timed out" error; UI returns to idle; `isConnecting` clears; **`ProcessingButtonDark` unmounts and `MorphingRecordWideSimple` (state='idle') re-mounts** — no phantom stuck spinner (AC-11).
 4. Wait an additional 5s (in case real connect resolves late). Observe: no phantom "Listening…" label; no chime; console may have SDK-internal cleanup output but no unhandled promise rejection.
 
-**Round E — Cross-orb coherence (v4, AC-12, ship-blocker)**
-For EACH pinned orb — Coral (default), Nebularr, Circle — click the profile-strip thumb to swap, then repeat Rounds A + C + D with that orb active. Observe per orb:
-- **Coral (baseline)**: warming state visually matches design intent (spinner button + centered "Connecting" label + calm torus). Pass reference.
-- **Nebularr**: warming state must not collide with Nebularr's mount-time talking→idle crossfade (`NebularrBlob.tsx:90-111`). Specifically: does the crossfade replay on session Start (fresh component mount)? If yes, does it visually clash with the spinner + Connecting label composition? Log YES/NO.
-- **Circle**: warming state visual coherence with Circle's shader rendering. Log any composition break (e.g., orb color competing with spinner, motion tempo mismatch).
-Any orb showing collision/breakage: ship blocked; document the specific collision, escalate to v5 planning for dedicated per-orb warming treatment. Alternative acceptable outcome: all 3 orbs pass Round E cleanly with the ProcessingButtonDark + centered-label composition.
+**Round E — Cross-orb coherence (v4.1, AC-12a + AC-12b + AC-12c ship-blockers)**
+
+*v4.1 reframe per Codex Minor-2:* verified at source (`NebularrBlob.tsx:90-111` empty-deps `useEffect`) that Nebularr's intro crossfade fires on **component mount only**, i.e. when the shader dispatcher `RealtimeBlob.tsx:50` swaps between `<CoralRealtimeBlob>` and `<NebularrBlob>` on profile change. Clicking Record is a sibling change below `.button-container` — the `.orb-container` above stays mounted. Round E must distinguish these two paths.
+
+For EACH pinned orb — Coral (default), Nebularr, Circle — click the profile-strip thumb to swap, then WAIT ≥500ms for any mount-time animation to complete, THEN repeat Rounds A + C + D with that orb active.
+
+- **AC-12a — Mount-context invariance (per orb)**: verifies the button swap doesn't remount the orb.
+  1. With Nebularr active and settled, click Record.
+  2. Capture DevTools screenshot at t=0 and t=200ms.
+  3. Diff `.orb-container` bitmap (using DevTools "Rendering" → capture screenshot). Expected: only audio-reactive noise floor differences, no crossfade replay.
+  4. If crossfade DOES replay: React reconciliation is remounting Nebularr when it shouldn't. STOP; investigate parent-render tree before ship.
+
+- **AC-12b — Composition non-interference (per orb, ship-blocker)**: verifies spinner + label overlay coherently on each orb visual.
+  1. With this orb active + settled, click Record and hold in warming state (throttle network to Slow 3G to extend the window to ~6s).
+  2. Record 3-second screen capture of `.voice-realtime-card`.
+  3. Concrete pass criteria: (i) spinner completes ≥1 full rotation without visual overlap collision with orb geometry; (ii) "Connecting" label fully readable, centered ±1px within `.state-label-container`; (iii) no visible frame tearing between orb r3f canvas and spinner SVG rotation in slow playback.
+  4. Failure mode: any visible tearing/collision → ship BLOCKED. Log specifics and escalate to per-orb v5 treatment.
+
+- **AC-12c — Profile-switch overlap (per orb, observation only, non-blocker)**:
+  1. Click a fresh profile thumb (e.g. Nebularr from Coral), then click Record within 500ms of the switch (while crossfade is still running).
+  2. Log: does the warming state visually conflict with the running crossfade? YES/NO. This is a niche path (user must be fast); observation feeds into potential follow-up if it's the source of any Round-E complaint.
+
+Alternative acceptable outcome: all 3 orbs pass AC-12a + AC-12b cleanly. Ship.
 
 **Manual A/B** against `origin/main` HEAD (should preserve baseline bug) — optional; validates the fix is doing something rather than the environment having changed.
 
@@ -583,20 +647,27 @@ Fix is done when ALL are true:
 6. **AC-6 (falsifiable — ships blocker, v3 rewrite):** For every Start-Stop-Start cycle (n=5), when the full warming path fires it MUST be atomic: label swap "Connecting" → "Listening…" AND chime playback occur within one animation frame of each other. Failure modes that gate ship: (a) chime plays but label stays "Connecting"; (b) label swaps to "Listening…" but chime never plays; (c) chime fires BEFORE `session.connect() resolved` log line appears in console; (d) label + chime fire on a run whose Stop was already clicked (phantom Listening after Stop — F-8 race). v2's AC-6a listed "orb-jumping-to-listening-before-chime" — v3 removes this because §6 shows `setAppState('listening')` and `playConnectChime` are synchronous adjacent lines; the failure mode is structurally impossible under the shipped code.
 7. **AC-7 (observation only — not gate):** Record in the test log whether §7.3's fast-resolve edge case fired empirically (n=5 cycles). If yes across all cycles, note it for the follow-up peer-connection-reuse investigation.
 8. **AC-8 — Clean console.** No unhandled errors, no rejected promise warnings.
-9. **AC-9 (v3 — Codex Major-3 escalation trigger, load-bearing to UVO):** For n=10 real-Chrome trials with "click → immediate speech (<200ms after chime)," AI response rate is ≥90%. If <90%, §7.2 promotes to in-scope for v4; ship of v3 is BLOCKED. This AC catches the "session.connect() resolves before VAD is server-side ready" pathology (F-9). Pass = MVP assumption validated. Fail = SDK data-channel-open is an insufficient ready signal; escalate.
+9. **AC-9 (v3 — Codex Major-3 escalation trigger, load-bearing to UVO):** For n=10 real-Chrome trials with "click → immediate speech (<200ms after chime)," AI response rate is ≥90%. If <90%, §7.2 promotes to in-scope for **v5**; ship of v4.1 is BLOCKED. This AC catches the "session.connect() resolves before VAD is server-side ready" pathology (F-9). Pass = MVP assumption validated. Fail = SDK data-channel-open is an insufficient ready signal; escalate per §7.2's option (b) or (d).
 10. **AC-10 — Timeout path.** Simulate slow network (Chrome DevTools throttle to "Slow 3G"). Click Record. Verify: (a) at ~6s the "Connection timed out" error appears; (b) UI returns to idle; (c) `isConnecting` clears; (d) if the real connect resolves >1s after the timeout, no phantom "Listening…" label or chime fires (runIdRef guard verified); (e) `console.warn` may show SDK internal cleanup output but no unhandled promise rejection.
-11. **AC-11 (v4 rewrite) — Component swap during warming.** During "Connecting" state, verify (DevTools) that the rendered button is `<ProcessingButtonDark>` (class `.processing-button-dark`), NOT `<MorphingRecordWideSimple>` (class `.record-wide-stop-button`). Verify spinner is animating (or `animation: none` under prefers-reduced-motion). Clicking the disabled button produces no visible response.
-12. **AC-12 (v4 — cross-orb coherence, ship-blocker per elicitation).** Complete Rounds A + C + D (§8) TWICE MORE, swapping to the Nebularr orb and the Circle orb via the profile strip. Warming state must feel coherent on all 3 orbs: no visual collision with Nebularr's mount-time talking→idle crossfade, no jarring transition on Circle. If any orb shows collision or breakage, ship is blocked; escalate to Round E (§8) analysis + potentially v5.
-13. **AC-13 (v4 — layout stability).** Take DevTools screenshot at each state (idle / connecting / listening / thinking / speaking) with the DevTools "device pixel ratio" toolbar overlay. Measure horizontal offset of the label's center. All 5 states must have the label center within ±1px of each other — proves centering solves the jitter concern raised in elicitation.
+11. **AC-11 (v4.1 rewrite) — Component swap during warming.** During "Connecting" state, verify (DevTools):
+   - Rendered button is `<button class="processing-button-dark">`, NOT `<button class="record-wide-stop-button">`.
+   - Button `disabled` attribute is ABSENT (v4.1 removed it — disabled would freeze the spinner per `voicebuttons.tsx:1489-1491`).
+   - Spinner `.processing-spinner` has computed style `animation-play-state: running` (or `animation: none` if `prefers-reduced-motion: reduce` is set).
+   - Clicking the button while `isConnecting === true` produces no visible response (no `onClick` handler wired in the connecting branch — verified by absence of the prop in the JSX).
+12. **AC-12a (v4.1 — mount-context invariance, ship-blocker).** Empirical verification per Codex Minor-2: **the button-component swap does NOT re-mount the orb.** With Nebularr active, click Record. Capture DevTools screenshots at t=0 (immediately post-click) and t=200ms (mid-warming). Diff the orb-container bitmap. Expected: no perceptible difference beyond the mic's own audio-reactive noise floor. Failure mode: if Nebularr's mount-time crossfade replays (`NebularrBlob.tsx:90-111` empty-deps useEffect), Round E has caught a React reconciliation surprise that must be investigated before ship.
+13. **AC-12b (v4.1 — composition non-interference, ship-blocker).** With `ProcessingButtonDark` rendered during warming, record a 3-second screen capture on each of Coral/Nebularr/Circle. Concrete pass criteria: (i) spinner rotation (1.5s linear) is visible for at least one full cycle without visual overlap collision with orb geometry; (ii) label "Connecting" is fully readable, no truncation, centered ±1px within the `.state-label-container`; (iii) no frame-tearing across the composition (visible via slow playback). Failure mode: if any orb's motion produces a visual "tearing" against the spinner's frame boundaries, ship is BLOCKED per user's elicited ship-blocker.
+14. **AC-12c (v4.1 — profile-switch overlap edge case, non-blocker).** Per Codex Minor-2 reframing: the Nebularr crossfade fires on **mount**, i.e. profile-switch. Distinct from Start. Test protocol: click a Nebularr profile thumb, then click Record within 500ms of the switch (while the crossfade is still running). Expected: crossfade completes cleanly regardless of warming state; if warming starts mid-crossfade, both animations run in parallel without visual conflict. NOT a ship-blocker; observation only. Log outcome for a potential follow-up.
+15. **AC-13 (v4 — layout stability).** Take DevTools screenshot at each state (idle / connecting / listening / thinking / speaking) with the DevTools "device pixel ratio" toolbar overlay. Measure horizontal offset of the label's center. All 5 states must have the label center within ±1px of each other — proves centering solves the jitter concern raised in elicitation.
+16. **AC-14 (v4.1 — accessibility, non-blocker).** VoiceOver / NVDA announces state transitions. Concrete test: with SR active, click Record; SR should announce "Connecting" within ~200ms of the click, and "Listening" within ~200ms of the chime. If SR announces nothing (indicating `aria-live` misconfigured), fix before ship. Reduced-motion users: verify spinner has `animation: none` per the media query at `voicebuttons.tsx:1494-1499`.
 
 # §10. Cost estimate (v4)
 
-- Implementation: 4-5 hours (state + label + chime + reorder + runIdRef pattern + timeout path + button component-swap + import wiring + verify all 13 ACs).
+- Implementation: 4-5 hours (state + label + chime + reorder + runIdRef pattern with 5 guard sites + timeout path + button component-swap + aria-live label + import wiring + verify all 16 ACs — AC-1..AC-11, AC-12a/12b/12c, AC-13, AC-14).
 - Manual verification: 60-90 min in real Chrome + Safari for Coral (Round A + C + D). Plus 40-60 min for Round E (Nebularr + Circle coherence).
 - Total appetite: 5-8 hours (matches frontmatter `estimate_range: ["5h","8h"]`). Elicited with user 2026-07-03.
 - Kill-conditions:
   - AC-9 fails (Round C n=10 shows <90% AI-response after immediate speech) → v5 promotes §7.2 to in-scope.
-  - AC-12 fails (Round E reveals Nebularr or Circle collision) → ship BLOCKED per elicited ship-blocker; escalate to per-orb v5 plan.
+  - AC-12a OR AC-12b fails on any orb (Round E reveals Nebularr/Circle remount surprise, orb/spinner tearing, or label truncation) → ship BLOCKED per elicited ship-blocker; escalate to per-orb v5 plan. (AC-12c is observation-only, not a ship gate.)
   - Web Audio chime requires external audio asset (iOS Safari edge case) → re-scope for asset choice.
 
 # §11. Cross-references
