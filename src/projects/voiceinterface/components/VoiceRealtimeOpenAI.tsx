@@ -481,16 +481,28 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
               return;
             }
             console.log('[OpenAI Realtime] Thinking complete, triggering response...');
-            // v4.2.3 IMR Pass-3 Codex Major 1 — don't swallow real send
-            // failures. isCurrentRun just passed, so the session should be
-            // valid. If sendEvent throws, it's either a genuine SDK
-            // failure (contract change, malformed payload) or a race
-            // between our check and the SDK's internal state — both
-            // deserve a real console.error + user-facing error. Do NOT
-            // wrap in try/catch; if the SDK throws sync, the error goes
-            // to window.onerror. If it fails async, its own listener
-            // (session.on('error')) will handle it.
-            session.transport.sendEvent({ type: 'response.create' });
+            // v4.2.4 IMR Pass-4 Codex Major — middle ground between v4.2.2's
+            // full-swallow-as-warn and v4.2.3's remove-entirely. The SDK's
+            // WebRTC sendEvent throws SYNCHRONOUSLY when the data channel
+            // is absent or not open (openaiRealtimeWebRtc.js:223-226) — a
+            // natural closing race between our isCurrentRun check and the
+            // channel closing. That's recoverable, not a bug. But a
+            // genuine SDK failure (contract change, malformed payload) IS
+            // a bug and deserves visibility.
+            //
+            // Approach: catch + console.error (real signal, no swallow) +
+            // set user-facing error state if still current. Neither
+            // rethrows (avoiding window.onerror for a recoverable race)
+            // nor silently swallows (making real bugs invisible).
+            try {
+              session.transport.sendEvent({ type: 'response.create' });
+            } catch (sendErr) {
+              console.error('[OpenAI Realtime] response.create sendEvent threw:', sendErr);
+              if (isCurrentRun()) {
+                setError('Lost connection during response. Please try again.');
+                setAppState('idle');
+              }
+            }
           }, THINKING_GATE_MS);
           break;
 
