@@ -24,21 +24,24 @@ const STATE_LABELS: Record<VoiceStateLabelState, string> = {
 export const VoiceStateLabel: React.FC<VoiceStateLabelProps> = ({ state }) => {
   return (
     <>
-      {/* Key forces re-render on state change, triggering fade animation.
-       * aria-live="polite" + role="status" so SR users hear the state
-       * transitions — load-bearing because focus drops to <body> when
-       * the button component swaps between MorphingRecordWideSimple and
-       * ProcessingButtonDark during warming. */}
-      <div
-        key={state}
-        className="voice-state-label"
-        aria-live="polite"
-        role="status"
-      >
-        {STATE_LABELS[state]}
+      {/* v4.2.1 IMR Site 3 — the aria-live region is now the OUTER,
+       * PERSISTENT div. The inner `key={state}` div still remounts to
+       * trigger the fade animation, but SRs monitor the outer region for
+       * text changes — a more reliable announcement pattern across
+       * VoiceOver / NVDA / JAWS. Previously the aria-live region itself
+       * was remounted on each state change, which some SR/browser combos
+       * do NOT announce. */}
+      <div className="voice-state-live-region" aria-live="polite" role="status">
+        <div key={state} className="voice-state-label">
+          {STATE_LABELS[state]}
+        </div>
       </div>
 
       <style jsx>{`
+        .voice-state-live-region {
+          /* Persistent wrapper — never remounts. Layout-transparent. */
+          width: 100%;
+        }
         .voice-state-label {
           font-family: 'Open Runde', 'Inter', sans-serif;
           font-size: 16px;

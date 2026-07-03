@@ -432,11 +432,18 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
    * - agent_start / agent_end: response lifecycle (session-level events)
    * - error: connection/session errors
    */
-  const setupSessionEventListeners = (session: RealtimeSession) => {
+  // v4.2.1 IMR Site 2 — event listeners now accept a captured runId so
+  // callbacks bail out if the run has been superseded by Stop or a new Start.
+  // Prevents stale SDK events (error, output_audio_buffer.stopped, VAD frames)
+  // from mutating UI state that belongs to a different run.
+  const setupSessionEventListeners = (session: RealtimeSession, myRunId: number) => {
+    const isCurrentRun = () => runIdRef.current === myRunId;
     console.log('[OpenAI Realtime] Setting up event listeners...');
 
     // --- Raw API events via transport_event passthrough ---
     session.on('transport_event', (event: any) => {
+      // v4.2.1 IMR Site 2 — bail out if this event belongs to a superseded run.
+      if (!isCurrentRun()) return;
       switch (event.type) {
         case 'input_audio_buffer.speech_started':
           console.log(`[TIMING +${dtNow()}ms] VAD: speech_started`);
@@ -532,6 +539,10 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
 
     session.on('error', (error: any) => {
       console.error('[OpenAI Realtime] Session error:', error);
+      // v4.2.1 IMR Site 2 — stale-session error events must NOT clobber
+      // a fresh run's UI. Log unconditionally (useful for postmortem);
+      // mutate state only if this run is still current.
+      if (!isCurrentRun()) return;
       setError('Connection error. Please try again.');
       setAppState('idle');
       setIsConversationActive(false);
@@ -592,6 +603,20 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     // continuation. NO useEffect indirection.
     runIdRef.current += 1;
     const myRunId = runIdRef.current;
+    // v4.2.1 IMR Site 2 Minor — helper that wraps a promise in a 6s timeout,
+    // captures the timer handle, and clears it on either resolution OR
+    // rejection so no timer keeps ticking after the operation settles.
+    // The rejection tag ('mic-timeout' / 'connect-timeout') is surfaced in
+    // the catch block so the user-facing error message can be specific.
+    const withConnectTimeout = <T,>(promise: Promise<T>, tag: string): Promise<T> => {
+      let timeoutId: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<never>((_, rej) => {
+        timeoutId = setTimeout(() => rej(new Error(tag)), 6000);
+      });
+      return Promise.race([promise, timeoutPromise]).finally(() => {
+        clearTimeout(timeoutId);
+      });
+    };
     // v4.2 — captured for late-resolve force-close of a Promise.race-
     // abandoned SDK connect (F-10). Not the same as sessionRef.current
     // because Stop may null sessionRef during the await window.
@@ -607,18 +632,30 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       audioContextRef.current = ctx;
       if (ctx.state === 'suspended') await ctx.resume();
       // v4.2 guard site #1 — post-ctx.resume()
-      if (runIdRef.current !== myRunId) return;
+      if (runIdRef.current !== myRunId) {
+        console.log('[OpenAI Realtime] F-8 guard #1 fired (post-ctx.resume) — run superseded');
+        return;
+      }
 
       // 2. Capture mic ONCE — shared with SDK and our mic analyser
       // v4.2 (Codex Pass-3 Major) — capture into local binding FIRST, then
       // check runIdRef BEFORE assigning to the ref. If Stop fired during
       // permission-prompt, cleanupAudio ran on a null ref (no-op); a late
       // resolve here would leak the fresh mic stream.
-      const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-      });
+      //
+      // v4.2.1 IMR Site 4 — wrap getUserMedia in a 6s timeout too. Plan's
+      // §7.4 only covered session.connect, but a hung permission prompt or
+      // device-selection stall could park warming indefinitely, violating
+      // the UVO NNF "warming lingers >3s with no chime" bound.
+      const micStream = await withConnectTimeout(
+        navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        }),
+        'mic-timeout'
+      );
       // v4.2 guard site #2 — post-getUserMedia (with sync track-stop on mismatch)
       if (runIdRef.current !== myRunId) {
+        console.log('[OpenAI Realtime] F-8 guard #2 fired (post-getUserMedia) — run superseded');
         micStream.getTracks().forEach(t => t.stop());
         return;
       }
@@ -735,17 +772,25 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       localSession = session;
 
       // 9. Set up event listeners BEFORE connecting
-      setupSessionEventListeners(session);
+      // v4.2.1 IMR Site 2 — thread myRunId so listeners can bail out on
+      // superseded runs.
+      setupSessionEventListeners(session, myRunId);
 
       // 10. Get ephemeral token and connect
       console.log(`[TIMING +${dtNow()}ms] Fetching ephemeral token...`);
       const response = await fetch('/api/voice-interface/openai-realtime-token');
       // v4.2 guard site #3 — post-fetch(token)
-      if (runIdRef.current !== myRunId) return;
+      if (runIdRef.current !== myRunId) {
+        console.log('[OpenAI Realtime] F-8 guard #3 fired (post-fetch) — run superseded');
+        return;
+      }
       if (!response.ok) throw new Error(`Failed to get token: ${response.statusText}`);
       const tokenData = await response.json();
       // v4.2 guard site #4 — post-response.json() (async parse)
-      if (runIdRef.current !== myRunId) return;
+      if (runIdRef.current !== myRunId) {
+        console.log('[OpenAI Realtime] F-8 guard #4 fired (post-response.json) — run superseded');
+        return;
+      }
       const ephemeralKey = tokenData.key;
       if (!ephemeralKey) throw new Error('No ephemeral token received');
       console.log(`[TIMING +${dtNow()}ms] Got ephemeral token`);
@@ -755,12 +800,10 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       // On timeout, the race returns to catch; the SDK's connect is still in-
       // flight. The catch's localSession.close() + runIdRef invalidation handle
       // the orphan.
-      await Promise.race([
-        session.connect({ apiKey: ephemeralKey }),
-        new Promise<never>((_, rej) =>
-          setTimeout(() => rej(new Error('connect-timeout')), 6000)
-        ),
-      ]);
+      // v4.2.1 IMR Site 2 Minor — use withConnectTimeout helper so the timer
+      // is captured and cleared on success (no idle setTimeout ticking after
+      // fast resolve).
+      await withConnectTimeout(session.connect({ apiKey: ephemeralKey }), 'connect-timeout');
       console.log(`[TIMING +${dtNow()}ms] session.connect() resolved — WebRTC ready, OpenAI VAD active`);
 
       // v4.2 guard site #5 — post-Promise.race(session.connect, timeout)
@@ -768,6 +811,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       // and this is a late resolve, myRunId no longer matches. Force-close
       // the SDK session to prevent orphan peer connection.
       if (runIdRef.current !== myRunId) {
+        console.log('[OpenAI Realtime] F-8 guard #5 fired (post-connect) — run superseded, force-closing SDK session');
         try { session.close(); } catch { /* SDK may throw on double-close */ }
         return;
       }
@@ -779,26 +823,49 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
 
     } catch (err) {
       console.error('[OpenAI Realtime] Error starting conversation:', err);
-      const isTimeout = err instanceof Error && err.message === 'connect-timeout';
-      setError(
-        isTimeout
-          ? 'Connection timed out — please try again.'
-          : 'Failed to start conversation. Please check your microphone.'
-      );
-      setAppState('idle');
-      setIsConnecting(false);
-      setIsConversationActive(false);
+
+      // v4.2.1 IMR Site 1 CRITICAL — the catch block itself must be run-id
+      // guarded. Otherwise a late timeout (mic-timeout or connect-timeout)
+      // or a mid-warming rejection can clobber a NEW Start's state after
+      // the user already clicked Stop and re-started.
+      //
+      // The state mutations are guarded; the resource cleanup runs
+      // unconditionally because those resources belong to THIS run
+      // regardless of whether it's still current.
+      const isCurrentRun = runIdRef.current === myRunId;
+      if (isCurrentRun) {
+        const errMsg = err instanceof Error ? err.message : '';
+        const isMicTimeout = errMsg === 'mic-timeout';
+        const isConnectTimeout = errMsg === 'connect-timeout';
+        setError(
+          isMicTimeout
+            ? 'Microphone timed out — please check your permissions.'
+            : isConnectTimeout
+              ? 'Connection timed out — please try again.'
+              : 'Failed to start conversation. Please check your microphone.'
+        );
+        setAppState('idle');
+        setIsConnecting(false);
+        setIsConversationActive(false);
+      } else {
+        console.log('[OpenAI Realtime] catch fired on superseded run — state mutations skipped');
+      }
 
       // v4.2 F-10 — force-close any SDK session that may still be in-flight
-      // after the timeout branch or a mid-connect throw. The local binding is
-      // authoritative; sessionRef may have been nulled.
+      // after the timeout branch or a mid-connect throw. Runs unconditionally
+      // because localSession is scoped to THIS run's closure and must be
+      // torn down regardless of whether the run is still current.
       if (localSession) {
         try { localSession.close(); } catch { /* best-effort */ }
       }
-      // Invalidate the run so a late resolve of the abandoned connect does
-      // not mutate state.
-      runIdRef.current += 1;
+      // Invalidate the run only if it's still current — otherwise Stop or
+      // Start #2 already invalidated it and we shouldn't stomp their runId.
+      if (isCurrentRun) {
+        runIdRef.current += 1;
+      }
 
+      // Resource cleanup runs unconditionally — this run's interval and
+      // audio resources must be released regardless of run-current-ness.
       if (audioIntervalRef.current) {
         clearInterval(audioIntervalRef.current);
         audioIntervalRef.current = null;
@@ -969,7 +1036,14 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
               warming are structurally no-op via handler omission). */}
           <div className="button-container">
             {isConnecting ? (
-              <ProcessingButtonDark isProcessing={true} />
+              // v4.2.1 IMR Site 4 Minor — pass warming-affordance className so
+              // the pill's cursor is `default` instead of `pointer` (the
+              // component doesn't accept an onClick during warming; the
+              // pointer cursor would falsely suggest clickability).
+              <ProcessingButtonDark
+                isProcessing={true}
+                className="warming-affordance"
+              />
             ) : (
               <MorphingRecordWideSimple
                 state={isConversationActive ? 'recording' : 'idle'}
@@ -1150,6 +1224,15 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           padding: 0 12px;
           margin-top: 10px;
           /* border: 0.5px solid green; */ /* DEBUG */
+        }
+
+        /* v4.2.1 IMR Site 4 Minor — warming-state affordance override.
+           Global selector because ProcessingButtonDark's own style block
+           sets cursor:pointer inside styled-jsx scope; this deeper
+           :global rule wins on cascade. Applied only when the pill
+           renders during warming and no onClick is wired. */
+        .button-container :global(.processing-button-dark.warming-affordance) {
+          cursor: default;
         }
 
         /* Error Message */
