@@ -1,6 +1,9 @@
 ---
 kind: discovery
+id: 6446b249-f82a-413d-a7b2-20103ee11ea3
 title: Realtime voice interface — visual-surface discovery
+topic: Component map + live screenshots + Feature-PIS anchor for realtime connect-window work
+estimate_range: ["1h", "3h"]
 created: 2026-07-03T12:45+01:00
 scope: Every file that renders on /voiceinterface/realtime + verified live measurements + sibling stylization survey
 purpose: Anchor for Feature-PIS elicitation. Without this, any plan/implementation for the connect-window fix (or any wider visualization work) misses visual composition surfaces and creates counter-friction.
