@@ -3,8 +3,8 @@ kind: plan
 id: 4b1a8e7c-9d2f-4a15-b7e3-c1f0a5d3b829
 title: Realtime — fix WebRTC connect-window first-utterance-lost bug via ProcessingButtonDark warming + chirp-on-ready
 created: 2026-07-02T22:30+01:00
-revised: 2026-07-03T18:35+01:00
-status: DRAFT-v4.1
+revised: 2026-07-03T18:45+01:00
+status: DRAFT-v4.2
 related:
   - tasks/realtime-first-token-handoff.md
   - tasks/realtime-vad-and-vercel-401-handoff.md
@@ -22,6 +22,7 @@ version_history:
   - v3 2026-07-03 12:00 — cross-family review synthesis applied, two-SAFE Claude+Codex (commit 8107fbd)
   - v4 2026-07-03 13:00 — Feature-PIS re-elicited with user; §0 rewritten; button strategy pivoted to ProcessingButtonDark (no text, spinner-only); Nebularr/Circle coverage promoted to ship-blocker
   - v4.1 2026-07-03 18:35 — Pass-2 cross-family review (Claude + Codex) findings applied. Codex Major-1: `disabled` prop freezes spinner + `aria-label` not accepted by ProcessingButtonDarkProps + focus/aria-live missing. Claude Major-1: getUserMedia + response.json guard sites missing from §6 diff. Claude Major-2: AC-12 split into AC-12a/12b/12c with concrete criteria. Codex Minor-2: Round E reframed (Nebularr crossfade is mount-only, sibling to button-swap). Codex Minor-3: §7.2 option (a) demoted (connection_change=connected fires in same handler as unawaited updateSessionConfig).
+  - v4.2 2026-07-03 18:45 — Pass-3 cross-family review two-SAFE (0 Crit, 1 Major, 5 Minor total). Codex Major (Pass-3): v4.1's post-getUserMedia guard placement was AFTER `micStreamRef.current = micStream` — Stop-during-permission-prompt would leak mic tracks. v4.2 fix: guard BEFORE assign; if mismatched, synchronously stop tracks. Also: aria-disabled prose corrected (no aria-disabled in JSX; aria-live on label is the load-bearing path); localSession = session capture promoted to concrete diff line; NODE_ENV gate on __DEBUG_STOP__ + AC-15 grep-bundle check; §7.2 "v3/v4" residue → "v4.2"; §0 UVO "replaces the Mic" → "component is swapped".
 ---
 
 # §0. Feature-PIS (v4 — re-elicited with user 2026-07-03)
@@ -30,7 +31,7 @@ version_history:
 
 **Discovery anchor:** [tasks/DISCOVERY_2026-07-03_realtime-visual-surface.md](DISCOVERY_2026-07-03_realtime-visual-surface.md). Every claim below is grounded in a verified source read or a live-Playwright measurement.
 
-- **UVO** — When the user clicks the Record button on `/voiceinterface/realtime`, the moment is **acknowledged**: the button visually replaces the Mic with a rotating spinner (via `ProcessingButtonDark` from `voicebuttons.tsx:1386` — same dark pill vocabulary, slightly smaller footprint 64×38 vs 76×44); the label above the orb reads "**Connecting**" (centered — no layout jitter because centered text pivots around the middle, not the left edge); the orb stays calm (no visual state change during warming — Coral's idle==listening constraint verified in `CoralRealtimeBlob.tsx:363-378`). When `session.connect()` resolves (~1.5s median in real Chrome), a short ascending chime plays, the label switches to "**Listening…**", and the button morphs to the Stop pill. From that moment on, the first thing the user says reaches OpenAI's VAD reliably. Utterances spoken BEFORE the chime are the user's own fault, not the app's — but the warming state's acknowledgment (spinner + label) is clear enough that the user naturally waits for the chime.
+- **UVO** — When the user clicks the Record button on `/voiceinterface/realtime`, the moment is **acknowledged**: the button *component* is swapped for a rotating-spinner pill (`ProcessingButtonDark` from `voicebuttons.tsx:1386` — same dark pill vocabulary, slightly smaller footprint 64×38 vs 76×44); the label above the orb reads "**Connecting**" (centered — no layout jitter because centered text pivots around the middle, not the left edge); the orb stays calm (no visual state change during warming — Coral's idle==listening constraint verified in `CoralRealtimeBlob.tsx:363-378`). When `session.connect()` resolves (~1.5s median in real Chrome), a short ascending chime plays, the label switches to "**Listening…**", and the button morphs to the Stop pill. From that moment on, the first thing the user says reaches OpenAI's VAD reliably. Utterances spoken BEFORE the chime are the user's own fault, not the app's — but the warming state's acknowledgment (spinner + label) is clear enough that the user naturally waits for the chime.
 - **NNF** (v4 — expanded via elicitation)
   - **Text label**: no revival of the rejected `014f7af` "Ready when you are" static text. Label switches "Ready when you are" (idle) → "Connecting" (warming, centered) → "Listening…" (ready).
   - **Layout stability**: label container width is fixed (or text is centered on a middle-pivot) so text length differences ("Ready when you are" 18 chars vs "Connecting" 10 vs "Listening…" 12) don't cause horizontal jitter. User confirmed: centering solves this without a fixed-width container.
@@ -365,17 +366,36 @@ Inline in `VoiceRealtimeOpenAI.tsx` is simplest (one file touched, no import). E
        if (ctx.state === 'suspended') await ctx.resume();
 +      if (runIdRef.current !== myRunId) return;
 
-       // 2. Capture mic (existing at source line 589) — GUARD ADDED v4.1 per Claude Major-1
+       // 2. Capture mic (existing at source line 589) — GUARD v4.2 (Codex Pass-3 Major fix)
 +      // Original await:
 +      //   const micStream = await navigator.mediaDevices.getUserMedia({...});
 +      //   micStreamRef.current = micStream;
-+      // ADD immediately after:
-+      if (runIdRef.current !== myRunId) return;
++      // v4.1 placed the guard AFTER `micStreamRef.current = micStream`; Codex
++      // Pass-3 flagged this as a mic-stream leak: if Stop fired during
++      // permission-prompt, cleanupAudio (source line 532) ran on a null ref
++      // and returned; then getUserMedia resolved, assigned a fresh stream to
++      // the ref, and the guard returned — orphan mic tracks stay live.
++      // v4.2 fix: guard BEFORE assigning to ref, and stop tracks SYNCHRONOUSLY
++      // if mismatched. Replace `micStreamRef.current = micStream;` with:
++      const micStream = await navigator.mediaDevices.getUserMedia({...});
++      if (runIdRef.current !== myRunId) {
++        // Late resolve — Stop already ran cleanupAudio on the old (null) ref.
++        // Stop the tracks we just captured; do NOT assign to the ref.
++        micStream.getTracks().forEach(t => t.stop());
++        return;
++      }
++      micStreamRef.current = micStream;
 
-       // ... steps 3-9 unchanged (analysers, transport, agent, session, listeners) ...
-+      // NOTE: at step ~6 where the RealtimeSession is created, capture:
-+      //   localSession = session;
-+      // (Used only in the catch/timeout paths for force-close.)
+       // ... steps 3-5 unchanged (analysers, transport, agent) ...
+       // Step 6: RealtimeSession creation.
+       const session = new RealtimeSession(agent, { transport });
++      // v4.2 — capture the session in the outer `let localSession` so the
++      // catch/timeout paths can force-close it even if sessionRef has been
++      // nulled by Stop. Must happen at the SAME statement as construction —
++      // if a mid-await throws before this line, localSession stays null and
++      // the catch's `if (localSession)` guard skips the .close() gracefully.
++      localSession = session;
+       // ... steps 7-9 unchanged (listeners) ...
 
        // 10. Get ephemeral token and connect
        console.log(`[TIMING +${dtNow()}ms] Fetching ephemeral token...`);
@@ -384,6 +404,8 @@ Inline in `VoiceRealtimeOpenAI.tsx` is simplest (one file touched, no import). E
        if (!response.ok) throw new Error(`Failed to get token: ${response.statusText}`);
        const tokenData = await response.json();
 +      // v4.1 — guard AFTER response.json() too, since json() is an async parse.
++      // (Note: response.json() has no capture-and-assign shape like getUserMedia,
++      //  so a plain early-return here is safe — no orphan resources to clean up.)
 +      if (runIdRef.current !== myRunId) return;
        const ephemeralKey = tokenData.key;
        if (!ephemeralKey) throw new Error('No ephemeral token received');
@@ -476,7 +498,9 @@ Inline in `VoiceRealtimeOpenAI.tsx` is simplest (one file touched, no import). E
 2. **Type-check failure** (Codex): `ProcessingButtonDarkProps` at `voicebuttons.tsx:1379-1384` accepts ONLY `{onClick?, disabled?, className?, isProcessing?}`. `aria-label` is not a prop; component hardcodes `aria-label="Processing"` at line 1398. JSX won't type-check.
 3. **Accessibility drop** (Codex): unmount of `MorphingRecordWideSimple` → mount of `ProcessingButtonDark` moves focus to `<body>` because the newly-mounted button isn't auto-focused. Screen-reader users get no announcement because `VoiceStateLabel` has no `aria-live` (verified via `grep aria-live` — zero hits).
 
-**v4.1 fix — suppress clicks via handler-side guard + `aria-disabled`, NOT the DOM `disabled` prop.** The spinner keeps animating; the button structurally still receives clicks but they no-op via the swap boundary (no `onClick` handler is even wired). Focus preservation handled by rendering both buttons at the same DOM position (React reuses the button element only if the component type is stable — since we're swapping types, focus WILL drop, so the label carries the announcement via `aria-live` instead).
+**v4.1/v4.2 fix — suppress clicks via handler-omission at the swap boundary, NOT the DOM `disabled` prop.** During warming, `ProcessingButtonDark` renders with no `onClick` prop wired — clicks land on a button whose click handler is undefined and produce no side-effect. The spinner keeps animating (no `disabled` freeze). Focus WILL drop to `<body>` on the component-type swap (React reuses button elements only when the component type is stable, which it isn't across the swap) — so the label carries the state announcement via `aria-live` instead.
+
+*v4.2 clarification (Codex Pass-3 Minor 2):* v4.1's prose claimed "handler-side guard + `aria-disabled`" but the JSX passes neither an onClick nor an aria-disabled. That was inaccurate. There is NO `aria-disabled` in the shipped JSX — extending `ProcessingButtonDarkProps` to accept it is deferred (would touch the shared component's contract). The load-bearing accessibility path is the `aria-live` on the label; the button itself is hardcoded `aria-label="Processing"` at `voicebuttons.tsx:1398` which SR users hear when they focus it.
 
 **Implementation** (`VoiceRealtimeOpenAI.tsx` render section, replaces current lines 830-836):
 
@@ -544,7 +568,7 @@ Rationale:
   - **(c)** Wait for the first `input_audio_buffer.speech_started` event from the SDK before considering VAD live — semantic proof (server-side VAD has processed at least one audio frame). Downside: only fires when user speaks; can't gate a ready-signal chime that must precede speech.
   - **(d)** Hybrid: promote `(b)` as the ready-signal gate; on first `speech_started`, retroactively confirm VAD was live at chime time (telemetry only, no UX impact).
 
-Ship v3/v4 on `session.connect()` resolution. AC-9 is the gate that either confirms the choice or triggers v5.
+Ship v4.2 on `session.connect()` resolution. AC-9 is the gate that either confirms the choice or triggers v5 (option (b), (c), or (d)).
 
 ## §7.3 Peer-connection reuse for subsequent conversations
 
@@ -589,9 +613,10 @@ Without steps 2+3, the SDK connect would eventually resolve against a torn-down 
 
 In v4.1 the button is component-swapped, not disabled-in-place. During warming, `<ProcessingButtonDark />` renders with NO `onClick` handler → clicks during warming are structurally no-op. So Round B's original "click again during warming" no longer exercises the runIdRef guard through the UI.
 
-To actually test the F-8 guard (Stop-during-warming), Round B force-invokes Stop via DevTools console:
+To actually test the F-8 guard (Stop-during-warming), Round B force-invokes Stop via DevTools console. **v4.2 note (Claude Pass-3 Minor 3):** the `window.__DEBUG_STOP__` handle is a remove-before-commit hazard; gate its attach behind `if (process.env.NODE_ENV !== 'production') { (window as any).__DEBUG_STOP__ = handleStopConversation; }` so it's stripped from the prod bundle by Next's dead-code elimination. Add a §9 checklist item confirming absence from the built bundle (see AC-15 below).
+
 1. Click Record.
-2. Within 200ms (during warming, before chime), open DevTools console and execute the app's exposed Stop path — either dispatch a synthetic click on the future Stop button OR call `handleStopConversation()` via a temporarily-window-exposed handle (add `window.__DEBUG_STOP__` during v4.1 impl for this test; remove before commit).
+2. Within 200ms (during warming, before chime), open DevTools console and execute `window.__DEBUG_STOP__()`.
 3. Verify: NO phantom "Listening" label appears after connect resolves; NO chime plays; UI returns to idle; runIdRef mismatch fires the guarded return in the post-await block (add a `console.log` inside the guard branch to instrument the test).
 
 If any phantom appears, the runIdRef pattern has a defect and must be fixed before ship (F-8 falsifier fired). Pass criterion: 5/5 clean cycles.
@@ -601,7 +626,7 @@ If any phantom appears, the runIdRef pattern has a defect and must be fixed befo
    - Did chime fire? (Y/N)
    - Time from click → chime (ms).
    - Did AI respond to immediate speech? (Y/N)
-2. Compute AC-9 pass rate. ≥90% AI-response = v3 ships. <90% = F-9 fires empirically; v4 promotes §7.2.
+2. Compute AC-9 pass rate. ≥90% AI-response = v4.2 ships. <90% = F-9 fires empirically; v5 promotes §7.2.
 
 **Round D — Timeout path (AC-10)**
 1. Chrome DevTools → Network → Throttle to "Slow 3G".
@@ -659,10 +684,11 @@ Fix is done when ALL are true:
 14. **AC-12c (v4.1 — profile-switch overlap edge case, non-blocker).** Per Codex Minor-2 reframing: the Nebularr crossfade fires on **mount**, i.e. profile-switch. Distinct from Start. Test protocol: click a Nebularr profile thumb, then click Record within 500ms of the switch (while the crossfade is still running). Expected: crossfade completes cleanly regardless of warming state; if warming starts mid-crossfade, both animations run in parallel without visual conflict. NOT a ship-blocker; observation only. Log outcome for a potential follow-up.
 15. **AC-13 (v4 — layout stability).** Take DevTools screenshot at each state (idle / connecting / listening / thinking / speaking) with the DevTools "device pixel ratio" toolbar overlay. Measure horizontal offset of the label's center. All 5 states must have the label center within ±1px of each other — proves centering solves the jitter concern raised in elicitation.
 16. **AC-14 (v4.1 — accessibility, non-blocker).** VoiceOver / NVDA announces state transitions. Concrete test: with SR active, click Record; SR should announce "Connecting" within ~200ms of the click, and "Listening" within ~200ms of the chime. If SR announces nothing (indicating `aria-live` misconfigured), fix before ship. Reduced-motion users: verify spinner has `animation: none` per the media query at `voicebuttons.tsx:1494-1499`.
+17. **AC-15 (v4.2 — no debug scaffolding in prod bundle, ship-blocker).** After a production build (`npm run build` or equivalent), grep the emitted JS bundle for `__DEBUG_STOP__`. Expected zero hits. If any hit, the NODE_ENV gate failed and the debug handle would ship — remove before deploy.
 
 # §10. Cost estimate (v4)
 
-- Implementation: 4-5 hours (state + label + chime + reorder + runIdRef pattern with 5 guard sites + timeout path + button component-swap + aria-live label + import wiring + verify all 16 ACs — AC-1..AC-11, AC-12a/12b/12c, AC-13, AC-14).
+- Implementation: 4-5 hours (state + label + chime + reorder + runIdRef pattern with 5 guard sites [with sync track-stop on getUserMedia mismatch] + timeout path + button component-swap + aria-live label + NODE_ENV-gated __DEBUG_STOP__ + import wiring + verify all 17 ACs — AC-1..AC-11, AC-12a/12b/12c, AC-13, AC-14, AC-15).
 - Manual verification: 60-90 min in real Chrome + Safari for Coral (Round A + C + D). Plus 40-60 min for Round E (Nebularr + Circle coherence).
 - Total appetite: 5-8 hours (matches frontmatter `estimate_range: ["5h","8h"]`). Elicited with user 2026-07-03.
 - Kill-conditions:
