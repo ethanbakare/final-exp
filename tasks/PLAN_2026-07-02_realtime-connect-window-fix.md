@@ -3,8 +3,8 @@ kind: plan
 id: 4b1a8e7c-9d2f-4a15-b7e3-c1f0a5d3b829
 title: Realtime — fix WebRTC connect-window first-utterance-lost bug via ProcessingButtonDark warming + chirp-on-ready
 created: 2026-07-02T22:30+01:00
-revised: 2026-07-03T23:20+01:00
-status: DRAFT-v4.2.2
+revised: 2026-07-03T23:40+01:00
+status: DRAFT-v4.2.3
 related:
   - tasks/realtime-first-token-handoff.md
   - tasks/realtime-vad-and-vercel-401-handoff.md
@@ -25,6 +25,7 @@ version_history:
   - v4.2 2026-07-03 18:45 — Pass-3 cross-family review two-SAFE (0 Crit, 1 Major, 5 Minor total). Codex Major (Pass-3): v4.1's post-getUserMedia guard placement was AFTER `micStreamRef.current = micStream` — Stop-during-permission-prompt would leak mic tracks. v4.2 fix: guard BEFORE assign; if mismatched, synchronously stop tracks. Also: aria-disabled prose corrected (no aria-disabled in JSX; aria-live on label is the load-bearing path); localSession = session capture promoted to concrete diff line; NODE_ENV gate on __DEBUG_STOP__ + AC-15 grep-bundle check; §7.2 "v3/v4" residue → "v4.2"; §0 UVO "replaces the Mic" → "component is swapped".
   - v4.2.1 2026-07-03 22:40 — IMR Pass-1 (Claude implementation-reviewer + Codex, Rule B2.d) found 1 Critical + 3 Major + 3 Minor. Applied: (1) catch-block runIdRef guard on state mutations (Site 1 Crit); (2) setupSessionEventListeners now accepts myRunId + isCurrentRun gate on transport_event and session.on('error') (Site 2 Major); (3) VoiceStateLabel aria-live moved to persistent outer .voice-state-live-region wrapper, inner keyed div still fades (Site 3 Major); (4) withConnectTimeout helper wraps BOTH getUserMedia and session.connect with 6s + clearTimeout on settle (Site 4 Major); (5) F-8 guard sites now log to console.log for audit trail; (6) ProcessingButtonDark gets className='warming-affordance' + :global cursor:default override. Followed by commit 408e5fb — console.warn vs console.error split for expected timeouts (user caught Next 15 Runtime Error overlay dialog on mic-timeout; console.error triggers the overlay, console.warn doesn't). Commit: 52be482 + 408e5fb.
   - v4.2.2 2026-07-03 23:20 — IMR Pass-2 (Claude implementation-reviewer + Codex, Rule B2.d) found 0 Crit + 4 Major + 2 Minor. Applied: (1) catch cleanup (audioIntervalRef + cleanupAudio) now guarded behind isCurrentRun — Codex Major 1 caught that unconditional cleanup on a superseded run would tear down Start #2's component-global refs; (2) deferred response.create setTimeout callback re-checks isCurrentRun() and routes through closure-captured session (not sessionRef.current) — Codex Major 2 caught that speech_stopped's setTimeout could send response.create to a stale/wrong session after runId flipped; (3) withConnectTimeout tags timeout errors with __expected=true + __timeoutTag properties instead of relying on strict string match on err.message — Claude Major Site 3 + Codex Minor 4 flagged the stringly-typed contract as drift-prone; (4) plan file version_history + status updated to reflect actual shipped code (this entry). Rule A1 cascade discipline: this update closes the plan-vs-code drift Claude Major Site 5 + Codex Minor 3 flagged.
+  - v4.2.3 2026-07-03 23:40 — IMR Pass-3 (Claude implementation-reviewer + Codex, Rule B2.d) found 1 Crit + 3 Major + 3 Minor. Applied: (1) **CODEX CRITICAL — mic-stream leak on late-resolve**: withConnectTimeout only raced against timeout; if getUserMedia resolved after mic-timeout won, mic tracks stayed active while UI said "timed out." Fix: added `onLateResolve` callback to withConnectTimeout; getUserMedia call stops tracks on late resolve; session.connect call force-closes session on late resolve. (2) Codex Major 1 — speech_stopped's try/catch around sendEvent swallowed real bugs. Fix: removed the try/catch (isCurrentRun already checked; failures now surface via console.error or session's own error listener). (3) Claude Major — unmount cleanup did not increment runIdRef → warming Start's late timeout catch would set state on unmounted component. Fix: added `runIdRef.current += 1` as first line of unmount cleanup. (4) Codex Major 2 + Claude Minor — §6 §7.4 plan prose still described raw Promise.race and old console.error patterns. Fix: added historical-snapshot warning banners at top of §6 and §7.4 pointing readers to version_history for shipped state.
 ---
 
 # §0. Feature-PIS (v4 — re-elicited with user 2026-07-03)
@@ -338,6 +339,8 @@ Inline in `VoiceRealtimeOpenAI.tsx` is simplest (one file touched, no import). E
 
 # §6. `handleStartConversation` reordering sketch
 
+> **⚠️ Historical snapshot (v3/v4 draft).** The diff and prose below are the v3/v4 authoring-time sketch. **Shipped code diverges** — see `version_history` (v4.2.1, v4.2.2, v4.2.3) for material changes: `withConnectTimeout` helper (replaces raw `Promise.race`), discriminator `__expected`+`__timeoutTag` on timeout errors (replaces `err.message ===` string match), `console.warn` for expected timeouts (replaces unconditional `console.error`), catch-block cleanup gated behind `isCurrentRun` (was unconditional), late-resolve callback on getUserMedia + session.connect (was missing — mic/session leaked on late resolve). For current shipped shape, read `src/projects/voiceinterface/components/VoiceRealtimeOpenAI.tsx` at HEAD.
+
 **v3 diff shape** at `VoiceRealtimeOpenAI.tsx:570-720` (concrete lines assume HEAD `4cd7c45`). Rewritten from v2 to address Crit-1 (imperative runIdRef) + Crit-2 (explicit session.close on error/timeout) + Codex-Major-1 (Promise.race clarification):
 
 ```diff
@@ -570,7 +573,7 @@ Rationale:
   - **(c)** Wait for the first `input_audio_buffer.speech_started` event from the SDK before considering VAD live — semantic proof (server-side VAD has processed at least one audio frame). Downside: only fires when user speaks; can't gate a ready-signal chime that must precede speech.
   - **(d)** Hybrid: promote `(b)` as the ready-signal gate; on first `speech_started`, retroactively confirm VAD was live at chime time (telemetry only, no UX impact).
 
-Ship v4.2 on `session.connect()` resolution. AC-9 is the gate that either confirms the choice or triggers v5 (option (b), (c), or (d)).
+**Shipped in v4.2.2/v4.2.3** on `session.connect()` resolution. AC-9 is the gate that either confirms the choice or triggers v5 (option (b), (c), or (d)).
 
 ## §7.3 Peer-connection reuse for subsequent conversations
 
@@ -579,6 +582,8 @@ User's observation: subsequent conversations "work fine without any lag." This i
 If subsequent Start conversations DO in fact skip the connect delay (e.g., some browser-level RTC state persists), the plan is correct but the warming state may fire unnecessarily. Mitigation for that case: only show "Connecting" if `session.connect()` takes >200ms — i.e., delay the "Connecting" label by 200ms and only show it if warming hasn't already resolved. **Not in MVP scope**; add if empirically warranted.
 
 ## §7.4 Hard timeout on warming (F-6) — COMMITTED IN-SCOPE
+
+> **⚠️ Historical draft prose (v3/v4).** Shipped v4.2.3 uses the `withConnectTimeout` helper (not raw `Promise.race`), wraps BOTH getUserMedia AND session.connect, and now includes a late-resolve callback that stops mic tracks / closes the session if the underlying op resolves after the timeout fired. See `version_history` for the incremental fixes.
 
 Falsifier F-6: warming lingers past ~6s on very slow networks. **Ship a 6s timeout** via `Promise.race([session.connect({...}), timeoutPromise])`.
 

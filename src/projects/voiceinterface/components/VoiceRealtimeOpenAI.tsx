@@ -481,11 +481,16 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
               return;
             }
             console.log('[OpenAI Realtime] Thinking complete, triggering response...');
-            try {
-              session.transport.sendEvent({ type: 'response.create' });
-            } catch (err) {
-              console.warn('[OpenAI Realtime] response.create send failed (session may be closing):', err);
-            }
+            // v4.2.3 IMR Pass-3 Codex Major 1 — don't swallow real send
+            // failures. isCurrentRun just passed, so the session should be
+            // valid. If sendEvent throws, it's either a genuine SDK
+            // failure (contract change, malformed payload) or a race
+            // between our check and the SDK's internal state — both
+            // deserve a real console.error + user-facing error. Do NOT
+            // wrap in try/catch; if the SDK throws sync, the error goes
+            // to window.onerror. If it fails async, its own listener
+            // (session.on('error')) will handle it.
+            session.transport.sendEvent({ type: 'response.create' });
           }, THINKING_GATE_MS);
           break;
 
@@ -628,10 +633,24 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     // a message that happens to include 'mic-timeout' or if the tag is
     // renamed. Instead, tag the Error with a discriminator property that
     // the catch block matches structurally.
-    const withConnectTimeout = <T,>(promise: Promise<T>, tag: string): Promise<T> => {
+    // v4.2.3 IMR Pass-3 Codex Critical — the original wrapper only raced the
+    // promise against a timeout; the underlying operation (getUserMedia)
+    // couldn't be cancelled, so when the timeout won, the mic hardware
+    // continued acquiring the stream. When getUserMedia resolved late,
+    // NOTHING stopped the tracks — the microphone stayed active while the
+    // UI said "timed out". Fix: accept an optional onLateResolve cleanup
+    // callback that runs on the ORIGINAL promise's resolution if the
+    // timeout had already won. For getUserMedia, cleanup = stop tracks.
+    const withConnectTimeout = <T,>(
+      promise: Promise<T>,
+      tag: string,
+      onLateResolve?: (value: T) => void,
+    ): Promise<T> => {
       let timeoutId: ReturnType<typeof setTimeout>;
+      let timedOut = false;
       const timeoutPromise = new Promise<never>((_, rej) => {
         timeoutId = setTimeout(() => {
+          timedOut = true;
           const err = new Error(tag);
           // Discriminator property survives .message drift and subclass errors.
           (err as Error & { __expected: true; __timeoutTag: string }).__expected = true;
@@ -639,6 +658,19 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
           rej(err);
         }, 6000);
       });
+      // Attach a late-resolve handler to the ORIGINAL promise (not to
+      // Promise.race — race already settled at timeout). If the underlying
+      // op resolves after the timeout fired, hand the value to the cleanup
+      // callback so it can release resources (stop mic tracks, close session).
+      if (onLateResolve) {
+        promise
+          .then((value) => {
+            if (timedOut) {
+              try { onLateResolve(value); } catch { /* best-effort */ }
+            }
+          })
+          .catch(() => { /* rejection already handled by race */ });
+      }
       return Promise.race([promise, timeoutPromise]).finally(() => {
         clearTimeout(timeoutId);
       });
@@ -677,7 +709,14 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
         navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         }),
-        'mic-timeout'
+        'mic-timeout',
+        // v4.2.3 late-resolve cleanup — if getUserMedia resolves after the
+        // 6s timeout has already rejected, stop the tracks so the mic
+        // doesn't stay hot after the UI says "timed out".
+        (stream) => {
+          console.log('[OpenAI Realtime] getUserMedia resolved after mic-timeout — stopping late-resolved tracks');
+          stream.getTracks().forEach(t => t.stop());
+        },
       );
       // v4.2 guard site #2 — post-getUserMedia (with sync track-stop on mismatch)
       if (runIdRef.current !== myRunId) {
@@ -829,7 +868,18 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       // v4.2.1 IMR Site 2 Minor — use withConnectTimeout helper so the timer
       // is captured and cleared on success (no idle setTimeout ticking after
       // fast resolve).
-      await withConnectTimeout(session.connect({ apiKey: ephemeralKey }), 'connect-timeout');
+      await withConnectTimeout(
+        session.connect({ apiKey: ephemeralKey }),
+        'connect-timeout',
+        // v4.2.3 late-resolve cleanup — if session.connect() resolves after
+        // the 6s timeout, force-close the session so the peer connection
+        // doesn't leak. `session` is captured in this closure and remains
+        // valid even if sessionRef has been nulled by Stop.
+        () => {
+          console.log('[OpenAI Realtime] session.connect() resolved after connect-timeout — force-closing');
+          try { session.close(); } catch { /* best-effort */ }
+        },
+      );
       console.log(`[TIMING +${dtNow()}ms] session.connect() resolved — WebRTC ready, OpenAI VAD active`);
 
       // v4.2 guard site #5 — post-Promise.race(session.connect, timeout)
@@ -1041,6 +1091,12 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // v4.2.3 IMR Pass-3 Claude Major — invalidate any in-flight Start
+      // synchronously so its post-await guards see the mismatch and no-op.
+      // Without this, unmount during warming (route change, StrictMode
+      // double-mount) leaves the Start's late timeout catch firing
+      // setError/setAppState on an unmounted component tree.
+      runIdRef.current += 1;
       if (audioIntervalRef.current) clearInterval(audioIntervalRef.current);
       if (thinkingTimerRef.current) clearTimeout(thinkingTimerRef.current);
       if (sessionRef.current) {
