@@ -7,7 +7,7 @@ import React from 'react';
  * Text updates with a quick opacity fade transition.
  */
 
-export type VoiceStateLabelState = 'idle' | 'listening' | 'ai_thinking' | 'ai_speaking';
+export type VoiceStateLabelState = 'idle' | 'connecting' | 'listening' | 'ai_thinking' | 'ai_speaking';
 
 export interface VoiceStateLabelProps {
   state: VoiceStateLabelState;
@@ -15,6 +15,7 @@ export interface VoiceStateLabelProps {
 
 const STATE_LABELS: Record<VoiceStateLabelState, string> = {
   idle: 'Ready when you are',
+  connecting: 'Connecting',
   listening: 'Listening...',
   ai_thinking: 'Thinking...',
   ai_speaking: 'Speaking...',
@@ -23,8 +24,17 @@ const STATE_LABELS: Record<VoiceStateLabelState, string> = {
 export const VoiceStateLabel: React.FC<VoiceStateLabelProps> = ({ state }) => {
   return (
     <>
-      {/* Key forces re-render on state change, triggering fade animation */}
-      <div key={state} className="voice-state-label">
+      {/* Key forces re-render on state change, triggering fade animation.
+       * aria-live="polite" + role="status" so SR users hear the state
+       * transitions — load-bearing because focus drops to <body> when
+       * the button component swaps between MorphingRecordWideSimple and
+       * ProcessingButtonDark during warming. */}
+      <div
+        key={state}
+        className="voice-state-label"
+        aria-live="polite"
+        role="status"
+      >
         {STATE_LABELS[state]}
       </div>
 

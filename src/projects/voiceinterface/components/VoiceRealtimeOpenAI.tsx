@@ -127,6 +127,7 @@ const CIRCLE_FALLBACK_ORB: LoadedOrb = {
 };
 import { VoiceStateLabel, VoiceStateLabelState } from './ui/VoiceStateLabel';
 import { MorphingRecordWideSimple } from './ui/voicemorphingbuttons';
+import { ProcessingButtonDark } from './ui/voicebuttons';
 import { AudioData } from '../types';
 import { AUDIO_BANDS } from '../constants';
 
@@ -206,8 +207,19 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
   const [appState, setAppState] = useState<AppState>('idle');
   const [error, setError] = useState<string>('');
   const [isConversationActive, setIsConversationActive] = useState<boolean>(false);
+  // v4.2 — orthogonal warming flag. True from Record click until session.connect()
+  // resolves (or timeout/error). Controls label ('connecting') + button component
+  // swap (ProcessingButtonDark ↔ MorphingRecordWideSimple).
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [orbs, setOrbs] = useState<LoadedOrb[]>([]);
   const [activeOrbKey, setActiveOrbKey] = useState<string | null>(null);
+
+  // v4.2 §2.1 — per-Start run identifier for late-callback race safety.
+  // Incremented synchronously at Start entry AND Stop entry. Every post-await
+  // checkpoint captures myRunId at call time and compares runIdRef.current
+  // before mutating state or firing side-effects. Imperative (not useEffect-
+  // derived) so Stop's increment is visible to any in-flight await continuation.
+  const runIdRef = useRef<number>(0);
 
   // Parallel fetch of both shader profile files via Promise.allSettled
   // so a single failure on one variant doesn't erase the other shader's
@@ -575,20 +587,41 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
     // <audio> playing event.
     sessionT0Ref.current = performance.now();
     console.log(`[TIMING +${dtNow()}ms] Click Record → starting conversation`);
+    // v4.2 §2.1 — imperative per-Start ID. Must be synchronous inside the
+    // click handler so Stop's increment is visible to any in-flight await
+    // continuation. NO useEffect indirection.
+    runIdRef.current += 1;
+    const myRunId = runIdRef.current;
+    // v4.2 — captured for late-resolve force-close of a Promise.race-
+    // abandoned SDK connect (F-10). Not the same as sessionRef.current
+    // because Stop may null sessionRef during the await window.
+    let localSession: RealtimeSession | null = null;
     try {
       setIsConversationActive(true);
-      setAppState('listening');
+      // v4.2 — was setAppState('listening'); moved to AFTER connect resolves.
+      setIsConnecting(true);
       setError('');
 
       // 1. Create AudioContext
       const ctx = new AudioContext();
       audioContextRef.current = ctx;
       if (ctx.state === 'suspended') await ctx.resume();
+      // v4.2 guard site #1 — post-ctx.resume()
+      if (runIdRef.current !== myRunId) return;
 
       // 2. Capture mic ONCE — shared with SDK and our mic analyser
+      // v4.2 (Codex Pass-3 Major) — capture into local binding FIRST, then
+      // check runIdRef BEFORE assigning to the ref. If Stop fired during
+      // permission-prompt, cleanupAudio ran on a null ref (no-op); a late
+      // resolve here would leak the fresh mic stream.
       const micStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
       });
+      // v4.2 guard site #2 — post-getUserMedia (with sync track-stop on mismatch)
+      if (runIdRef.current !== myRunId) {
+        micStream.getTracks().forEach(t => t.stop());
+        return;
+      }
       micStreamRef.current = micStream;
       console.log(`[TIMING +${dtNow()}ms] Microphone captured`);
 
@@ -697,6 +730,9 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
         },
       });
       sessionRef.current = session;
+      // v4.2 — capture into local binding so catch's force-close can reach
+      // the session even if Stop has nulled sessionRef during the await window.
+      localSession = session;
 
       // 9. Set up event listeners BEFORE connecting
       setupSessionEventListeners(session);
@@ -704,20 +740,64 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
       // 10. Get ephemeral token and connect
       console.log(`[TIMING +${dtNow()}ms] Fetching ephemeral token...`);
       const response = await fetch('/api/voice-interface/openai-realtime-token');
+      // v4.2 guard site #3 — post-fetch(token)
+      if (runIdRef.current !== myRunId) return;
       if (!response.ok) throw new Error(`Failed to get token: ${response.statusText}`);
       const tokenData = await response.json();
+      // v4.2 guard site #4 — post-response.json() (async parse)
+      if (runIdRef.current !== myRunId) return;
       const ephemeralKey = tokenData.key;
       if (!ephemeralKey) throw new Error('No ephemeral token received');
       console.log(`[TIMING +${dtNow()}ms] Got ephemeral token`);
 
-      await session.connect({ apiKey: ephemeralKey });
+      // v4.2 §7.4 — Promise.race gives us a UI-timeout, NOT a connect-abort.
+      // The SDK connect has no cancellation (verified: realtimeSession.d.ts:79-97).
+      // On timeout, the race returns to catch; the SDK's connect is still in-
+      // flight. The catch's localSession.close() + runIdRef invalidation handle
+      // the orphan.
+      await Promise.race([
+        session.connect({ apiKey: ephemeralKey }),
+        new Promise<never>((_, rej) =>
+          setTimeout(() => rej(new Error('connect-timeout')), 6000)
+        ),
+      ]);
       console.log(`[TIMING +${dtNow()}ms] session.connect() resolved — WebRTC ready, OpenAI VAD active`);
+
+      // v4.2 guard site #5 — post-Promise.race(session.connect, timeout)
+      // F-8 guard: if Stop fired during the connect window OR timeout won
+      // and this is a late resolve, myRunId no longer matches. Force-close
+      // the SDK session to prevent orphan peer connection.
+      if (runIdRef.current !== myRunId) {
+        try { session.close(); } catch { /* SDK may throw on double-close */ }
+        return;
+      }
+      setAppState('listening');
+      setIsConnecting(false);
+      // Chime is async (await ctx.resume() if suspended). Fire and forget —
+      // the visual transition already fired above; chime is defence-in-depth.
+      void playConnectChime(ctx);
 
     } catch (err) {
       console.error('[OpenAI Realtime] Error starting conversation:', err);
-      setError('Failed to start conversation. Please check your microphone.');
+      const isTimeout = err instanceof Error && err.message === 'connect-timeout';
+      setError(
+        isTimeout
+          ? 'Connection timed out — please try again.'
+          : 'Failed to start conversation. Please check your microphone.'
+      );
       setAppState('idle');
+      setIsConnecting(false);
       setIsConversationActive(false);
+
+      // v4.2 F-10 — force-close any SDK session that may still be in-flight
+      // after the timeout branch or a mid-connect throw. The local binding is
+      // authoritative; sessionRef may have been nulled.
+      if (localSession) {
+        try { localSession.close(); } catch { /* best-effort */ }
+      }
+      // Invalidate the run so a late resolve of the abandoned connect does
+      // not mutate state.
+      runIdRef.current += 1;
 
       if (audioIntervalRef.current) {
         clearInterval(audioIntervalRef.current);
@@ -731,6 +811,10 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
    * Stop/Clear Conversation (Click Again)
    */
   const handleStopConversation = () => {
+    // v4.2 §2.1 — invalidate any in-flight Start synchronously as the FIRST
+    // line, before any await, so post-await guards see the mismatch.
+    runIdRef.current += 1;
+    setIsConnecting(false);
     console.log('[OpenAI Realtime] Stopping conversation...');
 
     // 1. Stop audio polling and pending thinking timer
@@ -780,8 +864,60 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
    * Map app state to VoiceStateLabelState for text label
    */
   const getLabelState = (): VoiceStateLabelState => {
+    // v4.2 — during warming, label shows 'Connecting' regardless of appState
+    // (which stays 'idle' during warming per Variant 02 UVO — orb calm).
+    if (isConnecting) return 'connecting';
     return appState;
   };
+
+  /**
+   * v4.2 §5 — Web Audio synthesised chime played the moment
+   * session.connect() resolves. Short ascending sine (440 → 660 Hz),
+   * 100ms envelope, peak amplitude 0.24. Uses the same AudioContext
+   * created inside handleStartConversation (post-user-gesture — no
+   * autoplay-policy issue).
+   *
+   * Awaits ctx.resume() if suspended (per Codex Pass-2 Major-2: fire-
+   * and-forget resume with immediate scheduling on frozen currentTime
+   * would replay the envelope as a click when the tab returns).
+   */
+  const playConnectChime = async (ctx: AudioContext): Promise<void> => {
+    try {
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(660, now + 0.1);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.24, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.14);
+    } catch (err) {
+      // Silent failure — chime is defence-in-depth; visual signal
+      // (setAppState + text swap) is the load-bearing ready cue.
+      console.warn('[OpenAI Realtime] Chime playback failed:', err);
+    }
+  };
+
+  // v4.2 Round B — dev-only handle to test the F-8 late-callback race by
+  // force-invoking Stop during warming. Gated behind NODE_ENV so it's
+  // dead-code-eliminated in production builds. AC-15: grep the built
+  // bundle for __DEBUG_STOP__ to confirm absence.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      (window as unknown as { __DEBUG_STOP__?: () => void }).__DEBUG_STOP__ = handleStopConversation;
+      return () => {
+        delete (window as unknown as { __DEBUG_STOP__?: () => void }).__DEBUG_STOP__;
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -826,13 +962,21 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             </div>
           </div>
 
-          {/* Button Container - Record/Stop button at bottom inside card */}
+          {/* Button Container - Record/Stop button at bottom inside card.
+              v4.2 — during warming, swap to ProcessingButtonDark (spinner-
+              only pill, 64×38). No `disabled` prop (would freeze the spinner
+              per voicebuttons.tsx:1489-1491). No onClick (clicks during
+              warming are structurally no-op via handler omission). */}
           <div className="button-container">
-            <MorphingRecordWideSimple
-              state={isConversationActive ? 'recording' : 'idle'}
-              onRecordClick={handleStartConversation}
-              onStopClick={handleStopConversation}
-            />
+            {isConnecting ? (
+              <ProcessingButtonDark isProcessing={true} />
+            ) : (
+              <MorphingRecordWideSimple
+                state={isConversationActive ? 'recording' : 'idle'}
+                onRecordClick={handleStartConversation}
+                onStopClick={handleStopConversation}
+              />
+            )}
           </div>
 
           {/* Error display */}
