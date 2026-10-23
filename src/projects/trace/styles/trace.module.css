@@ -425,8 +425,10 @@
 
   --trace-z-base: 0;
   --trace-z-navbar: 100;
-  --trace-z-modal: 200;
-  --trace-z-toast: 300;
+  /* Dialogs and toasts sit ABOVE the site navbar (z-index 10000): a dialog
+     covering the nav is standard; page content stays under the bar. */
+  --trace-z-modal: 10001;
+  --trace-z-toast: 10002;
 
 
   /* ==================== TRANSITIONS ==================== */

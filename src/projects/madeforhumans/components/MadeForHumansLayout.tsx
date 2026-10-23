@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import styles from '../styles/madeforhumans.module.css';
 import { ILLUSTRATIONS } from '../data/illustrations';
+import HeroCarousel from './HeroCarousel';
 
 const MadeForHumansLayout: React.FC = () => {
   const [modalImage, setModalImage] = useState<{ src: string; alt: string } | null>(null);
@@ -15,19 +16,22 @@ const MadeForHumansLayout: React.FC = () => {
 
   return (
     <div className={`${styles.container} ${styles.pageContainer}`}>
-      {/* Header: Logo + Tagline */}
-      <div className={styles.headerSection}>
-        <div className={styles.logoWrapper}>
-          <img
-            src="/images/madeforhumans/logo.webp"
-            alt="Made for Humans"
-            className={styles.logo}
-          />
+      {/* Hero: comic carousel, wide logo, tagline (Figma "2025", node 5000:265) */}
+      <header className={styles.hero}>
+        <HeroCarousel />
+        <div className={styles.heroTitleGroup}>
+          <h1 className={styles.heroTitle}>
+            <img
+              src="/images/madeforhumans/mfh-logo-wide.svg"
+              alt="Made for Humans"
+              width={473}
+              height={58}
+              className={styles.heroLogo}
+            />
+          </h1>
+          <p className={styles.heroTagline}>Making AI relatable, one comic at a time</p>
         </div>
-        <div className={styles.taglineBadge}>
-          <span className={styles.taglineText}>Making AI relatable, one comic at a time</span>
-        </div>
-      </div>
+      </header>
 
       {/* Intro Text */}
       <div className={styles.introSection}>
@@ -52,6 +56,8 @@ const MadeForHumansLayout: React.FC = () => {
                   <img
                     src={illust.main}
                     alt={illust.title}
+                    width={1600}
+                    height={illust.mainHeight ?? 1600}
                     className={styles.gridImage}
                     loading="lazy"
                     draggable={false}

@@ -3,6 +3,7 @@ import styles from '../styles/HomePage.module.css';
 import { useSectionLoading } from '@/hooks/useSectionLoading';
 import Image from 'next/image';
 import Link from 'next/link';
+import { onMailClick } from '@/projects/site-nav/openMail';
 
 // ----------------------------------------
 // MENU ITEM COMPONENT
@@ -390,7 +391,7 @@ const MainNavBar: React.FC = () => {
           <div className="navbar-right">
             {/* Contact Button */}
             <a 
-              href="mailto:iamethanbakare@gmail.com"
+              href="#" onClick={onMailClick}
               className={`subnavbar-contact ${isClient && windowWidth <= 768 ? 'mobile' : ''}`}
             >
               <span className={styles.InterMedium14_H1}>Contact</span>

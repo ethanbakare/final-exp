@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import { onMailClick } from '@/projects/site-nav/openMail';
 
 // ----------------------------------------
 // MENU ITEM COMPONENT
@@ -195,16 +195,15 @@ const SubProjectNavbar: React.FC = () => {
         <div className="navbar-content">
           <div className="navbar-left">
             {/* Back to Home Link */}
-            <Link href="/" passHref legacyBehavior>
-              <a className="back-home-link">
+            {/* plain <a>: a full load of "/" keeps the home hero font (client nav to "/" drops it) */}
+            <a className="back-home-link" href="/">
                 <div className="back-icon">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M15 8H1M1 8L8 15M1 8L8 1" stroke="#525252" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
                 <span>Back to Home</span>
-              </a>
-            </Link>
+            </a>
 
             {/* Desktop Navigation */}
             <nav className={isClient && windowWidth <= 768 ? 'subnavbar-main hidden' : 'subnavbar-main'}>
@@ -249,7 +248,7 @@ const SubProjectNavbar: React.FC = () => {
           <div className="navbar-right">
             {/* Contact Button */}
             <a 
-              href="mailto:iamethanbakare@gmail.com"
+              href="#" onClick={onMailClick}
               className={`subnavbar-contact ${isClient && windowWidth <= 768 ? 'mobile' : ''}`}
             >
               <span>Contact</span>

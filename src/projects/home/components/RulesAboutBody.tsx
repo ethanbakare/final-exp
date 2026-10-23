@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from '../styles/HomePage.module.css';
 import { useSectionLoading } from '@/hooks/useSectionLoading';
+import { onMailClick } from '@/projects/site-nav/openMail';
 
 const RulesAboutBody: React.FC = () => {
   // Integrate with loading context
@@ -58,7 +59,7 @@ const RulesAboutBody: React.FC = () => {
                 Most of what I build starts with a question I couldn&apos;t ignore.
               </p>
               <p className={`${styles.InterRegular16} about_text_paragraph`}>
-                If you&apos;re building long-term and want someone who burns for the work — <a href="mailto:iamethanbakare@gmail.com" className="twitter-link">let&apos;s talk</a>.
+                If you&apos;re building long-term and want someone who burns for the work — <a href="#" onClick={onMailClick} className="twitter-link">let&apos;s talk</a>.
               </p>
             </div>
           </div>

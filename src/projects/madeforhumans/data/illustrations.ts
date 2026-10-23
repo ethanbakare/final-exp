@@ -2,6 +2,8 @@ export interface Illustration {
   id: string;
   title: string;
   main: string;
+  /** Main image height in px; every main image is 1600 wide, and square unless set */
+  mainHeight?: number;
   panels: string[];
 }
 
@@ -28,6 +30,7 @@ export const ILLUSTRATIONS: Illustration[] = [
     id: 'b',
     title: 'AI guys, Grifters, and Dropshippers',
     main: '/images/madeforhumans/b-main.webp',
+    mainHeight: 883,
     panels: [
       '/images/madeforhumans/b-01.webp',
       '/images/madeforhumans/b-02.webp',

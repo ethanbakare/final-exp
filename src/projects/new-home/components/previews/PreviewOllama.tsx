@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 const EXPRESSIONS = ['sunglasses', 'smirk', 'party'] as const;
-const CYCLE_DURATION = 4000;
+const CYCLE_DURATION = 3000; // operator: 3.0s on the home card; the /ollama showcase stays at 4000
 
 const PreviewOllama: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(0);

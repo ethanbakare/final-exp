@@ -42,6 +42,7 @@ type Project = {
   id: string;
   className: string; // chrome class; a unique pc-card-<id> is appended
   innerBg?: string;
+  navTone?: 'dark' | 'light' | 'mid'; // read by the site navbar while scrolling
   label: string;
   labelBg: string;
   labelTextColor?: string;
@@ -67,6 +68,7 @@ const PROJECTS: Project[] = [
   // ---- AI demos (chosen treatments from the scaffold) ----
   {
     id: 'aiconf',
+    navTone: 'light',
     className: 'projects-card-aiconf',
     innerBg: 'transparent',
     label: 'AI Confidence tracker',
@@ -77,6 +79,7 @@ const PROJECTS: Project[] = [
   },
   {
     id: 'trace',
+    navTone: 'light',
     className: 'projects-card-glass-bordered',
     innerBg: '#FFF6DA',
     label: 'Trace AI',
@@ -88,6 +91,7 @@ const PROJECTS: Project[] = [
   },
   {
     id: 'ollama',
+    navTone: 'dark',
     className: 'projects-card-ollamaborder',
     innerBg: 'transparent',
     label: 'Ollama',
@@ -97,6 +101,7 @@ const PROJECTS: Project[] = [
   },
   {
     id: 'clipstream',
+    navTone: 'light',
     className: 'projects-card-clipgreige',
     innerBg: '#C5C3C0',
     label: 'Clipstream',
@@ -107,6 +112,7 @@ const PROJECTS: Project[] = [
   },
   {
     id: 'voice',
+    navTone: 'light',
     className: 'projects-card-voice',
     innerBg: '#F7F6F4',
     label: 'Voice UI Library',
@@ -274,6 +280,7 @@ export default function ProjectsPage() {
                   labelTextColor={p.labelTextColor}
                   labelPosition={p.labelPosition}
                   innerBg={p.innerBg}
+                  navTone={p.navTone}
                   className={`${p.className} pc-card-${p.id}`}
                 >
                   {p.content}

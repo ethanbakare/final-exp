@@ -29,7 +29,7 @@ const NavbarTestPage: React.FC = () => {
       <div className={`${inter.variable} ${frankRuhlLibre.variable} full-page ${styles.container}`}>
         {/* Back to home link */}
         {/*<div className="back-link">
-          <Link href="/">← Back to Home</Link>
+          <a href="/">← Back to Home</a>
         </div>*/}
         
         {/* Refactored Navbar */}

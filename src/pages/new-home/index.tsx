@@ -1,34 +1,14 @@
 import React from 'react';
-import { Inter, Frank_Ruhl_Libre, Hedvig_Letters_Sans } from 'next/font/google';
+import { homeFontVariables } from '@/projects/new-home/fonts';
 import styles from '@/projects/new-home/styles/new-home.module.css';
 import HeroBanner from '@/projects/new-home/components/HeroBanner';
 import CarouselDemos from '@/projects/new-home/components/CarouselDemos';
 import CarouselBrand from '@/projects/new-home/components/CarouselBrand';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const frankRuhlLibre = Frank_Ruhl_Libre({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-frank-ruhl-libre',
-  display: 'swap',
-});
-
-const hedvigLettersSans = Hedvig_Letters_Sans({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-hedvig',
-  display: 'swap',
-});
-
 export default function NewHomePage() {
   return (
     <>
-      <div className={`${inter.variable} ${frankRuhlLibre.variable} ${hedvigLettersSans.variable} ${styles.pageContainer}`}>
+      <div className={`${homeFontVariables} ${styles.pageContainer}`}>
         {/* Hero banner section — wraps hero text + AI demos carousel */}
         <section className="hero-banner-section">
           <HeroBanner />

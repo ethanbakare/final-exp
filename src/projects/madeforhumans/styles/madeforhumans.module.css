@@ -1,15 +1,14 @@
 /* ============================================
    MADE FOR HUMANS — CSS Module
    Recreating madeforhumans.ai layout
-   Fonts: Open Sans (primary)
+   Fonts: Open Sans (body), Inter italic (hero tagline)
    ============================================ */
 
 .container {
   --mfh-bg: #ffffff;
   --mfh-body-text: #63615f;
-  --mfh-title-text: rgba(99, 97, 95, 0.52);
-  --mfh-badge-bg: #fb9032;
-  --mfh-badge-text: #fffbf8;
+  /* Solid so the 11 captions read at 4.5:1 or above on white (4.60:1); was rgba(99, 97, 95, 0.52), 2.24:1. */
+  --mfh-title-text: #767573;
   --mfh-intro-text: #3d3d3d;
 }
 
@@ -22,57 +21,111 @@
   background: var(--mfh-bg);
 }
 
-/* ---- Header Section ---- */
-.headerSection {
+/* ---- Hero (Figma "2025", node 5000:265) ---- */
+.hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 2.4rem;
-  padding-bottom: 2.5rem;
+  gap: 45px;
+  width: 100%;
+  max-width: 1160px;
+  padding: 163px 116px 15px;
+  box-sizing: border-box;
+}
+
+.heroCarousel {
+  position: relative;
+  width: 311px;
+  max-width: 100%;
+  aspect-ratio: 311 / 157;
+  border-radius: 17px;
+  overflow: hidden;
+  /* It is a pause toggle (see HeroCarousel), so reset button chrome */
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.heroCarousel:focus-visible {
+  outline: 2px solid #1e1d18;
+  outline-offset: 4px;
+}
+
+.heroFrame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+/* The outgoing frame stays fully opaque underneath while the incoming one
+   fades in on top, so the page never shows through mid-swap */
+.heroFrame[data-prev='true'] {
+  opacity: 1;
+  z-index: 1;
+}
+
+.heroFrame[data-active='true'] {
+  opacity: 1;
+  z-index: 2;
+  transition: opacity 0.2s ease;
+}
+
+.heroTitleGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
   width: 100%;
 }
 
-.logoWrapper {
+.heroTitle {
+  margin: 0;
+  width: 100%;
   display: flex;
   justify-content: center;
-  padding-top: 4rem;
-  padding-bottom: 0;
+  line-height: 0;
 }
 
-.logo {
-  width: 218px;
-  object-fit: scale-down;
-  padding-top: 0.5rem;
+.heroLogo {
+  width: 473px;
+  max-width: 100%;
+  height: auto;
 }
 
-.taglineBadge {
-  background-color: var(--mfh-badge-bg);
-  border-radius: 15px;
-  display: flex;
-  justify-content: center;
-  margin-top: 29px;
-  padding-left: 13px;
-  padding-right: 13px;
-}
-
-.taglineText {
-  color: var(--mfh-badge-text);
+.heroTagline {
+  margin: 0;
+  /* Operator's pick (4-lite): sepia, 4.51:1 on white; was rgba(65, 62, 57, 0.48). */
+  color: #917148;
   text-align: center;
-  font-family: 'Open Sans', sans-serif;
-  font-size: 0.875rem;
+  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-size: 18px;
+  font-style: italic;
   font-weight: 400;
-  line-height: 1.875rem;
-  letter-spacing: 0;
+  line-height: normal;
+  letter-spacing: -0.18px;
+  text-wrap: balance;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroFrame[data-active='true'] {
+    transition: none;
+  }
 }
 
 /* ---- Intro Section ---- */
 .introSection {
   text-align: left;
   justify-content: center;
-  padding-top: 2rem;
-  padding-bottom: 4rem;
+  padding-top: 40px;
+  padding-bottom: 72px;
   display: flex;
-  max-width: 940px;
+  /* Same width as the grid below: two lines on desktop, wraps on phones */
+  max-width: 1120px;
   width: 100%;
   padding-left: 20px;
   padding-right: 20px;
@@ -82,11 +135,12 @@
 .introText {
   color: var(--mfh-body-text);
   text-align: center;
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-open-sans), 'Open Sans', sans-serif;
   font-size: 1.4rem;
   font-weight: 400;
   line-height: 32px;
   letter-spacing: 0;
+  text-wrap: balance;
   margin: 0;
 }
 
@@ -97,7 +151,7 @@
 }
 
 .gridContainer {
-  max-width: 940px;
+  max-width: 1120px;
   margin: 0 auto;
   padding-left: 20px;
   padding-right: 20px;
@@ -106,9 +160,16 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-column-gap: 40px;
-  grid-row-gap: 40px;
+  grid-template-columns: repeat(2, 1fr);
+  grid-column-gap: 48px;
+  grid-row-gap: 48px;
+}
+
+/* Odd count: centre the last comic under the pair above it */
+.gridItem:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc((100% - 48px) / 2);
 }
 
 /* ---- Grid Item ---- */
@@ -129,6 +190,7 @@
 
 .gridImage {
   width: 100%;
+  height: auto;
   max-width: none;
   object-fit: cover;
   border-radius: 6px;
@@ -143,7 +205,7 @@
 .imageTitle {
   color: var(--mfh-title-text);
   text-align: center;
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-open-sans), 'Open Sans', sans-serif;
   font-size: 0.875rem;
   font-weight: 400;
   line-height: 32px;
@@ -195,9 +257,19 @@
 /* ---- Responsive ---- */
 @media screen and (max-width: 991px) {
   .grid {
-    grid-template-columns: repeat(2, 1fr);
     grid-column-gap: 20px;
     grid-row-gap: 20px;
+  }
+
+  .gridItem:last-child:nth-child(odd) {
+    width: calc((100% - 20px) / 2);
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .hero {
+    padding: 112px 20px 15px;
+    gap: 36px;
   }
 }
 
@@ -208,12 +280,25 @@
     grid-row-gap: 15px;
   }
 
+  .gridItem:last-child:nth-child(odd) {
+    width: 100%;
+  }
+
+  .introSection {
+    padding: 32px 24px 48px;
+  }
+
   .introText {
     font-size: 1.1rem;
     line-height: 28px;
   }
+}
 
-  .logo {
-    width: 160px;
+/* Short screens (phone landscape): bring the logo and tagline above the fold.
+   Last in the file so it wins over the width breakpoints above. */
+@media screen and (max-height: 500px) {
+  .hero {
+    padding-top: 48px;
+    gap: 24px;
   }
 }

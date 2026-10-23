@@ -23,6 +23,7 @@ const CarouselDemos: React.FC = () => {
           href="/ai-confidence-tracker"
           labelBg="rgba(128, 34, 63, 0.40)"
           labelPosition="top-right"
+          navTone="light"
           className="card card-ai-confidence"
         >
           <PreviewAIConfidence />
@@ -34,6 +35,7 @@ const CarouselDemos: React.FC = () => {
           href="/ollama"
           labelBg="rgba(255, 255, 255, 0.30)"
           labelPosition="bottom-center"
+          navTone="dark"
           className="card card-ollama"
         >
           <PreviewOllama />
@@ -47,6 +49,7 @@ const CarouselDemos: React.FC = () => {
           labelTextColor="rgba(49, 49, 49, 0.70)"
           labelPosition="top-left"
           innerBg="var(--preview-trace-bg)"
+          navTone="mid"
           className="card card-trace"
         >
           <PreviewTrace />
@@ -60,6 +63,7 @@ const CarouselDemos: React.FC = () => {
           labelTextColor="rgba(255, 255, 255, 0.80)"
           labelPosition="bottom-center"
           innerBg="var(--preview-voice-bg)"
+          navTone="light"
           className="card card-voice"
         >
           <PreviewVoice />
@@ -72,6 +76,7 @@ const CarouselDemos: React.FC = () => {
           labelBg="rgba(113, 113, 113, 0.50)"
           labelTextColor="rgba(255, 255, 255, 0.80)"
           labelPosition="bottom-center"
+          navTone="light"
           className="card card-clipstream"
         >
           <div className="clipstream-bg" />

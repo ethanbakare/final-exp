@@ -122,7 +122,7 @@
    TYPOGRAPHY — Frank Ruhl Libre
    ---------------------------------------- */
 .FrankRuhlLibre30 {
-  font-family: var(--font-frank-ruhl-libre), 'Frank Ruhl Libre', serif;
+  font-family: var(--font-frank-ruhl-libre), var(--font-merriweather), serif;
   font-size: 30px;
   font-weight: 400;
   line-height: 93.75%;

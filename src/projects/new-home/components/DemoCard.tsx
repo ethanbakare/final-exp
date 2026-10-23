@@ -15,6 +15,10 @@ interface DemoCardProps {
   labelTextColor?: string;
   labelPosition?: LabelPosition;
   innerBg?: string;
+  /** What the site navbar should assume sits behind it where this card is:
+   *  read by SiteNavGlass (data-nav-tone) to pick light or dark text while
+   *  the page scrolls. Needed because card previews are not hit-testable. */
+  navTone?: 'dark' | 'light' | 'mid';
   children: React.ReactNode;
   className?: string;
 }
@@ -42,13 +46,14 @@ const DemoCard: React.FC<DemoCardProps> = ({
   labelTextColor = 'rgba(255, 255, 255, 0.70)',
   labelPosition = 'bottom-center',
   innerBg,
+  navTone,
   children,
   className,
 }) => {
   const labelPositionStyles = getLabelStyles(labelPosition);
 
   const cardContent = (
-    <div className="card-outer">
+    <div className="card-outer" data-nav-tone={navTone}>
       <div className="card-inner" style={innerBg ? { background: innerBg } : undefined}>
         {children}
         <div
@@ -63,6 +68,9 @@ const DemoCard: React.FC<DemoCardProps> = ({
 
       <style jsx>{`
         .card-outer {
+          /* own stacking context: badges/tooltips inside a card preview (one uses
+             z-index 999) can never rise above page level or over the site navbar */
+          isolation: isolate;
           display: flex;
           padding: 12px;
           flex-direction: column;

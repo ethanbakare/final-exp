@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import fs from "fs/promises";
 import path from "path";
+import { PROJECT_ROOT } from "@/projects/site-nav/tunerServerPaths";
 
 const VARIANT_FILES: Record<string, string> = {
   thicken: "thicken-profiles.json",
@@ -28,6 +29,8 @@ const VARIANT_FILES: Record<string, string> = {
   "radial-states": "radial-states-profiles.json",
   // CSW-010 Circle Voice — self-contained 4-state voiceset bundle file
   "circle-waveform-voiceset": "circle-waveform-voicesets.json",
+  // Site navbar tuner (/showcase/site-nav): named tuning profiles
+  "site-nav": "site-nav-profiles.json",
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -36,7 +39,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!fileName) {
     return res.status(400).json({ error: "Invalid variant" });
   }
-  const filePath = path.join(process.cwd(), fileName);
+  // Project root, not process.cwd(): a dev server started from another folder must still read and
+  // write this checkout's files. Same location as cwd for a server started in the repo root.
+  const filePath = path.join(PROJECT_ROOT, fileName);
 
   if (req.method === "GET") {
     try {

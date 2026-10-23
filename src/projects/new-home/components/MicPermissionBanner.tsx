@@ -52,7 +52,7 @@ export const MicPermissionBanner: React.FC = () => {
       <style jsx>{`
         .mic-banner-container {
           position: fixed;
-          top: 24px;
+          top: calc(24px + var(--site-nav-h, 0px));
           left: 50%;
           transform: translateX(-50%);
           z-index: 100;

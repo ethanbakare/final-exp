@@ -9,14 +9,16 @@ export interface SliderRowProps {
   max: number;
   step: number;
   unit?: string;
+  /** Override the readout precision (default derives from step). */
+  decimals?: number;
   disabled?: boolean;
   onChange: (v: number) => void;
 }
 
 const SliderRow: React.FC<SliderRowProps> = ({
-  label, value, min, max, step, unit = "", disabled, onChange,
+  label, value, min, max, step, unit = "", decimals: decimalsProp, disabled, onChange,
 }) => {
-  const decimals = step < 0.1 ? 3 : step < 1 ? 2 : 1;
+  const decimals = decimalsProp ?? (step < 0.1 ? 3 : step < 1 ? 2 : 1);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +68,7 @@ const SliderRow: React.FC<SliderRowProps> = ({
         max={max}
         step={step}
         disabled={disabled}
+        thumbLabel={label}
         onValueChange={([v]) => onChange(v)}
       />
     </div>

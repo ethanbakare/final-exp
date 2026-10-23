@@ -23,6 +23,7 @@ import { DemoProgressSectionTransparent } from '@/projects/demo-showcase/compone
 import { ShowcaseNavbarCompact } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompact';
 import { ShowcaseNavbarCompactSmall } from '@/projects/demo-showcase/components/ui/ShowcaseNavbarCompactSmall';
 import { ShowcaseCloseBtnSmall } from '@/projects/demo-showcase/components/ui/ShowcaseCloseBtnSmall';
+import { BackToHomeLink } from '@/projects/demo-showcase/components/ui/BackToHomeLink';
 import { TryDemoButton, ViewCaseStudyButton } from '@/projects/demo-showcase/components/ui/ShowcaseButtons';
 import { TryDemoButtonSmall, ViewCaseStudyButtonSmall } from '@/projects/demo-showcase/components/ui/ShowcaseButtonsSmall';
 import { SIM_DURATION } from '@/projects/demo-showcase/components/simulations/AIConfidenceSim';
@@ -68,6 +69,8 @@ interface ProjectConfig {
   label: string;
   headline: string;
   headlineSuffix?: string;
+  /** Where "View Case Study" goes. Currently each project's standalone
+   *  page (/ai-confidence-tracker, /trace, /clipperstream). */
   caseStudyUrl: string;
   simDuration: number;
   canvasProps: React.ComponentProps<typeof DemoCanvas>;
@@ -82,7 +85,7 @@ const PROJECTS: ProjectConfig[] = [
     label: 'AI Confidence tracker',
     headline: 'A grammar checker, but for how confident AI is',
     headlineSuffix: ' in what it heard',
-    caseStudyUrl: '#',
+    caseStudyUrl: '/ai-confidence-tracker',
     simDuration: SIM_DURATION,
     needsMic: true,
     canvasProps: {
@@ -94,7 +97,7 @@ const PROJECTS: ProjectConfig[] = [
   {
     label: 'Trace',
     headline: 'Voice-powered finance journal',
-    caseStudyUrl: '#',
+    caseStudyUrl: '/trace',
     simDuration: TRACE_SIM_DURATION,
     needsMic: true,
     canvasProps: {
@@ -111,7 +114,7 @@ const PROJECTS: ProjectConfig[] = [
     // ('Recording while offline', 'Online — transcribing') during
     // its scripted loop — see ClipStreamSim's onNarrativeChange.
     headline: 'Voice notes that work offline',
-    caseStudyUrl: '#',
+    caseStudyUrl: '/clipperstream',
     simDuration: CLIPSTREAM_SIM_DURATION,
     // Warm pink variation from the lab — same colour family we proved
     // out there (#F09294 tint, flipped texture for pattern variety,
@@ -334,6 +337,7 @@ export default function DemoShowcasePage() {
       <ShowcaseModalProvider>
         <div className={`showcase ${isDemoMode ? 'is-demo' : ''}`}>
           <div className="nav-slot nav-desktop">
+          <BackToHomeLink variant="desktop" />
           {showMicInNavbar ? (
             <ShowcaseNavbarMicBanner
               // showMicInNavbar already narrows micState to the three
@@ -356,6 +360,7 @@ export default function DemoShowcasePage() {
           </div>
           <div className="nav-slot nav-mobile">
             <div className="mobile-nav-row">
+              {!isDemoMode && <BackToHomeLink variant="compact" />}
               <div className="close-slot" aria-hidden={!isDemoMode}>
                 <ShowcaseCloseBtnSmall onClick={handleToggleDemo} />
               </div>
@@ -507,12 +512,34 @@ export default function DemoShowcasePage() {
             z-index: 2;
           }
           .nav-mobile { display: none; }
+          /* Desktop top bar: three columns. The project pill stays centred in
+             the middle column; the Home chip sits at the end of the left
+             column, right next to the pill (8px, the pill's own padding).
+             Both side columns keep at least the chip's width + gap, so the
+             chip can never slide under the pill (or its "1/3") at any width. */
+          .nav-desktop {
+            display: grid;
+            grid-template-columns: minmax(59px, 1fr) minmax(0, 700px) minmax(59px, 1fr);
+            align-items: center;
+          }
+          .nav-desktop > :global(.back-home-desktop) {
+            grid-column: 1;
+            justify-self: end;
+            /* the pill's wrapper has 16px side padding; -8px leaves an 8px gap */
+            margin-right: -8px;
+          }
+          .nav-desktop > :global(*:not(.back-home)) {
+            grid-column: 2;
+            min-width: 0;
+          }
           @media (max-width: 768px) {
             .showcase {
               padding: 0 10px;
             }
             .nav-desktop { display: none; }
-            .nav-mobile { display: block; }
+            /* Top margin so the pill and Home chip do not touch the
+               screen edge; matches the 10px side padding. */
+            .nav-mobile { display: block; padding-top: 10px; }
             .mobile-nav-row {
               display: flex;
               align-items: flex-start;

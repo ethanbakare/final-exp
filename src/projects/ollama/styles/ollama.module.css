@@ -56,7 +56,10 @@
 
 .ollama-hero-banner {
   display: flex;
-  padding: 20px;
+  /* The 20px frame margin starts below the site navbar (--site-nav-h is unset, so 0, where no
+     bar is mounted), so the bar sits over plain white, not over the margin / card edge. */
+  /* --site-nav-h includes ~8px of air under the bar; take it off so the gap below the bar matches the 20px side margins */
+  padding: calc(12px + var(--site-nav-h, 0px)) 20px 20px;
   flex-direction: column;
   align-items: center;
   gap: 51px;

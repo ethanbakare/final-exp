@@ -40,6 +40,12 @@ export interface ColorPickerButtonProps {
    *  they're editing. Also used as the swatch button's HTML title. */
   title?: string;
   swatchSize?: number;
+  /** 'auto' (default): above the swatch if it fits, else below. 'below': just under the
+   *  swatch, left-aligned to it, so it never covers what sits above the control. */
+  placement?: 'auto' | 'below';
+  /** Optional: a viewport y the popover must never start above (e.g. the bottom of a sticky
+   *  preview it must not cover). On short screens it then scrolls inside itself. */
+  clearAbove?: () => number;
 }
 
 interface ChannelFieldsProps {
@@ -136,10 +142,12 @@ export function ColorPickerButton({
   onChange,
   title = 'Open colour picker',
   swatchSize = 18,
+  placement = 'auto',
+  clearAbove,
 }: ColorPickerButtonProps) {
   const [open, setOpen] = useState(false);
   const [pickerValue, setPickerValue] = useState<Color | null>(null);
-  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  const [position, setPosition] = useState<{ left: number; top: number; maxHeight?: number } | null>(null);
   // Format is local to the picker — persists per-picker session rather
   // than across all swatches. Swap to a hoisted prop later if a 'unified
   // format' setting is wanted.
@@ -162,7 +170,11 @@ export function ColorPickerButton({
       if (!btn) return;
       const rect = btn.getBoundingClientRect();
       const popoverWidth = popoverRef.current?.offsetWidth ?? 288;
-      const popoverHeight = popoverRef.current?.offsetHeight ?? 360;
+      // Default: the original measure (offsetHeight, border included), so existing panels are
+      // pixel-identical. With clearAbove the popover may carry a max-height, so measure its
+      // natural height (scrollHeight + the 2px border) instead.
+      const el = popoverRef.current;
+      const popoverHeight = el ? (clearAbove ? el.scrollHeight + (el.offsetHeight - el.clientHeight) : el.offsetHeight) : 360;
       const gap = 8;
       const maxLeft = window.innerWidth - popoverWidth - gap;
       const maxTop = window.innerHeight - popoverHeight - gap;
@@ -170,13 +182,25 @@ export function ColorPickerButton({
       const belowTop = rect.bottom + gap;
       const fitsAbove = aboveTop >= gap;
       const fitsBelow = belowTop + popoverHeight <= window.innerHeight - gap;
-      const top = fitsAbove
-        ? aboveTop
-        : fitsBelow
-          ? belowTop
-          : Math.max(gap, Math.min(maxTop, aboveTop));
-      const left = Math.max(gap, Math.min(maxLeft, rect.right - popoverWidth));
-      setPosition({ left, top });
+      const top =
+        placement === 'below'
+          ? fitsBelow
+            ? belowTop
+            : Math.max(gap, maxTop)
+          : fitsAbove
+            ? aboveTop
+            : fitsBelow
+              ? belowTop
+              : Math.max(gap, Math.min(maxTop, aboveTop));
+      const left = Math.max(gap, Math.min(maxLeft, placement === 'below' ? rect.left : rect.right - popoverWidth));
+      let finalTop = top;
+      let maxHeight: number | undefined;
+      if (clearAbove) {
+        finalTop = Math.max(finalTop, clearAbove() + gap);
+        const room = window.innerHeight - finalTop - gap;
+        if (room < popoverHeight) maxHeight = Math.max(120, room);
+      }
+      setPosition({ left, top: finalTop, maxHeight });
     };
     place();
     const frame = requestAnimationFrame(place);
@@ -217,6 +241,8 @@ export function ColorPickerButton({
             style={{
               left: position?.left ?? -9999,
               top: position?.top ?? 8,
+              maxHeight: position?.maxHeight,
+              overflowY: position?.maxHeight ? 'auto' : undefined,
               visibility: position ? 'visible' : 'hidden',
               background: '#1a1a1e',
               border: '1px solid rgba(255,255,255,0.1)',
