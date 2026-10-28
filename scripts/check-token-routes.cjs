@@ -1,0 +1,254 @@
+#!/usr/bin/env node
+/**
+ * Checks that token-minting API routes never return the server's secret
+ * key and that they are guarded (GET only, production Origin/Referer
+ * allowlist, per-IP rate limit, no-store).
+ *
+ * Each route handler is loaded straight from TypeScript source (compiled
+ * in memory with the project's own `typescript` package), `fetch` is
+ * mocked, and the env key is a random fake value generated per run.
+ * No network calls, no real keys.
+ *
+ * Usage:
+ *   node scripts/check-token-routes.cjs            # checks ./src
+ *   node scripts/check-token-routes.cjs <srcRoot>  # checks another tree
+ * Exit code 0 = all checks pass, 1 = at least one failed.
+ */
+"use strict";
+
+const path = require("path");
+const fs = require("fs");
+const Module = require("module");
+const crypto = require("crypto");
+
+const repoRoot = path.resolve(__dirname, "..");
+const srcRoot = path.resolve(process.argv[2] || path.join(repoRoot, "src"));
+const ts = require(path.join(repoRoot, "node_modules", "typescript"));
+
+// --- load .ts files and the "@/..." alias -------------------------------
+const origResolve = Module._resolveFilename;
+Module._resolveFilename = function (request, parent, ...rest) {
+  if (request.startsWith("@/")) {
+    request = path.join(srcRoot, request.slice(2));
+  }
+  try {
+    return origResolve.call(this, request, parent, ...rest);
+  } catch (err) {
+    for (const ext of [".ts", ".tsx"]) {
+      if (fs.existsSync(request + ext)) return request + ext;
+    }
+    // Packages resolve from the repo's node_modules even when srcRoot is
+    // an extracted copy elsewhere.
+    return origResolve.call(this, request, {
+      ...parent,
+      paths: [path.join(repoRoot, "node_modules")],
+    }, ...rest);
+  }
+};
+for (const ext of [".ts", ".tsx"]) {
+  require.extensions[ext] = function (module, filename) {
+    const source = fs.readFileSync(filename, "utf8");
+    const out = ts.transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2020,
+        esModuleInterop: true,
+        jsx: ts.JsxEmit.ReactJSX,
+      },
+      fileName: filename,
+    });
+    module._compile(out.outputText, filename);
+  };
+}
+
+// --- tiny req/res mocks --------------------------------------------------
+let ipCounter = 0;
+function makeReq({ method = "GET", headers = {}, body, ip, query } = {}) {
+  ipCounter += 1;
+  return {
+    method,
+    headers: { "x-forwarded-for": ip || `10.0.0.${ipCounter}`, ...headers },
+    body,
+    query: query || {},
+    socket: { remoteAddress: "127.0.0.1" },
+  };
+}
+function makeRes() {
+  const res = {
+    statusCode: 200,
+    headers: {},
+    body: undefined,
+    setHeader(k, v) { this.headers[k.toLowerCase()] = v; return this; },
+    getHeader(k) { return this.headers[k.toLowerCase()]; },
+    status(code) { this.statusCode = code; return this; },
+    json(obj) { this.body = obj; this.ended = true; return this; },
+    send(obj) { this.body = obj; this.ended = true; return this; },
+    end(obj) { if (obj !== undefined) this.body = obj; this.ended = true; return this; },
+  };
+  return res;
+}
+function bodyText(res) {
+  return typeof res.body === "string" ? res.body : JSON.stringify(res.body ?? null);
+}
+
+// --- fetch mock ----------------------------------------------------------
+let fetchImpl = null;
+const fetchCalls = [];
+global.fetch = async (url, init) => {
+  fetchCalls.push({ url: String(url), init });
+  if (!fetchImpl) throw new Error("unexpected fetch " + url);
+  return fetchImpl(String(url), init);
+};
+function jsonResponse(status, obj) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: String(status),
+    headers: new Map([["content-type", "application/json"]]),
+    json: async () => obj,
+    text: async () => JSON.stringify(obj),
+  };
+}
+
+// --- route table ---------------------------------------------------------
+const ALLOWED = "https://allowed.example";
+const ROUTES = [
+  {
+    name: "voice-interface/deepgram-token",
+    file: "pages/api/voice-interface/deepgram-token.ts",
+    envVar: "DEEPGRAM_API_KEY",
+    rateLimit: 10,
+    upstreamOk: (url) =>
+      url.includes("api.deepgram.com/v1/auth/grant")
+        ? jsonResponse(200, { access_token: "jwt.fake.token", expires_in: 30 })
+        : jsonResponse(404, {}),
+    expectToken: (body) => body && body.access_token === "jwt.fake.token",
+    upstreamCallOk: (call, secret) =>
+      call.url === "https://api.deepgram.com/v1/auth/grant" &&
+      call.init.method === "POST" &&
+      call.init.headers.Authorization === `Token ${secret}` &&
+      JSON.parse(call.init.body).ttl_seconds === 30,
+  },
+  {
+    name: "voice-interface/openai-realtime-token",
+    file: "pages/api/voice-interface/openai-realtime-token.ts",
+    envVar: "OPENAI_API_KEY",
+    rateLimit: 5,
+    upstreamOk: (url) =>
+      url.includes("api.openai.com/v1/realtime/client_secrets")
+        ? jsonResponse(200, { value: "ek_fake_client_secret" })
+        : jsonResponse(404, {}),
+    expectToken: (body) => body && body.key === "ek_fake_client_secret",
+  },
+];
+
+// --- run -----------------------------------------------------------------
+let failures = 0;
+function check(route, label, ok, detail = "") {
+  if (!ok) failures += 1;
+  console.log(`${ok ? "PASS" : "FAIL"}  ${route.name}  ${label}${detail ? "  (" + detail + ")" : ""}`);
+}
+
+async function call(handler, reqOpts) {
+  const req = makeReq(reqOpts);
+  const res = makeRes();
+  await handler(req, res);
+  return res;
+}
+
+async function runRoute(route) {
+  const file = path.join(srcRoot, route.file);
+  if (!fs.existsSync(file)) {
+    check(route, "handler file exists", false, file);
+    return;
+  }
+  delete require.cache[file];
+  const mod = require(file);
+  const handler = mod.default || mod;
+
+  const secret = "fake_" + crypto.randomBytes(20).toString("hex");
+  process.env[route.envVar] = secret;
+  delete process.env.TOKEN_ROUTE_ALLOWED_ORIGINS;
+  delete process.env.VERCEL_URL;
+  delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  const has = (res) => bodyText(res).includes(secret);
+
+  // 1. development, upstream OK
+  process.env.NODE_ENV = "development";
+  fetchImpl = route.upstreamOk;
+  fetchCalls.length = 0;
+  let res = await call(handler, {});
+  if (route.upstreamCallOk) {
+    const last = fetchCalls[fetchCalls.length - 1];
+    check(route, "dev GET: upstream mint request shape", !!last && route.upstreamCallOk(last, secret));
+  }
+  check(route, "dev GET: body has no env key", !has(res), `status ${res.statusCode}`);
+  check(route, "dev GET: returns short-lived token", res.statusCode === 200 && route.expectToken(res.body));
+  check(route, "dev GET: Cache-Control no-store", String(res.headers["cache-control"] || "").includes("no-store"));
+
+  // 2. production, allowed Referer (same-origin GET sends no Origin)
+  process.env.NODE_ENV = "production";
+  process.env.TOKEN_ROUTE_ALLOWED_ORIGINS = ALLOWED;
+  res = await call(handler, { headers: { referer: ALLOWED + "/some/page" } });
+  check(route, "prod GET allowed referer: body has no env key", !has(res), `status ${res.statusCode}`);
+  check(route, "prod GET allowed referer: 200 + token", res.statusCode === 200 && route.expectToken(res.body));
+
+  // 3. production, upstream mint fails -> error, never the key
+  fetchImpl = () => jsonResponse(401, { err_msg: "nope" });
+  res = await call(handler, { headers: { origin: ALLOWED } });
+  check(route, "prod upstream failure: error status", res.statusCode >= 400, `status ${res.statusCode}`);
+  check(route, "prod upstream failure: body has no env key", !has(res));
+  fetchImpl = route.upstreamOk;
+
+  // 4. production, foreign Origin / no Origin
+  res = await call(handler, { headers: { origin: "https://evil.example" } });
+  check(route, "prod foreign Origin: 403", res.statusCode === 403, `status ${res.statusCode}`);
+  check(route, "prod foreign Origin: body has no env key", !has(res));
+  res = await call(handler, {});
+  check(route, "prod no Origin/Referer: 403", res.statusCode === 403, `status ${res.statusCode}`);
+
+  // 5. production, allowlist env unset -> fail closed
+  delete process.env.TOKEN_ROUTE_ALLOWED_ORIGINS;
+  res = await call(handler, { headers: { origin: ALLOWED } });
+  check(route, "prod allowlist unset: 403 (fail closed)", res.statusCode === 403, `status ${res.statusCode}`);
+  process.env.TOKEN_ROUTE_ALLOWED_ORIGINS = ALLOWED;
+
+  // 6. method
+  res = await call(handler, { method: "POST", headers: { origin: ALLOWED } });
+  check(route, "POST: 405", res.statusCode === 405, `status ${res.statusCode}`);
+  check(route, "POST: body has no env key", !has(res));
+
+  // 7. rate limit per IP
+  const ip = "198.51.100." + (Math.floor(Math.random() * 200) + 1);
+  const statuses = [];
+  for (let i = 0; i < route.rateLimit + 1; i++) {
+    const r = await call(handler, { ip, headers: { origin: ALLOWED } });
+    statuses.push(r.statusCode);
+  }
+  check(
+    route,
+    `rate limit: request ${route.rateLimit + 1} from one IP is 429`,
+    statuses[route.rateLimit] === 429 && statuses.slice(0, route.rateLimit).every((s) => s === 200),
+    `statuses ${statuses.join(",")}`,
+  );
+  const other = await call(handler, { headers: { origin: ALLOWED } });
+  check(route, "rate limit: another IP still 200", other.statusCode === 200, `status ${other.statusCode}`);
+
+  delete process.env[route.envVar];
+}
+
+(async () => {
+  console.log(`checking token routes under ${srcRoot}`);
+  const realError = console.error;
+  console.error = () => {}; // handlers log upstream failures; keep output to checks only
+  for (const route of ROUTES) {
+    try {
+      await runRoute(route);
+    } catch (err) {
+      check(route, "handler ran without throwing", false, err && err.message);
+    }
+  }
+  console.error = realError;
+  console.log(failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`);
+  process.exit(failures === 0 ? 0 : 1);
+})();

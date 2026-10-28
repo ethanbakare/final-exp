@@ -1,17 +1,31 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
+import { guardTokenRoute } from "@/lib/tokenRouteGuard";
 
 /**
  * Ephemeral Token Endpoint for OpenAI Realtime API
  *
  * Generates short-lived client secrets to avoid exposing API key to browser.
  * Based on OpenAI Realtime WebRTC authentication pattern.
+ * The response field `key` holds the short-lived client secret, never
+ * OPENAI_API_KEY.
  *
- * Pattern: Mirrors deepgram-token.ts structure for consistency
+ * Guarded (GET only, production Origin/Referer allowlist, per-IP rate
+ * limit, no-store) because each call mints a credential that spends
+ * credit.
  */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (
+    !guardTokenRoute(req, res, {
+      bucket: "voice-interface/openai-realtime-token",
+      limit: 5,
+    })
+  ) {
+    return;
+  }
+
   try {
     const apiKey = process.env.OPENAI_API_KEY;
 
@@ -55,20 +69,16 @@ export default async function handler(
 
     const { value: ephemeralKey } = await response.json();
 
-    if (!ephemeralKey) {
+    if (typeof ephemeralKey !== 'string' || !ephemeralKey || ephemeralKey === apiKey) {
       return res.status(500).json({
         error: 'Failed to generate ephemeral token',
         message: 'No token returned from OpenAI API'
       });
     }
 
-    // Set cache headers to prevent token caching (same as deepgram-token)
-    res.setHeader('Surrogate-Control', 'no-store');
-    res.setHeader('Cache-Control', 's-maxage=0, no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Expires', '0');
-
+    // no-store cache headers are set by guardTokenRoute above.
     return res.status(200).json({
-      key: ephemeralKey // Consistent with deepgram-token response format
+      key: ephemeralKey // short-lived client secret (read by VoiceRealtimeOpenAI)
     });
 
   } catch (err) {

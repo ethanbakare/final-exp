@@ -75,15 +75,19 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
       // 1. Get temporary token from our API
       const response = await fetch('/api/voice-interface/deepgram-token');
-      const data = await response.json();
-      const accessToken = data.key || data.access_token;
+      if (!response.ok) {
+        throw new Error(`Deepgram token endpoint returned ${response.status}`);
+      }
+      const data = (await response.json()) as { access_token?: string };
+      const accessToken = data.access_token;
 
       if (!accessToken) {
         throw new Error('Failed to get Deepgram token');
       }
 
-      // 2. Create Deepgram client with token
-      const deepgram = createClient(accessToken);
+      // 2. Create Deepgram client with the short-lived JWT. The SDK sends
+      // it as the WebSocket subprotocol ["bearer", <jwt>].
+      const deepgram = createClient({ accessToken });
 
       // 3. Open live connection (let SDK auto-detect encoding like reference implementation)
       const dgConfig = {
