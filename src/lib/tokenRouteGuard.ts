@@ -4,6 +4,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
  * Guard for routes that mint short-lived provider tokens (or proxy a
  * provider call) with a server-side secret.
  *
+ * - Optional devOnly: 404 in production (for lab-only routes).
  * - Method check (405 otherwise).
  * - In production, the request's Origin (or, when the browser omits
  *   Origin on a same-origin GET, the Referer's origin) must be on the
@@ -12,7 +13,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
  *   plus the Vercel-provided VERCEL_PROJECT_PRODUCTION_URL and
  *   VERCEL_URL hosts when present. No allowlist entry → every request
  *   is rejected (fail closed).
- * - Simple in-memory fixed-window rate limit per client IP and bucket.
+ * - Simple in-memory fixed-window rate limit per client IP and bucket
+ *   (client IP from platform headers, never X-Forwarded-For; see clientIp).
  *   It is per server instance (a serverless platform may run several),
  *   so it caps abuse rather than enforcing an exact global quota.
  * - Cache-Control: no-store on every response, including errors.
@@ -30,6 +32,11 @@ export interface TokenRouteGuardOptions {
   limit?: number;
   /** Window length in ms. Default 60 000. */
   windowMs?: number;
+  /**
+   * Development-only route: respond 404 whenever NODE_ENV is
+   * "production", before any other check. Default false.
+   */
+  devOnly?: boolean;
 }
 
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
@@ -53,14 +60,22 @@ function firstHeader(value: string | string[] | undefined): string | undefined {
   return value;
 }
 
+/**
+ * Client IP for rate limiting. X-Forwarded-For is NOT used: its
+ * left-most entry is whatever the client sent, so trusting it lets a
+ * caller pick a fresh rate-limit bucket per request. Order:
+ *   1. x-vercel-forwarded-for — set by the Vercel edge (first entry).
+ *   2. x-real-ip — set by Vercel and common reverse proxies.
+ *   3. the TCP peer address (local `next dev` / `next start`).
+ */
 export function clientIp(req: NextApiRequest): string {
-  const forwarded = firstHeader(req.headers["x-forwarded-for"]);
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
+  const vercel = firstHeader(req.headers["x-vercel-forwarded-for"]);
+  if (vercel) {
+    const first = vercel.split(",")[0]?.trim();
     if (first) return first;
   }
   const realIp = firstHeader(req.headers["x-real-ip"]);
-  if (realIp) return realIp.trim();
+  if (realIp?.trim()) return realIp.trim();
   return req.socket?.remoteAddress ?? "unknown";
 }
 
@@ -100,6 +115,11 @@ export function guardTokenRoute(
   options: TokenRouteGuardOptions,
 ): boolean {
   setNoStore(res);
+
+  if (options.devOnly && process.env.NODE_ENV === "production") {
+    res.status(404).json({ error: "Not found" });
+    return false;
+  }
 
   const method = options.method ?? "GET";
   if (req.method !== method) {

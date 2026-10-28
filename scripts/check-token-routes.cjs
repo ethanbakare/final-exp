@@ -63,14 +63,17 @@ for (const ext of [".ts", ".tsx"]) {
 
 // --- tiny req/res mocks --------------------------------------------------
 let ipCounter = 0;
-function makeReq({ method = "GET", headers = {}, body, ip, query } = {}) {
+function makeReq({ method = "GET", headers = {}, body, ip, socketIp, query } = {}) {
   ipCounter += 1;
+  const defaultIp = ip || `10.${Math.floor(ipCounter / 250)}.${ipCounter % 250}.1`;
   return {
     method,
-    headers: { "x-forwarded-for": ip || `10.0.0.${ipCounter}`, ...headers },
+    // Normal requests carry the same client IP in every header, so both
+    // the old and the new clientIp() give each test case its own bucket.
+    headers: { "x-forwarded-for": defaultIp, "x-vercel-forwarded-for": defaultIp, ...headers },
     body,
     query: query || {},
-    socket: { remoteAddress: "127.0.0.1" },
+    socket: { remoteAddress: socketIp || defaultIp },
   };
 }
 function makeRes() {
@@ -233,6 +236,29 @@ async function runRoute(route) {
   );
   const other = await call(handler, { headers: { origin: ALLOWED } });
   check(route, "rate limit: another IP still 200", other.statusCode === 200, `status ${other.statusCode}`);
+
+
+  // 8. spoofed left-most X-Forwarded-For must not open a fresh bucket
+  for (const variant of ["vercel", "no-platform-header"]) {
+    const trueIp = "203.0.113." + (Math.floor(Math.random() * 200) + 1);
+    const codes = [];
+    for (let i = 0; i < route.rateLimit + 1; i++) {
+      const spoofed = `${i + 1}.${i + 2}.${i + 3}.${i + 4}`;
+      const headers = {
+        origin: ALLOWED,
+        "x-forwarded-for": `${spoofed}, ${trueIp}`,
+        "x-vercel-forwarded-for": variant === "vercel" ? trueIp : undefined,
+      };
+      const r = await call(handler, { headers, socketIp: trueIp });
+      codes.push(r.statusCode);
+    }
+    check(
+      route,
+      `spoofed XFF (${variant}): request ${route.rateLimit + 1} from one real IP is still 429`,
+      codes[route.rateLimit] === 429,
+      `last status ${codes[route.rateLimit]}`,
+    );
+  }
 
   delete process.env[route.envVar];
 }
