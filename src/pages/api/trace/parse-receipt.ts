@@ -4,6 +4,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { errorSummary, upstreamStatusOf } from '@/lib/safeError';
 import { parseReceiptImage, NotAReceiptError } from '@/projects/trace/services/geminiService';
 import type { ExpenseEntry } from '@/projects/trace/types/trace.types';
 
@@ -23,7 +24,7 @@ export const config = {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ExpenseEntry | { error: string }>
+  res: NextApiResponse<ExpenseEntry | { error: string; status?: number }>
 ) {
   console.log('[TRACE API] parse-receipt: Request received');
 
@@ -63,9 +64,11 @@ export default async function handler(
       return res.status(422).json({ error: 'not_a_receipt' });
     }
 
-    console.error('[TRACE API] parse-receipt: ERROR:', error);
+    // Name + status only: Gemini SDK errors carry the provider's response body.
+    console.error('[TRACE API] parse-receipt: ERROR:', errorSummary(error));
     return res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to parse receipt'
+      error: 'Failed to parse receipt',
+      status: upstreamStatusOf(error)
     });
   }
 }

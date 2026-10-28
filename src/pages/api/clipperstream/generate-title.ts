@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { generateClipTitle } from '../../../projects/clipperstream/api/titleGenerator';
 import { logger } from '../../../projects/clipperstream/utils/logger';
+import { errorSummary, upstreamStatusOf } from '@/lib/safeError';
 
 const log = logger.scope('API/generate-title');
 
@@ -20,6 +21,8 @@ interface TitleResponse {
 interface ErrorResponse {
   error: string;
   details?: string;
+  /** Provider HTTP status, when the failure came from the provider. */
+  status?: number;
   success: false;
 }
 
@@ -91,11 +94,11 @@ export default async function handler(
     });
     
   } catch (error) {
-    log.error('Error generating title', error);
+    log.error('Error generating title', errorSummary(error));
     
     // Provide more specific error messages based on the error type
     let errorType = 'Title generation failed';
-    let details = error instanceof Error ? error.message : 'Unknown error';
+    let details = 'The title service failed. Please try again.';
     
     if (error instanceof Error) {
       // Check for specific error patterns
@@ -112,6 +115,7 @@ export default async function handler(
     return res.status(500).json({ 
       error: errorType,
       details: details,
+      status: upstreamStatusOf(error),
       success: false
     });
   }

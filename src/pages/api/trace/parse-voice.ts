@@ -4,6 +4,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { errorSummary, upstreamStatusOf } from '@/lib/safeError';
 import { parseVoiceAudio, NoExpenseDetectedError } from '@/projects/trace/services/geminiService';
 import type { ExpenseEntry } from '@/projects/trace/types/trace.types';
 
@@ -23,7 +24,7 @@ export const config = {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ExpenseEntry[] | { error: string }>
+  res: NextApiResponse<ExpenseEntry[] | { error: string; status?: number }>
 ) {
   console.log('[TRACE API] parse-voice: Request received');
 
@@ -66,9 +67,11 @@ export default async function handler(
       return res.status(422).json({ error: 'no_expense' });
     }
 
-    console.error('[TRACE API] parse-voice: ERROR:', error);
+    // Name + status only: Gemini SDK errors carry the provider's response body.
+    console.error('[TRACE API] parse-voice: ERROR:', errorSummary(error));
     return res.status(500).json({
-      error: error instanceof Error ? error.message : 'Failed to parse voice'
+      error: 'Failed to parse voice',
+      status: upstreamStatusOf(error)
     });
   }
 }

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import formidable, { Fields, Files, File as FormidableFile } from 'formidable';
 import fs from 'fs';
+import { UpstreamHttpError, errorSummary, upstreamStatusOf } from '@/lib/safeError';
 
 // Disable body parser for file upload
 export const config = {
@@ -18,6 +19,8 @@ type TranscriptionResponse = {
 type ErrorResponse = {
   error: string;
   details?: string;
+  /** Provider HTTP status, when the failure came from the provider. */
+  status?: number;
 };
 
 /**
@@ -92,9 +95,9 @@ export default async function handler(
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Deepgram error:', errorText);
-      throw new Error(`Deepgram API error: ${response.status}`);
+      // Status only: the provider's error body is never read or logged.
+      console.error('Deepgram error status:', response.status);
+      throw new UpstreamHttpError('Deepgram', response.status);
     }
 
     const result = await response.json();
@@ -123,10 +126,11 @@ export default async function handler(
     });
 
   } catch (error) {
-    console.error('Transcription error:', error);
+    console.error('Transcription error:', errorSummary(error));
     return res.status(500).json({ 
       error: 'Transcription failed',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: 'The transcription service could not process this recording. Please try again.',
+      status: upstreamStatusOf(error)
     });
   }
 }

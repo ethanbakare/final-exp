@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { GameState } from '../../../projects/tictactoe/types/game';
 import { getAIMove, validateMove, AIPlayer } from '../../../projects/tictactoe/api/ArenaApi';
+import { errorSummary } from '@/lib/safeError';
 
 // =============================================
 // T-09: Arena API Endpoint - AI Orchestration
@@ -61,8 +62,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const aiResponse = await getAIMove(gameState, currentPlayer);
     
     if (!aiResponse.success) {
+      // aiResponse.error is ArenaApi's own text (status only, no provider body).
       res.status(500).json({
-        error: aiResponse.error,
+        error: aiResponse.error ?? 'AI move failed',
+        status: aiResponse.status,
         player: currentPlayer,
         requestId
       });
@@ -111,10 +114,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     
   } catch (error) {
-    console.error('Arena API Error:', error);
+    console.error('Arena API Error:', errorSummary(error));
     res.status(500).json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error'
     });
   }
 }

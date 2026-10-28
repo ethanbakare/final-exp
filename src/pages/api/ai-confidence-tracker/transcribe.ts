@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import formidable, { Fields, Files } from 'formidable';
 import fs from 'fs';
 import { processAudioWithDeepgram } from '../../../projects/ai-confidence-tracker/api/DeepgramApi';
+import { errorSummary, upstreamStatusOf } from '@/lib/safeError';
 
 // Define the shape of formidable file to help TypeScript
 interface FormidableFile {
@@ -130,11 +131,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(result);
     
   } catch (error) {
-    console.error('Error processing audio:', error);
+    // Name + status only: provider/SDK error text never reaches logs or the browser.
+    console.error('Error processing audio:', errorSummary(error));
     
     // Provide more specific error messages based on the error type
     let errorMessage = 'Failed to process audio';
-    let details = error instanceof Error ? error.message : 'Unknown error';
+    let details = 'The transcription service could not process this recording. Please try again.';
     
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
@@ -149,7 +151,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     return res.status(500).json({ 
       error: errorMessage,
-      details: details
+      details: details,
+      status: upstreamStatusOf(error)
     });
   }
 } 

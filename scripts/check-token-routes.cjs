@@ -61,6 +61,41 @@ for (const ext of [".ts", ".tsx"]) {
   };
 }
 
+
+// --- module stubs used only by checkSiblingRoutes() -----------------------
+// formidable: parse() hands back req.__fields / req.__files.
+// node-fetch: forwards to the mocked global fetch.
+// axios: post() rejects with whatever axiosImpl returns.
+let stubsOn = false;
+let axiosImpl = null;
+function fakeFormidableFactory() {
+  return { parse: (req, cb) => cb(null, req.__fields || {}, req.__files || {}) };
+}
+class FakeIncomingForm {
+  parse(req, cb) { cb(null, req.__fields || {}, req.__files || {}); }
+}
+const fakeFormidable = Object.assign(fakeFormidableFactory, {
+  __esModule: true,
+  default: fakeFormidableFactory,
+  IncomingForm: FakeIncomingForm,
+});
+const fakeNodeFetch = { __esModule: true, default: (...a) => global.fetch(...a) };
+const fakeAxios = {
+  __esModule: true,
+  isAxiosError: (e) => !!(e && e.isAxiosError),
+  post: async () => { throw axiosImpl(); },
+};
+fakeAxios.default = fakeAxios;
+const origLoad = Module._load;
+Module._load = function (request, parent, isMain) {
+  if (stubsOn) {
+    if (request === "formidable") return fakeFormidable;
+    if (request === "node-fetch") return fakeNodeFetch;
+    if (request === "axios") return fakeAxios;
+  }
+  return origLoad.call(this, request, parent, isMain);
+};
+
 // --- tiny req/res mocks --------------------------------------------------
 let ipCounter = 0;
 function makeReq({ method = "GET", headers = {}, body, ip, socketIp, query } = {}) {
@@ -151,11 +186,13 @@ function captureError(...args) {
   errorLog.push(args.map((a) => (typeof a === "string" ? a : (() => { try { return JSON.stringify(a, a instanceof Error ? Object.getOwnPropertyNames(a) : undefined); } catch { return String(a); } })())).join(" "));
 }
 
+const isNoStore = (res) => /no-store/.test(String(res.headers["cache-control"] || ""));
+
 // --- run -----------------------------------------------------------------
 let failures = 0;
 function check(route, label, ok, detail = "") {
   if (!ok) failures += 1;
-  console.log(`${ok ? "PASS" : "FAIL"}  ${route.name}  ${label}${detail ? "  (" + detail + ")" : ""}`);
+  process.stdout.write(`${ok ? "PASS" : "FAIL"}  ${route.name}  ${label}${detail ? "  (" + detail + ")" : ""}\n`);
 }
 
 async function call(handler, reqOpts) {
@@ -206,21 +243,26 @@ async function runRoute(route) {
   fetchImpl = () => jsonResponse(401, { err_msg: "nope" });
   res = await call(handler, { headers: { origin: ALLOWED } });
   check(route, "prod upstream failure: error status", res.statusCode >= 400, `status ${res.statusCode}`);
+  check(route, `prod upstream failure: ${res.statusCode} has Cache-Control no-store`, isNoStore(res));
   check(route, "prod upstream failure: body has no env key", !has(res));
   fetchImpl = route.upstreamOk;
 
   // upstream error body that echoes the key must never reach the client or the log
-  fetchImpl = () => jsonResponse(401, { error: { message: `Incorrect API key provided: ${secret}`, key: secret } });
+  const MARKER = "UPSTREAM_BODY_MARKER_" + crypto.randomBytes(6).toString("hex");
+  fetchImpl = () => jsonResponse(401, { error: { message: `Incorrect API key provided: ${secret} ${MARKER}`, key: secret, code: MARKER } });
   errorLog.length = 0;
   res = await call(handler, { headers: { origin: ALLOWED } });
   check(route, "upstream error body containing the key: error status", res.statusCode >= 400, `status ${res.statusCode}`);
   check(route, "upstream error body containing the key: not in response", !has(res));
   check(route, "upstream error body containing the key: not in server log", !errorLog.some((l) => l.includes(secret)));
+  check(route, "upstream error body marker: not in response", !bodyText(res).includes(MARKER));
+  check(route, "upstream error body marker: not in any log line", !errorLog.some((l) => l.includes(MARKER)));
   fetchImpl = route.upstreamOk;
 
   // 4. production, foreign Origin / no Origin
   res = await call(handler, { headers: { origin: "https://evil.example" } });
   check(route, "prod foreign Origin: 403", res.statusCode === 403, `status ${res.statusCode}`);
+  check(route, "prod foreign Origin: 403 has Cache-Control no-store", isNoStore(res));
   check(route, "prod foreign Origin: body has no env key", !has(res));
   res = await call(handler, {});
   check(route, "prod no Origin/Referer: 403", res.statusCode === 403, `status ${res.statusCode}`);
@@ -234,6 +276,7 @@ async function runRoute(route) {
   // 6. method
   res = await call(handler, { method: "POST", headers: { origin: ALLOWED } });
   check(route, "POST: 405", res.statusCode === 405, `status ${res.statusCode}`);
+  check(route, "POST: 405 has Cache-Control no-store", isNoStore(res));
   check(route, "POST: body has no env key", !has(res));
 
   // 7. rate limit per IP
@@ -242,6 +285,7 @@ async function runRoute(route) {
   for (let i = 0; i < route.rateLimit + 1; i++) {
     const r = await call(handler, { ip, headers: { origin: ALLOWED } });
     statuses.push(r.statusCode);
+    if (r.statusCode === 429) check(route, "rate limit: 429 has Cache-Control no-store", isNoStore(r));
   }
   check(
     route,
@@ -361,6 +405,16 @@ function checkClientTokenErrors() {
     check(route, "403/5xx say unavailable", [403, 500, 502, 503].every((st) => /unavailable/i.test(msg(st))));
     check(route, "non-token errors are not classified", tokenRouteErrorMessage(new Error("NotAllowedError"), "Transcription") === null);
   }
+  // VoiceTextWrapperLive must hand the JWT to the SDK as { accessToken }:
+  // a bare string is treated as an API key (sent as ["token", key]), so
+  // the short-lived JWT would be rejected.
+  {
+    const src = fs.readFileSync(path.join(srcRoot, "projects/voiceinterface/components/VoiceTextWrapperLive.tsx"), "utf8");
+    const calls = src.match(/createClient\(([^)]*)\)/g) || [];
+    check(route, "VoiceTextWrapperLive.tsx: createClient({ accessToken })",
+      calls.length > 0 && calls.every((c) => /^createClient\(\s*\{\s*accessToken(\s*:\s*accessToken)?\s*\}\s*\)$/.test(c)),
+      JSON.stringify(calls));
+  }
   // Both components must throw TokenRouteError on a non-OK token response
   // and use the helper's message in their catch block.
   for (const [rel, tokenPath] of [
@@ -375,10 +429,112 @@ function checkClientTokenErrors() {
   }
 }
 
+// --- sibling routes: upstream / SDK error text never reaches a response or a log
+async function checkSiblingRoutes() {
+  const os = require("os");
+  const MARKER = "UPSTREAM_BODY_MARKER_" + crypto.randomBytes(6).toString("hex");
+  const secret = "fake_" + crypto.randomBytes(20).toString("hex");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "token-route-check-"));
+  const writeTmp = (name, bytes) => {
+    const f = path.join(tmpDir, name + "-" + crypto.randomBytes(4).toString("hex"));
+    fs.writeFileSync(f, bytes);
+    return f;
+  };
+  const audioBytes = Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), crypto.randomBytes(400)]);
+  const pngBytes = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), crypto.randomBytes(100)]);
+  const errBody = { error: { message: `upstream says ${MARKER}`, code: MARKER, type: MARKER } };
+
+  // Capture every console channel while these routes run.
+  const logs = [];
+  const saved = {};
+  for (const m of ["log", "info", "warn", "error", "debug"]) {
+    saved[m] = console[m];
+    console[m] = (...args) => logs.push(args.map((a) => {
+      if (typeof a === "string") return a;
+      try { return JSON.stringify(a, a instanceof Error ? Object.getOwnPropertyNames(a) : undefined); } catch { return String(a); }
+    }).join(" ") + " " + args.map((a) => (a instanceof Error ? String(a.stack || a.message) : "")).join(" "));
+  }
+  const envSaved = { ...process.env };
+  Object.assign(process.env, {
+    NODE_ENV: "development",
+    DEEPGRAM_API_KEY: secret, OPENAI_API_KEY: secret, OPENROUTER_API_KEY: secret, GEMINI_API_KEY: secret,
+  });
+  stubsOn = true;
+  fetchImpl = () => jsonResponse(401, errBody);
+  axiosImpl = () => Object.assign(new Error(`Request failed: ${MARKER}`), {
+    isAxiosError: true, response: { status: 500, data: { error: MARKER, detail: MARKER } },
+  });
+
+  const routes = [
+    ["ai-confidence-tracker/transcribe", "pages/api/ai-confidence-tracker/transcribe.ts",
+      () => ({ method: "POST", __files: { audio: { filepath: writeTmp("a.wav", audioBytes), mimetype: "audio/wav" } } })],
+    ["clipperstream/transcribe (deepgram)", "pages/api/clipperstream/transcribe.ts",
+      () => ({ method: "POST", __fields: {}, __files: { audio: { filepath: writeTmp("a.webm", audioBytes), mimetype: "audio/webm" } } })],
+    ["clipperstream/transcribe (whisper)", "pages/api/clipperstream/transcribe.ts",
+      () => ({ method: "POST", __fields: { provider: ["whisper"] }, __files: { audio: { filepath: writeTmp("b.webm", audioBytes), mimetype: "audio/webm" } } })],
+    ["voice-interface/transcribe", "pages/api/voice-interface/transcribe.ts",
+      () => ({ method: "POST", __files: { audio: { filepath: writeTmp("c.webm", audioBytes), mimetype: "audio/webm" } } })],
+    ["clipperstream/format-text", "pages/api/clipperstream/format-text.ts",
+      () => ({ method: "POST", body: { rawText: "hello there this is a test" } })],
+    ["clipperstream/generate-title", "pages/api/clipperstream/generate-title.ts",
+      () => ({ method: "POST", body: { transcription: "hello there this is a test" } })],
+    ["tictactoe/arena", "pages/api/tictactoe/arena.ts",
+      () => ({ method: "POST", body: { currentPlayer: "claude", requestId: "r1", gameState: {
+        board: [[null, null, null], [null, null, null], [null, null, null]], activeMoves: [], currentPlayer: "X",
+        turnNumber: 1, gameStatus: "playing", isGameActive: true, moveHistory: [], maxTurns: 50, moveDecayLimit: 3 } } })],
+    ["trace/parse-voice", "pages/api/trace/parse-voice.ts",
+      () => ({ method: "POST", body: { base64Audio: "AAAA", mimeType: "audio/webm" } })],
+    ["trace/parse-receipt", "pages/api/trace/parse-receipt.ts",
+      () => ({ method: "POST", body: { base64Image: "AAAA", mimeType: "image/png" } })],
+    ["receipt-scanner/process", "pages/api/receipt-scanner/process.ts",
+      () => ({ method: "POST", __fields: {}, __files: { file: { filepath: writeTmp("r.png", pngBytes), originalFilename: "r.png" } } })],
+  ];
+  try {
+    for (const [name, rel, mk] of routes) {
+      const route = { name: `sibling ${name}` };
+      const file = path.join(srcRoot, rel);
+      if (!fs.existsSync(file)) { check(route, "route file exists", false, rel); continue; }
+      let res;
+      logs.length = 0;
+      try {
+        delete require.cache[file];
+        const mod = require(file);
+        const handler = mod.default || mod;
+        const opts = mk();
+        const req = makeReq({ method: opts.method, body: opts.body });
+        req.__files = opts.__files; req.__fields = opts.__fields;
+        res = makeRes();
+        await handler(req, res);
+      } catch (err) {
+        check(route, "handler ran", false, err && err.name);
+        continue;
+      }
+      const body = bodyText(res);
+      const logText = logs.join("\n");
+      check(route, "upstream error marker not in response", !body.includes(MARKER), `status ${res.statusCode}`);
+      check(route, "upstream error marker not in any log line", !logText.includes(MARKER));
+      check(route, "env key not in response or log", !body.includes(secret) && !logText.includes(secret));
+    }
+  } finally {
+    stubsOn = false;
+    for (const m of Object.keys(saved)) console[m] = saved[m];
+    for (const k of Object.keys(process.env)) if (!(k in envSaved)) delete process.env[k];
+    Object.assign(process.env, envSaved);
+    fetchImpl = null;
+    // Remove only the files this check created, then its own empty dir.
+    try {
+      for (const f of fs.readdirSync(tmpDir)) fs.unlinkSync(path.join(tmpDir, f));
+      fs.rmdirSync(tmpDir);
+    } catch {}
+  }
+}
+
 (async () => {
   console.log(`checking token routes under ${srcRoot}`);
   const realError = console.error;
+  const realConsole = { log: console.log, info: console.info, warn: console.warn, debug: console.debug };
   console.error = captureError;
+  console.log = console.info = console.warn = console.debug = captureError;
   for (const route of ROUTES) {
     try {
       await runRoute(route);
@@ -388,7 +544,9 @@ function checkClientTokenErrors() {
   }
   await checkOriginAllowlist();
   checkClientTokenErrors();
+  await checkSiblingRoutes();
   console.error = realError;
+  Object.assign(console, realConsole);
   console.log(failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`);
   process.exit(failures === 0 ? 0 : 1);
 })();

@@ -4,6 +4,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { formatTranscription } from '../../../projects/clipperstream/api/textFormatter';
 import { logger } from '../../../projects/clipperstream/utils/logger';
+import { errorSummary } from '@/lib/safeError';
 
 const log = logger.scope('API/format-text');
 
@@ -86,11 +87,11 @@ export default async function handler(
     });
 
   } catch (error) {
-    log.error('Error formatting text', error);
+    log.error('Error formatting text', errorSummary(error));
 
     return res.status(500).json({
       error: 'Formatting failed',
-      details: error instanceof Error ? error.message : 'Unknown error',
+      details: 'The formatting service failed. Please try again.',
       success: false
     });
   }

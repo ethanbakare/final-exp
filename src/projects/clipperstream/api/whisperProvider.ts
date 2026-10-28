@@ -3,6 +3,7 @@
 
 import FormData from 'form-data';
 import fetch from 'node-fetch';
+import { UpstreamHttpError, errorSummary } from '@/lib/safeError';
 
 export interface WhisperTranscriptionResult {
   transcript: string;
@@ -73,12 +74,9 @@ export async function transcribeWithWhisper(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[Whisper] API error', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
-      });
+      // Status only: the provider's error body is never read, logged or
+      // put into the error message (it would reach logs and responses).
+      console.error('[Whisper] API error', { status: response.status });
 
       // Check for specific OpenAI errors
       if (response.status === 401) {
@@ -91,10 +89,10 @@ export async function transcribeWithWhisper(
         throw new Error('OpenAI insufficient credits (HTTP 402)');
       }
       if (response.status === 400) {
-        throw new Error(`OpenAI bad request (HTTP 400): ${errorText}`);
+        throw new Error('OpenAI bad request (HTTP 400)');
       }
 
-      throw new Error(`OpenAI Whisper API error (HTTP ${response.status}): ${errorText}`);
+      throw new UpstreamHttpError('OpenAI Whisper', response.status);
     }
 
     const result = await response.json();
@@ -120,7 +118,7 @@ export async function transcribeWithWhisper(
 
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('[Whisper] Transcription failed', {
-      error: errorMessage,
+      error: errorSummary(error),
       audioSize: audioBuffer.length
     });
 

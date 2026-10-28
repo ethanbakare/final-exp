@@ -3,6 +3,7 @@ import * as formidable from 'formidable';
 import * as fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
+import { errorSummary, upstreamStatusOf } from '@/lib/safeError';
 
 // Hardcoding config values to avoid module resolution issues
 const API_BASE_URL = 'http://localhost:8000';
@@ -83,24 +84,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       return res.status(200).json(backendResponse.data);
     } catch (error) {
-      console.error('Backend API error:', error);
-      if (axios.isAxiosError(error)) {
-        return res.status(error.response?.status || 500).json({ 
-          error: 'Failed to process receipt with backend API',
-          detail: error.response?.data?.error || error.message
-        });
-      } else {
-        return res.status(500).json({ 
-          error: 'Failed to process receipt with backend API',
-          detail: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
+      // Name + status only: the backend's error body/message is never
+      // logged or returned.
+      console.error('Backend API error:', errorSummary(error));
+      const status = upstreamStatusOf(error);
+      return res.status(status || 500).json({ 
+        error: 'Failed to process receipt with backend API',
+        detail: 'Failed to process receipt. Please try again.',
+        status
+      });
     }
   } catch (error) {
-    console.error('Error processing receipt:', error);
+    console.error('Error processing receipt:', errorSummary(error));
     return res.status(500).json({ 
       error: 'Failed to process receipt',
-      detail: error instanceof Error ? error.message : 'Unknown error'
+      detail: 'Failed to process receipt. Please try again.'
     });
   }
 }

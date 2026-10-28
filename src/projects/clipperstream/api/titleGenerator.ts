@@ -5,6 +5,7 @@
 import { generateText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { logger } from '../utils/logger';
+import { errorSummary } from '@/lib/safeError';
 
 const log = logger.scope('TitleGenerator');
 
@@ -65,7 +66,8 @@ Transcript: ${transcription.substring(0, 500)}`,
     return cleanTitle;
     
   } catch (error) {
-    log.error('Title generation failed', error);
+    // Name + status only: SDK errors carry the provider's response body.
+    log.error('Title generation failed', errorSummary(error));
     
     // Provide more specific error messages
     if (error instanceof Error) {

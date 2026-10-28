@@ -39,7 +39,10 @@ export type AIPlayer = 'claude' | 'gpt4';
 export interface AIResponse {
   coordinate: string;
   success: boolean;
+  /** Our own message; never contains provider response text. */
   error?: string;
+  /** Provider HTTP status when the provider call failed. */
+  status?: number;
 }
 
 // OpenRouter API Configuration
@@ -283,7 +286,7 @@ export function parseAIResponse(response: string): AIResponse {
     return {
       coordinate: '',
       success: false,
-      error: `Failed to parse response: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: 'Failed to parse response'
     };
   }
 }
@@ -329,11 +332,12 @@ export async function getAIMove(gameState: GameState, player: AIPlayer): Promise
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
+      // Status only: the provider's error body is never read or returned.
       return {
         coordinate: '',
         success: false,
-        error: `OpenRouter API error: ${response.status} - ${errorText}`
+        error: `OpenRouter API error: ${response.status}`,
+        status: response.status
       };
     }
     
@@ -345,7 +349,7 @@ export async function getAIMove(gameState: GameState, player: AIPlayer): Promise
     return {
       coordinate: '',
       success: false,
-      error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      error: `Network error: ${error instanceof Error ? error.name : 'Unknown error'}`
     };
   }
 }

@@ -5,6 +5,7 @@
 import { generateText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { logger } from '../utils/logger';
+import { errorSummary } from '@/lib/safeError';
 
 const log = logger.scope('TextFormatter');
 
@@ -146,7 +147,8 @@ export async function formatTranscription(
     return formattedText;
 
   } catch (error) {
-    log.error('Text formatting failed', error);
+    // Name + status only: SDK errors carry the provider's response body.
+    log.error('Text formatting failed', errorSummary(error));
     return rawText; // Always fallback to raw text
   }
 }

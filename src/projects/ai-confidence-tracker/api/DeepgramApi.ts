@@ -1,4 +1,5 @@
 import { DeepgramResponse, TranscriptionResult } from '../types/SpeechConfidenceTypes';
+import { UpstreamHttpError } from '@/lib/safeError';
 
 // ========================
 // CONFIGURATION
@@ -39,8 +40,9 @@ export async function processAudioWithDeepgram(
     const response = await fetch(url, options);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Deepgram API error (${response.status}): ${errorText}`);
+      // Status only: the provider's error body is never read into an
+      // error message (it would reach logs and responses).
+      throw new UpstreamHttpError('Deepgram', response.status);
     }
     
     const data = await response.json();
@@ -48,6 +50,7 @@ export async function processAudioWithDeepgram(
     // Process the Deepgram response
     return processDeepgramResponse(data as DeepgramResponse);
   } catch (err) {
+    if (err instanceof UpstreamHttpError) throw err;
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
     throw new Error(`Failed to process audio with Deepgram: ${errorMessage}`);
   }

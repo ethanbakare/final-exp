@@ -1,3 +1,4 @@
+import { UpstreamHttpError, errorSummary } from '@/lib/safeError';
 // Direct REST API implementation for Deepgram
 // Bypasses SDK to avoid client state issues and get detailed error messages
 
@@ -120,23 +121,10 @@ export async function transcribeAudio(
     // ========================================
     
     if (!response.ok) {
-      let errorDetails = '';
-      
-      try {
-        // Try to parse error response as JSON
-        const errorData = await response.json();
-        errorDetails = JSON.stringify(errorData, null, 2);
-        logError('❌ Deepgram API error response:', errorDetails);
-      } catch (parseError) {
-        // If JSON parsing fails, get text
-        errorDetails = await response.text();
-        logError('❌ Deepgram API error (text):', errorDetails);
-      }
-      
-      // Throw error with HTTP status and details
-      throw new Error(
-        `Deepgram API error (HTTP ${response.status}): ${errorDetails || response.statusText}`
-      );
+      // Status only: the provider's error body is never read, logged or
+      // put into the error message (it would reach logs and responses).
+      logError('❌ Deepgram API error status:', response.status);
+      throw new UpstreamHttpError('Deepgram', response.status);
     }
     
     // ========================================
@@ -190,33 +178,8 @@ export async function transcribeAudio(
     // ========================================
     
     logError('=== 🔬 DEEPGRAM API ERROR DETAILS ===');
-    logError('Error object:', err);
-    logError('Error type:', err?.constructor?.name);
-    logError('Error message:', err instanceof Error ? err.message : String(err));
-    
-    // Log all error properties
-    if (typeof err === 'object' && err !== null) {
-      logError('Error properties:', {
-        name: (err as any).name,
-        code: (err as any).code,
-        status: (err as any).status,
-        statusCode: (err as any).statusCode,
-        errno: (err as any).errno,
-        syscall: (err as any).syscall,
-        cause: (err as any).cause,
-        stack: DEBUG ? (err as any).stack?.split('\n').slice(0, 5) : '[hidden in production]',
-      });
-      
-      // Log response if it exists
-      if ((err as any).response) {
-        logError('Error response object:', (err as any).response);
-      }
-      
-      // Log data if it exists
-      if ((err as any).data) {
-        logError('Error data:', (err as any).data);
-      }
-    }
+    // Name + status only (never the message, cause or response body).
+    logError('Error:', errorSummary(err));
     
     // Check for fetch-specific errors
     if (err instanceof Error) {

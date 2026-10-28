@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import formidable, { Fields, Files } from 'formidable';
 import fs from 'fs';
 import { transcribeAudio } from '../../../projects/clipperstream/api/deepgramProvider';
+import { errorSummary, upstreamStatusOf } from '@/lib/safeError';
 // TEMPORARY: For VPN testing
 import { transcribeWithWhisper } from '../../../projects/clipperstream/api/whisperProvider';
 
@@ -225,7 +226,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       errorMessage.includes('getaddrinfo') ||
       errorMessage.includes('DNS')
     ) {
-      console.error('[API] DNS error - VPN or network blocking Deepgram:', errorMessage);
+      console.error('[API] DNS error - VPN or network blocking Deepgram:', errorSummary(error));
 
       // Return 503 with specific error type
       return res.status(503).json({
@@ -242,18 +243,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    console.error('Error processing audio:', error);
+    // Name + status only: provider/SDK error text never reaches logs or the browser.
+    console.error('Error processing audio:', errorSummary(error));
     
     // Provide more specific error messages based on the error type
     let errorType = 'Transcription failed';
-    let details = error instanceof Error ? error.message : 'Unknown error';
+    let details = 'The transcription service could not process this recording. Please try again.';
     
     if (error instanceof Error) {
       // Check for specific error patterns
+      // Our own helper messages (no provider text) are matched to fixed copies.
       if (error.message.includes('No audio recorded') || error.message.includes('too short')) {
         errorType = 'No audio recorded';
+        details = 'Recording is too short or empty. Please record at least 1 second of audio.';
       } else if (error.message.includes('No speech detected')) {
         errorType = 'No speech detected';
+        details = 'No speech detected in recording. Please try again and speak clearly.';
       } else if (error.message.includes('API key') || error.message.includes('Unauthorized')) {
         errorType = 'API key error';
       } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
@@ -267,6 +272,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ 
       error: errorType,
       details: details,
+      status: upstreamStatusOf(error),
       success: false
     });
   }
