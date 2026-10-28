@@ -145,6 +145,12 @@ const ROUTES = [
   },
 ];
 
+// Handlers log upstream failures; capture instead of printing.
+const errorLog = [];
+function captureError(...args) {
+  errorLog.push(args.map((a) => (typeof a === "string" ? a : (() => { try { return JSON.stringify(a, a instanceof Error ? Object.getOwnPropertyNames(a) : undefined); } catch { return String(a); } })())).join(" "));
+}
+
 // --- run -----------------------------------------------------------------
 let failures = 0;
 function check(route, label, ok, detail = "") {
@@ -201,6 +207,15 @@ async function runRoute(route) {
   res = await call(handler, { headers: { origin: ALLOWED } });
   check(route, "prod upstream failure: error status", res.statusCode >= 400, `status ${res.statusCode}`);
   check(route, "prod upstream failure: body has no env key", !has(res));
+  fetchImpl = route.upstreamOk;
+
+  // upstream error body that echoes the key must never reach the client or the log
+  fetchImpl = () => jsonResponse(401, { error: { message: `Incorrect API key provided: ${secret}`, key: secret } });
+  errorLog.length = 0;
+  res = await call(handler, { headers: { origin: ALLOWED } });
+  check(route, "upstream error body containing the key: error status", res.statusCode >= 400, `status ${res.statusCode}`);
+  check(route, "upstream error body containing the key: not in response", !has(res));
+  check(route, "upstream error body containing the key: not in server log", !errorLog.some((l) => l.includes(secret)));
   fetchImpl = route.upstreamOk;
 
   // 4. production, foreign Origin / no Origin
@@ -263,10 +278,107 @@ async function runRoute(route) {
   delete process.env[route.envVar];
 }
 
+// --- production Origin/Referer allowlist (guard called directly) ---------
+async function checkOriginAllowlist() {
+  const route = { name: "tokenRouteGuard origin allowlist" };
+  const file = path.join(srcRoot, "lib/tokenRouteGuard.ts");
+  if (!fs.existsSync(file)) {
+    check(route, "guard file exists", false);
+    return;
+  }
+  delete require.cache[file];
+  const { guardTokenRoute } = require(file);
+  const ENV_KEYS = ["TOKEN_ROUTE_ALLOWED_ORIGINS", "VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_URL", "VERCEL_BRANCH_URL"];
+  const savedEnv = {};
+  for (const k of [...ENV_KEYS, "NODE_ENV"]) savedEnv[k] = process.env[k];
+  let n = 0;
+  const run = (env, headers) => {
+    for (const k of ENV_KEYS) delete process.env[k];
+    Object.assign(process.env, env);
+    process.env.NODE_ENV = "production";
+    n += 1;
+    const res = makeRes();
+    // Unique bucket per call so the rate limit never interferes.
+    const ok = guardTokenRoute(makeReq({ headers }), res, { bucket: `origin-test-${n}` });
+    return { ok, status: ok ? 200 : res.statusCode };
+  };
+  const cases = [
+    ["www Origin allowed when only VERCEL_PROJECT_PRODUCTION_URL=littleexp.com",
+      { VERCEL_PROJECT_PRODUCTION_URL: "littleexp.com" }, { origin: "https://www.littleexp.com" }, true],
+    ["apex Origin allowed when VERCEL_PROJECT_PRODUCTION_URL=littleexp.com",
+      { VERCEL_PROJECT_PRODUCTION_URL: "littleexp.com" }, { origin: "https://littleexp.com" }, true],
+    ["apex Origin allowed when VERCEL_PROJECT_PRODUCTION_URL=www.littleexp.com",
+      { VERCEL_PROJECT_PRODUCTION_URL: "www.littleexp.com" }, { origin: "https://littleexp.com" }, true],
+    ["www Referer allowed (same-origin GET, no Origin)",
+      { VERCEL_PROJECT_PRODUCTION_URL: "littleexp.com" }, { referer: "https://www.littleexp.com/voice" }, true],
+    ["lookalike Origin https://littleexp.com.evil.com denied",
+      { VERCEL_PROJECT_PRODUCTION_URL: "littleexp.com" }, { origin: "https://littleexp.com.evil.com" }, false],
+    ["lookalike Origin https://www.littleexp.com.evil.com denied",
+      { VERCEL_PROJECT_PRODUCTION_URL: "littleexp.com" }, { origin: "https://www.littleexp.com.evil.com" }, false],
+    ["lookalike Referer https://littleexp.com.evil.com/x denied",
+      { VERCEL_PROJECT_PRODUCTION_URL: "littleexp.com" }, { referer: "https://littleexp.com.evil.com/x" }, false],
+    ["prefix-lookalike Origin https://evillittleexp.com denied",
+      { VERCEL_PROJECT_PRODUCTION_URL: "littleexp.com" }, { origin: "https://evillittleexp.com" }, false],
+    ["http (not https) Origin denied",
+      { VERCEL_PROJECT_PRODUCTION_URL: "littleexp.com" }, { origin: "http://www.littleexp.com" }, false],
+    ["VERCEL_BRANCH_URL host allowed",
+      { VERCEL_BRANCH_URL: "proj-git-feature-team.vercel.app" }, { origin: "https://proj-git-feature-team.vercel.app" }, true],
+    ["VERCEL_URL host allowed",
+      { VERCEL_URL: "proj-abc123-team.vercel.app" }, { origin: "https://proj-abc123-team.vercel.app" }, true],
+    ["env entries trimmed + case-insensitive (lower-case Origin)",
+      { TOKEN_ROUTE_ALLOWED_ORIGINS: "  HTTPS://Example.COM/ ,  https://Other.Example  " }, { origin: "https://example.com" }, true],
+    ["env entries case-insensitive (upper-case Origin)",
+      { TOKEN_ROUTE_ALLOWED_ORIGINS: "  HTTPS://Example.COM/ ,  https://Other.Example  " }, { origin: "https://OTHER.example" }, true],
+    ["mixed-case VERCEL_PROJECT_PRODUCTION_URL",
+      { VERCEL_PROJECT_PRODUCTION_URL: " LittleExp.com " }, { origin: "https://www.littleexp.com" }, true],
+    ["nothing configured: denied (fail closed)",
+      {}, { origin: "https://www.littleexp.com" }, false],
+  ];
+  for (const [label, env, headers, expectAllowed] of cases) {
+    const r = run(env, headers);
+    check(route, label, r.ok === expectAllowed, `status ${r.status}`);
+  }
+  for (const k of Object.keys(savedEnv)) {
+    if (savedEnv[k] === undefined) delete process.env[k]; else process.env[k] = savedEnv[k];
+  }
+}
+
+// --- client: token-route failures get their own message, not "check your microphone"
+function checkClientTokenErrors() {
+  const route = { name: "voiceinterface client token errors" };
+  const helper = path.join(srcRoot, "projects/voiceinterface/utils/tokenRouteError.ts");
+  if (!fs.existsSync(helper)) {
+    check(route, "utils/tokenRouteError.ts exists", false);
+  } else {
+    delete require.cache[helper];
+    const { TokenRouteError, tokenRouteErrorMessage } = require(helper);
+    const msg = (status) => tokenRouteErrorMessage(new TokenRouteError(status), "Transcription");
+    for (const status of [403, 429, 500, 502, 503]) {
+      const m = msg(status);
+      check(route, `status ${status}: message does not mention the microphone`, !!m && !/microphone/i.test(m), JSON.stringify(m));
+    }
+    check(route, "429 says too many requests", /too many requests/i.test(msg(429)), JSON.stringify(msg(429)));
+    check(route, "403/5xx say unavailable", [403, 500, 502, 503].every((st) => /unavailable/i.test(msg(st))));
+    check(route, "non-token errors are not classified", tokenRouteErrorMessage(new Error("NotAllowedError"), "Transcription") === null);
+  }
+  // Both components must throw TokenRouteError on a non-OK token response
+  // and use the helper's message in their catch block.
+  for (const [rel, tokenPath] of [
+    ["projects/voiceinterface/components/VoiceTextWrapperLive.tsx", "/api/voice-interface/deepgram-token"],
+    ["projects/voiceinterface/components/VoiceRealtimeOpenAI.tsx", "/api/voice-interface/openai-realtime-token"],
+  ]) {
+    const src = fs.readFileSync(path.join(srcRoot, rel), "utf8");
+    const afterFetch = src.slice(src.indexOf(tokenPath), src.indexOf(tokenPath) + 900);
+    check(route, `${path.basename(rel)}: non-OK token response throws TokenRouteError`,
+      /if \(!response\.ok\)[\s\S]{0,120}throw new TokenRouteError\(response\.status\)/.test(afterFetch));
+    check(route, `${path.basename(rel)}: catch shows tokenRouteErrorMessage`, /tokenRouteErrorMessage\(/.test(src));
+  }
+}
+
 (async () => {
   console.log(`checking token routes under ${srcRoot}`);
   const realError = console.error;
-  console.error = () => {}; // handlers log upstream failures; keep output to checks only
+  console.error = captureError;
   for (const route of ROUTES) {
     try {
       await runRoute(route);
@@ -274,6 +386,8 @@ async function runRoute(route) {
       check(route, "handler ran without throwing", false, err && err.message);
     }
   }
+  await checkOriginAllowlist();
+  checkClientTokenErrors();
   console.error = realError;
   console.log(failures === 0 ? "ALL CHECKS PASSED" : `${failures} CHECK(S) FAILED`);
   process.exit(failures === 0 ? 0 : 1);

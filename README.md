@@ -244,7 +244,7 @@ Provider keys are read only from server-side environment variables. No route ret
 | `ASSEMBLYAI_API_KEY` | `api/dictate/record`, `api/dictate/ws` | `.env.local` and Vercel |
 | `OPENROUTER_API_KEY` | `api/tictactoe/arena` (through `projects/tictactoe/api/ArenaApi`) | `.env.local` and Vercel |
 | `SANITY_API_TOKEN` | `sanity/lib/client` (used by the `app/api/projects/*` and `app/api/project-progress` routes) | `.env.local` and Vercel |
-| `TOKEN_ROUTE_ALLOWED_ORIGINS` (not a secret) | the token-route guard `src/lib/tokenRouteGuard.ts`: comma-separated origins allowed to call the token routes in production, e.g. `https://example.com,https://www.example.com`. The Vercel-provided `VERCEL_PROJECT_PRODUCTION_URL` and `VERCEL_URL` hosts are also allowed. With none set, production token requests are refused. | Vercel |
+| `TOKEN_ROUTE_ALLOWED_ORIGINS` (not a secret) | the token-route guard `src/lib/tokenRouteGuard.ts`: comma-separated origins allowed to call the token routes in production, e.g. `https://example.com,https://www.example.com`. The Vercel-provided `VERCEL_PROJECT_PRODUCTION_URL` host (plus its www/apex counterpart), `VERCEL_URL` and `VERCEL_BRANCH_URL` are also allowed. Matching is exact and case-insensitive. With none set, production token requests are refused. | Vercel |
 
 To rotate a key: change only that value in `.env.local` and in Vercel (Project → Settings → Environment Variables), then redeploy (restart `next dev` locally). No code change is needed. Never put key values in this file, in code, or in commits.
 

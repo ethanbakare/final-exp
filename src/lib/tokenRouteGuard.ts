@@ -10,9 +10,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
  *   Origin on a same-origin GET, the Referer's origin) must be on the
  *   allowlist. The allowlist is TOKEN_ROUTE_ALLOWED_ORIGINS (comma
  *   separated, e.g. "https://example.com,https://www.example.com"),
- *   plus the Vercel-provided VERCEL_PROJECT_PRODUCTION_URL and
- *   VERCEL_URL hosts when present. No allowlist entry → every request
- *   is rejected (fail closed).
+ *   plus the Vercel-provided VERCEL_PROJECT_PRODUCTION_URL (and its
+ *   www/apex counterpart), VERCEL_URL and VERCEL_BRANCH_URL hosts when
+ *   present. Exact match, case-insensitive. No allowlist entry → every
+ *   request is rejected (fail closed).
  * - Simple in-memory fixed-window rate limit per client IP and bucket
  *   (client IP from platform headers, never X-Forwarded-For; see clientIp).
  *   It is per server instance (a serverless platform may run several),
@@ -79,29 +80,52 @@ export function clientIp(req: NextApiRequest): string {
   return req.socket?.remoteAddress ?? "unknown";
 }
 
+function normaliseOrigin(value: string): string {
+  return value.trim().replace(/\/+$/, "").toLowerCase();
+}
+
+function vercelHost(value: string | undefined): string | null {
+  const host = value?.trim().replace(/\/+$/, "").toLowerCase();
+  return host ? host : null;
+}
+
+/**
+ * Exact-match allowlist (lower-cased): TOKEN_ROUTE_ALLOWED_ORIGINS
+ * entries, plus https://<host> for the Vercel system env vars
+ * VERCEL_PROJECT_PRODUCTION_URL (with its www/apex counterpart, since
+ * the apex may redirect to www or the reverse), VERCEL_URL and
+ * VERCEL_BRANCH_URL.
+ */
 function allowedOrigins(): Set<string> {
   const out = new Set<string>();
   const raw = process.env.TOKEN_ROUTE_ALLOWED_ORIGINS ?? "";
   for (const entry of raw.split(",")) {
-    const trimmed = entry.trim().replace(/\/+$/, "");
-    if (trimmed) out.add(trimmed);
+    const origin = normaliseOrigin(entry);
+    if (origin) out.add(origin);
   }
-  for (const host of [
-    process.env.VERCEL_PROJECT_PRODUCTION_URL,
-    process.env.VERCEL_URL,
-  ]) {
-    if (host) out.add(`https://${host.replace(/\/+$/, "")}`);
+  const production = vercelHost(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  if (production) {
+    out.add(`https://${production}`);
+    out.add(
+      production.startsWith("www.")
+        ? `https://${production.slice(4)}`
+        : `https://www.${production}`,
+    );
+  }
+  for (const value of [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]) {
+    const host = vercelHost(value);
+    if (host) out.add(`https://${host}`);
   }
   return out;
 }
 
 function requestOrigin(req: NextApiRequest): string | null {
   const origin = firstHeader(req.headers.origin);
-  if (origin && origin !== "null") return origin.replace(/\/+$/, "");
+  if (origin && origin !== "null") return normaliseOrigin(origin);
   const referer = firstHeader(req.headers.referer);
   if (referer) {
     try {
-      return new URL(referer).origin;
+      return normaliseOrigin(new URL(referer).origin);
     } catch {
       return null;
     }

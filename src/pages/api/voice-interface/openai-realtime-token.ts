@@ -59,11 +59,12 @@ export default async function handler(
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI token generation error:', errorData);
-      return res.status(response.status).json({
+      // Status only: the upstream error body is never logged or returned
+      // (provider error text can quote the credential it rejected).
+      console.error('OpenAI client_secrets failed with status', response.status);
+      return res.status(502).json({
         error: 'Failed to generate ephemeral token',
-        details: errorData
+        status: response.status
       });
     }
 
@@ -82,10 +83,7 @@ export default async function handler(
     });
 
   } catch (err) {
-    console.error('Token endpoint error:', err);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: err instanceof Error ? err.message : 'Unknown error'
-    });
+    console.error('Token endpoint error:', err instanceof Error ? err.name : 'unknown error');
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

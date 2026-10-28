@@ -130,6 +130,7 @@ import { MorphingRecordWideSimple } from './ui/voicemorphingbuttons';
 import { ProcessingButtonDark } from './ui/voicebuttons';
 import { AudioData } from '../types';
 import { AUDIO_BANDS } from '../constants';
+import { TokenRouteError, tokenRouteErrorMessage } from '../utils/tokenRouteError';
 
 /**
  * Variation 4: OpenAI Realtime Voice Chat with Velvet Orb
@@ -894,7 +895,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
         console.log('[OpenAI Realtime] F-8 guard #3 fired (post-fetch) — run superseded');
         return;
       }
-      if (!response.ok) throw new Error(`Failed to get token: ${response.statusText}`);
+      if (!response.ok) throw new TokenRouteError(response.status);
       const tokenData = await response.json();
       // v4.2 guard site #4 — post-response.json() (async parse)
       if (runIdRef.current !== myRunId) {
@@ -902,7 +903,7 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
         return;
       }
       const ephemeralKey = tokenData.key;
-      if (!ephemeralKey) throw new Error('No ephemeral token received');
+      if (!ephemeralKey) throw new TokenRouteError(response.status);
       console.log(`[TIMING +${dtNow()}ms] Got ephemeral token`);
 
       // v4.2 §7.4 — Promise.race gives us a UI-timeout, NOT a connect-abort.
@@ -976,7 +977,8 @@ export const VoiceRealtimeOpenAI: React.FC = () => {
             ? 'Microphone timed out — please check your permissions.'
             : isConnectTimeout
               ? 'Connection timed out — please try again.'
-              : 'Failed to start conversation. Please check your microphone.'
+              : tokenRouteErrorMessage(err, 'Voice chat') ??
+                'Failed to start conversation. Please check your microphone.'
         );
         setAppState('idle');
         setIsConnecting(false);

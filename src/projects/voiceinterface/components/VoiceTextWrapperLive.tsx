@@ -8,6 +8,7 @@ import {
 import { VoiceTextStreaming, VoiceTextStreamingState } from './ui/VoiceTextStreaming';
 import { MorphingRecordWideStopDock } from './ui/voicenavbar';
 import styles from '@/projects/voiceinterface/styles/voice.module.css';
+import { TokenRouteError, tokenRouteErrorMessage } from '../utils/tokenRouteError';
 
 /**
  * Variation 3: TextWrapper Live Streaming
@@ -76,13 +77,13 @@ export const VoiceTextWrapperLive: React.FC = () => {
       // 1. Get temporary token from our API
       const response = await fetch('/api/voice-interface/deepgram-token');
       if (!response.ok) {
-        throw new Error(`Deepgram token endpoint returned ${response.status}`);
+        throw new TokenRouteError(response.status);
       }
       const data = (await response.json()) as { access_token?: string };
       const accessToken = data.access_token;
 
       if (!accessToken) {
-        throw new Error('Failed to get Deepgram token');
+        throw new TokenRouteError(response.status);
       }
 
       // 2. Create Deepgram client with the short-lived JWT. The SDK sends
@@ -190,7 +191,10 @@ export const VoiceTextWrapperLive: React.FC = () => {
 
     } catch (err) {
       console.error('Error starting recording:', err);
-      alert('Failed to start recording. Please check your microphone and try again.');
+      alert(
+        tokenRouteErrorMessage(err, 'Transcription') ??
+          'Failed to start recording. Please check your microphone and try again.'
+      );
       setAppState('idle');
     }
   };
