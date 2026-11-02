@@ -7,7 +7,7 @@
  * pipeline. The modal mounts in TraceModalOverlay instead of the showcase's modal
  * layer, and the strip stays in the page flow instead of a portal to the canvas.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { TraceModalOverlay } from './ui/TraceModalOverlay';
 import { SampleReceiptPickerModal } from './ui/SampleReceiptPickerModal';
 import type { SampleReceipt } from '../data/sample-receipts';
@@ -24,7 +24,11 @@ type PickerControls = {
 export const useTraceSamplePicker = () => {
   const [controls, setControls] = useState<PickerControls | null>(null);
 
+  // The upload in flight, if any: closing the picker drops it, and a second tap is ignored.
+  const uploadRef = useRef<symbol | null>(null);
+
   const handleClose = useCallback(() => {
+    uploadRef.current = null;
     controls?.cancel();
     setControls(null);
   }, [controls]);
@@ -33,10 +37,22 @@ export const useTraceSamplePicker = () => {
   // picker would deliver one, so the rest of the pipeline can't tell the difference.
   const handleUpload = useCallback(
     async (receipt: SampleReceipt) => {
-      if (!controls) return;
-      const response = await fetch(receipt.src);
-      const blob = await response.blob();
-      const file = new File([blob], `${receipt.id}.png`, { type: receipt.mimeType });
+      if (!controls || uploadRef.current) return;
+      const run = Symbol('upload');
+      uploadRef.current = run;
+      let file: File;
+      try {
+        const response = await fetch(receipt.src);
+        if (!response.ok) throw new Error(String(response.status));
+        const blob = await response.blob();
+        file = new File([blob], `${receipt.id}.png`, { type: receipt.mimeType });
+      } catch {
+        // Could not load the sample: the picker stays open, so Upload can be tried again.
+        if (uploadRef.current === run) uploadRef.current = null;
+        return;
+      }
+      if (uploadRef.current !== run) return; // closed while it loaded
+      uploadRef.current = null;
       setControls(null);
       await controls.selectReceipt(file);
     },
