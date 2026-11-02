@@ -14,9 +14,12 @@
 import React from 'react';
 import Head from 'next/head';
 import { TraceCore } from '@/projects/trace/components/TraceCore';
+import { useTraceSamplePicker } from '@/projects/trace/components/TraceSamplePicker';
 import ProjectPageBackground from '@/projects/new-home/components/ProjectPageBackground';
 
 export default function TracePage() {
+  const { onRequestSamplePicker, renderSampleStrip, pickerModal } = useTraceSamplePicker();
+
   return (
     <>
       <Head>
@@ -27,9 +30,10 @@ export default function TracePage() {
 
       <ProjectPageBackground variant="trace">
         <div className="trace-page">
-          <TraceCore />
+          <TraceCore onRequestSamplePicker={onRequestSamplePicker} renderSampleStrip={renderSampleStrip} />
         </div>
       </ProjectPageBackground>
+      {pickerModal}
 
       <style jsx>{`
         .trace-page {
@@ -38,12 +42,36 @@ export default function TracePage() {
           /* Background = the home-page AI DEMOS Trace card (#965935),
              painted and framed by <ProjectPageBackground>, which also
              applies the site navbar offset. */
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
+          /* The two middle columns are together exactly as wide as the card
+             (360px x its zoom, set below), so the row under the card holds the
+             sample receipts at the card's left edge and Clear at its right. The
+             outer columns take the spare width: the card and the mic banner span
+             all four, so they still centre across the whole page. */
+          --trace-card-zoom: 1;
+          display: grid;
+          grid-template-columns:
+            minmax(0, 1fr)
+            repeat(2, calc(180px * var(--trace-card-zoom)))
+            minmax(0, 1fr);
+          grid-auto-flow: row dense;
+          justify-items: center;
           align-items: center;
           padding: 20px;
-          gap: 16px;
+          row-gap: 16px;
+        }
+        .trace-page :global(.trace-container) {
+          zoom: var(--trace-card-zoom);
+        }
+        .trace-page > :global(*) {
+          grid-column: 1 / -1;
+        }
+        .trace-page > :global(.trace-sample-strip) {
+          grid-column: 2;
+          justify-self: start;
+        }
+        .trace-page > :global(.clear-button-below) {
+          grid-column: 3;
+          justify-self: end;
         }
 
         /* The mic permission banner is a fixed toast by default (top: 24px
@@ -94,40 +122,40 @@ export default function TracePage() {
                then fits the whole page (it overran by 8px at 20px). */
             padding: 12px 0;
           }
-          .trace-page :global(.trace-container) {
-            zoom: 0.96;
+          .trace-page {
+            --trace-card-zoom: 0.96;
           }
           .trace-page :global(.trnavbar-container.trnavbar-container) {
             --trace-button-height: 44px;
           }
         }
         @media (max-width: 389px) {
-          .trace-page :global(.trace-container) {
-            zoom: 0.92;
+          .trace-page {
+            --trace-card-zoom: 0.92;
           }
           .trace-page :global(.trnavbar-container.trnavbar-container) {
             --trace-button-height: 44px;
           }
         }
         @media (max-width: 374px) {
-          .trace-page :global(.trace-container) {
-            zoom: 0.88;
+          .trace-page {
+            --trace-card-zoom: 0.88;
           }
           .trace-page :global(.trnavbar-container.trnavbar-container) {
             --trace-button-height: 46px;
           }
         }
         @media (max-width: 359px) {
-          .trace-page :global(.trace-container) {
-            zoom: 0.83;
+          .trace-page {
+            --trace-card-zoom: 0.83;
           }
           .trace-page :global(.trnavbar-container.trnavbar-container) {
             --trace-button-height: 49px;
           }
         }
         @media (max-width: 339px) {
-          .trace-page :global(.trace-container) {
-            zoom: 0.76;
+          .trace-page {
+            --trace-card-zoom: 0.76;
           }
           .trace-page :global(.trnavbar-container.trnavbar-container) {
             --trace-button-height: 53px;
