@@ -84,7 +84,6 @@ const AIConfidenceTrackerPage: React.FC = () => {
             color: #404040 !important;
           }
         }
-        .ai-tracker-container .initial-text,
         .ai-tracker-container .status-text,
         .ai-tracker-container .error-text {
           color: #6b6b6b !important;
