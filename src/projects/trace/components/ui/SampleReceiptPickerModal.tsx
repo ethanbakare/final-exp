@@ -58,6 +58,9 @@ interface SampleReceiptPickerModalProps {
 // enough that an accidental tap doesn't register as a swipe.
 const DRAG_THRESHOLD_PX = 50;
 
+// A preview retry that has neither loaded nor failed by now counts as failed.
+const PREVIEW_RETRY_TIMEOUT_MS = 20000;
+
 // Movement past this point promotes the gesture from "tap" to "drag".
 // Below this we don't capture the pointer, so a tap on a peek button
 // still propagates as a native click.
@@ -82,7 +85,9 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
   const [previewLoadedAttempt, setPreviewLoadedAttempt] = useState<Record<string, number>>({});
   const dotsRef = useRef<HTMLDivElement | null>(null);
   const uploadButtonRef = useRef<HTMLButtonElement | null>(null);
-  const previewRetryButtonRef = useRef<HTMLButtonElement | null>(null);
+  // Which attempts have loaded and the retry time limits, readable outside React's render.
+  const previewLoadedRef = useRef<Record<string, number>>({});
+  const previewRetryTimersRef = useRef<Map<string, number>>(new Map());
   const [dragOffsetX, setDragOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartXRef = useRef(0);
@@ -261,26 +266,68 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
     return attempt === 0 ? r.src : `${r.src}${r.src.includes('?') ? '&' : '?'}preview-retry=${attempt}`;
   };
   const retryPreview = (id: string) => {
-    setPreviewAttempts((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
-    // The Try again button is about to go; leave focus on a control that stays visible.
-    dotsRef.current?.querySelector<HTMLElement>('.dot.active')?.focus();
+    const attempt = previewAttempt(id) + 1;
+    setPreviewAttempts((prev) => ({ ...prev, [id]: attempt }));
+    // A request that neither loads nor errors must not stay on "Loading" for ever.
+    // One timer per receipt: a new retry replaces the old one, so an old attempt cannot overwrite a newer result.
+    const timers = previewRetryTimersRef.current;
+    window.clearTimeout(timers.get(id));
+    timers.set(
+      id,
+      window.setTimeout(() => {
+        timers.delete(id);
+        if (previewLoadedRef.current[id] !== attempt) {
+          setPreviewFailedAttempt((prev) => ({ ...prev, [id]: attempt }));
+        }
+      }, PREVIEW_RETRY_TIMEOUT_MS),
+    );
   };
 
-  // While a preview has failed, or a retry of it has not loaded yet, Try again is the action.
-  const uploadMuted =
-    previewRetry &&
-    (previewFailed(currentReceipt.id) ||
-      (previewAttempt(currentReceipt.id) > 0 && previewLoadedAttempt[currentReceipt.id] !== previewAttempt(currentReceipt.id)));
-
-  // Upload is about to be disabled while focused: hand focus to Try again so it is not stranded.
   useEffect(() => {
-    if (uploadMuted && document.activeElement === uploadButtonRef.current) previewRetryButtonRef.current?.focus();
-  }, [uploadMuted]);
+    const timers = previewRetryTimersRef.current;
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, []);
 
-  const handleUploadClick = () => {
-    if (isDisabled || uploadMuted) return;
+  // The one action button: Upload, or for a receipt whose picture failed, Try again.
+  const actionMode: 'upload' | 'retry' | 'retrying' = !previewRetry
+    ? 'upload'
+    : previewFailed(currentReceipt.id)
+      ? 'retry'
+      : previewAttempt(currentReceipt.id) > 0 && previewLoadedAttempt[currentReceipt.id] !== previewAttempt(currentReceipt.id)
+        ? 'retrying'
+        : 'upload';
+  const actionNativelyDisabled = actionMode === 'upload' && isDisabled;
+
+  // A focused button that becomes natively disabled would strand focus; hand it to a visible control.
+  useEffect(() => {
+    if (previewRetry && actionNativelyDisabled && document.activeElement === uploadButtonRef.current) {
+      dotsRef.current?.querySelector<HTMLElement>('.dot.active')?.focus();
+    }
+  }, [previewRetry, actionNativelyDisabled]);
+
+  const handleActionClick = () => {
+    if (actionMode === 'retrying') return;
+    if (actionMode === 'retry') {
+      retryPreview(currentReceipt.id);
+      return;
+    }
+    if (isDisabled) return;
     void onUpload(currentReceipt);
   };
+
+  const uploadPillContent = (
+    <>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path
+          d="M15.94 8.95L15.94 6.51C15.94 5.97 15.72 5.45 15.33 5.07L13.23 3.04C12.85 2.68 12.35 2.48 11.84 2.48L6.28 2.48C5.17 2.48 4.27 3.38 4.27 4.48L4.28 8.95M4.27 15.32L4.27 15.52C4.27 16.63 5.17 17.52 6.27 17.52L13.94 17.52C15.04 17.52 15.94 16.62 15.94 15.52L15.94 15.32M2.35 11.85L17.65 11.85"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+      <span>Upload</span>
+    </>
+  );
 
   // Two close buttons, one per breakpoint:
   //   - Desktop: inline inside .picker-modal so it sits at the modal's
@@ -393,6 +440,7 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
                         previewRetry
                           ? () => {
                               const attempt = previewAttempt(r.id);
+                              previewLoadedRef.current[r.id] = attempt;
                               setPreviewLoadedAttempt((prev) => ({ ...prev, [r.id]: attempt }));
                             }
                           : undefined
@@ -411,20 +459,11 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
               );
             })}
         </div>
-        {previewFailed(currentReceipt.id) && (
+        {actionMode !== 'upload' && (
           <div className="preview-failed-overlay">
-            <p className="preview-failed" role="status">
-              Couldn&apos;t load this receipt.
+            <p className={actionMode === 'retry' ? 'preview-failed' : 'preview-loading'} role="status">
+              {actionMode === 'retry' ? <>Couldn&apos;t load this receipt.</> : 'Loading this receipt…'}
             </p>
-            <button
-              type="button"
-              ref={previewRetryButtonRef}
-              className="preview-retry"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => retryPreview(currentReceipt.id)}
-            >
-              Try again
-            </button>
           </div>
         )}
       </div>
@@ -448,23 +487,27 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
       <button
         type="button"
         ref={uploadButtonRef}
-        className="upload-pill"
-        onClick={handleUploadClick}
-        disabled={isDisabled || uploadMuted}
+        className={`upload-pill${actionMode === 'upload' ? '' : ' is-preview-action'}`}
+        onClick={handleActionClick}
+        disabled={actionNativelyDisabled}
+        aria-disabled={actionMode === 'retrying' ? true : undefined}
+        aria-busy={actionMode === 'retrying' ? true : undefined}
       >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path
-            d="M15.94 8.95L15.94 6.51C15.94 5.97 15.72 5.45 15.33 5.07L13.23 3.04C12.85 2.68 12.35 2.48 11.84 2.48L6.28 2.48C5.17 2.48 4.27 3.38 4.27 4.48L4.28 8.95M4.27 15.32L4.27 15.52C4.27 16.63 5.17 17.52 6.27 17.52L13.94 17.52C15.04 17.52 15.94 16.62 15.94 15.52L15.94 15.32M2.35 11.85L17.65 11.85"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-        <span>Upload</span>
+        {actionMode === 'upload' ? (
+          uploadPillContent
+        ) : (
+          <>
+            {/* Upload's own content, invisible, keeps the button exactly Upload's size. */}
+            <span className="action-sizer" aria-hidden="true">
+              {uploadPillContent}
+            </span>
+            <span className="action-label">{actionMode === 'retry' ? 'Try again' : 'Loading…'}</span>
+          </>
+        )}
       </button>
       {uploadStatus !== undefined && (
         <p className="picker-upload-status" role="status">
-          {uploadMuted ? '' : uploadStatus}
+          {actionMode === 'upload' ? uploadStatus : ''}
         </p>
       )}
 
@@ -744,17 +787,12 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           line-height: 1.35;
           color: #ffffff;
         }
-        .preview-retry {
-          pointer-events: auto;
-          min-height: 44px;
-          padding: 0 20px;
-          border: none;
-          border-radius: 22px;
-          background: #ffffff;
-          color: #1c1917;
-          font-size: 15px;
-          font-weight: 500;
-          cursor: pointer;
+        .preview-loading {
+          margin: 0;
+          text-align: center;
+          font-size: 16px;
+          line-height: 1.35;
+          color: #ffffff;
         }
 
         .picker-upload-status {
@@ -830,6 +868,30 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
         }
         .upload-pill:active:not(:disabled) {
           transform: scale(0.97);
+        }
+        .upload-pill.is-preview-action {
+          position: relative;
+        }
+        .action-sizer {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          visibility: hidden;
+        }
+        .action-label {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .upload-pill[aria-disabled='true'],
+        .upload-pill[aria-disabled='true']:hover,
+        .upload-pill[aria-disabled='true']:active {
+          background: rgba(255, 255, 255, 0.18);
+          color: #ffffff;
+          cursor: progress;
+          transform: none;
         }
         .upload-pill:disabled {
           opacity: 0.35;

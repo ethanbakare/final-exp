@@ -37,7 +37,7 @@ const pickerFocusables = (): HTMLElement[] => {
   // An explicit list, in visual order: controls that are on screen whenever they exist. The carousel
   // slides are left out on purpose: most are faded or off screen, and the dots do the same job.
   const inside = document.querySelectorAll<HTMLElement>(
-    '.picker-modal .close-btn, .picker-modal .preview-retry, .picker-modal .dot, .picker-modal .upload-pill:not([disabled])',
+    '.picker-modal .close-btn, .picker-modal .dot, .picker-modal .upload-pill:not([disabled])',
   );
   // The phone close button is portaled to the body but is visually first; the hidden close has no boxes.
   return [closeButton, ...Array.from(inside)].filter((el): el is HTMLElement => !!el && el.getClientRects().length > 0);
