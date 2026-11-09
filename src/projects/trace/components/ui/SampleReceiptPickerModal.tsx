@@ -45,6 +45,12 @@ interface SampleReceiptPickerModalProps {
   /** External-store pair for live disabled state — see §5.3.2. */
   subscribeIsDisabled: (callback: () => void) => () => void;
   getIsDisabled: () => boolean;
+  /** Stacking for the portaled phone close button, when the host's overlay sits above its default. */
+  closeButtonZIndex?: number;
+  /** Text next to Upload about the sample download. Omit to render no status line. */
+  uploadStatus?: string;
+  /** When a preview image fails, show a message and Try again in its place. Off by default. */
+  previewRetry?: boolean;
 }
 
 // Distance the user needs to drag horizontally before a swipe commits.
@@ -64,8 +70,16 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
   onClose,
   subscribeIsDisabled,
   getIsDisabled,
+  closeButtonZIndex,
+  uploadStatus,
+  previewRetry = false,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  // Per receipt: the current image attempt, and the attempt that failed. A failure
+  // only counts for the attempt on screen, so a late error from an old one is ignored.
+  const [previewAttempts, setPreviewAttempts] = useState<Record<string, number>>({});
+  const [previewFailedAttempt, setPreviewFailedAttempt] = useState<Record<string, number>>({});
+  const dotsRef = useRef<HTMLDivElement | null>(null);
   const [dragOffsetX, setDragOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartXRef = useRef(0);
@@ -237,6 +251,18 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
     currentIndex * slideWidthPx +
     dragOffsetX;
 
+  const previewAttempt = (id: string) => previewAttempts[id] ?? 0;
+  const previewFailed = (id: string) => previewRetry && previewFailedAttempt[id] === previewAttempt(id);
+  const previewSrc = (r: SampleReceipt) => {
+    const attempt = previewAttempt(r.id);
+    return attempt === 0 ? r.src : `${r.src}${r.src.includes('?') ? '&' : '?'}preview-retry=${attempt}`;
+  };
+  const retryPreview = (id: string) => {
+    setPreviewAttempts((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+    // The Try again button is about to go; leave focus on a control that stays visible.
+    dotsRef.current?.querySelector<HTMLElement>('.dot.active')?.focus();
+  };
+
   const handleUploadClick = () => {
     if (isDisabled) return;
     void onUpload(currentReceipt);
@@ -253,6 +279,7 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
     <button
       type="button"
       className="sample-picker-close-mobile"
+      style={closeButtonZIndex !== undefined ? { zIndex: closeButtonZIndex } : undefined}
       onClick={onClose}
       aria-label="Close picker"
     >
@@ -342,19 +369,45 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
                   aria-current={isActive ? 'true' : undefined}
                   tabIndex={isActive ? -1 : 0}
                 >
-                  <img
-                    src={r.src}
-                    alt={isActive ? r.alt : ''}
-                    draggable={false}
-                  />
+                  {!previewFailed(r.id) && (
+                    <img
+                      key={previewAttempt(r.id)}
+                      src={previewSrc(r)}
+                      alt={isActive ? r.alt : ''}
+                      draggable={false}
+                      onError={
+                        previewRetry
+                          ? () => {
+                              const attempt = previewAttempt(r.id);
+                              setPreviewFailedAttempt((prev) => ({ ...prev, [r.id]: attempt }));
+                            }
+                          : undefined
+                      }
+                    />
+                  )}
                 </button>
               );
             })}
         </div>
+        {previewFailed(currentReceipt.id) && (
+          <div className="preview-failed-overlay">
+            <p className="preview-failed" role="status">
+              Couldn&apos;t load this receipt.
+            </p>
+            <button
+              type="button"
+              className="preview-retry"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => retryPreview(currentReceipt.id)}
+            >
+              Try again
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Page indicator dots. */}
-      <div className="dots" role="tablist" aria-label="Receipt position">
+      <div className="dots" ref={dotsRef} role="tablist" aria-label="Receipt position">
         {receipts.map((r, i) => (
           <button
             key={r.id}
@@ -385,6 +438,11 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
         </svg>
         <span>Upload</span>
       </button>
+      {uploadStatus !== undefined && (
+        <p className="picker-upload-status" role="status">
+          {uploadStatus}
+        </p>
+      )}
 
       <style jsx>{`
         .picker-modal {
@@ -643,6 +701,49 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
           :global(.sample-picker-close-mobile) {
             display: flex;
           }
+        }
+
+        .preview-failed-overlay {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          pointer-events: none;
+        }
+        .preview-failed {
+          margin: 0;
+          text-align: center;
+          font-size: 16px;
+          line-height: 1.35;
+          color: #ffffff;
+        }
+        .preview-retry {
+          pointer-events: auto;
+          min-height: 44px;
+          padding: 0 20px;
+          border: none;
+          border-radius: 22px;
+          background: #ffffff;
+          color: #1c1917;
+          font-size: 15px;
+          font-weight: 500;
+          cursor: pointer;
+        }
+
+        .picker-upload-status {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          margin: 4px 0 0;
+          text-align: center;
+          font-size: 14px;
+          line-height: 1.35;
+          color: #ffffff;
+          pointer-events: none;
         }
 
         /* Page dots */

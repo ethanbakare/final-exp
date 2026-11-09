@@ -93,6 +93,9 @@ export interface TraceCoreProps {
   // share the same source of truth. See
   // docs/trace/CLEAR-BUTTON-DORMANT-STATE.md.
   renderClearButton?: (requestClearAll: () => void, isDisabled: boolean) => React.ReactNode;
+  // Render the sample strip before the Clear button in the DOM, for hosts
+  // that show the strip first. Default false keeps Clear, then the strip.
+  sampleStripBeforeClear?: boolean;
   // [DEMO-SHOWCASE] Optional callback for the sample-receipt picker
   // modal. When present, TraceCore delegates the picker UI to the
   // caller (showcase mounts it through ShowcaseModalContext); when
@@ -141,6 +144,7 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
   renderClearButton,
   onRequestSamplePicker,
   renderSampleStrip,
+  sampleStripBeforeClear = false,
 }) => {
   // State management
   const [navbarState, setNavbarState] = useState<'idle' | 'recording' | 'processing_audio' | 'processing_image'>('idle');
@@ -488,6 +492,10 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
         ? 'image'
         : 'idle';
 
+  const sampleStrip = renderSampleStrip
+    ? renderSampleStrip(SAMPLE_RECEIPTS, handleSampleStripClick, isSamplePickerDisabled)
+    : null;
+
   return (
     <>
       {/* [DEMO-SHOWCASE] Conditional render. Standalone /trace passes no
@@ -522,6 +530,8 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
         />
       </div>
 
+      {sampleStripBeforeClear ? sampleStrip : null}
+
       {renderClearButton ? (
         renderClearButton(requestClearAll, isClearDisabled)
       ) : (
@@ -530,13 +540,11 @@ export const TraceCore: React.FC<TraceCoreProps> = ({
         </div>
       )}
 
-      {/* Sample-receipt strip — only renders when the consumer provides
-          the render slot. Standalone /trace doesn't pass this prop in
-          phase 1, so this evaluates to null and the page is unchanged.
-          Showcase TraceDemo will provide it in commit 4. */}
-      {renderSampleStrip
-        ? renderSampleStrip(SAMPLE_RECEIPTS, handleSampleStripClick, isSamplePickerDisabled)
-        : null}
+      {/* Sample-receipt strip: rendered only when the consumer provides the
+          render slot. Default order is Clear, then the strip (the showcase
+          portals both, so this is its mount order); hosts that lay the strip
+          out first ask for it first, so Tab follows the visual order. */}
+      {sampleStripBeforeClear ? null : sampleStrip}
 
       <TraceModalOverlay
         isVisible={showClearModal}

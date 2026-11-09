@@ -30,7 +30,7 @@ export default function TracePage() {
 
       <ProjectPageBackground variant="trace">
         <div className="trace-page">
-          <TraceCore onRequestSamplePicker={onRequestSamplePicker} renderSampleStrip={renderSampleStrip} />
+          <TraceCore onRequestSamplePicker={onRequestSamplePicker} renderSampleStrip={renderSampleStrip} sampleStripBeforeClear />
         </div>
       </ProjectPageBackground>
       {pickerModal}
@@ -42,16 +42,21 @@ export default function TracePage() {
           /* Background = the home-page AI DEMOS Trace card (#965935),
              painted and framed by <ProjectPageBackground>, which also
              applies the site navbar offset. */
-          /* The two middle columns are together exactly as wide as the card
-             (360px x its zoom, set below), so the row under the card holds the
-             sample receipts at the card's left edge and Clear at its right. The
-             outer columns take the spare width: the card and the mic banner span
-             all four, so they still centre across the whole page. */
+          /* The three middle columns are together exactly as wide as the card
+             (360px x its zoom, set below): the centre one is the width of the
+             sample receipts, so they centre under the card, and Clear sits at
+             the card's right edge. The outer columns take the spare width: the
+             card and the mic banner span all five, so they still centre across
+             the whole page. */
           --trace-card-zoom: 1;
+          --trace-strip-width: 206px;
+          --trace-strip-side: calc((360px * var(--trace-card-zoom) - var(--trace-strip-width)) / 2);
           display: grid;
           grid-template-columns:
             minmax(0, 1fr)
-            repeat(2, calc(180px * var(--trace-card-zoom)))
+            var(--trace-strip-side)
+            var(--trace-strip-width)
+            var(--trace-strip-side)
             minmax(0, 1fr);
           grid-auto-flow: row dense;
           justify-items: center;
@@ -66,12 +71,25 @@ export default function TracePage() {
           grid-column: 1 / -1;
         }
         .trace-page > :global(.trace-sample-strip) {
-          grid-column: 2;
-          justify-self: start;
+          grid-column: 3;
+          justify-self: center;
         }
         .trace-page > :global(.clear-button-below) {
-          grid-column: 3;
+          grid-column: 4;
           justify-self: end;
+        }
+        /* Matches the thumbnails' phone size in TraceSamplePicker. */
+        @media (max-width: 768px) {
+          .trace-page {
+            --trace-strip-width: 170px;
+          }
+        }
+        /* Below 360 the card is too narrow for the centred receipts and Clear
+           on one row, so Clear moves to its own row under them. */
+        @media (max-width: 359px) {
+          .trace-page > :global(.clear-button-below) {
+            grid-column: 2 / 5;
+          }
         }
 
         /* The mic permission banner is a fixed toast by default (top: 24px

@@ -7,7 +7,7 @@
  * pipeline. The modal mounts in TraceModalOverlay instead of the showcase's modal
  * layer, and the strip stays in the page flow instead of a portal to the canvas.
  */
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { TraceModalOverlay } from './ui/TraceModalOverlay';
 import { SampleReceiptPickerModal } from './ui/SampleReceiptPickerModal';
 import type { SampleReceipt } from '../data/sample-receipts';
@@ -21,42 +21,134 @@ type PickerControls = {
   getIsDisabled: () => boolean;
 };
 
+const SLOW_MESSAGE_AFTER_MS = 300;
+const DOWNLOAD_TIMEOUT_MS = 20000;
+const LOADING_TEXT = 'Loading this receipt…';
+const FAILED_TEXT = "Couldn't load receipt. Tap Upload to retry.";
+
+// The overlay on this page is z-index 10001 (--trace-z-modal); the phone close button must be above it.
+const CLOSE_BUTTON_Z_INDEX = 10002;
+
+/** One sample download: its abort handle and timers live and die together. */
+type UploadRun = { controller: AbortController; slowTimer: number; timeoutTimer: number };
+
+const pickerFocusables = (): HTMLElement[] => {
+  const closeButton = document.querySelector<HTMLElement>('.sample-picker-close-mobile');
+  // An explicit list, in visual order: controls that are on screen whenever they exist. The carousel
+  // slides are left out on purpose: most are faded or off screen, and the dots do the same job.
+  const inside = document.querySelectorAll<HTMLElement>(
+    '.picker-modal .close-btn, .picker-modal .preview-retry, .picker-modal .dot, .picker-modal .upload-pill:not([disabled])',
+  );
+  // The phone close button is portaled to the body but is visually first; the hidden close has no boxes.
+  return [closeButton, ...Array.from(inside)].filter((el): el is HTMLElement => !!el && el.getClientRects().length > 0);
+};
+
 export const useTraceSamplePicker = () => {
   const [controls, setControls] = useState<PickerControls | null>(null);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const isOpen = controls !== null;
 
-  // The upload in flight, if any: closing the picker drops it, and a second tap is ignored.
-  const uploadRef = useRef<symbol | null>(null);
+  // The download in flight, if any: closing the picker aborts it, and a second tap is ignored.
+  const runRef = useRef<UploadRun | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  const finishRun = useCallback((run: UploadRun) => {
+    window.clearTimeout(run.slowTimer);
+    window.clearTimeout(run.timeoutTimer);
+    if (runRef.current === run) runRef.current = null;
+  }, []);
+
+  const abortRun = useCallback(() => {
+    const run = runRef.current;
+    if (!run) return;
+    finishRun(run);
+    run.controller.abort();
+  }, [finishRun]);
+
+  useEffect(() => abortRun, [abortRun]);
+
+  const handleOpen = useCallback((next: PickerControls) => {
+    const active = document.activeElement;
+    triggerRef.current = active instanceof HTMLElement && active !== document.body ? active : null;
+    setUploadStatus('');
+    setControls(next);
+  }, []);
 
   const handleClose = useCallback(() => {
-    uploadRef.current = null;
+    abortRun();
+    setUploadStatus('');
     controls?.cancel();
     setControls(null);
-  }, [controls]);
+  }, [abortRun, controls]);
+
+  // While the picker is open, Tab stays inside it and follows the visual order; closing
+  // returns focus to the thumbnail that opened it.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const items = pickerFocusables();
+      if (items.length === 0) return;
+      e.preventDefault();
+      const at = items.indexOf(document.activeElement as HTMLElement);
+      const next = e.shiftKey ? (at <= 0 ? items.length - 1 : at - 1) : (at + 1) % items.length;
+      items[next].focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    // Move focus into the picker once its portaled close button exists (it mounts a render
+    // after the modal); that button is in the DOM at every width, hidden on desktop.
+    let frame = 0;
+    const focusFirstStop = (framesLeft: number) => {
+      if (document.querySelector('.sample-picker-close-mobile') || framesLeft === 0) {
+        pickerFocusables()[0]?.focus({ preventScroll: true });
+      } else {
+        frame = window.requestAnimationFrame(() => focusFirstStop(framesLeft - 1));
+      }
+    };
+    frame = window.requestAnimationFrame(() => focusFirstStop(30));
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', onKeyDown);
+      triggerRef.current?.focus({ preventScroll: true });
+      triggerRef.current = null;
+    };
+  }, [isOpen]);
 
   // Fetch the chosen receipt's PNG and wrap it in a File the same way a native
   // picker would deliver one, so the rest of the pipeline can't tell the difference.
   const handleUpload = useCallback(
     async (receipt: SampleReceipt) => {
-      if (!controls || uploadRef.current) return;
-      const run = Symbol('upload');
-      uploadRef.current = run;
+      if (!controls || runRef.current) return;
+      const controller = new AbortController();
+      const run: UploadRun = {
+        controller,
+        slowTimer: window.setTimeout(() => {
+          if (runRef.current === run) setUploadStatus(LOADING_TEXT);
+        }, SLOW_MESSAGE_AFTER_MS),
+        timeoutTimer: window.setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS),
+      };
+      runRef.current = run;
+      setUploadStatus('');
       let file: File;
       try {
-        const response = await fetch(receipt.src);
+        const response = await fetch(receipt.src, { signal: controller.signal });
         if (!response.ok) throw new Error(String(response.status));
         const blob = await response.blob();
         file = new File([blob], `${receipt.id}.png`, { type: receipt.mimeType });
       } catch {
         // Could not load the sample: the picker stays open, so Upload can be tried again.
-        if (uploadRef.current === run) uploadRef.current = null;
+        if (runRef.current !== run) return; // closed while it loaded
+        finishRun(run);
+        setUploadStatus(FAILED_TEXT);
         return;
       }
-      if (uploadRef.current !== run) return; // closed while it loaded
-      uploadRef.current = null;
+      if (runRef.current !== run) return; // closed while it loaded
+      finishRun(run);
+      setUploadStatus('');
       setControls(null);
       await controls.selectReceipt(file);
     },
-    [controls],
+    [controls, finishRun],
   );
 
   const renderSampleStrip = useCallback(
@@ -142,10 +234,13 @@ export const useTraceSamplePicker = () => {
           onClose={handleClose}
           subscribeIsDisabled={controls.subscribeIsDisabled}
           getIsDisabled={controls.getIsDisabled}
+          closeButtonZIndex={CLOSE_BUTTON_Z_INDEX}
+          uploadStatus={uploadStatus}
+          previewRetry
         />
       )}
     </TraceModalOverlay>
   );
 
-  return { onRequestSamplePicker: setControls as (c: PickerControls) => void, renderSampleStrip, pickerModal };
+  return { onRequestSamplePicker: handleOpen as (c: PickerControls) => void, renderSampleStrip, pickerModal };
 };
