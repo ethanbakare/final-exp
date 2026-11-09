@@ -53,6 +53,13 @@ const AIConfidenceTrackerPage: React.FC = () => {
           components' scoped styles and inline colours. Targets >= 4.5:1
           on the watercolour. Decorative dots/borders/icons stay faint. */}
       <style jsx global>{`
+        /* The reading card sits back behind the transcript card: its radius
+           matches that card's 16px, and its white is 5% lower through the
+           background alpha, not opacity, so the text keeps its colour. */
+        .ai-tracker-container .reading-box {
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.95) !important;
+        }
         .ai-tracker-container .read-text-label,
         .ai-tracker-container .swipe-hint,
         .ai-tracker-container .transcript-microcopy span {
