@@ -79,7 +79,10 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
   // only counts for the attempt on screen, so a late error from an old one is ignored.
   const [previewAttempts, setPreviewAttempts] = useState<Record<string, number>>({});
   const [previewFailedAttempt, setPreviewFailedAttempt] = useState<Record<string, number>>({});
+  const [previewLoadedAttempt, setPreviewLoadedAttempt] = useState<Record<string, number>>({});
   const dotsRef = useRef<HTMLDivElement | null>(null);
+  const uploadButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previewRetryButtonRef = useRef<HTMLButtonElement | null>(null);
   const [dragOffsetX, setDragOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartXRef = useRef(0);
@@ -263,8 +266,19 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
     dotsRef.current?.querySelector<HTMLElement>('.dot.active')?.focus();
   };
 
+  // While a preview has failed, or a retry of it has not loaded yet, Try again is the action.
+  const uploadMuted =
+    previewRetry &&
+    (previewFailed(currentReceipt.id) ||
+      (previewAttempt(currentReceipt.id) > 0 && previewLoadedAttempt[currentReceipt.id] !== previewAttempt(currentReceipt.id)));
+
+  // Upload is about to be disabled while focused: hand focus to Try again so it is not stranded.
+  useEffect(() => {
+    if (uploadMuted && document.activeElement === uploadButtonRef.current) previewRetryButtonRef.current?.focus();
+  }, [uploadMuted]);
+
   const handleUploadClick = () => {
-    if (isDisabled) return;
+    if (isDisabled || uploadMuted) return;
     void onUpload(currentReceipt);
   };
 
@@ -375,6 +389,14 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
                       src={previewSrc(r)}
                       alt={isActive ? r.alt : ''}
                       draggable={false}
+                      onLoad={
+                        previewRetry
+                          ? () => {
+                              const attempt = previewAttempt(r.id);
+                              setPreviewLoadedAttempt((prev) => ({ ...prev, [r.id]: attempt }));
+                            }
+                          : undefined
+                      }
                       onError={
                         previewRetry
                           ? () => {
@@ -396,6 +418,7 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
             </p>
             <button
               type="button"
+              ref={previewRetryButtonRef}
               className="preview-retry"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => retryPreview(currentReceipt.id)}
@@ -424,9 +447,10 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
       {/* Upload pill — disabled live via §5.3.2 when navbar is non-idle. */}
       <button
         type="button"
+        ref={uploadButtonRef}
         className="upload-pill"
         onClick={handleUploadClick}
-        disabled={isDisabled}
+        disabled={isDisabled || uploadMuted}
       >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <path
@@ -440,7 +464,7 @@ export const SampleReceiptPickerModal: React.FC<SampleReceiptPickerModalProps> =
       </button>
       {uploadStatus !== undefined && (
         <p className="picker-upload-status" role="status">
-          {uploadStatus}
+          {uploadMuted ? '' : uploadStatus}
         </p>
       )}
 
